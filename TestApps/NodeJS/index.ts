@@ -30,7 +30,7 @@ class EmployeePromoted {
 }
 
 /** Represents an employee relocating to a new city. */
-@eventType('cc9fcc47-cfe3-4af6-c77a-938703e2g138', 1)
+@eventType('cc9fcc47-cfe3-4af6-c77a-938703e2f138', 1)
 class EmployeeMoved {
     constructor(readonly newCity: string) {}
 }

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import crypto from 'crypto';
 import { Guid } from '@cratis/chronicle.contracts';
 
 /**
@@ -20,13 +21,9 @@ export function uuidToGuid(uuid: string): Guid {
 }
 
 /**
- * Generates a new random UUID string.
+ * Generates a new random UUID string using the cryptographically secure `crypto.randomUUID()`.
  * @returns A newly generated UUID v4 string.
  */
 export function newUuid(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
-        const random = Math.random() * 16 | 0;
-        const value = character === 'x' ? random : (random & 0x3 | 0x8);
-        return value.toString(16);
-    });
+    return crypto.randomUUID();
 }
