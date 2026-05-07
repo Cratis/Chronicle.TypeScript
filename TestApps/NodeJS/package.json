@@ -1,0 +1,23 @@
+{
+    "name": "@cratis/chronicle-test-console",
+    "version": "1.0.0",
+    "description": "Simple Node.js console test app for the Cratis Chronicle TypeScript client",
+    "author": "Cratis",
+    "license": "MIT",
+    "private": true,
+    "main": "dist/index.js",
+    "scripts": {
+        "compile": "tsc -b",
+        "build": "tsc -b",
+        "start": "node dist/index.js",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@cratis/chronicle": "file:../../Source",
+        "reflect-metadata": "^0.2.2"
+    },
+    "devDependencies": {
+        "@types/node": "^25.6.1",
+        "typescript": "^6.0.3"
+    }
+}
