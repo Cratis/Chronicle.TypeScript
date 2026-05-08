@@ -40,10 +40,12 @@ class EmployeeMoved {
 
 @readModel('employee-read-model')
 class EmployeeReadModel {
-    firstName = '';
-    lastName = '';
-    title = '';
-    city = '';
+    constructor(
+        readonly firstName: string,
+        readonly lastName: string,
+        readonly title: string,
+        readonly city: string
+    ) {}
 }
 
 @projection('employees-declarative')

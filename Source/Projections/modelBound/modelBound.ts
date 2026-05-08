@@ -7,7 +7,7 @@ import { ProjectionId } from '../ProjectionId';
 import { DecoratorType, TypeDiscoverer } from '../../types';
 
 /** Metadata key used to store model-bound projection information on a class. */
-const MODEL_BOUND_METADATA_KEY = 'chronicle:modelBoundProjection';
+const MODEL_BOUND_METADATA_KEY = 'chronicle:modelBound';
 
 /**
  * Metadata stored on a model-bound projection class.
