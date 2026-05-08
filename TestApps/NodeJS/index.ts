@@ -11,7 +11,16 @@ import {
     projection,
     modelBound,
     reactor,
-    EventContext
+    EventContext,
+    IProjectionFor,
+    IProjectionBuilderFor,
+    fromEvent,
+    setFrom,
+    setFromContext,
+    increment,
+    childrenFrom,
+    notRewindable,
+    removedWith
 } from '@cratis/chronicle';
 
 // --- Event type definitions ---
@@ -38,21 +47,109 @@ class EmployeeMoved {
     constructor(readonly newCity: string) {}
 }
 
+/** Represents an employee leaving the organization. */
+@eventType('dd0fdd58-dfe4-4bf7-d88b-049814f3f249', 1)
+class EmployeeLeft {
+    constructor(readonly reason: string) {}
+}
+
+/** Read model representing the current state of an employee. */
 @readModel('employee-read-model')
 class EmployeeReadModel {
     constructor(
         readonly firstName: string,
         readonly lastName: string,
         readonly title: string,
-        readonly city: string
+        readonly city: string,
+        readonly promotionCount: number
     ) {}
 }
 
-@projection('employees-declarative')
-class EmployeesDeclarativeProjection {}
+// --- Declarative projection ---
 
+/**
+ * Declarative projection that builds an EmployeeReadModel from employee domain events.
+ * Uses the fluent builder API to describe all property mappings explicitly.
+ */
+@projection('employees-declarative')
+class EmployeesDeclarativeProjection implements IProjectionFor<EmployeeReadModel> {
+    /** @inheritdoc */
+    define(builder: IProjectionBuilderFor<EmployeeReadModel>): void {
+        builder
+            .from<EmployeeHired>(fromBuilder =>
+                fromBuilder
+                    .set(m => m.firstName).to(e => e.firstName)
+                    .set(m => m.lastName).to(e => e.lastName)
+                    .set(m => m.title).to(e => e.title)
+            )
+            .from<EmployeePromoted>(fromBuilder =>
+                fromBuilder
+                    .set(m => m.title).to(e => e.newTitle)
+                    .increment(m => m.promotionCount)
+            )
+            .from<EmployeeMoved>(fromBuilder =>
+                fromBuilder
+                    .set(m => m.city).to(e => e.newCity)
+            )
+            .removedWith<EmployeeLeft>();
+    }
+}
+
+// --- Model-bound projection ---
+
+/**
+ * Model-bound projection that maps employee domain events directly onto properties via decorators.
+ * This style keeps all projection logic co-located with the read model shape.
+ */
 @modelBound('employees-model-bound')
-class EmployeesModelBoundProjection {}
+@notRewindable
+@removedWith(EmployeeLeft)
+class EmployeesModelBoundProjection {
+    @setFrom(EmployeeHired)
+    firstName: string = '';
+
+    @setFrom(EmployeeHired)
+    lastName: string = '';
+
+    @setFrom(EmployeeHired)
+    @setFrom(EmployeePromoted, 'newTitle')
+    title: string = '';
+
+    @setFrom(EmployeeMoved, 'newCity')
+    city: string = '';
+
+    @increment(EmployeePromoted)
+    promotionCount: number = 0;
+
+    @setFromContext(EmployeeHired, 'occurred')
+    lastUpdated: string = '';
+}
+
+// --- Model-bound projection with children ---
+
+/** Represents a department assignment history entry. */
+class DepartmentAssignment {
+    constructor(
+        readonly department: string,
+        readonly assignedOn: string
+    ) {}
+}
+
+/**
+ * Model-bound projection that includes a child collection, demonstrating the childrenFrom decorator.
+ */
+@fromEvent(EmployeeHired)
+@modelBound('employees-with-history')
+class EmployeeWithHistoryProjection {
+    @setFrom(EmployeeHired)
+    firstName: string = '';
+
+    @setFrom(EmployeeHired)
+    lastName: string = '';
+
+    @childrenFrom(EmployeePromoted, 'promotionCount', 'department')
+    promotionHistory: DepartmentAssignment[] = [];
+}
 
 // --- Reactor ---
 
