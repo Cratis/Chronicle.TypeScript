@@ -4,7 +4,7 @@
 import { AppendResult } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
-import { Guid } from '../Guid';
+import { Guid } from '@cratis/fundamentals';
 
 /**
  * Options for appending an event to an event sequence.

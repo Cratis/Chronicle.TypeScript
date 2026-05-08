@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, Guid as ContractsGuid, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
-import { Guid } from '../Guid';
 import { Grpc } from '../Grpc';
 import { AppendOptions, IEventSequence } from './IEventSequence';
 import { AppendResult, ConstraintViolation } from './AppendResult';
@@ -36,7 +36,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: correlationId.toProtobuf(),
+                    CorrelationId: toContractsGuid(correlationId),
                     EventSourceType: 'Default',
                     EventSourceId: eventSourceId,
                     EventStreamType: 'Default',
@@ -99,7 +99,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: correlationId.toProtobuf(),
+                    CorrelationId: toContractsGuid(correlationId),
                     Events: eventsToAppend,
                     Causation: [],
                     CausedBy: undefined,
@@ -176,4 +176,15 @@ export class EventSequence implements IEventSequence {
             isSuccess: mappedViolations.length === 0 && mappedErrors.length === 0
         };
     }
+}
+
+function toContractsGuid(guid: Guid): ContractsGuid {
+    const hex = guid.toString().replace(/-/g, '');
+    const hi = BigInt(`0x${hex.substring(0, 16)}`);
+    const lo = BigInt(`0x${hex.substring(16, 32)}`);
+
+    return {
+        hi: Number(BigInt.asIntN(32, hi >> BigInt(32))) * 0x100000000 + Number(hi & BigInt(0xFFFFFFFF)),
+        lo: Number(BigInt.asIntN(32, lo >> BigInt(32))) * 0x100000000 + Number(lo & BigInt(0xFFFFFFFF))
+    };
 }

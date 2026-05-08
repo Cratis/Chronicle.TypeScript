@@ -3,7 +3,7 @@
 
 import path from 'path';
 import { DecoratorType } from './DecoratorType';
-import { ArtifactConstructor } from './ArtifactConstructor';
+import { Constructor } from '@cratis/fundamentals';
 
 type GlobFunction = (pattern: string) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
@@ -15,7 +15,7 @@ export class TypeDiscoverer {
     /** Shared default discoverer instance. */
     static readonly default = new TypeDiscoverer();
 
-    private static readonly _registeredTypes: Map<DecoratorType, Map<string, ArtifactConstructor>> = new Map();
+    private static readonly _registeredTypes: Map<DecoratorType, Map<string, Constructor>> = new Map();
 
     private readonly _glob: GlobFunction;
     private readonly _importFile: FileImporter;
@@ -50,9 +50,9 @@ export class TypeDiscoverer {
      * @param type - The type constructor to register.
      * @param name - Optional explicit discovery name for the type.
      */
-    register(decoratorType: DecoratorType, type: ArtifactConstructor, name?: string): void {
+    register(decoratorType: DecoratorType, type: Constructor, name?: string): void {
         const discoveredName = name ?? type.name;
-        const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, ArtifactConstructor>();
+        const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, Constructor>();
         typesForDecorator.set(discoveredName, type);
         TypeDiscoverer._registeredTypes.set(decoratorType, typesForDecorator);
     }
@@ -62,7 +62,7 @@ export class TypeDiscoverer {
      * @param decoratorType - The decorator category to retrieve types for.
      * @returns The registered types.
      */
-    getTypesByDecoratorType(decoratorType: DecoratorType): ArtifactConstructor[] {
+    getTypesByDecoratorType(decoratorType: DecoratorType): Constructor[] {
         return Array.from((TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map()).values());
     }
 
@@ -72,7 +72,7 @@ export class TypeDiscoverer {
      * @param name - The registered name of the type.
      * @returns The matching type, if any.
      */
-    getTypeByDecoratorTypeAndName(decoratorType: DecoratorType, name: string): ArtifactConstructor | undefined {
+    getTypeByDecoratorTypeAndName(decoratorType: DecoratorType, name: string): Constructor | undefined {
         return TypeDiscoverer._registeredTypes.get(decoratorType)?.get(name);
     }
 

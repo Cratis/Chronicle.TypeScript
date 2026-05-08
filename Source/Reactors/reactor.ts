@@ -2,8 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { Constructor } from '@cratis/fundamentals';
 import { ReactorId } from './ReactorId';
-import { ArtifactConstructor, DecoratorType, TypeDiscoverer } from '../TypeDiscovery';
+import { DecoratorType, TypeDiscoverer } from '../types';
 
 /** Metadata key used to store reactor information on a class. */
 const REACTOR_METADATA_KEY = 'chronicle:reactor';
@@ -49,7 +50,7 @@ export function reactor(id: string = '', eventSequenceId?: string): ClassDecorat
         Reflect.defineMetadata(REACTOR_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reactor,
-            constructor as ArtifactConstructor,
+            constructor as Constructor,
             reactorId.value
         );
     };

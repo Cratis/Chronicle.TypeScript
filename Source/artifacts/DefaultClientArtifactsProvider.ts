@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { DecoratorType } from './DecoratorType';
-import { ArtifactConstructor } from './ArtifactConstructor';
+import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from './IClientArtifactsProvider';
-import { TypeDiscoverer } from './TypeDiscoverer';
+import { DecoratorType } from '../types/DecoratorType';
+import { TypeDiscoverer } from '../types/TypeDiscoverer';
 
 /**
  * Represents the default provider for discovered client artifacts.
@@ -20,7 +20,17 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     constructor(private readonly discoverer: TypeDiscoverer) {}
 
     /** @inheritdoc */
-    getTypesByDecoratorType(decoratorType: DecoratorType): ArtifactConstructor[] {
-        return this.discoverer.getTypesByDecoratorType(decoratorType);
+    get eventTypes(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.EventType);
+    }
+
+    /** @inheritdoc */
+    get reactors(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Reactor);
+    }
+
+    /** @inheritdoc */
+    get reducers(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Reducer);
     }
 }
