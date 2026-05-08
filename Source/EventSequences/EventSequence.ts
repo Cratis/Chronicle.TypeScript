@@ -178,6 +178,11 @@ export class EventSequence implements IEventSequence {
     }
 }
 
+/**
+ * Converts a RFC 4122 Guid string into the protobuf Guid shape used by Chronicle contracts.
+ * @param guid - The Guid to convert.
+ * @returns The converted protobuf Guid with lo/hi segments.
+ */
 function toContractsGuid(guid: Guid): ContractsGuid {
     const hex = guid.toString().replace(/-/g, '');
     const hi = BigInt(`0x${hex.substring(0, 16)}`);
