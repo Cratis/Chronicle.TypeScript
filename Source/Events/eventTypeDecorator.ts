@@ -7,6 +7,7 @@ import { EventType } from './EventType';
 import { EventTypeId } from './EventTypeId';
 import { EventTypeGeneration } from './EventTypeGeneration';
 import { DecoratorType, TypeDiscoverer } from '../types';
+import { JsonSchema, JsonSchemaGenerator } from '../Schemas';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
@@ -58,4 +59,13 @@ export function getEventTypeFor(target: Function): EventType {
  */
 export function hasEventType(target: Function): boolean {
     return Reflect.hasMetadata(EVENT_TYPE_METADATA_KEY, target);
+}
+
+/**
+ * Generates a JSON schema for the provided event type class.
+ * @param target - The event class constructor to generate schema for.
+ * @returns The generated JSON schema.
+ */
+export function getEventTypeJsonSchemaFor(target: Function): JsonSchema {
+    return JsonSchemaGenerator.generate(target);
 }

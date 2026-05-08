@@ -8,7 +8,7 @@ Welcome to the Chronicle TypeScript client documentation.
 
 - Appending events to event sequences
 - Managing event stores and namespaces
-- Defining reactors (side-effect handlers) and reducers (state-folders) using TypeScript decorators
+- Defining reactors, reducers, projections, and constraints using TypeScript decorators
 
 ## Guides
 
