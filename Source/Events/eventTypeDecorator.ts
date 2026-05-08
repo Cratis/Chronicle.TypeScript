@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { EventType } from './EventType';
 import { EventTypeId } from './EventTypeId';
 import { EventTypeGeneration } from './EventTypeGeneration';
-import { DecoratorType, DiscoverableType, TypeDiscoverer } from '../TypeDiscovery';
+import { ArtifactConstructor, DecoratorType, TypeDiscoverer } from '../TypeDiscovery';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
@@ -35,7 +35,7 @@ export function eventType(id: string = '', generation: number = EventTypeGenerat
         Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, eventTypeInstance, target);
         TypeDiscoverer.default.register(
             DecoratorType.EventType,
-            constructor as DiscoverableType,
+            constructor as ArtifactConstructor,
             eventTypeId.value
         );
     };

@@ -4,7 +4,7 @@
 import { ChronicleConnectionString } from '@cratis/chronicle.contracts';
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './TypeDiscovery';
 
-type ChronicleOptionsInput = {
+type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;
     programIdentifier?: string;
     softwareVersion?: string;
@@ -12,7 +12,7 @@ type ChronicleOptionsInput = {
     clientArtifactsProvider?: IClientArtifactsProvider;
 };
 
-type ChronicleOptionsCreationInput = {
+type ChronicleOptionsFactoryParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
 };
 
@@ -45,7 +45,7 @@ export class ChronicleOptions {
      */
     readonly clientArtifactsProvider: IClientArtifactsProvider;
 
-    private constructor(options: ChronicleOptionsInput) {
+    private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
@@ -60,7 +60,7 @@ export class ChronicleOptions {
      */
     static fromConnectionString(
         connectionString: string | ChronicleConnectionString,
-        options?: ChronicleOptionsCreationInput
+        options?: ChronicleOptionsFactoryParams
     ): ChronicleOptions {
         const parsed = typeof connectionString === 'string'
             ? new ChronicleConnectionString(connectionString)
@@ -73,7 +73,7 @@ export class ChronicleOptions {
      * Uses the default development connection string pointing to localhost:35000.
      * @returns A new ChronicleOptions instance for development.
      */
-    static development(options?: ChronicleOptionsCreationInput): ChronicleOptions {
+    static development(options?: ChronicleOptionsFactoryParams): ChronicleOptions {
         return ChronicleOptions.fromConnectionString('chronicle://localhost:35000', options);
     }
 }

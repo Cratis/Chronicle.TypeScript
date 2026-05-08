@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { ReactorId } from './ReactorId';
-import { DecoratorType, DiscoverableType, TypeDiscoverer } from '../TypeDiscovery';
+import { ArtifactConstructor, DecoratorType, TypeDiscoverer } from '../TypeDiscovery';
 
 /** Metadata key used to store reactor information on a class. */
 const REACTOR_METADATA_KEY = 'chronicle:reactor';
@@ -49,7 +49,7 @@ export function reactor(id: string = '', eventSequenceId?: string): ClassDecorat
         Reflect.defineMetadata(REACTOR_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reactor,
-            constructor as DiscoverableType,
+            constructor as ArtifactConstructor,
             reactorId.value
         );
     };

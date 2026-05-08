@@ -3,7 +3,7 @@
 
 import path from 'path';
 import { DecoratorType } from './DecoratorType';
-import { DiscoverableType } from './DiscoverableType';
+import { ArtifactConstructor } from './ArtifactConstructor';
 
 type GlobFunction = (pattern: string) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
@@ -15,7 +15,7 @@ export class TypeDiscoverer {
     /** Shared default discoverer instance. */
     static readonly default = new TypeDiscoverer();
 
-    private static readonly _registeredTypes: Map<DecoratorType, Map<string, DiscoverableType>> = new Map();
+    private static readonly _registeredTypes: Map<DecoratorType, Map<string, ArtifactConstructor>> = new Map();
 
     private readonly _glob: GlobFunction;
     private readonly _importFile: FileImporter;
@@ -50,9 +50,9 @@ export class TypeDiscoverer {
      * @param type - The type constructor to register.
      * @param name - Optional explicit discovery name for the type.
      */
-    register(decoratorType: DecoratorType, type: DiscoverableType, name?: string): void {
+    register(decoratorType: DecoratorType, type: ArtifactConstructor, name?: string): void {
         const discoveredName = name ?? type.name;
-        const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, DiscoverableType>();
+        const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, ArtifactConstructor>();
         typesForDecorator.set(discoveredName, type);
         TypeDiscoverer._registeredTypes.set(decoratorType, typesForDecorator);
     }
@@ -62,7 +62,7 @@ export class TypeDiscoverer {
      * @param decoratorType - The decorator category to retrieve types for.
      * @returns The registered types.
      */
-    getTypesByDecoratorType(decoratorType: DecoratorType): DiscoverableType[] {
+    getTypesByDecoratorType(decoratorType: DecoratorType): ArtifactConstructor[] {
         return Array.from((TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map()).values());
     }
 
@@ -72,7 +72,7 @@ export class TypeDiscoverer {
      * @param name - The registered name of the type.
      * @returns The matching type, if any.
      */
-    getTypeByDecoratorTypeAndName(decoratorType: DecoratorType, name: string): DiscoverableType | undefined {
+    getTypeByDecoratorTypeAndName(decoratorType: DecoratorType, name: string): ArtifactConstructor | undefined {
         return TypeDiscoverer._registeredTypes.get(decoratorType)?.get(name);
     }
 
@@ -85,13 +85,19 @@ export class TypeDiscoverer {
     }
 
     private static async resolveWithGlobPackage(pattern: string): Promise<string[]> {
-        const globModule = require('glob') as { glob?: unknown };
-        const glob = globModule.glob;
-        if (typeof glob !== 'function') {
+        let globFunction: unknown;
+        try {
+            const globModule = require('glob') as { glob?: unknown };
+            globFunction = globModule.glob;
+        } catch {
             throw new Error('Could not load a compatible "glob" function for type discovery.');
         }
 
-        const files = await glob(pattern);
+        if (typeof globFunction !== 'function') {
+            throw new Error('The "glob" module was loaded but does not export a function named "glob".');
+        }
+
+        const files = await globFunction(pattern);
         if (!Array.isArray(files) || files.some(file => typeof file !== 'string')) {
             throw new Error('Type discovery glob resolution did not return an array of file paths.');
         }

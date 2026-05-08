@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { ReducerId } from './ReducerId';
-import { DecoratorType, DiscoverableType, TypeDiscoverer } from '../TypeDiscovery';
+import { ArtifactConstructor, DecoratorType, TypeDiscoverer } from '../TypeDiscovery';
 
 /** Metadata key used to store reducer information on a class. */
 const REDUCER_METADATA_KEY = 'chronicle:reducer';
@@ -49,7 +49,7 @@ export function reducer(id: string = '', eventSequenceId?: string): ClassDecorat
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reducer,
-            constructor as DiscoverableType,
+            constructor as ArtifactConstructor,
             reducerId.value
         );
     };

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { DecoratorType } from './DecoratorType';
-import { DiscoverableType } from './DiscoverableType';
+import { ArtifactConstructor } from './ArtifactConstructor';
 import { IClientArtifactsProvider } from './IClientArtifactsProvider';
 import { TypeDiscoverer } from './TypeDiscoverer';
 
@@ -20,7 +20,7 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     constructor(private readonly discoverer: TypeDiscoverer) {}
 
     /** @inheritdoc */
-    getTypesByDecoratorType(decoratorType: DecoratorType): DiscoverableType[] {
+    getTypesByDecoratorType(decoratorType: DecoratorType): ArtifactConstructor[] {
         return this.discoverer.getTypesByDecoratorType(decoratorType);
     }
 }

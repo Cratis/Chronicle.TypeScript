@@ -4,9 +4,9 @@
 import crypto from 'crypto';
 import type { Guid as ProtobufGuid } from '@cratis/chronicle.contracts';
 
-const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const guidValidationRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
-const getString = (value: number): string => value.toString(16).padStart(2, '0');
+const formatByteAsHex = (value: number): string => value.toString(16).padStart(2, '0');
 
 /**
  * Represents a Guid according to RFC 4122.
@@ -56,7 +56,7 @@ export class Guid {
      * @returns True if the value is a valid Guid string; otherwise false.
      */
     static isGuid(value: string): boolean {
-        return guidRegex.test(value);
+        return guidValidationRegex.test(value);
     }
 
     /**
@@ -100,16 +100,14 @@ export class Guid {
     }
 
     private static bytesToString(bytes: number[] | Uint8Array): string {
-        return '' +
-            getString(bytes[3]) + getString(bytes[2]) + getString(bytes[1]) + getString(bytes[0]) +
-            '-' +
-            getString(bytes[5]) + getString(bytes[4]) +
-            '-' +
-            getString(bytes[7]) + getString(bytes[6]) +
-            '-' +
-            getString(bytes[8]) + getString(bytes[9]) +
-            '-' +
-            getString(bytes[10]) + getString(bytes[11]) + getString(bytes[12]) + getString(bytes[13]) + getString(bytes[14]) + getString(bytes[15]);
+        const parts = [
+            `${formatByteAsHex(bytes[3])}${formatByteAsHex(bytes[2])}${formatByteAsHex(bytes[1])}${formatByteAsHex(bytes[0])}`,
+            `${formatByteAsHex(bytes[5])}${formatByteAsHex(bytes[4])}`,
+            `${formatByteAsHex(bytes[7])}${formatByteAsHex(bytes[6])}`,
+            `${formatByteAsHex(bytes[8])}${formatByteAsHex(bytes[9])}`,
+            `${formatByteAsHex(bytes[10])}${formatByteAsHex(bytes[11])}${formatByteAsHex(bytes[12])}${formatByteAsHex(bytes[13])}${formatByteAsHex(bytes[14])}${formatByteAsHex(bytes[15])}`
+        ];
+        return parts.join('-');
     }
 
     private static parseBytesForPart(part: string, index: number): string[] {

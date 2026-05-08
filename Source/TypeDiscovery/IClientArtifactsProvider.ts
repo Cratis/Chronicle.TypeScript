@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { DecoratorType } from './DecoratorType';
-import { DiscoverableType } from './DiscoverableType';
+import { ArtifactConstructor } from './ArtifactConstructor';
 
 /**
  * Defines a provider capable of returning discovered client artifact types.
@@ -13,5 +13,5 @@ export interface IClientArtifactsProvider {
      * @param decoratorType - The decorator category to retrieve types for.
      * @returns The discovered types.
      */
-    getTypesByDecoratorType(decoratorType: DecoratorType): DiscoverableType[];
+    getTypesByDecoratorType(decoratorType: DecoratorType): ArtifactConstructor[];
 }
