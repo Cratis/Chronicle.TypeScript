@@ -47,7 +47,6 @@ export function readModel(id: string = ''): ClassDecorator {
         );
     };
 }
-export const ReadModel = readModel;
 
 /**
  * Gets the {@link ReadModelMetadata} associated with a class decorated with {@link readModel}.
