@@ -4,6 +4,18 @@
 import { ChronicleConnectionString } from '@cratis/chronicle.contracts';
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './TypeDiscovery';
 
+type ChronicleOptionsInput = {
+    connectionString: ChronicleConnectionString;
+    programIdentifier?: string;
+    softwareVersion?: string;
+    softwareCommit?: string;
+    clientArtifactsProvider?: IClientArtifactsProvider;
+};
+
+type ChronicleOptionsCreationInput = {
+    clientArtifactsProvider?: IClientArtifactsProvider;
+};
+
 /**
  * Represents configuration options for the Chronicle client.
  */
@@ -33,13 +45,7 @@ export class ChronicleOptions {
      */
     readonly clientArtifactsProvider: IClientArtifactsProvider;
 
-    private constructor(options: {
-        connectionString: ChronicleConnectionString;
-        programIdentifier?: string;
-        softwareVersion?: string;
-        softwareCommit?: string;
-        clientArtifactsProvider?: IClientArtifactsProvider;
-    }) {
+    private constructor(options: ChronicleOptionsInput) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
@@ -54,7 +60,7 @@ export class ChronicleOptions {
      */
     static fromConnectionString(
         connectionString: string | ChronicleConnectionString,
-        options?: { clientArtifactsProvider?: IClientArtifactsProvider; }
+        options?: ChronicleOptionsCreationInput
     ): ChronicleOptions {
         const parsed = typeof connectionString === 'string'
             ? new ChronicleConnectionString(connectionString)
@@ -67,7 +73,7 @@ export class ChronicleOptions {
      * Uses the default development connection string pointing to localhost:35000.
      * @returns A new ChronicleOptions instance for development.
      */
-    static development(options?: { clientArtifactsProvider?: IClientArtifactsProvider; }): ChronicleOptions {
+    static development(options?: ChronicleOptionsCreationInput): ChronicleOptions {
         return ChronicleOptions.fromConnectionString('chronicle://localhost:35000', options);
     }
 }

@@ -21,22 +21,8 @@ export class Guid {
      * Initializes a new instance of the {@link Guid} class.
      * @param bytes - The 16 bytes that represent the Guid.
      */
-    constructor(readonly bytes: number[] | Uint8Array | undefined) {
-        if (bytes === undefined) {
-            this._stringVersion = Guid.empty.toString();
-            return;
-        }
-
-        this._stringVersion = '' +
-            getString(bytes[3]) + getString(bytes[2]) + getString(bytes[1]) + getString(bytes[0]) +
-            '-' +
-            getString(bytes[5]) + getString(bytes[4]) +
-            '-' +
-            getString(bytes[7]) + getString(bytes[6]) +
-            '-' +
-            getString(bytes[8]) + getString(bytes[9]) +
-            '-' +
-            getString(bytes[10]) + getString(bytes[11]) + getString(bytes[12]) + getString(bytes[13]) + getString(bytes[14]) + getString(bytes[15]);
+    constructor(readonly bytes: number[] | Uint8Array) {
+        this._stringVersion = Guid.bytesToString(bytes);
     }
 
     /**
@@ -58,8 +44,7 @@ export class Guid {
     static parse(guid: string): Guid {
         const bytes: number[] = [];
         guid.split('-').forEach((part, index) => {
-            const bytesInPart = part.match(/.{1,2}/g);
-            const normalizedBytes = index < 3 ? (bytesInPart ?? []).reverse() : (bytesInPart ?? []);
+            const normalizedBytes = Guid.parseBytesForPart(part, index);
             normalizedBytes.forEach(byte => bytes.push(parseInt(byte, 16)));
         });
         return new Guid(bytes);
@@ -112,5 +97,24 @@ export class Guid {
      */
     toJSON(): string {
         return this._stringVersion;
+    }
+
+    private static bytesToString(bytes: number[] | Uint8Array): string {
+        return '' +
+            getString(bytes[3]) + getString(bytes[2]) + getString(bytes[1]) + getString(bytes[0]) +
+            '-' +
+            getString(bytes[5]) + getString(bytes[4]) +
+            '-' +
+            getString(bytes[7]) + getString(bytes[6]) +
+            '-' +
+            getString(bytes[8]) + getString(bytes[9]) +
+            '-' +
+            getString(bytes[10]) + getString(bytes[11]) + getString(bytes[12]) + getString(bytes[13]) + getString(bytes[14]) + getString(bytes[15]);
+    }
+
+    private static parseBytesForPart(part: string, index: number): string[] {
+        const bytesInPart = part.match(/.{1,2}/g) ?? [];
+        // The first three Guid parts are little-endian according to RFC 4122 binary layout.
+        return index < 3 ? bytesInPart.reverse() : bytesInPart;
     }
 }

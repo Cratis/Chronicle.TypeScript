@@ -51,7 +51,7 @@ export class TypeDiscoverer {
      * @param name - Optional explicit discovery name for the type.
      */
     register(decoratorType: DecoratorType, type: DiscoverableType, name?: string): void {
-        const discoveredName = name && name.length > 0 ? name : type.name;
+        const discoveredName = name ?? type.name;
         const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, DiscoverableType>();
         typesForDecorator.set(discoveredName, type);
         TypeDiscoverer._registeredTypes.set(decoratorType, typesForDecorator);
