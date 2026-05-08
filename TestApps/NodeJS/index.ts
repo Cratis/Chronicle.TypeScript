@@ -6,6 +6,10 @@ import {
     ChronicleClient,
     ChronicleOptions,
     eventType,
+    getEventTypeJsonSchemaFor,
+    readModel,
+    projection,
+    modelBound,
     reactor,
     EventContext
 } from '@cratis/chronicle';
@@ -33,6 +37,20 @@ class EmployeePromoted {
 class EmployeeMoved {
     constructor(readonly newCity: string) {}
 }
+
+@readModel('employee-read-model')
+class EmployeeReadModel {
+    firstName = '';
+    lastName = '';
+    title = '';
+    city = '';
+}
+
+@projection('employees-declarative')
+class EmployeesDeclarativeProjection {}
+
+@modelBound('employees-model-bound')
+class EmployeesModelBoundProjection {}
 
 // --- Reactor ---
 
@@ -66,6 +84,8 @@ async function run(): Promise<void> {
 
     const options = ChronicleOptions.fromConnectionString(connectionString);
     const client = new ChronicleClient(options);
+    const employeeHiredSchema = getEventTypeJsonSchemaFor(EmployeeHired);
+    console.log(`EmployeeHired schema properties: ${Object.keys(employeeHiredSchema.properties ?? {}).join(', ')}`);
 
     try {
         console.log('Getting event store...');

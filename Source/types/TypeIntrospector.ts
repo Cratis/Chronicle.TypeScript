@@ -47,6 +47,17 @@ export class TypeIntrospector {
             members.set(property, runtimeType);
         }
 
+        const discoveredFieldNames = this.getClassFieldNames(target);
+        const inferredRuntimeTypes = this.getRuntimeTypesFromInstance(target);
+        for (const fieldName of discoveredFieldNames) {
+            if (members.has(fieldName)) {
+                continue;
+            }
+
+            const runtimeTypeFromMetadata = Reflect.getMetadata('design:type', target.prototype, fieldName) as Function | undefined;
+            members.set(fieldName, runtimeTypeFromMetadata ?? inferredRuntimeTypes.get(fieldName));
+        }
+
         const constructorParameterNames = this.getConstructorParameterNames(target);
         const constructorParameterTypes = Reflect.getMetadata('design:paramtypes', target) as Function[] | undefined ?? [];
 
@@ -60,6 +71,75 @@ export class TypeIntrospector {
         }
 
         return members;
+    }
+
+    private static getClassFieldNames(target: Function): string[] {
+        const source = target.toString();
+        const bodyStart = source.indexOf('{');
+        const bodyEnd = source.lastIndexOf('}');
+        if (bodyStart < 0 || bodyEnd <= bodyStart) {
+            return [];
+        }
+
+        const body = source.substring(bodyStart + 1, bodyEnd);
+        const fieldNames: string[] = [];
+        for (const rawLine of body.split('\n')) {
+            const line = rawLine.trim();
+            if (line.length === 0 ||
+                line.startsWith('//') ||
+                line.startsWith('*') ||
+                line.startsWith('constructor(') ||
+                line.startsWith('get ') ||
+                line.startsWith('set ') ||
+                line.startsWith('async ') ||
+                line.startsWith('static ') ||
+                line.includes('(')) {
+                continue;
+            }
+
+            const match = line.match(/^([A-Za-z_$][\w$]*)\s*(=|;)/);
+            if (!match) {
+                continue;
+            }
+
+            const fieldName = match[1];
+            if (!fieldNames.includes(fieldName)) {
+                fieldNames.push(fieldName);
+            }
+        }
+        return fieldNames;
+    }
+
+    private static getRuntimeTypesFromInstance(target: Function): Map<string, Function | undefined> {
+        const runtimeTypes = new Map<string, Function | undefined>();
+        const instance = this.tryCreateInstance(target);
+        if (!instance) {
+            return runtimeTypes;
+        }
+
+        for (const key of Object.keys(instance)) {
+            const value = (instance as Record<string, unknown>)[key];
+            if (value === null || value === undefined) {
+                runtimeTypes.set(key, undefined);
+            } else {
+                runtimeTypes.set(key, value.constructor as Function | undefined);
+            }
+        }
+
+        return runtimeTypes;
+    }
+
+    private static tryCreateInstance(target: Function): Record<string, unknown> | undefined {
+        try {
+            const created = Reflect.construct(target, []) as unknown;
+            if (created && typeof created === 'object') {
+                return created as Record<string, unknown>;
+            }
+        } catch {
+            // Intentionally ignored when the type requires constructor arguments.
+        }
+
+        return undefined;
     }
 
     private static getConstructorParameterNames(target: Function): string[] {

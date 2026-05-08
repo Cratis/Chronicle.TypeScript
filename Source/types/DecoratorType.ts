@@ -23,6 +23,6 @@ export enum DecoratorType {
     /** Declarative projection artifacts discovered through the projection decorator. */
     Projection = 'projection',
 
-    /** Model-bound projection artifacts discovered through the modelBoundProjection decorator. */
+    /** Model-bound projection artifacts discovered through the modelBound decorator. */
     ModelBoundProjection = 'modelBoundProjection'
 }

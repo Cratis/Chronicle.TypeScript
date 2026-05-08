@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { ProjectionId } from './ProjectionId';
-import { DecoratorType, TypeDiscoverer } from '../types';
+import { ProjectionId } from '../ProjectionId';
+import { DecoratorType, TypeDiscoverer } from '../../types';
 
 /** Metadata key used to store declarative projection information on a class. */
 const PROJECTION_METADATA_KEY = 'chronicle:projection';
