@@ -1,0 +1,29 @@
+{
+    "name": "@cratis/chronicle",
+    "version": "1.0.0",
+    "description": "TypeScript idiomatic client for Cratis Chronicle",
+    "author": "Cratis",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/einari/Chronicle.TypeScript.git"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "compile": "tsc -b",
+        "build": "tsc -b",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@cratis/chronicle.contracts": "^15.24.0",
+        "reflect-metadata": "^0.2.2"
+    },
+    "devDependencies": {
+        "@types/node": "^25.6.1",
+        "typescript": "^6.0.3"
+    }
+}
