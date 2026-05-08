@@ -11,7 +11,6 @@ import { JsonSchema, JsonSchemaGenerator } from '../Schemas';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
-const EVENT_TYPE_INTROSPECTION_METADATA_KEY = 'chronicle:eventType:introspection';
 
 /**
  * Metadata stored for an event type class.
@@ -53,10 +52,9 @@ export function eventType(id: string = '', generation: number = EventTypeGenerat
         const metadata: EventTypeMetadata = {
             eventType: eventTypeInstance,
             members,
-            schema: JsonSchemaGenerator.generate(constructor)
+            schema: JsonSchemaGenerator.generate(constructor, members)
         };
-        Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, eventTypeInstance, target);
-        Reflect.defineMetadata(EVENT_TYPE_INTROSPECTION_METADATA_KEY, metadata, target);
+        Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.EventType,
             constructor as Constructor,
@@ -71,7 +69,7 @@ export function eventType(id: string = '', generation: number = EventTypeGenerat
  * @returns The associated EventType, or EventType.unknown if not decorated.
  */
 export function getEventTypeFor(target: Function): EventType {
-    return Reflect.getMetadata(EVENT_TYPE_METADATA_KEY, target) ?? EventType.unknown;
+    return getEventTypeMetadata(target)?.eventType ?? EventType.unknown;
 }
 
 /**
@@ -80,7 +78,7 @@ export function getEventTypeFor(target: Function): EventType {
  * @returns True if the class has an event type decorator; false otherwise.
  */
 export function hasEventType(target: Function): boolean {
-    return Reflect.hasMetadata(EVENT_TYPE_METADATA_KEY, target);
+    return getEventTypeMetadata(target) !== undefined;
 }
 
 /**
@@ -89,7 +87,7 @@ export function hasEventType(target: Function): boolean {
  * @returns The associated metadata, or undefined if not decorated.
  */
 export function getEventTypeMetadata(target: Function): EventTypeMetadata | undefined {
-    return Reflect.getMetadata(EVENT_TYPE_INTROSPECTION_METADATA_KEY, target);
+    return Reflect.getMetadata(EVENT_TYPE_METADATA_KEY, target);
 }
 
 /**
@@ -98,5 +96,10 @@ export function getEventTypeMetadata(target: Function): EventTypeMetadata | unde
  * @returns The generated JSON schema.
  */
 export function getEventTypeJsonSchemaFor(target: Function): JsonSchema {
-    return getEventTypeMetadata(target)?.schema ?? JsonSchemaGenerator.generate(target);
+    const metadata = getEventTypeMetadata(target);
+    if (metadata) {
+        return metadata.schema;
+    }
+
+    return JsonSchemaGenerator.createEmptySchema(target.name);
 }

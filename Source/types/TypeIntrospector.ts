@@ -64,20 +64,67 @@ export class TypeIntrospector {
 
     private static getConstructorParameterNames(target: Function): string[] {
         const source = target.toString();
-        const match = source.match(/constructor\s*\(([^)]*)\)/m);
-        if (!match) {
+        const constructorKeyword = 'constructor(';
+        const constructorStart = source.indexOf(constructorKeyword);
+        if (constructorStart < 0) {
             return [];
         }
 
-        return match[1]
-            .split(',')
-            .map(parameter => parameter
-                .replace(/\/\*.*?\*\//g, '')
-                .replace(/\b(public|private|protected|readonly)\b/g, '')
-                .replace(/\?.*$/, '')
-                .replace(/:.*$/, '')
-                .replace(/=.*$/, '')
-                .trim())
-            .filter(parameter => parameter.length > 0);
+        let index = constructorStart + constructorKeyword.length;
+        let depth = 1;
+        let parameterSegment = '';
+        while (index < source.length && depth > 0) {
+            const character = source[index];
+            if (character === '(') {
+                depth++;
+                parameterSegment += character;
+            } else if (character === ')') {
+                depth--;
+                if (depth > 0) {
+                    parameterSegment += character;
+                }
+            } else {
+                parameterSegment += character;
+            }
+            index++;
+        }
+
+        const names: string[] = [];
+        let current = '';
+        for (const character of parameterSegment) {
+            if (character === ',') {
+                const candidate = current.trim();
+                if (candidate.length > 0) {
+                    names.push(candidate);
+                }
+                current = '';
+            } else {
+                current += character;
+            }
+        }
+
+        const lastCandidate = current.trim();
+        if (lastCandidate.length > 0) {
+            names.push(lastCandidate);
+        }
+
+        return names
+            .map(name => this.extractParameterName(name))
+            .filter(name => name.length > 0);
+    }
+
+    private static extractParameterName(rawParameter: string): string {
+        if (/[{}\[\]]/.test(rawParameter)) {
+            return '';
+        }
+
+        const withoutRest = rawParameter.startsWith('...') ? rawParameter.substring(3) : rawParameter;
+        const equalsIndex = withoutRest.indexOf('=');
+        const withoutDefaultValue = equalsIndex >= 0 ? withoutRest.substring(0, equalsIndex) : withoutRest;
+        const colonIndex = withoutDefaultValue.indexOf(':');
+        const withoutTypeAnnotation = colonIndex >= 0
+            ? withoutDefaultValue.substring(0, colonIndex)
+            : withoutDefaultValue;
+        return withoutTypeAnnotation.trim();
     }
 }

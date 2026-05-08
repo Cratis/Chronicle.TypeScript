@@ -10,24 +10,38 @@ import { TypeIntrospector } from '../types';
  */
 export class JsonSchemaGenerator {
     /**
+     * Creates an empty schema for a type name.
+     * @param title - The title to use for the schema.
+     * @returns An empty object schema.
+     */
+    static createEmptySchema(title: string): JsonSchema {
+        return {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            title,
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false
+        };
+    }
+
+    /**
      * Generates a JSON schema for a class constructor.
      * @param target - The class constructor to generate schema for.
+     * @param members - Optional pre-introspected members for reuse.
      * @returns The generated JSON schema.
      */
-    static generate(target: Function): JsonSchema {
-        const members = TypeIntrospector.getMembers(target);
+    static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>): JsonSchema {
+        const membersToUse = members ?? TypeIntrospector.getMembers(target);
         const schemaProperties: Record<string, JsonSchema> = {};
-        for (const [memberName, memberType] of members.entries()) {
+        for (const [memberName, memberType] of membersToUse.entries()) {
             schemaProperties[memberName] = this.mapRuntimeTypeToSchema(memberType);
         }
 
         return {
-            $schema: 'https://json-schema.org/draft/2020-12/schema',
-            title: target.name,
-            type: 'object',
+            ...this.createEmptySchema(target.name),
             properties: schemaProperties,
-            required: Array.from(members.keys()),
-            additionalProperties: false
+            required: Array.from(membersToUse.keys()),
         };
     }
 

@@ -29,14 +29,15 @@ export interface ReadModelMetadata {
  * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
  * @returns A class decorator.
  */
-export function ReadModel(id: string = ''): ClassDecorator {
+export function readModel(id: string = ''): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const readModelId = new ReadModelId(id || constructor.name);
+        const members = TypeIntrospector.getMembers(constructor);
         const metadata: ReadModelMetadata = {
             id: readModelId,
-            members: TypeIntrospector.getMembers(constructor),
-            schema: JsonSchemaGenerator.generate(constructor)
+            members,
+            schema: JsonSchemaGenerator.generate(constructor, members)
         };
         Reflect.defineMetadata(READ_MODEL_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
@@ -46,13 +47,7 @@ export function ReadModel(id: string = ''): ClassDecorator {
         );
     };
 }
-
-/**
- * TypeScript decorator that marks a class as a read model and captures reflection metadata.
- * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
- * @returns A class decorator.
- */
-export const readModel = ReadModel;
+export const ReadModel = readModel;
 
 /**
  * Gets the {@link ReadModelMetadata} associated with a class decorated with {@link readModel}.
