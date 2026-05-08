@@ -2,5 +2,5 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ReadModelId } from './ReadModelId';
-export { readModel, getReadModelMetadata, isReadModel } from './readModel';
+export { ReadModel, readModel, getReadModelMetadata, isReadModel } from './readModel';
 export type { ReadModelMetadata } from './readModel';

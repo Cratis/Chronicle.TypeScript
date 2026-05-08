@@ -4,6 +4,7 @@
 export { EventType } from './EventType';
 export { EventTypeId } from './EventTypeId';
 export { EventTypeGeneration } from './EventTypeGeneration';
-export { eventType, getEventTypeFor, hasEventType, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
+export { eventType, getEventTypeFor, hasEventType, getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
+export type { EventTypeMetadata } from './eventTypeDecorator';
 export type { EventContext, CausationEntry } from './EventContext';
 export type { AppendedEvent } from './AppendedEvent';

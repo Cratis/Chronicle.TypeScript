@@ -3,3 +3,4 @@
 
 export { DecoratorType } from './DecoratorType';
 export { TypeDiscoverer } from './TypeDiscoverer';
+export { TypeIntrospector } from './TypeIntrospector';

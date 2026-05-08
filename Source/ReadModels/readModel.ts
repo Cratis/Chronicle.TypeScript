@@ -4,7 +4,7 @@
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
 import { ReadModelId } from './ReadModelId';
-import { DecoratorType, TypeDiscoverer } from '../types';
+import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types';
 import { JsonSchema, JsonSchemaGenerator } from '../Schemas';
 
 /** Metadata key used to store read model information on a class. */
@@ -17,21 +17,25 @@ export interface ReadModelMetadata {
     /** The unique identifier for the read model. */
     readonly id: ReadModelId;
 
+    /** The reflected members and their runtime types. */
+    readonly members: ReadonlyMap<string, Function | undefined>;
+
     /** The generated JSON schema for the read model. */
     readonly schema: JsonSchema;
 }
 
 /**
- * TypeScript decorator that marks a class as a read model and captures its JSON schema.
+ * TypeScript decorator that marks a class as a read model and captures reflection metadata.
  * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
  * @returns A class decorator.
  */
-export function readModel(id: string = ''): ClassDecorator {
+export function ReadModel(id: string = ''): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const readModelId = new ReadModelId(id || constructor.name);
         const metadata: ReadModelMetadata = {
             id: readModelId,
+            members: TypeIntrospector.getMembers(constructor),
             schema: JsonSchemaGenerator.generate(constructor)
         };
         Reflect.defineMetadata(READ_MODEL_METADATA_KEY, metadata, target);
@@ -42,6 +46,13 @@ export function readModel(id: string = ''): ClassDecorator {
         );
     };
 }
+
+/**
+ * TypeScript decorator that marks a class as a read model and captures reflection metadata.
+ * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
+ * @returns A class decorator.
+ */
+export const readModel = ReadModel;
 
 /**
  * Gets the {@link ReadModelMetadata} associated with a class decorated with {@link readModel}.

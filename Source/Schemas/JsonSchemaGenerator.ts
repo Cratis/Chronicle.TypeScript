@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { JsonSchema } from './JsonSchema';
-import { getTrackedJsonSchemaProperties } from './jsonSchemaProperty';
+import { TypeIntrospector } from '../types';
 
 /**
  * Generates JSON schemas for class constructors using reflection metadata.
@@ -15,11 +15,10 @@ export class JsonSchemaGenerator {
      * @returns The generated JSON schema.
      */
     static generate(target: Function): JsonSchema {
-        const properties = getTrackedJsonSchemaProperties(target);
+        const members = TypeIntrospector.getMembers(target);
         const schemaProperties: Record<string, JsonSchema> = {};
-        for (const property of properties) {
-            const runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
-            schemaProperties[property] = this.mapRuntimeTypeToSchema(runtimeType);
+        for (const [memberName, memberType] of members.entries()) {
+            schemaProperties[memberName] = this.mapRuntimeTypeToSchema(memberType);
         }
 
         return {
@@ -27,7 +26,7 @@ export class JsonSchemaGenerator {
             title: target.name,
             type: 'object',
             properties: schemaProperties,
-            required: properties,
+            required: Array.from(members.keys()),
             additionalProperties: false
         };
     }
