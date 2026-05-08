@@ -3,8 +3,8 @@
 
 import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
+import { Guid } from '../Guid';
 import { Grpc } from '../Grpc';
-import { uuidToGuid, newUuid } from '../Uuid';
 import { AppendOptions, IEventSequence } from './IEventSequence';
 import { AppendResult, ConstraintViolation } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
@@ -25,7 +25,9 @@ export class EventSequence implements IEventSequence {
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const eventType = getEventTypeFor(event.constructor as Function);
-        const correlationId = options?.correlationId ?? newUuid();
+        const correlationId = options?.correlationId === undefined
+            ? Guid.create()
+            : Guid.as(options.correlationId);
         const content = JSON.stringify(event);
 
         const response = await Grpc.call<AppendResponse>(callback =>
@@ -34,7 +36,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: uuidToGuid(correlationId),
+                    CorrelationId: correlationId.toProtobuf(),
                     EventSourceType: 'Default',
                     EventSourceId: eventSourceId,
                     EventStreamType: 'Default',
@@ -65,7 +67,9 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]> {
-        const correlationId = options?.correlationId ?? newUuid();
+        const correlationId = options?.correlationId === undefined
+            ? Guid.create()
+            : Guid.as(options.correlationId);
 
         const eventsToAppend = events.map(event => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -95,7 +99,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: uuidToGuid(correlationId),
+                    CorrelationId: correlationId.toProtobuf(),
                     Events: eventsToAppend,
                     Causation: [],
                     CausedBy: undefined,

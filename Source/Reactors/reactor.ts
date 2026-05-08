@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { ReactorId } from './ReactorId';
+import { DecoratorType, DiscoverableType, TypeDiscoverer } from '../TypeDiscovery';
 
 /** Metadata key used to store reactor information on a class. */
 const REACTOR_METADATA_KEY = 'chronicle:reactor';
@@ -33,7 +34,7 @@ export interface ReactorMetadata {
  * @example
  * ```typescript
  * @reactor('my-notifier')
- * class ProjectRegisteredNotifier implements IReactor {
+ * class ProjectRegisteredNotifier {
  *     async projectRegistered(event: ProjectRegistered, context: EventContext): Promise<void> {
  *         console.log(`Project '${event.name}' was registered.`);
  *     }
@@ -46,6 +47,11 @@ export function reactor(id: string = '', eventSequenceId?: string): ClassDecorat
         const reactorId = new ReactorId(id || constructor.name);
         const metadata: ReactorMetadata = { id: reactorId, eventSequenceId };
         Reflect.defineMetadata(REACTOR_METADATA_KEY, metadata, target);
+        TypeDiscoverer.default.register(
+            DecoratorType.Reactor,
+            constructor as DiscoverableType,
+            reactorId.value
+        );
     };
 }
 

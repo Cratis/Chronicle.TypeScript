@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { ReducerId } from './ReducerId';
+import { DecoratorType, DiscoverableType, TypeDiscoverer } from '../TypeDiscovery';
 
 /** Metadata key used to store reducer information on a class. */
 const REDUCER_METADATA_KEY = 'chronicle:reducer';
@@ -33,7 +34,7 @@ export interface ReducerMetadata {
  * @example
  * ```typescript
  * @reducer('employee-state')
- * class EmployeeReducer implements IReducer<EmployeeState> {
+ * class EmployeeReducer {
  *     async employeeHired(event: EmployeeHired, state?: EmployeeState): Promise<EmployeeState> {
  *         return { ...state, name: `${event.firstName} ${event.lastName}` };
  *     }
@@ -46,6 +47,11 @@ export function reducer(id: string = '', eventSequenceId?: string): ClassDecorat
         const reducerId = new ReducerId(id || constructor.name);
         const metadata: ReducerMetadata = { id: reducerId, eventSequenceId };
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
+        TypeDiscoverer.default.register(
+            DecoratorType.Reducer,
+            constructor as DiscoverableType,
+            reducerId.value
+        );
     };
 }
 

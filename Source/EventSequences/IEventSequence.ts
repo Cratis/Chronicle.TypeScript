@@ -4,13 +4,14 @@
 import { AppendResult } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
+import { Guid } from '../Guid';
 
 /**
  * Options for appending an event to an event sequence.
  */
 export interface AppendOptions {
     /** Optional correlation identifier for tracking the append operation. */
-    correlationId?: string;
+    correlationId?: string | Guid;
 
     /** Optional explicit sequence number to use for the event. */
     eventSourceId?: string;
