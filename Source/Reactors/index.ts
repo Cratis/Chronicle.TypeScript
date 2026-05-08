@@ -2,6 +2,5 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ReactorId } from './ReactorId';
-export type { IReactor } from './IReactor';
 export { reactor, getReactorMetadata, isReactor } from './reactor';
 export type { ReactorMetadata } from './reactor';

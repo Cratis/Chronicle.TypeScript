@@ -4,10 +4,10 @@ Reactors are the "if this then that" of event sourcing — they observe events a
 
 ## Defining a Reactor
 
-Use the `@reactor` decorator to mark a class as a reactor, and implement the `IReactor` interface:
+Use the `@reactor` decorator to mark a class as a reactor:
 
 ```typescript
-import { reactor, IReactor, EventContext, eventType } from '@cratis/chronicle';
+import { reactor, EventContext, eventType } from '@cratis/chronicle';
 
 @eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
 class EmployeeHired {
@@ -15,7 +15,7 @@ class EmployeeHired {
 }
 
 @reactor('hr-notification-reactor')
-class HrNotificationReactor implements IReactor {
+class HrNotificationReactor {
     async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> {
         console.log(`${event.firstName} ${event.lastName} was hired! (seq: ${context.sequenceNumber})`);
     }
@@ -35,7 +35,7 @@ Method dispatch is by convention: the first parameter type of each public method
 
 ```typescript
 @reactor('my-reactor')
-class MyReactor implements IReactor {
+class MyReactor {
     // Handles EmployeeHired events
     async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> { ... }
 

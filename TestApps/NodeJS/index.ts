@@ -7,7 +7,6 @@ import {
     ChronicleOptions,
     eventType,
     reactor,
-    IReactor,
     EventContext
 } from '@cratis/chronicle';
 
@@ -39,7 +38,7 @@ class EmployeeMoved {
 
 /** Reacts to employee events by logging them to the console. */
 @reactor('hr-notification-reactor')
-class HrNotificationReactor implements IReactor {
+class HrNotificationReactor {
     /**
      * Reacts to an employee being hired.
      * @param event - The EmployeeHired event.

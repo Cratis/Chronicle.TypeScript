@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { Constructor } from '@cratis/fundamentals';
 import { ReducerId } from './ReducerId';
+import { DecoratorType, TypeDiscoverer } from '../types';
 
 /** Metadata key used to store reducer information on a class. */
 const REDUCER_METADATA_KEY = 'chronicle:reducer';
@@ -33,7 +35,7 @@ export interface ReducerMetadata {
  * @example
  * ```typescript
  * @reducer('employee-state')
- * class EmployeeReducer implements IReducer<EmployeeState> {
+ * class EmployeeReducer {
  *     async employeeHired(event: EmployeeHired, state?: EmployeeState): Promise<EmployeeState> {
  *         return { ...state, name: `${event.firstName} ${event.lastName}` };
  *     }
@@ -46,6 +48,11 @@ export function reducer(id: string = '', eventSequenceId?: string): ClassDecorat
         const reducerId = new ReducerId(id || constructor.name);
         const metadata: ReducerMetadata = { id: reducerId, eventSequenceId };
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
+        TypeDiscoverer.default.register(
+            DecoratorType.Reducer,
+            constructor as Constructor,
+            reducerId.value
+        );
     };
 }
 

@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, Guid as ContractsGuid, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { Grpc } from '../Grpc';
-import { uuidToGuid, newUuid } from '../Uuid';
 import { AppendOptions, IEventSequence } from './IEventSequence';
 import { AppendResult, ConstraintViolation } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
@@ -25,7 +25,9 @@ export class EventSequence implements IEventSequence {
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const eventType = getEventTypeFor(event.constructor as Function);
-        const correlationId = options?.correlationId ?? newUuid();
+        const correlationId = options?.correlationId === undefined
+            ? Guid.create()
+            : Guid.as(options.correlationId);
         const content = JSON.stringify(event);
 
         const response = await Grpc.call<AppendResponse>(callback =>
@@ -34,7 +36,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: uuidToGuid(correlationId),
+                    CorrelationId: toContractsGuid(correlationId),
                     EventSourceType: 'Default',
                     EventSourceId: eventSourceId,
                     EventStreamType: 'Default',
@@ -65,7 +67,9 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]> {
-        const correlationId = options?.correlationId ?? newUuid();
+        const correlationId = options?.correlationId === undefined
+            ? Guid.create()
+            : Guid.as(options.correlationId);
 
         const eventsToAppend = events.map(event => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -95,7 +99,7 @@ export class EventSequence implements IEventSequence {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    CorrelationId: uuidToGuid(correlationId),
+                    CorrelationId: toContractsGuid(correlationId),
                     Events: eventsToAppend,
                     Causation: [],
                     CausedBy: undefined,
@@ -172,4 +176,20 @@ export class EventSequence implements IEventSequence {
             isSuccess: mappedViolations.length === 0 && mappedErrors.length === 0
         };
     }
+}
+
+/**
+ * Converts a RFC 4122 Guid string into the protobuf Guid shape used by Chronicle contracts.
+ * @param guid - The Guid to convert.
+ * @returns The converted protobuf Guid with lo/hi segments.
+ */
+function toContractsGuid(guid: Guid): ContractsGuid {
+    const hex = guid.toString().replace(/-/g, '');
+    const hi = BigInt(`0x${hex.substring(0, 16)}`);
+    const lo = BigInt(`0x${hex.substring(16, 32)}`);
+
+    return {
+        hi: Number(BigInt.asIntN(32, hi >> BigInt(32))) * 0x100000000 + Number(hi & BigInt(0xFFFFFFFF)),
+        lo: Number(BigInt.asIntN(32, lo >> BigInt(32))) * 0x100000000 + Number(lo & BigInt(0xFFFFFFFF))
+    };
 }

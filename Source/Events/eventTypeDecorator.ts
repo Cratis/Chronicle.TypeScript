@@ -2,9 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { Constructor } from '@cratis/fundamentals';
 import { EventType } from './EventType';
 import { EventTypeId } from './EventTypeId';
 import { EventTypeGeneration } from './EventTypeGeneration';
+import { DecoratorType, TypeDiscoverer } from '../types';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
@@ -28,9 +30,15 @@ const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
  */
 export function eventType(id: string = '', generation: number = EventTypeGeneration.firstValue): ClassDecorator {
     return (target: object) => {
-        const eventTypeId = new EventTypeId(id || target.constructor?.name || '');
+        const constructor = target as Function;
+        const eventTypeId = new EventTypeId(id || constructor.name);
         const eventTypeInstance = new EventType(eventTypeId, new EventTypeGeneration(generation));
         Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, eventTypeInstance, target);
+        TypeDiscoverer.default.register(
+            DecoratorType.EventType,
+            constructor as Constructor,
+            eventTypeId.value
+        );
     };
 }
 

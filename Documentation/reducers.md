@@ -4,10 +4,10 @@ Reducers observe events from an event sequence and fold them into a read model (
 
 ## Defining a Reducer
 
-Use the `@reducer` decorator to mark a class as a reducer, and implement the `IReducer<TState>` interface:
+Use the `@reducer` decorator to mark a class as a reducer:
 
 ```typescript
-import { reducer, IReducer, EventContext, eventType } from '@cratis/chronicle';
+import { reducer, EventContext, eventType } from '@cratis/chronicle';
 
 interface EmployeeState {
     firstName: string;
@@ -30,7 +30,7 @@ class EmployeePromoted {
 }
 
 @reducer('employee-state-reducer')
-class EmployeeStateReducer implements IReducer<EmployeeState> {
+class EmployeeStateReducer {
     async employeeHired(event: EmployeeHired, state?: EmployeeState): Promise<EmployeeState> {
         return { firstName: event.firstName, lastName: event.lastName, title: event.title };
     }
