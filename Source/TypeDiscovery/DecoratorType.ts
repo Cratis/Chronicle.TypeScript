@@ -5,12 +5,12 @@
  * Represents the supported decorator categories for discoverable artifact types.
  */
 export enum DecoratorType {
-    /** Event type artifacts discovered through the {@link eventType} decorator. */
+    /** Event type artifacts discovered through the eventType decorator. */
     EventType = 'eventType',
 
-    /** Reactor artifacts discovered through the {@link reactor} decorator. */
+    /** Reactor artifacts discovered through the reactor decorator. */
     Reactor = 'reactor',
 
-    /** Reducer artifacts discovered through the {@link reducer} decorator. */
+    /** Reducer artifacts discovered through the reducer decorator. */
     Reducer = 'reducer'
 }
