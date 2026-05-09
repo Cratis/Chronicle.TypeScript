@@ -11,6 +11,7 @@ export { EventStoreNamespaceName } from './EventStoreNamespaceName';
 export { Guid } from '@cratis/fundamentals';
 export { Grpc, promisifyGrpcCall } from './Grpc';
 export { ChronicleInstrumentationName, ChronicleTracer } from './Tracing';
+export { ChronicleMeter, ChronicleMeterName, ChronicleMetrics } from './Metrics';
 
 export * from './Events';
 export * from './EventSequences';

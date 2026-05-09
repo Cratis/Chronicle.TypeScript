@@ -11,6 +11,7 @@ import { AppendResult, ConstraintViolation } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
 import { ChronicleTracer } from '../Tracing';
+import { ChronicleMetrics } from '../Metrics';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -32,6 +33,13 @@ export class EventSequence implements IEventSequence {
             : Guid.as(options.correlationId);
         const content = JSON.stringify(event);
 
+        const metricAttributes = {
+            'chronicle.event_store': this._eventStoreName,
+            'chronicle.namespace': this._namespace,
+            'chronicle.event_sequence_id': this.id.value,
+            'chronicle.event_type_id': eventType.id.value
+        };
+
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
             span.setAttribute('chronicle.namespace', this._namespace);
@@ -39,6 +47,7 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_source_id', eventSourceId);
             span.setAttribute('chronicle.event_type_id', eventType.id.value);
             span.setAttribute('chronicle.event_type_generation', eventType.generation.value);
+            const startTime = Date.now();
             try {
                 const response = await Grpc.call<AppendResponse>(callback =>
                     this._connection.eventSequences.append(
@@ -68,6 +77,7 @@ export class EventSequence implements IEventSequence {
                     )
                 );
 
+                const duration = Date.now() - startTime;
                 const result = this.mapAppendResponse(
                     response.SequenceNumber,
                     response.ConstraintViolations ?? [],
@@ -75,10 +85,32 @@ export class EventSequence implements IEventSequence {
                 );
                 span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value);
                 span.setStatus({ code: SpanStatusCode.OK });
+
+                ChronicleMetrics.eventsAppended.add(1, metricAttributes);
+                ChronicleMetrics.appendDuration.record(duration, metricAttributes);
+                if (result.constraintViolations.length > 0) {
+                    ChronicleMetrics.constraintViolations.add(result.constraintViolations.length, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                if (result.errors.length > 0) {
+                    ChronicleMetrics.appendErrors.add(result.errors.length, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
                 return result;
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
                 span.recordException(error as Error);
+                ChronicleMetrics.appendErrors.add(1, {
+                    'chronicle.event_store': this._eventStoreName,
+                    'chronicle.namespace': this._namespace,
+                    'chronicle.event_sequence_id': this.id.value
+                });
                 throw error;
             } finally {
                 span.end();
@@ -114,12 +146,20 @@ export class EventSequence implements IEventSequence {
             };
         });
 
+        const batchMetricAttributes = {
+            'chronicle.event_store': this._eventStoreName,
+            'chronicle.namespace': this._namespace,
+            'chronicle.event_sequence_id': this.id.value,
+            'chronicle.events_count': events.length
+        };
+
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append_many', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
             span.setAttribute('chronicle.namespace', this._namespace);
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.event_source_id', eventSourceId);
             span.setAttribute('chronicle.events_count', events.length);
+            const startTime = Date.now();
             try {
                 const response = await Grpc.call<AppendManyResponse>(callback =>
                     this._connection.eventSequences.appendMany(
@@ -137,6 +177,7 @@ export class EventSequence implements IEventSequence {
                     )
                 );
 
+                const duration = Date.now() - startTime;
                 const result = (response.SequenceNumbers ?? []).map((sequenceNumber: number, index: number) =>
                     this.mapAppendResponse(
                         sequenceNumber,
@@ -145,10 +186,36 @@ export class EventSequence implements IEventSequence {
                     )
                 );
                 span.setStatus({ code: SpanStatusCode.OK });
+
+                ChronicleMetrics.batchAppendsPerformed.add(1, batchMetricAttributes);
+                ChronicleMetrics.eventsAppended.add(events.length, batchMetricAttributes);
+                ChronicleMetrics.appendManyDuration.record(duration, batchMetricAttributes);
+
+                const totalViolations = result.reduce((sum, r) => sum + r.constraintViolations.length, 0);
+                if (totalViolations > 0) {
+                    ChronicleMetrics.constraintViolations.add(totalViolations, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                const totalErrors = result.reduce((sum, r) => sum + r.errors.length, 0);
+                if (totalErrors > 0) {
+                    ChronicleMetrics.appendErrors.add(totalErrors, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
                 return result;
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
                 span.recordException(error as Error);
+                ChronicleMetrics.appendErrors.add(1, {
+                    'chronicle.event_store': this._eventStoreName,
+                    'chronicle.namespace': this._namespace,
+                    'chronicle.event_sequence_id': this.id.value
+                });
                 throw error;
             } finally {
                 span.end();

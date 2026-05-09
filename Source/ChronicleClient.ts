@@ -10,6 +10,7 @@ import { EventStoreNamespaceName } from './EventStoreNamespaceName';
 import { Grpc } from './Grpc';
 import { IChronicleClient } from './IChronicleClient';
 import { IEventStore } from './IEventStore';
+import { ChronicleMetrics } from './Metrics';
 import { ChronicleTracer } from './Tracing';
 
 /**
@@ -68,6 +69,11 @@ export class ChronicleClient implements IChronicleClient {
 
                 const store = new EventStore(storeName, namespaceName, this._connection);
                 this._stores.set(key, store);
+
+                ChronicleMetrics.eventStoreRetrievals.add(1, {
+                    'chronicle.event_store': storeName.value,
+                    'chronicle.namespace': namespaceName.value
+                });
                 span.setStatus({ code: SpanStatusCode.OK });
                 return store;
             } catch (error) {
