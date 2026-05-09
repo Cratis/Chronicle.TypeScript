@@ -44,18 +44,16 @@ client.dispose();
 ## Building
 
 ```bash
-cd Source
-npm install
-npm run compile
+yarn install
+yarn workspace @cratis/chronicle compile
 ```
 
 ## Running the Test App
 
 ```bash
-cd TestApps/NodeJS
-npm install
-npm run build
-npm start
+yarn install
+yarn workspace @cratis/chronicle-test-console build
+yarn workspace @cratis/chronicle-test-console start
 ```
 
 Set the `CHRONICLE_CONNECTION` environment variable to override the default connection string (`chronicle://localhost:35000`).
