@@ -5,9 +5,6 @@ import 'reflect-metadata';
 import { FromEventMetadata } from './FromEventMetadata';
 import { FromEventOptions } from './FromEventOptions';
 
-export type { FromEventOptions } from './FromEventOptions';
-export type { FromEventMetadata } from './FromEventMetadata';
-
 const METADATA_KEY = 'chronicle:projection:fromEvent';
 
 /**

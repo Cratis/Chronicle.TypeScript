@@ -5,9 +5,6 @@ import { AppendError } from './AppendError';
 import { ConstraintViolation } from './ConstraintViolation';
 import { EventSequenceNumber } from './EventSequenceNumber';
 
-export type { AppendError } from './AppendError';
-export type { ConstraintViolation } from './ConstraintViolation';
-
 /**
  * Represents the result of appending a single event to an event sequence.
  */

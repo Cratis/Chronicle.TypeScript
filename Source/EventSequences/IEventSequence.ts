@@ -6,8 +6,6 @@ import { AppendResult } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
 
-export type { AppendOptions } from './AppendOptions';
-
 /**
  * Defines the API surface for an event sequence.
  */

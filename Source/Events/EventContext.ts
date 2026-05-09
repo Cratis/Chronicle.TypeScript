@@ -4,8 +4,6 @@
 import { EventType } from './EventType';
 import { CausationEntry } from './CausationEntry';
 
-export type { CausationEntry } from './CausationEntry';
-
 /**
  * Represents contextual information about an appended event.
  */
