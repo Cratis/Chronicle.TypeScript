@@ -1,0 +1,14 @@
+{
+    "name": "chronicle-typescript-workspace",
+    "private": true,
+    "packageManager": "yarn@4.14.1",
+    "workspaces": [
+        "Source",
+        "TestApps/NodeJS"
+    ],
+    "scripts": {
+        "compile": "yarn workspaces foreach -A -t run compile",
+        "build": "yarn workspaces foreach -A -t run build",
+        "clean": "yarn workspaces foreach -A -t run clean"
+    }
+}

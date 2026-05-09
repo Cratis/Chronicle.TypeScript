@@ -13,7 +13,7 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@cratis/chronicle": "file:../../Source",
+        "@cratis/chronicle": "workspace:*",
         "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {
