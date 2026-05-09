@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-npm install @cratis/chronicle reflect-metadata
+yarn add @cratis/chronicle reflect-metadata
 ```
 
 > **Note:** `reflect-metadata` is required for TypeScript decorators to work at runtime. Import it once at the entry point of your application.
