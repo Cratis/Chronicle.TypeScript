@@ -8,3 +8,4 @@ export { eventType, getEventTypeFor, hasEventType, getEventTypeMetadata, getEven
 export type { EventTypeMetadata } from './eventTypeDecorator';
 export type { EventContext, CausationEntry } from './EventContext';
 export type { AppendedEvent } from './AppendedEvent';
+export * from './Constraints';
