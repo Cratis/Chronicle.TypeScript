@@ -5,11 +5,13 @@
     "author": "Cratis",
     "license": "MIT",
     "private": true,
+    "type": "module",
     "main": "dist/index.js",
     "scripts": {
         "compile": "tsc -b",
         "build": "tsc -b",
-        "start": "node dist/index.js",
+        "start": "tsx index.ts",
+        "dev": "tsx index.ts",
         "clean": "rm -rf dist"
     },
     "dependencies": {
@@ -27,6 +29,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.6.1",
+        "tsx": "^4.19.4",
         "typescript": "^6.0.3"
     }
 }
