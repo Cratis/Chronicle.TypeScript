@@ -9,3 +9,7 @@ export { constraint, getConstraintMetadata, isConstraint } from './constraint';
 export type { ConstraintMetadata } from './constraint';
 export type { IConstraints } from './IConstraints';
 export { Constraints } from './Constraints';
+export { ConstraintBuilder } from './ConstraintBuilder';
+export type { ConstraintCapture, ConstraintScopeCapture, UniqueEventTypeCapture } from './ConstraintBuilder';
+export { UniqueConstraintBuilder } from './UniqueConstraintBuilder';
+export type { UniqueConstraintCapture, UniqueConstraintEventEntry } from './UniqueConstraintBuilder';

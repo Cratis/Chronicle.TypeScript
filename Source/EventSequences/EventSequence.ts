@@ -5,8 +5,10 @@ import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenc
 import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { Grpc } from '../Grpc';
-import { AppendOptions, IEventSequence } from './IEventSequence';
-import { AppendResult, ConstraintViolation } from './AppendResult';
+import { AppendOptions } from './AppendOptions';
+import { AppendResult } from './AppendResult';
+import { ConstraintViolation } from './ConstraintViolation';
+import { IEventSequence } from './IEventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
 

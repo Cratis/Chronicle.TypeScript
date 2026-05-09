@@ -1,21 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
-import { Guid } from '@cratis/fundamentals';
 
-/**
- * Options for appending an event to an event sequence.
- */
-export interface AppendOptions {
-    /** Optional correlation identifier for tracking the append operation. */
-    correlationId?: string | Guid;
-
-    /** Optional explicit sequence number to use for the event. */
-    eventSourceId?: string;
-}
+export type { AppendOptions } from './AppendOptions';
 
 /**
  * Defines the API surface for an event sequence.

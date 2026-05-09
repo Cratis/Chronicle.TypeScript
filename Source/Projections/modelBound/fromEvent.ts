@@ -2,22 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { FromEventMetadata } from './FromEventMetadata';
+import { FromEventOptions } from './FromEventOptions';
 
-/** Options for the fromEvent class decorator. */
-export interface FromEventOptions {
-    /** The event property name to use as the key to identify the read model instance. */
-    readonly key?: string;
-    /** The event property name to use as the parent key for child relationships. */
-    readonly parentKey?: string;
-    /** A constant string value to use as the key. All events will update the same instance. */
-    readonly constantKey?: string;
-}
-
-/** Metadata stored by the fromEvent decorator on a class. */
-export interface FromEventMetadata extends FromEventOptions {
-    /** The event constructor associated with this annotation. */
-    readonly eventType: Function;
-}
+export type { FromEventOptions } from './FromEventOptions';
+export type { FromEventMetadata } from './FromEventMetadata';
 
 const METADATA_KEY = 'chronicle:projection:fromEvent';
 

@@ -4,7 +4,8 @@
 export { modelBound, getModelBoundMetadata, isModelBound } from './modelBound';
 export type { ModelBoundMetadata } from './modelBound';
 export { fromEvent, getFromEventMetadata, hasFromEventMetadata } from './fromEvent';
-export type { FromEventOptions, FromEventMetadata } from './fromEvent';
+export type { FromEventOptions } from './FromEventOptions';
+export type { FromEventMetadata } from './FromEventMetadata';
 export { setFrom, getSetFromMetadata } from './setFrom';
 export type { SetFromMetadata } from './setFrom';
 export { setFromContext, getSetFromContextMetadata } from './setFromContext';
