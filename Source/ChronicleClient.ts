@@ -35,9 +35,15 @@ export class ChronicleClient implements IChronicleClient {
      * @param options - The options to configure the client, including the connection string.
      */
     constructor(readonly options: ChronicleOptions) {
-        this._connection = new ChronicleConnection({
-            connectionString: options.connectionString
-        });
+        // When TLS is disabled, pass pre-built insecure credentials directly.
+        // @cratis/chronicle.contracts ≤15.24.3 always composes call credentials with
+        // channel credentials, which gRPC forbids for insecure channels. Passing
+        // credentials explicitly bypasses that code path. Remove once a fixed version
+        // of chronicle.contracts is released.
+        const connectionOptions = options.connectionString.disableTls
+            ? { connectionString: options.connectionString, credentials: options.connectionString.createCredentials() }
+            : { connectionString: options.connectionString };
+        this._connection = new ChronicleConnection(connectionOptions);
     }
 
     /** @inheritdoc */
