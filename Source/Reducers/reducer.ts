@@ -18,6 +18,9 @@ export interface ReducerMetadata {
 
     /** The optional explicit event sequence identifier. */
     readonly eventSequenceId: string | undefined;
+
+    /** The optional read model type produced by the reducer. */
+    readonly readModel: Constructor | undefined;
 }
 
 /**
@@ -30,6 +33,7 @@ export interface ReducerMetadata {
  *
  * @param id - The unique identifier for the reducer. Defaults to the class name if omitted.
  * @param eventSequenceId - Optional explicit event sequence identifier.
+ * @param readModel - Optional read model type produced by the reducer.
  * @returns A class decorator.
  *
  * @example
@@ -42,17 +46,25 @@ export interface ReducerMetadata {
  * }
  * ```
  */
-export function reducer(id: string = '', eventSequenceId?: string): ClassDecorator {
+export function reducer(id: string = '', eventSequenceId?: string, readModel?: Constructor): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const reducerId = new ReducerId(id || constructor.name);
-        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId };
+        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId, readModel };
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reducer,
             constructor as Constructor,
             reducerId.value
         );
+
+        if (readModel) {
+            TypeDiscoverer.default.register(
+                DecoratorType.ReadModel,
+                readModel,
+                readModel.name
+            );
+        }
     };
 }
 

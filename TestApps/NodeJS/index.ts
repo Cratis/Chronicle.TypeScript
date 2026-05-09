@@ -5,63 +5,17 @@
 // initialised before any instrumented code runs.
 import './telemetry';
 import 'reflect-metadata';
-import {
-    ChronicleClient,
-    ChronicleOptions,
-    eventType,
-    reactor,
-    EventContext
-} from '@cratis/chronicle';
+import { ChronicleClient, ChronicleOptions, getEventTypeJsonSchemaFor } from '@cratis/chronicle';
 
-// --- Event type definitions ---
+// Import all artifacts so their decorators register them with the discoverer.
+import './Events';
+import './ReadModels';
+import './Projections';
+import './ModelBoundProjections';
+import './Constraints';
+import './Reactors';
 
-/** Represents an employee being hired into the organization. */
-@eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
-class EmployeeHired {
-    constructor(
-        readonly firstName: string,
-        readonly lastName: string,
-        readonly title: string
-    ) {}
-}
-
-/** Represents an employee receiving a promotion to a new title. */
-@eventType('bb8fbb36-bfd2-49e5-b669-827692d1f027', 1)
-class EmployeePromoted {
-    constructor(readonly newTitle: string) {}
-}
-
-/** Represents an employee relocating to a new city. */
-@eventType('cc9fcc47-cfe3-4af6-c77a-938703e2f138', 1)
-class EmployeeMoved {
-    constructor(readonly newCity: string) {}
-}
-
-// --- Reactor ---
-
-/** Reacts to employee events by logging them to the console. */
-@reactor('hr-notification-reactor')
-class HrNotificationReactor {
-    /**
-     * Reacts to an employee being hired.
-     * @param event - The EmployeeHired event.
-     * @param context - The event context.
-     */
-    async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> {
-        console.log(`[Reactor] ${event.firstName} ${event.lastName} was hired as ${event.title} (seq: ${context.sequenceNumber})`);
-    }
-
-    /**
-     * Reacts to an employee being promoted.
-     * @param event - The EmployeePromoted event.
-     * @param context - The event context.
-     */
-    async employeePromoted(event: EmployeePromoted, context: EventContext): Promise<void> {
-        console.log(`[Reactor] Promotion to ${event.newTitle} (seq: ${context.sequenceNumber})`);
-    }
-}
-
-// --- Main test flow ---
+import { EmployeeHired, EmployeeMoved, EmployeePromoted } from './Events';
 
 async function run(): Promise<void> {
     const connectionString = process.env.CHRONICLE_CONNECTION ?? 'chronicle://localhost:35000';
@@ -69,6 +23,9 @@ async function run(): Promise<void> {
 
     const options = ChronicleOptions.fromConnectionString(connectionString);
     const client = new ChronicleClient(options);
+
+    const employeeHiredSchema = getEventTypeJsonSchemaFor(EmployeeHired);
+    console.log(`EmployeeHired schema properties: ${Object.keys(employeeHiredSchema.properties ?? {}).join(', ')}`);
 
     try {
         console.log('Getting event store...');

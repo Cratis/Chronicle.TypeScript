@@ -4,3 +4,5 @@
 export { ReducerId } from './ReducerId';
 export { reducer, getReducerMetadata, isReducer } from './reducer';
 export type { ReducerMetadata } from './reducer';
+export type { IReducers } from './IReducers';
+export { Reducers } from './Reducers';

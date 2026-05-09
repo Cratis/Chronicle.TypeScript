@@ -10,9 +10,21 @@ export interface IClientArtifactsProvider {
     /** Gets discovered event type constructors. */
     readonly eventTypes: Constructor[];
 
+    /** Gets discovered read model constructors. */
+    readonly readModels: Constructor[];
+
     /** Gets discovered reactor constructors. */
     readonly reactors: Constructor[];
 
     /** Gets discovered reducer constructors. */
     readonly reducers: Constructor[];
+
+    /** Gets discovered constraint constructors. */
+    readonly constraints: Constructor[];
+
+    /** Gets discovered declarative projection constructors. */
+    readonly projections: Constructor[];
+
+    /** Gets discovered model-bound projection constructors. */
+    readonly modelBoundProjections: Constructor[];
 }

@@ -25,6 +25,11 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     }
 
     /** @inheritdoc */
+    get readModels(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel);
+    }
+
+    /** @inheritdoc */
     get reactors(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Reactor);
     }
@@ -32,5 +37,20 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     /** @inheritdoc */
     get reducers(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Reducer);
+    }
+
+    /** @inheritdoc */
+    get constraints(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Constraint);
+    }
+
+    /** @inheritdoc */
+    get projections(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Projection);
+    }
+
+    /** @inheritdoc */
+    get modelBoundProjections(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.ModelBoundProjection);
     }
 }

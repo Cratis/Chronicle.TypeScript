@@ -3,8 +3,11 @@
 
 export { EventSequenceId } from './EventSequenceId';
 export { EventSequenceNumber } from './EventSequenceNumber';
-export type { AppendResult, AppendError, ConstraintViolation } from './AppendResult';
-export type { IEventSequence, AppendOptions } from './IEventSequence';
+export type { AppendError } from './AppendError';
+export type { ConstraintViolation } from './ConstraintViolation';
+export type { AppendResult } from './AppendResult';
+export type { AppendOptions } from './AppendOptions';
+export type { IEventSequence } from './IEventSequence';
 export type { IEventLog } from './IEventLog';
 export { EventSequence } from './EventSequence';
 export { EventLog } from './EventLog';
