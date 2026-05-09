@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
 import { IReducers } from './IReducers';
 import { getReducerMetadata } from './reducer';
@@ -14,28 +13,11 @@ import { getReducerMetadata } from './reducer';
 export class Reducers implements IReducers {
     private readonly _reducers = new Map<string, Constructor>();
 
-    // Reserved for streaming gRPC registration once observation infrastructure is implemented.
-    private readonly _eventStore: string;
-    private readonly _namespace: string;
-    private readonly _connection: ChronicleConnection;
-
     /**
      * Creates a new {@link Reducers} instance.
-     * @param eventStore - The name of the event store these reducers belong to.
-     * @param namespace - The namespace within the event store.
-     * @param connection - The connection used to communicate with the Kernel.
      * @param _clientArtifacts - Provider for discovered client artifact types.
      */
-    constructor(
-        eventStore: string,
-        namespace: string,
-        connection: ChronicleConnection,
-        private readonly _clientArtifacts: IClientArtifactsProvider
-    ) {
-        this._eventStore = eventStore;
-        this._namespace = namespace;
-        this._connection = connection;
-    }
+    constructor(private readonly _clientArtifacts: IClientArtifactsProvider) {}
 
     /** @inheritdoc */
     async discover(): Promise<void> {
@@ -55,10 +37,7 @@ export class Reducers implements IReducers {
         }
 
         // Reducer registration uses a bidirectional streaming gRPC call.
-        // Full streaming registration will be implemented as the observation
-        // infrastructure matures in the TypeScript client.
-        void this._eventStore;
-        void this._namespace;
-        void this._connection;
+        // Full streaming observation will be added once the observation
+        // infrastructure is implemented in the TypeScript client.
     }
 }

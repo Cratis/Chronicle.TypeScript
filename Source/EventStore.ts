@@ -48,9 +48,9 @@ export class EventStore implements IEventStore {
         const artifacts = DefaultClientArtifactsProvider.default;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
-        this.projections = new Projections(name.value, _connection, artifacts);
-        this.reactors = new Reactors(name.value, namespace.value, _connection, artifacts);
-        this.reducers = new Reducers(name.value, namespace.value, _connection, artifacts);
+        this.projections = new Projections(artifacts);
+        this.reactors = new Reactors(artifacts);
+        this.reducers = new Reducers(artifacts);
     }
 
     /**
