@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ChronicleConnection, IEnumerableString } from '@cratis/chronicle.contracts';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { EventLog } from './EventSequences/EventLog';
 import { EventSequence } from './EventSequences/EventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';
@@ -11,6 +12,7 @@ import { Grpc } from './Grpc';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
 import { IEventStore } from './IEventStore';
+import { ChronicleTracer } from './Tracing';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -43,13 +45,25 @@ export class EventStore implements IEventStore {
 
     /** @inheritdoc */
     async getNamespaces(): Promise<EventStoreNamespaceName[]> {
-        const response = await Grpc.call<IEnumerableString>(callback =>
-            this._connection.namespaces.getNamespaces(
-                { EventStore: this.name.value },
-                callback
-            )
-        );
-
-        return (response.items ?? []).map((namespace: string) => new EventStoreNamespaceName(namespace));
+        return ChronicleTracer.startActiveSpan('chronicle.event_store.get_namespaces', async span => {
+            span.setAttribute('chronicle.event_store', this.name.value);
+            try {
+                const response = await Grpc.call<IEnumerableString>(callback =>
+                    this._connection.namespaces.getNamespaces(
+                        { EventStore: this.name.value },
+                        callback
+                    )
+                );
+                const result = (response.items ?? []).map((namespace: string) => new EventStoreNamespaceName(namespace));
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 }

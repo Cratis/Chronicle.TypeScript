@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, Guid as ContractsGuid, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { Grpc } from '../Grpc';
@@ -9,6 +10,8 @@ import { AppendOptions, IEventSequence } from './IEventSequence';
 import { AppendResult, ConstraintViolation } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
+import { ChronicleTracer } from '../Tracing';
+import { ChronicleMetrics } from '../Metrics';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -30,39 +33,89 @@ export class EventSequence implements IEventSequence {
             : Guid.as(options.correlationId);
         const content = JSON.stringify(event);
 
-        const response = await Grpc.call<AppendResponse>(callback =>
-            this._connection.eventSequences.append(
-                {
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    EventSequenceId: this.id.value,
-                    CorrelationId: toContractsGuid(correlationId),
-                    EventSourceType: 'Default',
-                    EventSourceId: eventSourceId,
-                    EventStreamType: 'Default',
-                    EventStreamId: eventSourceId,
-                    EventType: {
-                        Id: eventType.id.value,
-                        Generation: eventType.generation.value,
-                        Tombstone: eventType.tombstone
-                    },
-                    Content: content,
-                    Causation: [],
-                    CausedBy: undefined,
-                    ConcurrencyScope: undefined,
-                    Tags: [],
-                    Occurred: undefined,
-                    Subject: eventSourceId
-                },
-                callback
-            )
-        );
+        const metricAttributes = {
+            'chronicle.event_store': this._eventStoreName,
+            'chronicle.namespace': this._namespace,
+            'chronicle.event_sequence_id': this.id.value,
+            'chronicle.event_type_id': eventType.id.value
+        };
 
-        return this.mapAppendResponse(
-            response.SequenceNumber,
-            response.ConstraintViolations ?? [],
-            response.Errors ?? []
-        );
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_source_id', eventSourceId);
+            span.setAttribute('chronicle.event_type_id', eventType.id.value);
+            span.setAttribute('chronicle.event_type_generation', eventType.generation.value);
+            const startTime = Date.now();
+            try {
+                const response = await Grpc.call<AppendResponse>(callback =>
+                    this._connection.eventSequences.append(
+                        {
+                            EventStore: this._eventStoreName,
+                            Namespace: this._namespace,
+                            EventSequenceId: this.id.value,
+                            CorrelationId: toContractsGuid(correlationId),
+                            EventSourceType: 'Default',
+                            EventSourceId: eventSourceId,
+                            EventStreamType: 'Default',
+                            EventStreamId: eventSourceId,
+                            EventType: {
+                                Id: eventType.id.value,
+                                Generation: eventType.generation.value,
+                                Tombstone: eventType.tombstone
+                            },
+                            Content: content,
+                            Causation: [],
+                            CausedBy: undefined,
+                            ConcurrencyScope: undefined,
+                            Tags: [],
+                            Occurred: undefined,
+                            Subject: eventSourceId
+                        },
+                        callback
+                    )
+                );
+
+                const duration = Date.now() - startTime;
+                const result = this.mapAppendResponse(
+                    response.SequenceNumber,
+                    response.ConstraintViolations ?? [],
+                    response.Errors ?? []
+                );
+                span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value);
+                span.setStatus({ code: SpanStatusCode.OK });
+
+                ChronicleMetrics.eventsAppended.add(1, metricAttributes);
+                ChronicleMetrics.appendDuration.record(duration, metricAttributes);
+                if (result.constraintViolations.length > 0) {
+                    ChronicleMetrics.constraintViolations.add(result.constraintViolations.length, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                if (result.errors.length > 0) {
+                    ChronicleMetrics.appendErrors.add(result.errors.length, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                ChronicleMetrics.appendErrors.add(1, {
+                    'chronicle.event_store': this._eventStoreName,
+                    'chronicle.namespace': this._namespace,
+                    'chronicle.event_sequence_id': this.id.value
+                });
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     /** @inheritdoc */
@@ -93,67 +146,155 @@ export class EventSequence implements IEventSequence {
             };
         });
 
-        const response = await Grpc.call<AppendManyResponse>(callback =>
-            this._connection.eventSequences.appendMany(
-                {
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    EventSequenceId: this.id.value,
-                    CorrelationId: toContractsGuid(correlationId),
-                    Events: eventsToAppend,
-                    Causation: [],
-                    CausedBy: undefined,
-                    ConcurrencyScopes: {}
-                },
-                callback
-            )
-        );
+        const batchMetricAttributes = {
+            'chronicle.event_store': this._eventStoreName,
+            'chronicle.namespace': this._namespace,
+            'chronicle.event_sequence_id': this.id.value,
+            'chronicle.events_count': events.length
+        };
 
-        return (response.SequenceNumbers ?? []).map((sequenceNumber: number, index: number) =>
-            this.mapAppendResponse(
-                sequenceNumber,
-                response.ConstraintViolations ?? [],
-                (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index)
-            )
-        );
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append_many', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_source_id', eventSourceId);
+            span.setAttribute('chronicle.events_count', events.length);
+            const startTime = Date.now();
+            try {
+                const response = await Grpc.call<AppendManyResponse>(callback =>
+                    this._connection.eventSequences.appendMany(
+                        {
+                            EventStore: this._eventStoreName,
+                            Namespace: this._namespace,
+                            EventSequenceId: this.id.value,
+                            CorrelationId: toContractsGuid(correlationId),
+                            Events: eventsToAppend,
+                            Causation: [],
+                            CausedBy: undefined,
+                            ConcurrencyScopes: {}
+                        },
+                        callback
+                    )
+                );
+
+                const duration = Date.now() - startTime;
+                const result = (response.SequenceNumbers ?? []).map((sequenceNumber: number, index: number) =>
+                    this.mapAppendResponse(
+                        sequenceNumber,
+                        response.ConstraintViolations ?? [],
+                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index)
+                    )
+                );
+                span.setStatus({ code: SpanStatusCode.OK });
+
+                ChronicleMetrics.batchAppendsPerformed.add(1, batchMetricAttributes);
+                ChronicleMetrics.eventsAppended.add(events.length, batchMetricAttributes);
+                ChronicleMetrics.appendManyDuration.record(duration, batchMetricAttributes);
+
+                const totalViolations = result.reduce((sum, r) => sum + r.constraintViolations.length, 0);
+                if (totalViolations > 0) {
+                    ChronicleMetrics.constraintViolations.add(totalViolations, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                const totalErrors = result.reduce((sum, r) => sum + r.errors.length, 0);
+                if (totalErrors > 0) {
+                    ChronicleMetrics.appendErrors.add(totalErrors, {
+                        'chronicle.event_store': this._eventStoreName,
+                        'chronicle.namespace': this._namespace,
+                        'chronicle.event_sequence_id': this.id.value
+                    });
+                }
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                ChronicleMetrics.appendErrors.add(1, {
+                    'chronicle.event_store': this._eventStoreName,
+                    'chronicle.namespace': this._namespace,
+                    'chronicle.event_sequence_id': this.id.value
+                });
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     /** @inheritdoc */
     async getTailSequenceNumber(eventSourceId?: string): Promise<EventSequenceNumber> {
-        const response = await Grpc.call<GetTailSequenceNumberResponse>(callback =>
-            this._connection.eventSequences.getTailSequenceNumber(
-                {
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    EventSequenceId: this.id.value,
-                    EventSourceId: eventSourceId ?? '',
-                    EventTypes: [],
-                    EventSourceType: 'Default',
-                    EventStreamId: '',
-                    EventStreamType: 'Default'
-                },
-                callback
-            )
-        );
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_tail_sequence_number', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            if (eventSourceId !== undefined) {
+                span.setAttribute('chronicle.event_source_id', eventSourceId);
+            }
+            try {
+                const response = await Grpc.call<GetTailSequenceNumberResponse>(callback =>
+                    this._connection.eventSequences.getTailSequenceNumber(
+                        {
+                            EventStore: this._eventStoreName,
+                            Namespace: this._namespace,
+                            EventSequenceId: this.id.value,
+                            EventSourceId: eventSourceId ?? '',
+                            EventTypes: [],
+                            EventSourceType: 'Default',
+                            EventStreamId: '',
+                            EventStreamType: 'Default'
+                        },
+                        callback
+                    )
+                );
 
-        return new EventSequenceNumber(response.SequenceNumber ?? 0);
+                const result = new EventSequenceNumber(response.SequenceNumber ?? 0);
+                span.setAttribute('chronicle.sequence_number', result.value);
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     /** @inheritdoc */
     async hasEventsFor(eventSourceId: string): Promise<boolean> {
-        const response = await Grpc.call<HasEventsForEventSourceIdResponse>(callback =>
-            this._connection.eventSequences.hasEventsForEventSourceId(
-                {
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    EventSequenceId: this.id.value,
-                    EventSourceId: eventSourceId
-                },
-                callback
-            )
-        );
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.has_events_for', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_source_id', eventSourceId);
+            try {
+                const response = await Grpc.call<HasEventsForEventSourceIdResponse>(callback =>
+                    this._connection.eventSequences.hasEventsForEventSourceId(
+                        {
+                            EventStore: this._eventStoreName,
+                            Namespace: this._namespace,
+                            EventSequenceId: this.id.value,
+                            EventSourceId: eventSourceId
+                        },
+                        callback
+                    )
+                );
 
-        return response.HasEvents ?? false;
+                const result = response.HasEvents ?? false;
+                span.setAttribute('chronicle.has_events', result);
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     private mapAppendResponse(

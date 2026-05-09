@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+// Telemetry MUST be imported first so the OpenTelemetry SDK is fully
+// initialised before any instrumented code runs.
+import './telemetry';
 import 'reflect-metadata';
 import {
     ChronicleClient,
