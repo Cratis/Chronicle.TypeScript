@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ChronicleConnection, IEnumerableString } from '@cratis/chronicle.contracts';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
 import { EventStore } from './EventStore';
 import { EventStoreName } from './EventStoreName';
@@ -9,6 +10,8 @@ import { EventStoreNamespaceName } from './EventStoreNamespaceName';
 import { Grpc } from './Grpc';
 import { IChronicleClient } from './IChronicleClient';
 import { IEventStore } from './IEventStore';
+import { ChronicleMetrics } from './Metrics';
+import { ChronicleTracer } from './Tracing';
 
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
@@ -46,34 +49,64 @@ export class ChronicleClient implements IChronicleClient {
                 ? new EventStoreNamespaceName(namespace)
                 : namespace;
 
-        const key = `${storeName.value}/${namespaceName.value}`;
-        const existing = this._stores.get(key);
-        if (existing) {
-            return existing;
-        }
+        return ChronicleTracer.startActiveSpan('chronicle.client.get_event_store', async span => {
+            span.setAttribute('chronicle.event_store', storeName.value);
+            span.setAttribute('chronicle.namespace', namespaceName.value);
+            try {
+                const key = `${storeName.value}/${namespaceName.value}`;
+                const existing = this._stores.get(key);
+                if (existing) {
+                    span.setStatus({ code: SpanStatusCode.OK });
+                    return existing;
+                }
 
-        await Grpc.call<object>(callback =>
-            this._connection.eventStores.ensure(
-                { Name: storeName.value },
-                callback
-            )
-        );
+                await Grpc.call<object>(callback =>
+                    this._connection.eventStores.ensure(
+                        { Name: storeName.value },
+                        callback
+                    )
+                );
 
-        const store = new EventStore(storeName, namespaceName, this._connection);
-        await store.registerArtifacts();
-        this._stores.set(key, store);
-        return store;
+                const store = new EventStore(storeName, namespaceName, this._connection);
+                this._stores.set(key, store);
+
+                ChronicleMetrics.eventStoreRetrievals.add(1, {
+                    'chronicle.event_store': storeName.value,
+                    'chronicle.namespace': namespaceName.value
+                });
+                span.setStatus({ code: SpanStatusCode.OK });
+                return store;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     /** @inheritdoc */
     async getEventStores(): Promise<EventStoreName[]> {
-        const response = await Grpc.call<IEnumerableString>(callback =>
-            this._connection.eventStores.getEventStores(
-                {},
-                callback
-            )
-        );
-        return (response.items ?? []).map((name: string) => new EventStoreName(name));
+        return ChronicleTracer.startActiveSpan('chronicle.client.get_event_stores', async span => {
+            try {
+                const response = await Grpc.call<IEnumerableString>(callback =>
+                    this._connection.eventStores.getEventStores(
+                        {},
+                        callback
+                    )
+                );
+                const result = (response.items ?? []).map((name: string) => new EventStoreName(name));
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     /** @inheritdoc */

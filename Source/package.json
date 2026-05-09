@@ -6,8 +6,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/einari/Chronicle.TypeScript.git"
+        "url": "git+https://github.com/Cratis/Chronicle.TypeScript.git"
     },
+    "files": [
+        "dist",
+        "**/*.ts"
+    ],
     "publishConfig": {
         "access": "public"
     },
@@ -21,6 +25,7 @@
     "dependencies": {
         "@cratis/chronicle.contracts": "^15.24.0",
         "@cratis/fundamentals": "^7.8.2",
+        "@opentelemetry/api": "^1.9.1",
         "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {
