@@ -4,3 +4,5 @@
 export { ReactorId } from './ReactorId';
 export { reactor, getReactorMetadata, isReactor } from './reactor';
 export type { ReactorMetadata } from './reactor';
+export type { IReactors } from './IReactors';
+export { Reactors } from './Reactors';

@@ -60,6 +60,7 @@ export class ChronicleClient implements IChronicleClient {
         );
 
         const store = new EventStore(storeName, namespaceName, this._connection);
+        await store.registerArtifacts();
         this._stores.set(key, store);
         return store;
     }

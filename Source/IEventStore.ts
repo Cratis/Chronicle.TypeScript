@@ -6,6 +6,11 @@ import { IEventSequence } from './EventSequences/IEventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
+import { IEventTypes } from './Events/IEventTypes';
+import { IConstraints } from './Events/Constraints/IConstraints';
+import { IProjections } from './Projections/IProjections';
+import { IReactors } from './Reactors/IReactors';
+import { IReducers } from './Reducers/IReducers';
 
 /**
  * Defines the API surface for an event store.
@@ -20,6 +25,21 @@ export interface IEventStore {
 
     /** The primary event log sequence for this event store. */
     readonly eventLog: IEventLog;
+
+    /** The event types manager for this event store. */
+    readonly eventTypes: IEventTypes;
+
+    /** The constraints manager for this event store. */
+    readonly constraints: IConstraints;
+
+    /** The projections manager for this event store. */
+    readonly projections: IProjections;
+
+    /** The reactors manager for this event store. */
+    readonly reactors: IReactors;
+
+    /** The reducers manager for this event store. */
+    readonly reducers: IReducers;
 
     /**
      * Gets an event sequence by its identifier.

@@ -2,5 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ProjectionId } from './ProjectionId';
+export type { IProjections } from './IProjections';
+export { Projections } from './Projections';
 export * from './declarative';
 export * from './modelBound';

@@ -7,3 +7,5 @@ export type { IConstraintBuilder } from './IConstraintBuilder';
 export type { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder';
 export { constraint, getConstraintMetadata, isConstraint } from './constraint';
 export type { ConstraintMetadata } from './constraint';
+export type { IConstraints } from './IConstraints';
+export { Constraints } from './Constraints';

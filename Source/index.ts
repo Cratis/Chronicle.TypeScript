@@ -16,7 +16,6 @@ export * from './EventSequences';
 export * from './Reactors';
 export * from './Reducers';
 export * from './ReadModels';
-export * from './Constraints';
 export * from './Projections';
 export * from './Observation';
 export * from './Schemas';
