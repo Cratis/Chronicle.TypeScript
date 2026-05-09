@@ -9,6 +9,8 @@
     "scripts": {
         "compile": "yarn workspaces foreach -A -t run compile",
         "build": "yarn workspaces foreach -A -t run build",
-        "clean": "yarn workspaces foreach -A -t run clean"
+        "clean": "yarn workspaces foreach -A -t run clean",
+        "ci": "yarn clean && yarn build",
+        "publish-version": "node ./publish-version.js"
     }
 }
