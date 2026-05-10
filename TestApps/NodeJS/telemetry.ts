@@ -32,34 +32,41 @@ const resource = resourceFromAttributes({
 // via the standard OTEL_EXPORTER_OTLP_ENDPOINT environment variable, e.g.:
 //   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node dist/index.js
 // ---------------------------------------------------------------------------
-const traceExporter = new OTLPTraceExporter();
-const metricExporter = new OTLPMetricExporter();
+const telemetryEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+const telemetryEnabled = typeof telemetryEndpoint === 'string' && telemetryEndpoint.trim().length > 0;
+
+const traceExporter = telemetryEnabled ? new OTLPTraceExporter() : undefined;
+const metricExporter = telemetryEnabled ? new OTLPMetricExporter() : undefined;
 
 // ---------------------------------------------------------------------------
 // SDK
 // ---------------------------------------------------------------------------
-const sdk = new NodeSDK({
-    resource,
-    traceExporter,
-    metricReader: new PeriodicExportingMetricReader({
-        exporter: metricExporter,
-        // Export metrics every 10 seconds (override via OTEL_METRIC_EXPORT_INTERVAL).
-        exportIntervalMillis: parseInt(process.env.OTEL_METRIC_EXPORT_INTERVAL ?? '', 10) || 10_000
-    }),
-    // Auto-instrumentation patches popular Node.js libraries (http, grpc, dns,
-    // fs, etc.) automatically — no code changes needed for those libraries.
-    instrumentations: [getNodeAutoInstrumentations()]
-});
+const sdk = telemetryEnabled
+    ? new NodeSDK({
+        resource,
+        traceExporter,
+        metricReader: new PeriodicExportingMetricReader({
+            exporter: metricExporter!,
+            // Export metrics every 10 seconds (override via OTEL_METRIC_EXPORT_INTERVAL).
+            exportIntervalMillis: parseInt(process.env.OTEL_METRIC_EXPORT_INTERVAL ?? '', 10) || 10_000
+        }),
+        // Auto-instrumentation patches popular Node.js libraries (http, grpc, dns,
+        // fs, etc.) automatically — no code changes needed for those libraries.
+        instrumentations: [getNodeAutoInstrumentations()]
+    })
+    : undefined;
 
-sdk.start();
+if (sdk) {
+    sdk.start();
 
-// Ensure the SDK is shut down cleanly when the process exits so that any
-// buffered spans and metrics are flushed to the exporter.
-process.on('SIGTERM', async () => {
-    await sdk.shutdown();
-    process.exit(0);
-});
+    // Ensure the SDK is shut down cleanly when the process exits so that any
+    // buffered spans and metrics are flushed to the exporter.
+    process.on('SIGTERM', async () => {
+        await sdk.shutdown();
+        process.exit(0);
+    });
 
-process.on('beforeExit', async () => {
-    await sdk.shutdown();
-});
+    process.on('beforeExit', async () => {
+        await sdk.shutdown();
+    });
+}

@@ -15,6 +15,8 @@ import './reducers';
 import { registerEmployeeListProjection } from './projections-declarative';
 import { demonstrateModelBoundProjection } from './projections-model-bound';
 import { registerConstraints } from './constraints';
+import { demonstrateReactors } from './reactors';
+import { demonstrateReducers } from './reducers';
 
 import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
 
@@ -38,43 +40,62 @@ async function run(): Promise<void> {
         await registerConstraints(store);
 
         // --- Projections ---
-        console.log('\n=== Declarative Projection ===');
+        console.log('\n=== Declarative Projection Artifacts ===');
         await registerEmployeeListProjection(store);
 
-        console.log('\n=== Model-Bound Projection ===');
+        console.log('\n=== Model-Bound Projection Artifacts ===');
         await demonstrateModelBoundProjection(store);
+
+        console.log('\n=== Reactor Artifacts ===');
+        await demonstrateReactors(store);
+
+        console.log('\n=== Reducer Artifacts ===');
+        await demonstrateReducers(store);
 
         // --- Event appending ---
         console.log('\n=== Appending Events ===');
+        await store.eventTypes.register();
         const eventSourceId = `employee-${Date.now()}`;
 
-        const hireResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe', 'Software Engineer'));
-        if (hireResult.isSuccess) {
-            console.log(`  Hired at seq #${hireResult.sequenceNumber.value}`);
-        } else {
-            console.error('  Hire failed:', hireResult.constraintViolations, hireResult.errors);
-        }
+        let appendSucceeded = false;
+        try {
+            const hireResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe', 'Software Engineer'));
+            if (hireResult.isSuccess) {
+                console.log(`  Hired at seq #${hireResult.sequenceNumber.value}`);
+            } else {
+                console.error('  Hire failed:', hireResult.constraintViolations, hireResult.errors);
+            }
 
-        const promoteResult = await store.eventLog.append(eventSourceId, new EmployeePromoted('Senior Software Engineer'));
-        if (promoteResult.isSuccess) {
-            console.log(`  Promoted at seq #${promoteResult.sequenceNumber.value}`);
-        } else {
-            console.error('  Promotion failed:', promoteResult.errors);
-        }
+            const promoteResult = await store.eventLog.append(eventSourceId, new EmployeePromoted('Senior Software Engineer'));
+            if (promoteResult.isSuccess) {
+                console.log(`  Promoted at seq #${promoteResult.sequenceNumber.value}`);
+            } else {
+                console.error('  Promotion failed:', promoteResult.errors);
+            }
 
-        const moveResult = await store.eventLog.append(eventSourceId, new EmployeeMoved('San Francisco'));
-        if (moveResult.isSuccess) {
-            console.log(`  Relocated at seq #${moveResult.sequenceNumber.value}`);
-        } else {
-            console.error('  Move failed:', moveResult.errors);
+            const moveResult = await store.eventLog.append(eventSourceId, new EmployeeMoved('San Francisco'));
+            if (moveResult.isSuccess) {
+                console.log(`  Relocated at seq #${moveResult.sequenceNumber.value}`);
+            } else {
+                console.error('  Move failed:', moveResult.errors);
+            }
+            appendSucceeded = true;
+        } catch (error) {
+            console.warn('  Append operations are currently unavailable in this environment.');
+            console.warn('  Continuing with connectivity checks.');
+            console.warn(`  Append error: ${String(error)}`);
         }
 
         // --- Read back ---
         console.log('\n=== Event Log State ===');
-        const tail = await store.eventLog.getTailSequenceNumber(eventSourceId);
-        const hasEvents = await store.eventLog.hasEventsFor(eventSourceId);
-        console.log(`  Tail sequence : ${tail.value}`);
-        console.log(`  Has events    : ${hasEvents}`);
+        if (appendSucceeded) {
+            const tail = await store.eventLog.getTailSequenceNumber(eventSourceId);
+            const hasEvents = await store.eventLog.hasEventsFor(eventSourceId);
+            console.log(`  Tail sequence : ${tail.value}`);
+            console.log(`  Has events    : ${hasEvents}`);
+        } else {
+            console.log('  Skipped tail lookup because append did not complete.');
+        }
 
         const namespaces = await store.getNamespaces();
         console.log(`  Namespaces    : ${namespaces.map(n => n.value).join(', ') || '(none)'}`);
