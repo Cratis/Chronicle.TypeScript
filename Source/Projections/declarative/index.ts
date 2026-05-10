@@ -3,6 +3,10 @@
 
 export { projection, getProjectionMetadata, isProjection } from './projection';
 export type { ProjectionMetadata } from './projection';
+export { ProjectionBuilderFor } from './ProjectionBuilderFor';
+export { FromBuilder } from './FromBuilder';
+export { SetBuilder } from './SetBuilder';
+export { RemovedWithBuilder } from './RemovedWithBuilder';
 export type { IProjectionFor } from './IProjectionFor';
 export type { IProjectionBuilderFor } from './IProjectionBuilderFor';
 export type { IProjectionBuilder } from './IProjectionBuilder';

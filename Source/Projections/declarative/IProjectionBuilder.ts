@@ -37,17 +37,19 @@ export interface IProjectionBuilder<TReadModel, TBuilder> {
 
     /**
      * Configures a projection from a specific event type.
+     * @param eventType - The event class constructor.
      * @param builderCallback - Optional callback for configuring property mappings.
      * @returns This builder for fluent chaining.
      */
-    from<TEvent>(builderCallback?: (builder: IFromBuilder<TReadModel, TEvent>) => void): TBuilder;
+    from<TEvent>(eventType: new (...args: any[]) => TEvent, builderCallback?: (builder: IFromBuilder<TReadModel, TEvent>) => void): TBuilder;
 
     /**
      * Configures a join projection from a specific event type.
+     * @param eventType - The event class constructor.
      * @param builderCallback - Optional callback for configuring the join mappings.
      * @returns This builder for fluent chaining.
      */
-    join<TEvent>(builderCallback?: (builder: IJoinBuilder<TReadModel, TEvent>) => void): TBuilder;
+    join<TEvent>(eventType: new (...args: any[]) => TEvent, builderCallback?: (builder: IJoinBuilder<TReadModel, TEvent>) => void): TBuilder;
 
     /**
      * Configures property mappings that apply to every projected event type.
@@ -58,17 +60,19 @@ export interface IProjectionBuilder<TReadModel, TBuilder> {
 
     /**
      * Specifies the event type that causes this read model instance to be removed.
+     * @param eventType - The event class constructor.
      * @param builderCallback - Optional callback for configuring the removal behavior.
      * @returns This builder for fluent chaining.
      */
-    removedWith<TEvent>(builderCallback?: (builder: IRemovedWithBuilder<TReadModel, TEvent>) => void): TBuilder;
+    removedWith<TEvent>(eventType: new (...args: any[]) => TEvent, builderCallback?: (builder: IRemovedWithBuilder<TReadModel, TEvent>) => void): TBuilder;
 
     /**
      * Specifies the joined event type that causes this read model instance to be removed.
+     * @param eventType - The event class constructor.
      * @param builderCallback - Optional callback for configuring the removal behavior.
      * @returns This builder for fluent chaining.
      */
-    removedWithJoin<TEvent>(builderCallback?: (builder: IRemovedWithJoinBuilder<TReadModel, TEvent>) => void): TBuilder;
+    removedWithJoin<TEvent>(eventType: new (...args: any[]) => TEvent, builderCallback?: (builder: IRemovedWithJoinBuilder<TReadModel, TEvent>) => void): TBuilder;
 
     /**
      * Configures a child collection projection on the specified read model property.
