@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the join property decorator. */
 export interface JoinMetadata {
@@ -25,6 +26,7 @@ const METADATA_KEY = 'chronicle:projection:join';
 export function join(eventType: Function, on?: string, eventPropertyName?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: JoinMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: JoinMetadata = { eventType, on, eventPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);

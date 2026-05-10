@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the subtractFrom property decorator. */
 export interface SubtractFromMetadata {
@@ -22,6 +23,7 @@ const METADATA_KEY = 'chronicle:projection:subtractFrom';
 export function subtractFrom(eventType: Function, eventPropertyName?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SubtractFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: SubtractFromMetadata = { eventType, eventPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);

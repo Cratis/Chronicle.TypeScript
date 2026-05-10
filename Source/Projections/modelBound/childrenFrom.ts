@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the childrenFrom property decorator. */
 export interface ChildrenFromMetadata {
@@ -33,6 +34,7 @@ export function childrenFrom(
 ): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const propKey = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
         const existing: ChildrenFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, propKey) ?? [];
         const metadata: ChildrenFromMetadata = { eventType, key, identifiedBy, parentKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, propKey);

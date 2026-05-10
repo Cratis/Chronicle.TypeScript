@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the increment property decorator. */
 export interface IncrementMetadata {
@@ -22,6 +23,7 @@ const METADATA_KEY = 'chronicle:projection:increment';
 export function increment(eventType: Function, constantKey?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: IncrementMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: IncrementMetadata = { eventType, constantKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);

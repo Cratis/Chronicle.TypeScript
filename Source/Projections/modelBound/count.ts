@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the count property decorator. */
 export interface CountMetadata {
@@ -22,6 +23,7 @@ const METADATA_KEY = 'chronicle:projection:count';
 export function count(eventType: Function, constantKey?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: CountMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: CountMetadata = { eventType, constantKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);

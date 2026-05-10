@@ -41,9 +41,14 @@ export class TypeIntrospector {
      */
     static getMembers(target: Function): Map<string, Function | undefined> {
         const members = new Map<string, Function | undefined>();
+        const defaultValues = this.tryGetDefaultPropertyValues(target);
 
         for (const property of this.getTrackedProperties(target)) {
-            const runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+            let runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+            if (!runtimeType || runtimeType === Object) {
+                runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]);
+            }
+
             members.set(property, runtimeType);
         }
 
@@ -60,6 +65,47 @@ export class TypeIntrospector {
         }
 
         return members;
+    }
+
+    private static tryGetDefaultPropertyValues(target: Function): Record<string, unknown> {
+        try {
+            const parameters = Array.from({ length: target.length }, () => undefined);
+            const instance = Reflect.construct(target as new (...args: unknown[]) => unknown, parameters);
+            if (!instance || typeof instance !== 'object') {
+                return {};
+            }
+
+            return instance as Record<string, unknown>;
+        } catch {
+            return {};
+        }
+    }
+
+    private static getRuntimeTypeFromValue(value: unknown): Function | undefined {
+        if (typeof value === 'string') {
+            return String;
+        }
+
+        if (typeof value === 'number') {
+            return Number;
+        }
+
+        if (typeof value === 'boolean') {
+            return Boolean;
+        }
+
+        if (Array.isArray(value)) {
+            return Array;
+        }
+
+        if (value && typeof value === 'object') {
+            const constructor = (value as { constructor?: Function }).constructor;
+            if (constructor && constructor !== Object) {
+                return constructor;
+            }
+        }
+
+        return undefined;
     }
 
     private static getConstructorParameterNames(target: Function): string[] {

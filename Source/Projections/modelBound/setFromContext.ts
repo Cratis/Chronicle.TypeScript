@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the setFromContext property decorator. */
 export interface SetFromContextMetadata {
@@ -22,6 +23,7 @@ const METADATA_KEY = 'chronicle:projection:setFromContext';
 export function setFromContext(eventType: Function, contextPropertyName?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SetFromContextMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: SetFromContextMetadata = { eventType, contextPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);

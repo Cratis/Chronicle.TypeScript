@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the fromEvery property decorator. */
 export interface FromEveryMetadata {
@@ -21,6 +22,7 @@ const METADATA_KEY = 'chronicle:projection:fromEvery';
  */
 export function fromEvery(property?: string, contextProperty?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
+        TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propertyKey.toString());
         const metadata: FromEveryMetadata = { property, contextProperty };
         Reflect.defineMetadata(METADATA_KEY, metadata, target, propertyKey.toString());
     };

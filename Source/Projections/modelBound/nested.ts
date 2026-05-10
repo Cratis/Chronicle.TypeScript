@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 const METADATA_KEY = 'chronicle:projection:nested';
 
@@ -12,7 +13,9 @@ const METADATA_KEY = 'chronicle:projection:nested';
  * @param propertyKey - The property name.
  */
 export function nested(target: object, propertyKey: string | symbol): void {
-    Reflect.defineMetadata(METADATA_KEY, true, target, propertyKey.toString());
+    const key = propertyKey.toString();
+    TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
+    Reflect.defineMetadata(METADATA_KEY, true, target, key);
 }
 
 /**

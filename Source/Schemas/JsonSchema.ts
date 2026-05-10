@@ -9,6 +9,7 @@ export type JsonSchema = {
     title?: string;
     description?: string;
     type?: 'null' | 'boolean' | 'object' | 'array' | 'number' | 'string' | 'integer';
+    format?: string;
     properties?: Record<string, JsonSchema>;
     required?: string[];
     items?: JsonSchema;

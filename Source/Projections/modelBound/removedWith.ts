@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the removedWith class or property decorator. */
 export interface RemovedWithMetadata {
@@ -29,6 +30,7 @@ export function removedWith(eventType: Function, key?: string, parentKey?: strin
     return (target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const propKey = propertyKey.toString();
+            TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
             const existing: RemovedWithMetadata[] = Reflect.getMetadata(PROPERTY_METADATA_KEY, target, propKey) ?? [];
             Reflect.defineMetadata(PROPERTY_METADATA_KEY, [...existing, { eventType, key, parentKey }], target, propKey);
         } else {

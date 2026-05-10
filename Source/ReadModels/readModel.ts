@@ -33,6 +33,7 @@ export function readModel(id: string = ''): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const readModelId = new ReadModelId(id || constructor.name);
+        trackInstanceProperties(constructor);
         const members = TypeIntrospector.getMembers(constructor);
         const metadata: ReadModelMetadata = {
             id: readModelId,
@@ -46,6 +47,27 @@ export function readModel(id: string = ''): ClassDecorator {
             readModelId.value
         );
     };
+}
+
+function trackInstanceProperties(constructor: Function): void {
+    const instance = tryCreateInstance(constructor);
+    if (!instance || typeof instance !== 'object') {
+        return;
+    }
+
+    for (const propertyName of Object.keys(instance as Record<string, unknown>)) {
+        TypeIntrospector.trackProperty(constructor, propertyName);
+    }
+}
+
+function tryCreateInstance(constructor: Function): unknown {
+    try {
+        const parameterCount = constructor.length;
+        const parameters = Array.from({ length: parameterCount }, () => undefined);
+        return Reflect.construct(constructor as new (...args: unknown[]) => unknown, parameters);
+    } catch {
+        return undefined;
+    }
 }
 
 /**

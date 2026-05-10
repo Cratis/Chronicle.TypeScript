@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the clearWith class or property decorator. */
 export interface ClearWithMetadata {
@@ -23,6 +24,7 @@ export function clearWith(eventType: Function): ClassDecorator & PropertyDecorat
     return (target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const key = propertyKey.toString();
+            TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
             const existing: ClearWithMetadata[] = Reflect.getMetadata(PROPERTY_METADATA_KEY, target, key) ?? [];
             Reflect.defineMetadata(PROPERTY_METADATA_KEY, [...existing, { eventType }], target, key);
         } else {
