@@ -3,11 +3,11 @@
 
 import {
     AutoMap,
-    ChronicleConnection,
     ProjectionOwner
 } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
+import { ChronicleConnection } from '../connection';
 import { EventSequenceId } from '../EventSequences/EventSequenceId';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { getReadModelMetadata } from '../ReadModels';

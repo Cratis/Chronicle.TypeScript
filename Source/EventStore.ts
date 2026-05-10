@@ -1,8 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '@cratis/chronicle.contracts';
+import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
+import { ChronicleConnection } from './connection';
 import { EventLog } from './EventSequences/EventLog';
 import { EventSequence } from './EventSequences/EventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';
@@ -29,6 +30,10 @@ import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifac
  * via gRPC using the provided {@link ChronicleConnection}.
  */
 export class EventStore implements IEventStore {
+    private readonly _logger = diag.createComponentLogger({
+        namespace: '@cratis/chronicle/EventStore'
+    });
+
     readonly eventLog: IEventLog;
     readonly eventTypes: IEventTypes;
     readonly constraints: IConstraints;
@@ -60,13 +65,36 @@ export class EventStore implements IEventStore {
      * @returns A promise that resolves when all registrations are complete.
      */
     async registerArtifacts(): Promise<void> {
+        this._logger.debug('Discovering artifacts for registration', {
+            eventStore: this.name.value,
+            namespace: this.namespace.value
+        });
+
+        await this.eventTypes.discover();
         await Promise.all([
-            this.eventTypes.register(),
+            this.constraints.discover(),
+            this.projections.discover(),
+            this.reactors.discover(),
+            this.reducers.discover()
+        ]);
+
+        this._logger.debug('Registering discovered artifacts', {
+            eventStore: this.name.value,
+            namespace: this.namespace.value
+        });
+
+        await this.eventTypes.register();
+        await Promise.all([
             this.constraints.register(),
             this.projections.register(),
             this.reactors.register(),
             this.reducers.register()
         ]);
+
+        this._logger.info('Artifact registration completed', {
+            eventStore: this.name.value,
+            namespace: this.namespace.value
+        });
     }
 
     /** @inheritdoc */

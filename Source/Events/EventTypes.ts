@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
+import { ChronicleConnection } from '../connection';
 import { EventTypeId } from './EventTypeId';
 import { IEventTypes } from './IEventTypes';
 import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';

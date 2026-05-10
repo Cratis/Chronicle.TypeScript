@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ConstraintType, RegisterConstraintsRequest } from '@cratis/chronicle.contracts';
-import { getEventTypeFor, IEventStore } from '@cratis/chronicle';
+import { getEventTypeFor } from '@cratis/chronicle';
 import { EmployeeHired } from './events';
 
 /**
@@ -41,25 +41,3 @@ function buildUniqueHireConstraint(): RegisterConstraintsRequest {
 }
 
 export const uniqueHireConstraint = buildUniqueHireConstraint();
-
-/**
- * Registers the unique-hire constraint with the Chronicle Kernel.
- *
- * Once registered, any attempt to append a second {@link EmployeeHired} event for the
- * same event source will be rejected by the Kernel, and the {@link AppendResult} will
- * contain a populated {@link ConstraintViolation} list.
- *
- * @param store - The event store to register constraints against.
- */
-export async function registerConstraints(store: IEventStore): Promise<void> {
-    console.log('  Registering unique-hire constraint...');
-    // The constraint registration API is not yet available on the TypeScript client.
-    // When available it will look like:
-    //   await store.constraints.register(uniqueHireConstraint);
-    const constraint = uniqueHireConstraint.Constraints[0];
-    const eventTypeId = constraint.Definition?.Value1?.EventTypeId ?? '(unknown)';
-    console.log(`  [Constraint] Name      : ${constraint.Name}`);
-    console.log(`  [Constraint] Type      : ${ConstraintType[constraint.Type]}`);
-    console.log(`  [Constraint] Event type: EmployeeHired (${eventTypeId})`);
-    void store;
-}

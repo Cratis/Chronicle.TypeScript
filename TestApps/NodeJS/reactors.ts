@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { reactor, EventContext, IEventStore } from '@cratis/chronicle';
+import { reactor, EventContext } from '@cratis/chronicle';
 import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
 
 /**
@@ -46,14 +46,3 @@ export class HrNotificationReactor {
     }
 }
 
-/**
- * Demonstrates reactor artifact discovery and registration in the NodeJS test app.
- * @param store - The event store.
- */
-export async function demonstrateReactors(store: IEventStore): Promise<void> {
-    console.log('  Discovering reactor artifacts...');
-    await store.reactors.discover();
-    await store.reactors.register();
-    console.log(`  [Reactor] Artifact   : ${HrNotificationReactor.name}`);
-    console.log('  [Reactor] Status     : discovered and registration flow invoked');
-}
