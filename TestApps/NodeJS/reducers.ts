@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { reducer, IEventStore } from '@cratis/chronicle';
+import { reducer } from '@cratis/chronicle';
 import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
 
 /**
@@ -66,24 +66,3 @@ export class EmployeeStateReducer {
     }
 }
 
-/**
- * Demonstrates reducer artifact discovery/registration and a local fold over sample events.
- * @param store - The event store.
- */
-export async function demonstrateReducers(store: IEventStore): Promise<void> {
-    console.log('  Discovering reducer artifacts...');
-    await store.reducers.discover();
-    await store.reducers.register();
-
-    const reducer = new EmployeeStateReducer();
-    const hired = new EmployeeHired('Jane', 'Doe', 'Software Engineer');
-    const promoted = new EmployeePromoted('Senior Software Engineer');
-    const moved = new EmployeeMoved('San Francisco');
-
-    let state = await reducer.employeeHired(hired);
-    state = await reducer.employeePromoted(promoted, state);
-    state = await reducer.employeeMoved(moved, state);
-
-    console.log(`  [Reducer] Artifact   : ${EmployeeStateReducer.name}`);
-    console.log(`  [Reducer] Sample fold: ${state.firstName} ${state.lastName}, ${state.title}, ${state.city}`);
-}

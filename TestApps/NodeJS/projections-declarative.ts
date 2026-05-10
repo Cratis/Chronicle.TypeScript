@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IEventStore, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
 import { EmployeeHired, EmployeeMoved, EmployeePromoted } from './events';
 import { Guid } from '@cratis/fundamentals';
 
@@ -33,15 +33,6 @@ export class EmployeeListProjection implements IProjectionFor<Employee> {
                 .set(m => m.city).to(e => e.newCity)
             );
     }
-}
-
-/**
- * Registers the declarative employee list projection with the given event store.
- * @param store - The event store to register the projection with.
- */
-export async function registerEmployeeListProjection(store: IEventStore): Promise<void> {
-    await store.projections.register();
-    console.log('  Declarative projection "EmployeeListProjection" registered via builder API.');
 }
 
 
