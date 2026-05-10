@@ -1,8 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, ConstraintType } from '@cratis/chronicle.contracts';
+import { ConstraintType } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../../artifacts';
+import { ChronicleConnection } from '../../connection';
 import { ConstraintId } from './ConstraintId';
 import { IConstraint } from './IConstraint';
 import { IConstraints } from './IConstraints';

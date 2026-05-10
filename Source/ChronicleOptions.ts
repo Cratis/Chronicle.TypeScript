@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnectionString } from '@cratis/chronicle.contracts';
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts';
+import { ChronicleConnectionString } from './connection';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;

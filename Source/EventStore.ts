@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { SpanStatusCode } from '@opentelemetry/api';
+import { ChronicleConnection } from './connection';
 import { EventLog } from './EventSequences/EventLog';
 import { EventSequence } from './EventSequences/EventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';

@@ -4,7 +4,7 @@
 import {
     ChronicleConnection,
     Guid as ContractsGuid
-} from '@cratis/chronicle.contracts';
+} from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
