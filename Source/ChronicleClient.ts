@@ -1,13 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, IEnumerableString } from '@cratis/chronicle.contracts';
+import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
 import { EventStore } from './EventStore';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
-import { Grpc } from './Grpc';
 import { IChronicleClient } from './IChronicleClient';
 import { IEventStore } from './IEventStore';
 import { ChronicleMetrics } from './Metrics';
@@ -66,12 +65,7 @@ export class ChronicleClient implements IChronicleClient {
                     return existing;
                 }
 
-                await Grpc.call<object>(callback =>
-                    this._connection.eventStores.ensure(
-                        { Name: storeName.value },
-                        callback
-                    )
-                );
+                await this._connection.eventStores.ensure({ Name: storeName.value });
 
                 const store = new EventStore(storeName, namespaceName, this._connection);
                 this._stores.set(key, store);
@@ -96,12 +90,7 @@ export class ChronicleClient implements IChronicleClient {
     async getEventStores(): Promise<EventStoreName[]> {
         return ChronicleTracer.startActiveSpan('chronicle.client.get_event_stores', async span => {
             try {
-                const response = await Grpc.call<IEnumerableString>(callback =>
-                    this._connection.eventStores.getEventStores(
-                        {},
-                        callback
-                    )
-                );
+                const response = await this._connection.eventStores.getEventStores({});
                 const result = (response.items ?? []).map((name: string) => new EventStoreName(name));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;

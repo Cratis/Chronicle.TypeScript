@@ -6,7 +6,7 @@
  */
 export class EventSequenceId {
     /** The identifier of the default event log sequence. */
-    static readonly eventLog = new EventSequenceId('00000000-0000-0000-0000-000000000000');
+    static readonly eventLog = new EventSequenceId('event-log');
 
     constructor(readonly value: string) {}
 

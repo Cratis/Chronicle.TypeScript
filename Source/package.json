@@ -24,9 +24,9 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@bufbuild/protobuf": "^2.0.0",
-        "@cratis/chronicle.contracts": "^15.24.0",
-        "@cratis/fundamentals": "^7.8.2",
+        "@bufbuild/protobuf": "^2.12.0",
+        "@cratis/chronicle.contracts": "^15.25.2",
+        "@cratis/fundamentals": "^7.9.0",
         "@opentelemetry/api": "^1.9.1",
         "reflect-metadata": "^0.2.2"
     },

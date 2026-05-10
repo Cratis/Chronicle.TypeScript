@@ -6,7 +6,7 @@
  */
 export class EventStoreNamespaceName {
     /** The default namespace name. */
-    static readonly default = new EventStoreNamespaceName('default');
+    static readonly default = new EventStoreNamespaceName('Default');
 
     constructor(readonly value: string) {}
 

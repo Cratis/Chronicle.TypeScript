@@ -5,7 +5,7 @@ __metadata:
   version: 9
   cacheKey: 10c0
 
-"@bufbuild/protobuf@npm:^2.0.0":
+"@bufbuild/protobuf@npm:^2.0.0, @bufbuild/protobuf@npm:^2.12.0":
   version: 2.12.0
   resolution: "@bufbuild/protobuf@npm:2.12.0"
   checksum: 10c0/28959e371fd2e7c8d67d52af9e3c8f8e6770e2e116dcc5508f469ca736afa6905e216bc76183835898a5f3deb8aa2e7db47d4a0e706fba76115e9a1996893191
@@ -33,12 +33,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:^15.24.0":
-  version: 15.24.2
-  resolution: "@cratis/chronicle.contracts@npm:15.24.2"
+"@cratis/chronicle.contracts@npm:^15.25.2":
+  version: 15.25.2
+  resolution: "@cratis/chronicle.contracts@npm:15.25.2"
   dependencies:
+    "@bufbuild/protobuf": "npm:^2.0.0"
     "@grpc/grpc-js": "npm:^1.12.4"
-  checksum: 10c0/895ee051cef32e048bc1f66bfe253c9854bf81d0d6793a0528024645a7e5c7ad288e720fb50bb548cc15145fd171c92c02413ce2bb01676421349d250db85a11
+    nice-grpc: "npm:^2.1.0"
+  checksum: 10c0/504866a2e089f0257937c4b660041763905e658e79b6760f73f0beb1b7380271aa32025c267e787d883efa2bf3c89d8e696be7fd591894b31e5a1f37d54f751e
   languageName: node
   linkType: hard
 
@@ -46,9 +48,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
-    "@bufbuild/protobuf": "npm:^2.0.0"
-    "@cratis/chronicle.contracts": "npm:^15.24.0"
-    "@cratis/fundamentals": "npm:^7.8.2"
+    "@bufbuild/protobuf": "npm:^2.12.0"
+    "@cratis/chronicle.contracts": "npm:^15.25.2"
+    "@cratis/fundamentals": "npm:^7.9.0"
     "@opentelemetry/api": "npm:^1.9.1"
     "@types/node": "npm:^25.6.1"
     reflect-metadata: "npm:^0.2.2"
@@ -56,7 +58,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/fundamentals@npm:^7.8.2":
+"@cratis/fundamentals@npm:^7.9.0":
   version: 7.9.0
   resolution: "@cratis/fundamentals@npm:7.9.0"
   dependencies:
@@ -247,7 +249,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@grpc/grpc-js@npm:^1.12.4, @grpc/grpc-js@npm:^1.14.3":
+"@grpc/grpc-js@npm:^1.12.4, @grpc/grpc-js@npm:^1.14.0, @grpc/grpc-js@npm:^1.14.3":
   version: 1.14.3
   resolution: "@grpc/grpc-js@npm:1.14.3"
   dependencies:
@@ -1512,6 +1514,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"abort-controller-x@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "abort-controller-x@npm:0.5.0"
+  checksum: 10c0/a4eff7a043cc449a968c392f52a4b68bc04f0d4bebd24bf25f5cca0d49f38acd364a892dae85c9642931ff151b92902b850363be288275a517c52c10c569e898
+  languageName: node
+  linkType: hard
+
 "acorn-import-attributes@npm:^1.9.5":
   version: 1.9.5
   resolution: "acorn-import-attributes@npm:1.9.5"
@@ -1570,6 +1579,8 @@ __metadata:
 "chronicle-typescript-workspace@workspace:.":
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
+  dependencies:
+    "@cratis/chronicle.contracts": "npm:^15.25.2"
   languageName: unknown
   linkType: soft
 
@@ -1948,6 +1959,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nice-grpc-common@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "nice-grpc-common@npm:2.0.3"
+  dependencies:
+    ts-error: "npm:^1.0.6"
+  checksum: 10c0/814377b5978a84466a57fd7e996d93f80924555d701900db3e7e5c79b4e775e6a9b71e5f0f11fb719d7d94472b62dbdffdabee405bad1ea185639962794d5b1d
+  languageName: node
+  linkType: hard
+
+"nice-grpc@npm:^2.1.0":
+  version: 2.1.16
+  resolution: "nice-grpc@npm:2.1.16"
+  dependencies:
+    "@grpc/grpc-js": "npm:^1.14.0"
+    abort-controller-x: "npm:^0.5.0"
+    nice-grpc-common: "npm:^2.0.3"
+  checksum: 10c0/db79f7744918a94f504b2028279df28440d8880cead2919276e4ba854f4666e888bf1df798f75c11d35e417bf9e5a8ba0110792d9708e7b94f2419cdbf187362
+  languageName: node
+  linkType: hard
+
 "node-domexception@npm:^1.0.0":
   version: 1.0.0
   resolution: "node-domexception@npm:1.0.0"
@@ -2089,8 +2120,8 @@ __metadata:
   linkType: hard
 
 "protobufjs@npm:^7.5.5":
-  version: 7.5.6
-  resolution: "protobufjs@npm:7.5.6"
+  version: 7.5.7
+  resolution: "protobufjs@npm:7.5.7"
   dependencies:
     "@protobufjs/aspromise": "npm:^1.1.2"
     "@protobufjs/base64": "npm:^1.1.2"
@@ -2104,7 +2135,7 @@ __metadata:
     "@protobufjs/utf8": "npm:^1.1.1"
     "@types/node": "npm:>=13.7.0"
     long: "npm:^5.0.0"
-  checksum: 10c0/220df6c3cf6d2346748639a9b0b688fecc994bff9fee7018a93167e8cd45ab0ee3b4270d9eaa6be33a11adb46514ef9dce7e8217fd578c36726a9e70b96327cd
+  checksum: 10c0/432b30edf06c689ca591372812b57a7cda3d5325311b69369e3bb15afef80ccc5dd021cc7e92d72e55e8e0f5665abf87c32e26601319ab9576707f846777842e
   languageName: node
   linkType: hard
 
@@ -2188,6 +2219,13 @@ __metadata:
     fdir: "npm:^6.5.0"
     picomatch: "npm:^4.0.4"
   checksum: 10c0/f2e09fd93dd95c41e522113b686ff6f7c13020962f8698a864a257f3d7737599afc47722b7ab726e12f8a813f779906187911ff8ee6701ede65072671a7e934b
+  languageName: node
+  linkType: hard
+
+"ts-error@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "ts-error@npm:1.0.6"
+  checksum: 10c0/c46994b0b88eae75d676ab18edcdb3e6c309abb39d8169c2d15286d10f4fc7bfc58c537a81f3efe24701e840247b5e79ac8e21a7335327811a07cfc33f69a72f
   languageName: node
   linkType: hard
 

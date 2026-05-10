@@ -4,7 +4,6 @@
 import { Constructor } from '@cratis/fundamentals';
 import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
-import { Grpc } from '../Grpc';
 import { EventTypeId } from './EventTypeId';
 import { IEventTypes } from './IEventTypes';
 import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
@@ -73,16 +72,11 @@ export class EventTypes implements IEventTypes {
             return;
         }
 
-        await Grpc.call(callback =>
-            this._connection.eventTypes.register(
-                {
-                    EventStore: this._eventStore,
-                    Types: registrations,
-                    DisableValidation: false
-                },
-                callback
-            )
-        );
+        await this._connection.eventTypes.register({
+            EventStore: this._eventStore,
+            Types: registrations,
+            DisableValidation: false
+        });
     }
 
     /** @inheritdoc */

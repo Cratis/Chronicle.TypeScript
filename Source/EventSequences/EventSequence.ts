@@ -1,11 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, AppendResponse, AppendManyResponse, GetTailSequenceNumberResponse, Guid as ContractsGuid, HasEventsForEventSourceIdResponse } from '@cratis/chronicle.contracts';
+import {
+    ChronicleConnection,
+    Guid as ContractsGuid
+} from '@cratis/chronicle.contracts';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
-import { Grpc } from '../Grpc';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { ConstraintViolation } from './ConstraintViolation';
@@ -51,33 +53,45 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_type_generation', eventType.generation.value);
             const startTime = Date.now();
             try {
-                const response = await Grpc.call<AppendResponse>(callback =>
-                    this._connection.eventSequences.append(
-                        {
-                            EventStore: this._eventStoreName,
-                            Namespace: this._namespace,
-                            EventSequenceId: this.id.value,
-                            CorrelationId: toContractsGuid(correlationId),
-                            EventSourceType: 'Default',
-                            EventSourceId: eventSourceId,
-                            EventStreamType: 'Default',
-                            EventStreamId: eventSourceId,
-                            EventType: {
-                                Id: eventType.id.value,
-                                Generation: eventType.generation.value,
-                                Tombstone: eventType.tombstone
-                            },
-                            Content: content,
-                            Causation: [],
-                            CausedBy: undefined,
-                            ConcurrencyScope: undefined,
-                            Tags: [],
-                            Occurred: undefined,
-                            Subject: eventSourceId
-                        },
-                        callback
-                    )
-                );
+                const response = await this._connection.eventSequences.append({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    CorrelationId: toContractsGuid(correlationId),
+                    EventSourceType: 'Default',
+                    EventSourceId: eventSourceId,
+                    EventStreamType: 'Default',
+                    EventStreamId: eventSourceId,
+                    EventType: {
+                        Id: eventType.id.value,
+                        Generation: eventType.generation.value,
+                        Tombstone: eventType.tombstone
+                    },
+                    Content: content,
+                    Causation: [{
+                        Occurred: { Value: new Date().toISOString() },
+                        Type: 'TypeScriptClient.Append',
+                        Properties: {}
+                    }],
+                    CausedBy: {
+                        Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
+                        Name: '[System]',
+                        UserName: '[System]',
+                        OnBehalfOf: undefined
+                    },
+                    ConcurrencyScope: {
+                        // ulong.MaxValue sent as BigInt so the server recognises it as ConcurrencyScope.None (no validation)
+                        SequenceNumber: 18446744073709551615n as unknown as number,
+                        EventSourceId: false,
+                        EventStreamType: '',
+                        EventStreamId: '',
+                        EventSourceType: '',
+                        EventTypes: []
+                    },
+                    Tags: [],
+                    Occurred: undefined,
+                    Subject: eventSourceId
+                });
 
                 const duration = Date.now() - startTime;
                 const result = this.mapAppendResponse(
@@ -139,9 +153,25 @@ export class EventSequence implements IEventSequence {
                     Tombstone: eventType.tombstone
                 },
                 Content: JSON.stringify(event),
-                Causation: [],
-                CausedBy: undefined,
-                ConcurrencyScope: undefined,
+                Causation: [{
+                    Occurred: { Value: new Date().toISOString() },
+                    Type: 'TypeScriptClient.AppendMany.Event',
+                    Properties: {}
+                }],
+                CausedBy: {
+                    Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
+                    Name: '[System]',
+                    UserName: '[System]',
+                    OnBehalfOf: undefined
+                },
+                ConcurrencyScope: {
+                    SequenceNumber: 18446744073709551615n as unknown as number,
+                    EventSourceId: false,
+                    EventStreamType: '',
+                    EventStreamId: '',
+                    EventSourceType: '',
+                    EventTypes: []
+                },
                 Tags: [],
                 Occurred: undefined,
                 Subject: eventSourceId
@@ -163,28 +193,32 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.events_count', events.length);
             const startTime = Date.now();
             try {
-                const response = await Grpc.call<AppendManyResponse>(callback =>
-                    this._connection.eventSequences.appendMany(
-                        {
-                            EventStore: this._eventStoreName,
-                            Namespace: this._namespace,
-                            EventSequenceId: this.id.value,
-                            CorrelationId: toContractsGuid(correlationId),
-                            Events: eventsToAppend,
-                            Causation: [],
-                            CausedBy: undefined,
-                            ConcurrencyScopes: {}
-                        },
-                        callback
-                    )
-                );
+                const response = await this._connection.eventSequences.appendMany({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    CorrelationId: toContractsGuid(correlationId),
+                    Events: eventsToAppend,
+                    Causation: [{
+                        Occurred: { Value: new Date().toISOString() },
+                        Type: 'TypeScriptClient.AppendMany.Batch',
+                        Properties: {}
+                    }],
+                    CausedBy: {
+                        Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
+                        Name: '[System]',
+                        UserName: '[System]',
+                        OnBehalfOf: undefined
+                    },
+                    ConcurrencyScopes: {}
+                });
 
                 const duration = Date.now() - startTime;
-                const result = (response.SequenceNumbers ?? []).map((sequenceNumber: number, index: number) =>
+                const result = (response.SequenceNumbers ?? []).map((sequenceNumber, index) =>
                     this.mapAppendResponse(
                         sequenceNumber,
                         response.ConstraintViolations ?? [],
-                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index)
+                        (response.Errors ?? []).filter((_, errorIndex) => errorIndex === index)
                     )
                 );
                 span.setStatus({ code: SpanStatusCode.OK });
@@ -193,7 +227,7 @@ export class EventSequence implements IEventSequence {
                 ChronicleMetrics.eventsAppended.add(events.length, batchMetricAttributes);
                 ChronicleMetrics.appendManyDuration.record(duration, batchMetricAttributes);
 
-                const totalViolations = result.reduce((sum, r) => sum + r.constraintViolations.length, 0);
+                const totalViolations = result.reduce((sum, appendResult) => sum + appendResult.constraintViolations.length, 0);
                 if (totalViolations > 0) {
                     ChronicleMetrics.constraintViolations.add(totalViolations, {
                         'chronicle.event_store': this._eventStoreName,
@@ -201,7 +235,7 @@ export class EventSequence implements IEventSequence {
                         'chronicle.event_sequence_id': this.id.value
                     });
                 }
-                const totalErrors = result.reduce((sum, r) => sum + r.errors.length, 0);
+                const totalErrors = result.reduce((sum, appendResult) => sum + appendResult.errors.length, 0);
                 if (totalErrors > 0) {
                     ChronicleMetrics.appendErrors.add(totalErrors, {
                         'chronicle.event_store': this._eventStoreName,
@@ -235,21 +269,16 @@ export class EventSequence implements IEventSequence {
                 span.setAttribute('chronicle.event_source_id', eventSourceId);
             }
             try {
-                const response = await Grpc.call<GetTailSequenceNumberResponse>(callback =>
-                    this._connection.eventSequences.getTailSequenceNumber(
-                        {
-                            EventStore: this._eventStoreName,
-                            Namespace: this._namespace,
-                            EventSequenceId: this.id.value,
-                            EventSourceId: eventSourceId ?? '',
-                            EventTypes: [],
-                            EventSourceType: 'Default',
-                            EventStreamId: '',
-                            EventStreamType: 'Default'
-                        },
-                        callback
-                    )
-                );
+                const response = await this._connection.eventSequences.getTailSequenceNumber({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    EventSourceId: eventSourceId ?? '',
+                    EventTypes: [],
+                    EventSourceType: 'Default',
+                    EventStreamId: '',
+                    EventStreamType: 'Default'
+                });
 
                 const result = new EventSequenceNumber(response.SequenceNumber ?? 0);
                 span.setAttribute('chronicle.sequence_number', result.value);
@@ -273,17 +302,12 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.event_source_id', eventSourceId);
             try {
-                const response = await Grpc.call<HasEventsForEventSourceIdResponse>(callback =>
-                    this._connection.eventSequences.hasEventsForEventSourceId(
-                        {
-                            EventStore: this._eventStoreName,
-                            Namespace: this._namespace,
-                            EventSequenceId: this.id.value,
-                            EventSourceId: eventSourceId
-                        },
-                        callback
-                    )
-                );
+                const response = await this._connection.eventSequences.hasEventsForEventSourceId({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    EventSourceId: eventSourceId
+                });
 
                 const result = response.HasEvents ?? false;
                 span.setAttribute('chronicle.has_events', result);
@@ -312,8 +336,13 @@ export class EventSequence implements IEventSequence {
 
         const mappedErrors = errors.map(message => ({ message }));
 
+        // The server uses ulong.MaxValue as a sentinel for "Unavailable" when an
+        // append fails (constraint violation, etc.). JS Number loses precision at
+        // that scale so we normalise anything >= MAX_SAFE_INTEGER to 0.
+        const safeSequenceNumber = sequenceNumber >= Number.MAX_SAFE_INTEGER ? 0 : sequenceNumber;
+
         return {
-            sequenceNumber: new EventSequenceNumber(sequenceNumber),
+            sequenceNumber: new EventSequenceNumber(safeSequenceNumber),
             constraintViolations: mappedViolations,
             errors: mappedErrors,
             isSuccess: mappedViolations.length === 0 && mappedErrors.length === 0
@@ -324,15 +353,20 @@ export class EventSequence implements IEventSequence {
 /**
  * Converts a RFC 4122 Guid string into the protobuf Guid shape used by Chronicle contracts.
  * @param guid - The Guid to convert.
- * @returns The converted protobuf Guid with lo/hi segments.
+ * @returns The converted protobuf Guid with fixed64-safe hi/lo values.
  */
 function toContractsGuid(guid: Guid): ContractsGuid {
     const hex = guid.toString().replace(/-/g, '');
     const hi = BigInt(`0x${hex.substring(0, 16)}`);
     const lo = BigInt(`0x${hex.substring(16, 32)}`);
 
+    // Mask to MAX_SAFE_INTEGER so the contracts package can decode the Guid
+    // from the response without a longToNumber overflow. Correlation IDs are
+    // opaque identifiers, so 52+52 bits of entropy is more than sufficient.
+    const safe = BigInt(Number.MAX_SAFE_INTEGER);
     return {
-        hi: Number(BigInt.asIntN(32, hi >> BigInt(32))) * 0x100000000 + Number(hi & BigInt(0xFFFFFFFF)),
-        lo: Number(BigInt.asIntN(32, lo >> BigInt(32))) * 0x100000000 + Number(lo & BigInt(0xFFFFFFFF))
+        hi: Number(hi & safe),
+        lo: Number(lo & safe)
     };
 }
+

@@ -3,7 +3,6 @@
 
 import { ChronicleConnection, ConstraintType } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../../artifacts';
-import { Grpc } from '../../Grpc';
 import { ConstraintId } from './ConstraintId';
 import { IConstraint } from './IConstraint';
 import { IConstraints } from './IConstraints';
@@ -104,15 +103,10 @@ export class Constraints implements IConstraints {
             return;
         }
 
-        await Grpc.call(callback =>
-            this._connection.constraints.register(
-                {
-                    EventStore: this._eventStore,
-                    Constraints: constraints
-                },
-                callback
-            )
-        );
+        await this._connection.constraints.register({
+            EventStore: this._eventStore,
+            Constraints: constraints
+        });
     }
 
     /** @inheritdoc */

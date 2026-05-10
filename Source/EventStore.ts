@@ -1,14 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection, IEnumerableString } from '@cratis/chronicle.contracts';
+import { ChronicleConnection } from '@cratis/chronicle.contracts';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { EventLog } from './EventSequences/EventLog';
 import { EventSequence } from './EventSequences/EventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';
 import { IEventLog } from './EventSequences/IEventLog';
 import { IEventSequence } from './EventSequences/IEventSequence';
-import { Grpc } from './Grpc';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
 import { IEventStore } from './IEventStore';
@@ -22,6 +21,7 @@ import { Reactors } from './Reactors/Reactors';
 import { IReactors } from './Reactors/IReactors';
 import { Reducers } from './Reducers/Reducers';
 import { IReducers } from './Reducers/IReducers';
+import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
 
 /**
@@ -49,7 +49,7 @@ export class EventStore implements IEventStore {
         const artifacts = DefaultClientArtifactsProvider.default;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
-        this.projections = new Projections(artifacts);
+        this.projections = new Projections(name.value, _connection, artifacts);
         this.reactors = new Reactors(artifacts);
         this.reducers = new Reducers(artifacts);
     }
@@ -86,12 +86,7 @@ export class EventStore implements IEventStore {
         return ChronicleTracer.startActiveSpan('chronicle.event_store.get_namespaces', async span => {
             span.setAttribute('chronicle.event_store', this.name.value);
             try {
-                const response = await Grpc.call<IEnumerableString>(callback =>
-                    this._connection.namespaces.getNamespaces(
-                        { EventStore: this.name.value },
-                        callback
-                    )
-                );
+                const response = await this._connection.namespaces.getNamespaces({ EventStore: this.name.value });
                 const result = (response.items ?? []).map((namespace: string) => new EventStoreNamespaceName(namespace));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;

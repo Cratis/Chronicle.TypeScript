@@ -12,5 +12,8 @@
         "clean": "yarn workspaces foreach -A -t run clean",
         "ci": "yarn clean && yarn build",
         "publish-version": "node ./publish-version.js"
+    },
+    "dependencies": {
+        "@cratis/chronicle.contracts": "^15.25.2"
     }
 }
