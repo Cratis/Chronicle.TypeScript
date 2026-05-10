@@ -4,6 +4,7 @@
 // This file MUST be imported before any other application code so that the
 // OpenTelemetry SDK is fully initialised before the first instrumented call.
 
+import { diag, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
@@ -11,6 +12,84 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+
+// ---------------------------------------------------------------------------
+// ASP.NET-style console logger
+// ---------------------------------------------------------------------------
+// Colors via ANSI escape codes (no external dependencies).
+// Output format:
+//   info: @cratis/chronicle/ChronicleClient[0]
+//         Created Chronicle client {"serverAddress":"localhost:35000"}
+// ---------------------------------------------------------------------------
+
+const RESET  = '\x1b[0m';
+const BOLD   = '\x1b[1m';
+const DIM    = '\x1b[2m';
+const RED    = '\x1b[31m';
+const YELLOW = '\x1b[33m';
+const GREEN  = '\x1b[32m';
+const CYAN   = '\x1b[36m';
+const GRAY   = '\x1b[90m';
+
+
+function writeLog(
+    level: string,
+    levelColor: string,
+    toStderr: boolean,
+    message: string,
+    args: unknown[]
+): void {
+    // OTel's DiagComponentLogger calls the underlying DiagLogger as:
+    //   logger.method(namespace, userMessage, ...contextArgs)
+    // So `message` is the component namespace and args[0] is the actual log body.
+    // Raw OTel internal messages (no component logger) pass the full text as `message`
+    // with no extra string arg, so we detect by checking args[0].
+    let category: string;
+    let body: string;
+    let contextArgs: unknown[];
+
+    if (args.length > 0 && typeof args[0] === 'string') {
+        category = message;
+        body = args[0];
+        contextArgs = args.slice(1);
+    } else {
+        // Internal OTel message — use a generic category.
+        category = 'opentelemetry';
+        body = message;
+        contextArgs = args;
+    }
+
+    const extra = contextArgs
+        .map(a => (typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)))
+        .join(' ');
+
+    const detail = extra ? `${body} ${GRAY}${extra}${RESET}` : body;
+    const line = `${levelColor}${BOLD}${level}${RESET}: ${GRAY}${category}${RESET}\n      ${detail}`;
+    if (toStderr) {
+        process.stderr.write(`${line}\n`);
+    } else {
+        process.stdout.write(`${line}\n`);
+    }
+}
+
+const aspNetLogger: DiagLogger = {
+    error(message: string, ...args: unknown[]) { writeLog('fail', RED,    true,  message, args); },
+    warn (message: string, ...args: unknown[]) { writeLog('warn', YELLOW, false, message, args); },
+    info (message: string, ...args: unknown[]) { writeLog('info', GREEN,  false, message, args); },
+    debug(message: string, ...args: unknown[]) { writeLog('dbug', CYAN,   false, message, args); },
+    verbose(message: string, ...args: unknown[]) { writeLog('trce', DIM,  false, message, args); },
+};
+
+const logLevelEnv = (process.env.LOG_LEVEL ?? 'debug').toLowerCase();
+const diagLevel =
+    logLevelEnv === 'verbose' || logLevelEnv === 'trace' ? DiagLogLevel.VERBOSE :
+    logLevelEnv === 'info'                                ? DiagLogLevel.INFO    :
+    logLevelEnv === 'warn'                                ? DiagLogLevel.WARN    :
+    logLevelEnv === 'error'                               ? DiagLogLevel.ERROR   :
+                                                            DiagLogLevel.DEBUG;
+
+// Must be set before any OTel SDK initialisation.
+diag.setLogger(aspNetLogger, diagLevel);
 
 // ---------------------------------------------------------------------------
 // Resource
