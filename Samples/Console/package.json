@@ -1,7 +1,7 @@
 {
     "name": "@cratis/chronicle-test-console",
     "version": "1.0.0",
-    "description": "Simple Node.js console test app for the Cratis Chronicle TypeScript client",
+    "description": "Simple Node.js console sample app for the Cratis Chronicle TypeScript client",
     "author": "Cratis",
     "license": "MIT",
     "private": true,

@@ -15,8 +15,18 @@ A TypeScript-idiomatic client for [Cratis Chronicle](https://github.com/Cratis/C
 ```
 Source/          ← @cratis/chronicle TypeScript library
 Documentation/   ← User-facing documentation
-TestApps/
-  NodeJS/        ← Plain Node.js console test application
+Samples/
+  Console/       ← Plain Node.js console sample application
+```
+
+## Prerequisite: Chronicle Running
+
+You need a Chronicle Kernel available before running samples or application code.
+
+The easiest local setup is the development Docker image:
+
+```bash
+docker run -p 35000:35000 -p 8080:8080 cratis/chronicle:latest-development
 ```
 
 ## Getting Started
@@ -48,7 +58,7 @@ yarn install
 yarn workspace @cratis/chronicle compile
 ```
 
-## Running the Test App
+## Running the Console Sample
 
 ```bash
 yarn install
