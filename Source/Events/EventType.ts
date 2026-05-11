@@ -24,7 +24,7 @@ export class EventType {
 
     /**
      * Parse from a string representation of event type to actual type.
-     * The expected format is guid+generation. Ex: aa7faa25-afc1-48d1-8558-716581c0e916+1.
+     * The expected format is id+generation. Ex: EmployeeHired+1.
      * @param input - The string representation to parse.
      * @returns The parsed EventType.
      */

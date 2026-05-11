@@ -34,7 +34,7 @@ export interface ReactorMetadata {
  *
  * @example
  * ```typescript
- * @reactor('my-notifier')
+ * @reactor()
  * class ProjectRegisteredNotifier {
  *     async projectRegistered(event: ProjectRegistered, context: EventContext): Promise<void> {
  *         console.log(`Project '${event.name}' was registered.`);

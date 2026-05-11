@@ -15,7 +15,7 @@ interface EmployeeState {
     title: string;
 }
 
-@eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
+@eventType()
 class EmployeeHired {
     constructor(
         readonly firstName: string,
@@ -24,12 +24,12 @@ class EmployeeHired {
     ) {}
 }
 
-@eventType('bb8fbb36-bfd2-49e5-b669-827692d1f027', 1)
+@eventType()
 class EmployeePromoted {
     constructor(readonly newTitle: string) {}
 }
 
-@reducer('employee-state-reducer')
+@reducer()
 class EmployeeStateReducer {
     async employeeHired(event: EmployeeHired, state?: EmployeeState): Promise<EmployeeState> {
         return { firstName: event.firstName, lastName: event.lastName, title: event.title };

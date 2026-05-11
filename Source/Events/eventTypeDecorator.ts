@@ -31,23 +31,65 @@ export interface EventTypeMetadata {
  * {@link EventType} identifier and generation. This is the TypeScript equivalent of the
  * C# `[EventType]` attribute.
  *
- * @param id - The unique identifier for the event type. Defaults to an empty string.
- * @param generation - The generation number for the event type. Defaults to 1.
+ * Overloads:
+ * - `@eventType()` -> uses class name as id, generation 1, tombstone false.
+ * - `@eventType(generation)` -> uses class name as id and provided generation.
+ * - `@eventType(tombstone)` -> uses class name as id/generation and provided tombstone.
+ * - `@eventType(generation, tombstone)` -> uses class name as id.
+ * - `@eventType(id, generation, tombstone)` -> full explicit form.
+ *
+ * @param idOrGenerationOrTombstone - Optional id, generation, or tombstone based on overload.
+ * @param generationOrTombstone - Optional generation or tombstone based on overload.
+ * @param tombstone - Optional explicit tombstone for the explicit id overload.
  * @returns A class decorator.
  *
  * @example
  * ```typescript
- * @eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
+ * @eventType()
  * class EmployeeHired {
  *     constructor(readonly firstName: string, readonly lastName: string) {}
  * }
  * ```
  */
-export function eventType(id: string = '', generation: number = EventTypeGeneration.firstValue): ClassDecorator {
+export function eventType(): ClassDecorator;
+export function eventType(id: string): ClassDecorator;
+export function eventType(id: string, generation: number): ClassDecorator;
+export function eventType(id: string, generation: number, tombstone: boolean): ClassDecorator;
+export function eventType(generation: number): ClassDecorator;
+export function eventType(generation: number, tombstone: boolean): ClassDecorator;
+export function eventType(tombstone: boolean): ClassDecorator;
+export function eventType(
+    idOrGenerationOrTombstone?: string | number | boolean,
+    generationOrTombstone?: number | boolean,
+    tombstone: boolean = false
+): ClassDecorator {
+    let id = '';
+    let generation = EventTypeGeneration.firstValue;
+    let isTombstone = false;
+
+    if (typeof idOrGenerationOrTombstone === 'string') {
+        id = idOrGenerationOrTombstone;
+        if (typeof generationOrTombstone === 'number') {
+            generation = generationOrTombstone;
+        }
+        if (typeof generationOrTombstone === 'boolean') {
+            isTombstone = generationOrTombstone;
+        } else {
+            isTombstone = tombstone;
+        }
+    } else if (typeof idOrGenerationOrTombstone === 'number') {
+        generation = idOrGenerationOrTombstone;
+        if (typeof generationOrTombstone === 'boolean') {
+            isTombstone = generationOrTombstone;
+        }
+    } else if (typeof idOrGenerationOrTombstone === 'boolean') {
+        isTombstone = idOrGenerationOrTombstone;
+    }
+
     return (target: object) => {
         const constructor = target as Function;
         const eventTypeId = new EventTypeId(id || constructor.name);
-        const eventTypeInstance = new EventType(eventTypeId, new EventTypeGeneration(generation));
+        const eventTypeInstance = new EventType(eventTypeId, new EventTypeGeneration(generation), isTombstone);
         const members = TypeIntrospector.getMembers(constructor);
         const metadata: EventTypeMetadata = {
             eventType: eventTypeInstance,

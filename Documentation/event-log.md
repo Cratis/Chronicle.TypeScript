@@ -7,7 +7,7 @@ The event log is the primary event sequence in an event store. All domain events
 ```typescript
 import { ChronicleClient, ChronicleOptions, eventType } from '@cratis/chronicle';
 
-@eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
+@eventType()
 class EmployeeHired {
     constructor(readonly firstName: string, readonly lastName: string) {}
 }

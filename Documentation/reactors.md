@@ -9,12 +9,12 @@ Use the `@reactor` decorator to mark a class as a reactor:
 ```typescript
 import { reactor, EventContext, eventType } from '@cratis/chronicle';
 
-@eventType('aa7faa25-afc1-48d1-8558-716581c0e916', 1)
+@eventType()
 class EmployeeHired {
     constructor(readonly firstName: string, readonly lastName: string) {}
 }
 
-@reactor('hr-notification-reactor')
+@reactor()
 class HrNotificationReactor {
     async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> {
         console.log(`${event.firstName} ${event.lastName} was hired! (seq: ${context.sequenceNumber})`);
@@ -34,7 +34,7 @@ class HrNotificationReactor {
 Method dispatch is by convention: the first parameter type of each public method determines which events it handles.
 
 ```typescript
-@reactor('my-reactor')
+@reactor()
 class MyReactor {
     // Handles EmployeeHired events
     async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> { ... }

@@ -38,7 +38,7 @@ export interface ReducerMetadata {
  *
  * @example
  * ```typescript
- * @reducer('employee-state')
+ * @reducer()
  * class EmployeeReducer {
  *     async employeeHired(event: EmployeeHired, state?: EmployeeState): Promise<EmployeeState> {
  *         return { ...state, name: `${event.firstName} ${event.lastName}` };
