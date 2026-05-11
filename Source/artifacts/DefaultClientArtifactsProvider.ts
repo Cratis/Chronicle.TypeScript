@@ -48,9 +48,4 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     get projections(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Projection);
     }
-
-    /** @inheritdoc */
-    get modelBoundProjections(): Constructor[] {
-        return this.discoverer.getTypesByDecoratorType(DecoratorType.ModelBoundProjection);
-    }
 }
