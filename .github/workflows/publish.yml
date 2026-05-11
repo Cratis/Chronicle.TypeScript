@@ -109,6 +109,8 @@ jobs:
         run: yarn
 
       - name: Publish NPM packages
+        env:
+          NODE_AUTH_TOKEN: ""      
         run: |
           yarn build
           yarn publish-version ${{ needs.release.outputs.version }}

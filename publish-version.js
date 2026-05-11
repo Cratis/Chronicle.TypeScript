@@ -37,7 +37,7 @@ if (!fs.existsSync(sourceReadme)) {
 
 // Publish to npm
 console.log(`Publishing '${packageJson.name}' at version ${version}`);
-const result = spawnSync('npm', ['publish', '--provenance'], {
+const result = spawnSync('npm', ['publish', '--provenance', '--access', 'public'], {
     cwd: sourceDir,
     stdio: 'inherit'
 });
