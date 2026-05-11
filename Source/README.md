@@ -6,7 +6,7 @@ A TypeScript-idiomatic client for [Cratis Chronicle](https://github.com/Cratis/C
 
 `@cratis/chronicle` provides a clean, type-safe TypeScript API for interacting with the Chronicle Kernel. It builds on top of [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) (the gRPC contracts package) and exposes idiomatic TypeScript constructs including:
 
-- **Decorators** — `@eventType`, `@readModel`, `@reactor`, `@reducer`, `@constraint`, `@projection`, `@modelBoundProjection`
+- **Decorators** — `@eventType`, `@readModel`, `@reactor`, `@reducer`, `@constraint`, `@projection`, and model-bound decorators such as `@fromEvent`
 - **Value objects** — `EventSequenceNumber`, `EventTypeId`, `EventStoreName`, etc.
 - **Fluent client** — `ChronicleClient` → `EventStore` → `EventLog` → `append()`
 
