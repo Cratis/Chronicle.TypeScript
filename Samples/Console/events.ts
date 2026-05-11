@@ -18,6 +18,19 @@ export class EmployeeHired {
 }
 
 /**
+ * An employee's address has been set.
+ */
+@eventType()
+export class EmployeeAddressSet {
+    constructor(
+        readonly address: string,
+        readonly city: string,
+        readonly zipCode: string,
+        readonly country: string
+    ) {}
+}
+
+/**
  * An employee has been promoted to a new title.
  */
 @eventType()
@@ -26,9 +39,14 @@ export class EmployeePromoted {
 }
 
 /**
- * An employee has relocated to a new city.
+ * An employee has relocated to a new address.
  */
 @eventType()
 export class EmployeeMoved {
-    constructor(readonly newCity: string) {}
+    constructor(
+        readonly address: string,
+        readonly city: string,
+        readonly zipCode: string,
+        readonly country: string
+    ) {}
 }
