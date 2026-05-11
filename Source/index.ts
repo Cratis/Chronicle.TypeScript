@@ -19,6 +19,7 @@ export * from './Reducers';
 export * from './ReadModels';
 export * from './Projections';
 export * from './Observation';
+export * from './sinks';
 export * from './Schemas';
 export * from './types';
 export * from './artifacts';

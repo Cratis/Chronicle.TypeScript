@@ -18,19 +18,23 @@ export interface ProjectionMetadata {
 
     /** The optional explicit event sequence identifier. */
     readonly eventSequenceId: string | undefined;
+
+    /** The optional explicit read model constructor. */
+    readonly readModelType: Constructor | undefined;
 }
 
 /**
  * TypeScript decorator that marks a class as a declarative projection.
  * @param id - The unique identifier for the projection. Defaults to the class name if omitted.
+ * @param readModelType - Optional explicit read model constructor (needed when TypeScript generic inference is insufficient).
  * @param eventSequenceId - Optional explicit event sequence identifier.
  * @returns A class decorator.
  */
-export function projection(id: string = '', eventSequenceId?: string): ClassDecorator {
+export function projection(id: string = '', readModelType?: Constructor, eventSequenceId?: string): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const projectionId = new ProjectionId(id || constructor.name);
-        const metadata: ProjectionMetadata = { id: projectionId, eventSequenceId };
+        const metadata: ProjectionMetadata = { id: projectionId, eventSequenceId, readModelType };
         Reflect.defineMetadata(PROJECTION_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Projection,

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { diag } from '@opentelemetry/api';
 import {
     AutoMap,
     ProjectionOwner
@@ -8,9 +9,11 @@ import {
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
+import { toContractsGuid } from '../connection/Guid';
 import { EventSequenceId } from '../EventSequences/EventSequenceId';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { getReadModelMetadata } from '../ReadModels';
+import { WellKnownSinks } from '../sinks';
 import { TypeIntrospector } from '../types';
 import { IProjections } from './IProjections';
 import { getProjectionMetadata } from './declarative/projection';
@@ -51,6 +54,8 @@ export class Projections implements IProjections {
     private readonly _declarative = new Map<string, Constructor>();
     private readonly _modelBound = new Map<string, Constructor>();
 
+    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/Projections' });
+
     /**
      * Creates a new {@link Projections} instance.
      * @param _clientArtifacts - Provider for discovered client artifact types.
@@ -66,27 +71,36 @@ export class Projections implements IProjections {
         this._declarative.clear();
         this._modelBound.clear();
 
-        for (const type of this._clientArtifacts.projections) {
+        const declarativeTypes = this._clientArtifacts.projections;
+        const readModelTypes = this._clientArtifacts.readModels;
+        this._logger.debug('Discovering projections', { declarativeCount: declarativeTypes.length, readModelCount: readModelTypes.length });
+
+        for (const type of declarativeTypes) {
             const metadata = getProjectionMetadata(type);
             if (metadata) {
+                this._logger.debug('Discovered declarative projection', { projectionId: metadata.id.value, type: type.name });
                 this._declarative.set(metadata.id.value, type);
             }
         }
 
-        for (const type of this._clientArtifacts.readModels) {
+        for (const type of readModelTypes) {
             if (!hasFromEventMetadata(type)) {
                 continue;
             }
 
             const metadata = this.resolveModelBoundMetadata(type);
             if (!metadata) {
+                this._logger.debug('Read model has @fromEvent but no model-bound metadata resolved', { type: type.name });
                 continue;
             }
 
+            this._logger.debug('Discovered model-bound projection', { projectionId: metadata.id.value, type: type.name });
             if (!this._modelBound.has(metadata.id.value)) {
                 this._modelBound.set(metadata.id.value, type);
             }
         }
+
+        this._logger.debug('Projection discovery complete', { declarativeCount: this._declarative.size, modelBoundCount: this._modelBound.size });
     }
 
     /** @inheritdoc */
@@ -95,12 +109,15 @@ export class Projections implements IProjections {
             await this.discover();
         }
 
+        this._logger.info('Registering projections', { declarativeCount: this._declarative.size, modelBoundCount: this._modelBound.size });
+
         const projections = [
             ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
             ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
         ];
 
         if (projections.length === 0) {
+            this._logger.info('No projections to register');
             return;
         }
 
@@ -115,15 +132,37 @@ export class Projections implements IProjections {
         }
 
         for (const projection of projections) {
+            const identifier = String((projection as { Identifier?: unknown }).Identifier ?? '<unknown>');
+            await this.registerWithRetry(projection, identifier);
+        }
+    }
+
+    private async registerWithRetry(projection: unknown, identifier: string, maxAttempts = 5): Promise<void> {
+        let delay = 2000;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
+                this._logger.info('Registering projection', { identifier, readModel: (projection as any).ReadModel, attempt });
                 await this._connection.projections.register({
                     EventStore: this._eventStore,
                     Owner: ProjectionOwner.PROJECTION_OWNER_Client,
-                    Projections: [projection]
+                    Projections: [projection as any]
                 });
+                this._logger.info('Projection registered successfully', { identifier });
+                return;
             } catch (error) {
-                const identifier = String((projection as { Identifier?: unknown }).Identifier ?? '<unknown>');
-                throw new Error(`Failed to register projection '${identifier}': ${String(error)}`);
+                const msg = String(error);
+                const isTransient = msg.includes('UNKNOWN') || msg.includes('UNAVAILABLE') || msg.includes('INTERNAL');
+                if (!isTransient || attempt === maxAttempts) {
+                    throw new Error(`Failed to register projection '${identifier}' after ${attempt} attempt(s): ${msg}`);
+                }
+                this._logger.warn('Projection registration failed with transient error, retrying', {
+                    identifier,
+                    attempt,
+                    nextAttemptInMs: delay,
+                    error: msg
+                });
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay = Math.min(delay * 2, 15000);
             }
         }
     }
@@ -145,8 +184,8 @@ export class Projections implements IProjections {
                 ContainerName: readModelIdentifier,
                 DisplayName: readModelIdentifier,
                 Sink: {
-                    ConfigurationId: this.toContractsGuid('00000000-0000-0000-0000-000000000000'),
-                    TypeId: this.toContractsGuid('22202c41-2be1-4547-9c00-f0b1f797fd75')
+                    ConfigurationId: toContractsGuid(WellKnownSinks.Null),
+                    TypeId: toContractsGuid(WellKnownSinks.MongoDB)
                 },
                 Schema: this.getReadModelSchema(readModelIdentifier),
                 Indexes: [],
@@ -188,12 +227,19 @@ export class Projections implements IProjections {
 
         const explicitReadModelIdentifier = definition.ReadModel as string;
         if (explicitReadModelIdentifier === type.name) {
-            const inferredReadModelIdentifier = this.inferReadModelIdentifier(builder.getMappedReadModelProperties());
-            if (inferredReadModelIdentifier) {
-                definition.ReadModel = inferredReadModelIdentifier;
+            // Use explicit readModelType from decorator if provided
+            if (metadata.readModelType) {
+                const rm = getReadModelMetadata(metadata.readModelType);
+                definition.ReadModel = rm?.id.value ?? (metadata.readModelType as Function).name;
+            } else {
+                const inferredReadModelIdentifier = this.inferReadModelIdentifier(builder.getMappedReadModelProperties());
+                if (inferredReadModelIdentifier) {
+                    definition.ReadModel = inferredReadModelIdentifier;
+                }
             }
         }
 
+        definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
         return definition;
     }
 
@@ -324,7 +370,7 @@ export class Projections implements IProjections {
             }
         }
 
-        return {
+        const definition: Record<string, unknown> = {
             EventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
             Identifier: metadata.id.value,
             ReadModel: metadata.readModelIdentifier,
@@ -340,14 +386,15 @@ export class Projections implements IProjections {
                 IncludeChildren: false,
                 AutoMap: AutoMap.Inherit
             },
-            FromEventProperty: undefined,
             RemovedWith: Array.from(removedWithByEventType.values()),
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
-            LastUpdated: { Value: new Date().toISOString() },
+            LastUpdated: { Value: '' },
             Tags: [],
-            AutoMap: AutoMap.Disabled,
+            AutoMap: AutoMap.Enabled,
             Nested: {}
         };
+        definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
+        return definition;
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {
@@ -453,11 +500,19 @@ export class Projections implements IProjections {
         return `${eventType.Id}:${eventType.Generation}:${eventType.Tombstone ? '1' : '0'}`;
     }
 
-    private toContractsGuid(value: string): { lo: number; hi: number } {
-        const hex = value.replace(/-/g, '');
-        return {
-            hi: Number(BigInt(`0x${hex.substring(0, 16)}`)),
-            lo: Number(BigInt(`0x${hex.substring(16, 32)}`))
-        };
+    /**
+     * Computes a stable, deterministic ISO timestamp from the projection definition content,
+     * excluding the LastUpdated field itself. This ensures the server does not interpret
+     * a repeated registration of an unchanged definition as a definition change, which
+     * would otherwise trigger an unnecessary auto-replay.
+     */
+    private computeStableLastUpdated(definition: Record<string, unknown>): string {
+        const { LastUpdated: _omit, ...rest } = definition;
+        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        let hash = 5381;
+        for (let i = 0; i < content.length; i++) {
+            hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;
+        }
+        return new Date(hash * 1000).toISOString();
     }
 }
