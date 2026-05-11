@@ -5,7 +5,7 @@ import path from 'path';
 import { DecoratorType } from './DecoratorType';
 import { Constructor } from '@cratis/fundamentals';
 
-type GlobFunction = (pattern: string) => Promise<string[]>;
+type GlobFunction = (pattern: string | string[]) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
 
 /**
@@ -36,11 +36,9 @@ export class TypeDiscoverer {
      */
     async discover(pattern: string | string[]): Promise<void> {
         const patterns = Array.isArray(pattern) ? pattern : [pattern];
-        for (const currentPattern of patterns) {
-            const files = await this._glob(currentPattern);
-            for (const file of files) {
-                await this._importFile(path.resolve(file));
-            }
+        const files = await this._glob(patterns);
+        for (const file of files) {
+            await this._importFile(path.resolve(file));
         }
     }
 
@@ -84,10 +82,10 @@ export class TypeDiscoverer {
         TypeDiscoverer._registeredTypes.clear();
     }
 
-    private static async resolveWithGlobPackage(pattern: string): Promise<string[]> {
+    private static async resolveWithGlobPackage(pattern: string | string[]): Promise<string[]> {
         let globFunction: unknown;
         try {
-            const globModule = require('glob') as { glob?: unknown };
+            const globModule = await import('glob') as { glob?: unknown };
             globFunction = globModule.glob;
         } catch {
             throw new Error('Could not load a compatible "glob" function for type discovery.');

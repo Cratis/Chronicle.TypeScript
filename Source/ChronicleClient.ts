@@ -13,6 +13,7 @@ import { IChronicleClient } from './IChronicleClient';
 import { IEventStore } from './IEventStore';
 import { ChronicleMetrics } from './Metrics';
 import { ChronicleTracer } from './Tracing';
+import { TypeDiscoverer } from './types';
 
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
@@ -41,6 +42,7 @@ export class ChronicleClient implements IChronicleClient {
     private _watchdogHandle?: ReturnType<typeof setInterval>;
     private _connectOperation?: Promise<void>;
     private _reconnectOperation?: Promise<void>;
+    private _discoveryOperation?: Promise<void>;
     private _isDisposed = false;
 
     /**
@@ -62,6 +64,13 @@ export class ChronicleClient implements IChronicleClient {
             serverAddress: `${options.connectionString.serverAddress.host}:${options.connectionString.serverAddress.port}`,
             disableTls: options.connectionString.disableTls
         });
+
+        if (options.discoveryPatterns.length > 0) {
+            this._discoveryOperation = TypeDiscoverer.default.discover(options.discoveryPatterns);
+            this._discoveryOperation.catch(error => {
+                this._logger.error('Artifact file discovery failed', { error: String(error) });
+            });
+        }
 
         this._lifecycle.onConnected(async () => {
             if (this._stores.size === 0) {
@@ -375,6 +384,10 @@ export class ChronicleClient implements IChronicleClient {
             namespace: store.namespace.value,
             reason
         });
+
+        if (this._discoveryOperation) {
+            await this._discoveryOperation;
+        }
 
         await store.registerArtifacts();
 

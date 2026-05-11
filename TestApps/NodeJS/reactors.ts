@@ -1,8 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { diag } from '@opentelemetry/api';
 import { reactor, EventContext } from '@cratis/chronicle';
 import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
+
+const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/HrNotificationReactor' });
 
 /**
  * Reacts to employee lifecycle events by emitting console notifications.
@@ -24,7 +27,7 @@ export class HrNotificationReactor {
      * @param context - The event context providing sequence number and metadata.
      */
     async employeeHired(event: EmployeeHired, context: EventContext): Promise<void> {
-        console.log(`  [Reactor] ${event.firstName} ${event.lastName} hired as ${event.title} (seq #${context.sequenceNumber})`);
+        logger.info('Employee hired', { name: `${event.firstName} ${event.lastName}`, title: event.title, sequenceNumber: context.sequenceNumber });
     }
 
     /**
@@ -33,7 +36,7 @@ export class HrNotificationReactor {
      * @param context - The event context.
      */
     async employeePromoted(event: EmployeePromoted, context: EventContext): Promise<void> {
-        console.log(`  [Reactor] Employee promoted to ${event.newTitle} (seq #${context.sequenceNumber})`);
+        logger.info('Employee promoted', { newTitle: event.newTitle, sequenceNumber: context.sequenceNumber });
     }
 
     /**
@@ -42,7 +45,7 @@ export class HrNotificationReactor {
      * @param context - The event context.
      */
     async employeeMoved(event: EmployeeMoved, context: EventContext): Promise<void> {
-        console.log(`  [Reactor] Employee relocated to ${event.newCity} (seq #${context.sequenceNumber})`);
+        logger.info('Employee relocated', { newCity: event.newCity, sequenceNumber: context.sequenceNumber });
     }
 }
 

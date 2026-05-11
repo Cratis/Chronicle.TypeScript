@@ -10,10 +10,12 @@ type ChronicleOptionsConstructorParams = {
     softwareVersion?: string;
     softwareCommit?: string;
     clientArtifactsProvider?: IClientArtifactsProvider;
+    discoveryPatterns?: string[];
 };
 
 type ChronicleOptionsFactoryParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
+    discoveryPatterns?: string[];
 };
 
 /**
@@ -45,12 +47,30 @@ export class ChronicleOptions {
      */
     readonly clientArtifactsProvider: IClientArtifactsProvider;
 
+    /**
+     * Glob patterns used to discover artifact files at startup.
+     * Patterns prefixed with '!' are treated as exclusions.
+     * Set to an empty array to disable automatic file discovery.
+     */
+    readonly discoveryPatterns: string[];
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
         this.softwareCommit = options.softwareCommit ?? 'Unknown';
         this.clientArtifactsProvider = options.clientArtifactsProvider ?? DefaultClientArtifactsProvider.default;
+        this.discoveryPatterns = options.discoveryPatterns ?? [
+            '**/*.ts',
+            '!**/*.d.ts',
+            '!**/node_modules',
+            '!**/dist',
+            '!**/build',
+            '!**/.git',
+            '!**/.vscode',
+            '!**/*.spec.ts',
+            '!**/*.test.ts'
+        ];
     }
 
     /**
@@ -65,7 +85,7 @@ export class ChronicleOptions {
         const parsed = typeof connectionString === 'string'
             ? new ChronicleConnectionString(connectionString)
             : connectionString;
-        return new ChronicleOptions({ connectionString: parsed, clientArtifactsProvider: options?.clientArtifactsProvider });
+        return new ChronicleOptions({ connectionString: parsed, clientArtifactsProvider: options?.clientArtifactsProvider, discoveryPatterns: options?.discoveryPatterns });
     }
 
     /**
