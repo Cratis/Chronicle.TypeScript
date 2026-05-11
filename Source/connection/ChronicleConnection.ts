@@ -3,9 +3,12 @@
 
 import {
 	ChronicleConnection as ContractsChronicleConnection,
+	ConnectionServiceDefinition,
 	type ChronicleConnectionOptions,
 	type ChronicleServices
 } from '@cratis/chronicle.contracts';
+import type { ConnectionServiceClient } from '@cratis/chronicle.contracts';
+import { createClientFactory } from 'nice-grpc';
 
 /**
  * Wraps the contracts connection and allows recreating the underlying channel
@@ -13,6 +16,7 @@ import {
  */
 export class ChronicleConnection implements ChronicleServices {
 	private _inner: ContractsChronicleConnection;
+	private _authenticatedConnectionService?: ConnectionServiceClient;
 
 	/**
 	 * Creates a new {@link ChronicleConnection}.
@@ -149,6 +153,23 @@ export class ChronicleConnection implements ChronicleServices {
 	}
 
 	/**
+	 * Connection service — used to register this client with the kernel keep-alive mechanism.
+	 * Uses an authenticated client (same auth middleware as all other services).
+	 */
+	get connections(): ConnectionServiceClient {
+		if (!this._authenticatedConnectionService) {
+			// The inner connectionService lacks auth middleware. Create a properly
+			// authenticated client using the same factory pattern as createServices().
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const inner = this._inner as any;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const factory = createClientFactory().use(inner.createAuthMiddleware() as any);
+			this._authenticatedConnectionService = factory.create(ConnectionServiceDefinition, inner.channel) as unknown as ConnectionServiceClient;
+		}
+		return this._authenticatedConnectionService;
+	}
+
+	/**
 	 * Connects the current inner connection.
 	 */
 	async connect(): Promise<void> {
@@ -166,6 +187,7 @@ export class ChronicleConnection implements ChronicleServices {
 			// Best-effort disconnect before re-creating the channel.
 		}
 		this._inner = this.createInnerConnection();
+		this._authenticatedConnectionService = undefined;
 	}
 
 	/**

@@ -44,6 +44,7 @@ export class ChronicleClient implements IChronicleClient {
     private _reconnectOperation?: Promise<void>;
     private _discoveryOperation?: Promise<void>;
     private _isDisposed = false;
+    private _keepAliveAbortController?: AbortController;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
@@ -128,7 +129,7 @@ export class ChronicleClient implements IChronicleClient {
                     });
                     await this._connection.eventStores.ensure({ Name: storeName.value });
 
-                    const created = new EventStore(storeName, namespaceName, this._connection);
+                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle);
                     this._stores.set(key, created);
 
                     await this.registerArtifactsForStore(created, 'new-store');
@@ -200,6 +201,8 @@ export class ChronicleClient implements IChronicleClient {
             });
         }
 
+        this._keepAliveAbortController?.abort();
+        this._keepAliveAbortController = undefined;
         this._connection.disconnect();
         this._logger.info('Disposed Chronicle client');
     }
@@ -226,12 +229,15 @@ export class ChronicleClient implements IChronicleClient {
                 await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
 
                 this._logger.info('Connected to Chronicle kernel');
+                await this.startKernelKeepAlive();
                 await this._lifecycle.connected(error => {
                     this._logger.error('Connected lifecycle callback failed', {
                         error: this.toErrorMessage(error)
                     });
                 });
                 return;
+
+
             } catch (error) {
                 attempt++;
                 const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 30_000);
@@ -287,6 +293,7 @@ export class ChronicleClient implements IChronicleClient {
                         this._connection.resetChannel();
                         await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
                         this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
+                        await this.startKernelKeepAlive();
                         await this._lifecycle.connected(connectedError => {
                             this._logger.error('Connected lifecycle callback failed after reconnect', {
                                 error: this.toErrorMessage(connectedError)
@@ -375,6 +382,52 @@ export class ChronicleClient implements IChronicleClient {
             this._logger.verbose('Connection health check passed');
         } catch (error) {
             await this.reconnect('watchdog-health-check', error);
+        }
+    }
+
+    private async startKernelKeepAlive(): Promise<void> {
+        this._keepAliveAbortController?.abort();
+        this._keepAliveAbortController = new AbortController();
+        const { signal } = this._keepAliveAbortController;
+
+        const keepAliveStream = this._connection.connections.connect(
+            { ConnectionId: this._lifecycle.connectionId, ClientVersion: '1.0.0', IsRunningWithDebugger: false },
+            { signal }
+        );
+        const iterator = keepAliveStream[Symbol.asyncIterator]();
+        const firstResult = await iterator.next();
+        if (firstResult.done) {
+            throw new Error('Connection service stream ended before sending first keep-alive');
+        }
+
+        await this._connection.connections.connectionKeepAlive(firstResult.value);
+        this._logger.info('Client registered with kernel keep-alive mechanism', {
+            connectionId: this._lifecycle.connectionId
+        });
+
+        void this.runKeepAliveLoop(iterator, signal);
+    }
+
+    private async runKeepAliveLoop(iterator: AsyncIterator<unknown, void>, signal: AbortSignal): Promise<void> {
+        try {
+            while (!signal.aborted) {
+                const result = await iterator.next();
+                if (result.done) {
+                    this._logger.info('Keep-alive stream ended');
+                    break;
+                }
+
+                await this._connection.connections.connectionKeepAlive(result.value as object);
+                this._logger.verbose('Keep-alive ping responded', {
+                    connectionId: this._lifecycle.connectionId
+                });
+            }
+        } catch (err) {
+            if (!signal.aborted) {
+                this._logger.warn('Keep-alive loop ended with error', {
+                    error: this.toErrorMessage(err)
+                });
+            }
         }
     }
 

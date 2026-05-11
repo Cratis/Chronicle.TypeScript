@@ -4,6 +4,7 @@
 import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection';
+import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
 import { EventLog } from './EventSequences/EventLog';
 import { EventSequence } from './EventSequences/EventSequence';
 import { EventSequenceId } from './EventSequences/EventSequenceId';
@@ -46,7 +47,8 @@ export class EventStore implements IEventStore {
     constructor(
         readonly name: EventStoreName,
         readonly namespace: EventStoreNamespaceName,
-        private readonly _connection: ChronicleConnection
+        private readonly _connection: ChronicleConnection,
+        lifecycle: ConnectionLifecycle
     ) {
         this.eventLog = new EventLog(name.value, namespace.value, _connection);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
@@ -55,8 +57,8 @@ export class EventStore implements IEventStore {
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, _connection, artifacts);
-        this.reactors = new Reactors(artifacts);
-        this.reducers = new Reducers(artifacts);
+        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
+        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
     }
 
     /**
