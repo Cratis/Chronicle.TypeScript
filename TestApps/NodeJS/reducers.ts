@@ -1,8 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { diag } from '@opentelemetry/api';
 import { reducer } from '@cratis/chronicle';
 import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
+
+const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/EmployeeStateReducer' });
 
 /**
  * The read model produced by the {@link EmployeeStateReducer}.
@@ -36,6 +39,7 @@ export class EmployeeStateReducer {
      * @returns The initial employee state.
      */
     async employeeHired(event: EmployeeHired): Promise<EmployeeState> {
+        logger.info('Handling EmployeeHired', { firstName: event.firstName, lastName: event.lastName });
         return {
             employeeId: '',
             firstName: event.firstName,
@@ -52,6 +56,7 @@ export class EmployeeStateReducer {
      * @returns The updated employee state.
      */
     async employeePromoted(event: EmployeePromoted, state?: EmployeeState): Promise<EmployeeState> {
+        logger.info('Handling EmployeePromoted', { newTitle: event.newTitle, currentState: state });
         return { ...(state ?? {} as EmployeeState), title: event.newTitle };
     }
 
@@ -62,6 +67,7 @@ export class EmployeeStateReducer {
      * @returns The updated employee state.
      */
     async employeeMoved(event: EmployeeMoved, state?: EmployeeState): Promise<EmployeeState> {
+        logger.info('Handling EmployeeMoved', { newCity: event.newCity, currentState: state });
         return { ...(state ?? {} as EmployeeState), city: event.newCity };
     }
 }

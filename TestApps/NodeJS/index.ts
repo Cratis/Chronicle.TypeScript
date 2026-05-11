@@ -70,6 +70,8 @@ async function run(): Promise<void> {
         logger.info('Namespaces', { namespaces: namespaces.map(n => n.value).join(', ') || '(none)' });
 
         logger.info('All operations completed successfully');
+        logger.info('Waiting for observers to process events...');
+        await new Promise(resolve => setTimeout(resolve, 8000));
     } catch (error) {
         logger.error('Unhandled error', { error: String(error) });
         process.exitCode = 1;
