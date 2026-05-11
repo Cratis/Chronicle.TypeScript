@@ -44,14 +44,27 @@ export class JsonSchemaGenerator {
     static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>): JsonSchema {
         const membersToUse = members ?? TypeIntrospector.getMembers(target);
         const schemaProperties: Record<string, JsonSchema> = {};
+
         for (const [memberName, memberType] of membersToUse.entries()) {
-            schemaProperties[memberName] = this.mapRuntimeTypeToSchema(memberType);
+            const propertySchema = this.mapRuntimeTypeToSchema(memberType);
+            // Only include properties whose type was resolved. An empty schema ({}) means
+            // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
+            if (Object.keys(propertySchema).length > 0) {
+                schemaProperties[memberName] = propertySchema;
+            }
+        }
+
+        // When no property types could be resolved, return a minimal schema with empty
+        // properties so the server uses its fallback path that preserves all event
+        // content as-is via ConvertUnknownSchemaTypeToClrType.
+        if (Object.keys(schemaProperties).length === 0) {
+            return this.createEmptySchema(target.name);
         }
 
         return {
             ...this.createEmptySchema(target.name),
             properties: schemaProperties,
-            required: Array.from(membersToUse.keys()),
+            required: Object.keys(schemaProperties),
         };
     }
 
@@ -77,7 +90,11 @@ export class JsonSchemaGenerator {
             return { type: 'array', items: { type: 'object' } };
         }
 
-        if (runtimeType && runtimeType !== Object) {
+        if (!runtimeType) {
+            return {};
+        }
+
+        if (runtimeType !== Object) {
             return this.generate(runtimeType);
         }
 
