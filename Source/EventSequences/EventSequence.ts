@@ -16,6 +16,9 @@ import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
 import { ChronicleTracer } from '../Tracing';
 import { ChronicleMetrics } from '../Metrics';
+import { identityProvider, Identity } from '../Identity';
+import { causationManager, CausationType } from '../Auditing';
+import { correlationIdManager } from '../Correlation';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -33,9 +36,13 @@ export class EventSequence implements IEventSequence {
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const eventType = getEventTypeFor(event.constructor as Function);
         const correlationId = options?.correlationId === undefined
-            ? Guid.create()
+            ? Guid.as(correlationIdManager.current.value)
             : Guid.as(options.correlationId);
         const content = JSON.stringify(event);
+
+        causationManager.add(CausationType.appendEvent, { eventType: eventType.id.value });
+        const causationChain = causationManager.getCurrentChain();
+        const identity = identityProvider.getCurrent();
 
         const metricAttributes = {
             'chronicle.event_store': this._eventStoreName,
@@ -68,17 +75,12 @@ export class EventSequence implements IEventSequence {
                         Tombstone: eventType.tombstone
                     },
                     Content: content,
-                    Causation: [{
-                        Occurred: { Value: new Date().toISOString() },
-                        Type: 'TypeScriptClient.Append',
-                        Properties: {}
-                    }],
-                    CausedBy: {
-                        Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
-                        Name: '[System]',
-                        UserName: '[System]',
-                        OnBehalfOf: undefined
-                    },
+                    Causation: causationChain.map(c => ({
+                        Occurred: { Value: c.occurred.toISOString() },
+                        Type: c.type.name,
+                        Properties: { ...c.properties }
+                    })),
+                    CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScope: {
                         // ulong.MaxValue sent as BigInt so the server recognises it as ConcurrencyScope.None (no validation)
                         SequenceNumber: 18446744073709551615n as unknown as number,
@@ -137,8 +139,12 @@ export class EventSequence implements IEventSequence {
     /** @inheritdoc */
     async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]> {
         const correlationId = options?.correlationId === undefined
-            ? Guid.create()
+            ? Guid.as(correlationIdManager.current.value)
             : Guid.as(options.correlationId);
+
+        causationManager.add(CausationType.appendManyEvents, { count: String(events.length) });
+        const batchCausationChain = causationManager.getCurrentChain();
+        const identity = identityProvider.getCurrent();
 
         const eventsToAppend = events.map(event => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -153,17 +159,12 @@ export class EventSequence implements IEventSequence {
                     Tombstone: eventType.tombstone
                 },
                 Content: JSON.stringify(event),
-                Causation: [{
-                    Occurred: { Value: new Date().toISOString() },
-                    Type: 'TypeScriptClient.AppendMany.Event',
-                    Properties: {}
-                }],
-                CausedBy: {
-                    Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
-                    Name: '[System]',
-                    UserName: '[System]',
-                    OnBehalfOf: undefined
-                },
+                Causation: batchCausationChain.map(c => ({
+                    Occurred: { Value: c.occurred.toISOString() },
+                    Type: c.type.name,
+                    Properties: { ...c.properties }
+                })),
+                CausedBy: toContractsCausedBy(identity),
                 ConcurrencyScope: {
                     SequenceNumber: 18446744073709551615n as unknown as number,
                     EventSourceId: false,
@@ -199,17 +200,12 @@ export class EventSequence implements IEventSequence {
                     EventSequenceId: this.id.value,
                     CorrelationId: toContractsGuid(correlationId),
                     Events: eventsToAppend,
-                    Causation: [{
-                        Occurred: { Value: new Date().toISOString() },
-                        Type: 'TypeScriptClient.AppendMany.Batch',
-                        Properties: {}
-                    }],
-                    CausedBy: {
-                        Subject: '5d032c92-9d5e-41eb-947a-ee5314ed0032',
-                        Name: '[System]',
-                        UserName: '[System]',
-                        OnBehalfOf: undefined
-                    },
+                    Causation: batchCausationChain.map(c => ({
+                        Occurred: { Value: c.occurred.toISOString() },
+                        Type: c.type.name,
+                        Properties: { ...c.properties }
+                    })),
+                    CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScopes: {}
                 });
 
@@ -368,5 +364,23 @@ function toContractsGuid(guid: Guid): ContractsGuid {
         hi: Number(hi & safe),
         lo: Number(lo & safe)
     };
+}
+
+/**
+ * Converts an {@link Identity} into the CausedBy shape used by Chronicle contracts.
+ * @param identity - The identity to convert.
+ * @returns The contracts CausedBy object.
+ */
+function toContractsCausedBy(identity: Identity): object {
+    const result: Record<string, unknown> = {
+        Subject: identity.subject,
+        Name: identity.name,
+        UserName: identity.userName,
+        OnBehalfOf: undefined
+    };
+    if (identity.onBehalfOf !== undefined) {
+        result.OnBehalfOf = toContractsCausedBy(identity.onBehalfOf);
+    }
+    return result;
 }
 

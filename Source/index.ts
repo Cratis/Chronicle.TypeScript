@@ -22,3 +22,6 @@ export * from './Observation';
 export * from './Schemas';
 export * from './types';
 export * from './artifacts';
+export * from './Identity';
+export * from './Auditing';
+export * from './Correlation';
