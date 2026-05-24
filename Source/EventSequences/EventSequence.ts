@@ -81,7 +81,7 @@ export class EventSequence implements IEventSequence {
                     CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScope: {
                         // ulong.MaxValue sent as BigInt so the server recognises it as ConcurrencyScope.None (no validation)
-                        SequenceNumber: 18446744073709551615n as unknown as number,
+                        SequenceNumber: 18446744073709551615n,
                         EventSourceId: false,
                         EventStreamType: '',
                         EventStreamId: '',
@@ -99,7 +99,7 @@ export class EventSequence implements IEventSequence {
                     response.ConstraintViolations ?? [],
                     response.Errors ?? []
                 );
-                span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value);
+                span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value.toString());
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 ChronicleMetrics.eventsAppended.add(1, metricAttributes);
@@ -164,7 +164,7 @@ export class EventSequence implements IEventSequence {
                 })),
                 CausedBy: toContractsCausedBy(identity),
                 ConcurrencyScope: {
-                    SequenceNumber: 18446744073709551615n as unknown as number,
+                    SequenceNumber: 18446744073709551615n,
                     EventSourceId: false,
                     EventStreamType: '',
                     EventStreamId: '',
@@ -208,11 +208,11 @@ export class EventSequence implements IEventSequence {
                 });
 
                 const duration = Date.now() - startTime;
-                const result = (response.SequenceNumbers ?? []).map((sequenceNumber, index) =>
+                const result = (response.SequenceNumbers ?? []).map((sequenceNumber: bigint, index: number) =>
                     this.mapAppendResponse(
                         sequenceNumber,
                         response.ConstraintViolations ?? [],
-                        (response.Errors ?? []).filter((_, errorIndex) => errorIndex === index)
+                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index)
                     )
                 );
                 span.setStatus({ code: SpanStatusCode.OK });
@@ -221,7 +221,7 @@ export class EventSequence implements IEventSequence {
                 ChronicleMetrics.eventsAppended.add(events.length, batchMetricAttributes);
                 ChronicleMetrics.appendManyDuration.record(duration, batchMetricAttributes);
 
-                const totalViolations = result.reduce((sum, appendResult) => sum + appendResult.constraintViolations.length, 0);
+                const totalViolations = result.reduce((sum: number, appendResult: AppendResult) => sum + appendResult.constraintViolations.length, 0);
                 if (totalViolations > 0) {
                     ChronicleMetrics.constraintViolations.add(totalViolations, {
                         'chronicle.event_store': this._eventStoreName,
@@ -229,7 +229,7 @@ export class EventSequence implements IEventSequence {
                         'chronicle.event_sequence_id': this.id.value
                     });
                 }
-                const totalErrors = result.reduce((sum, appendResult) => sum + appendResult.errors.length, 0);
+                const totalErrors = result.reduce((sum: number, appendResult: AppendResult) => sum + appendResult.errors.length, 0);
                 if (totalErrors > 0) {
                     ChronicleMetrics.appendErrors.add(totalErrors, {
                         'chronicle.event_store': this._eventStoreName,
@@ -274,8 +274,8 @@ export class EventSequence implements IEventSequence {
                     EventStreamType: 'Default'
                 });
 
-                const result = new EventSequenceNumber(response.SequenceNumber ?? 0);
-                span.setAttribute('chronicle.sequence_number', result.value);
+                const result = new EventSequenceNumber(response.SequenceNumber ?? 0n);
+                span.setAttribute('chronicle.sequence_number', result.value.toString());
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
@@ -318,7 +318,7 @@ export class EventSequence implements IEventSequence {
     }
 
     private mapAppendResponse(
-        sequenceNumber: number,
+        sequenceNumber: bigint,
         constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
         errors: string[]
     ): AppendResult {
@@ -330,10 +330,7 @@ export class EventSequence implements IEventSequence {
 
         const mappedErrors = errors.map(message => ({ message }));
 
-        // The server uses ulong.MaxValue as a sentinel for "Unavailable" when an
-        // append fails (constraint violation, etc.). JS Number loses precision at
-        // that scale so we normalise anything >= MAX_SAFE_INTEGER to 0.
-        const safeSequenceNumber = sequenceNumber >= Number.MAX_SAFE_INTEGER ? 0 : sequenceNumber;
+        const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
 
         return {
             sequenceNumber: new EventSequenceNumber(safeSequenceNumber),
@@ -367,4 +364,3 @@ function toContractsCausedBy(identity: Identity): object {
     }
     return result;
 }
-

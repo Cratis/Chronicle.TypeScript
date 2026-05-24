@@ -23,10 +23,8 @@ export function toContractsGuid(guid: FundamentalGuid): ContractsGuid {
         hi |= BigInt(bytes[index + 8]) << BigInt(index * 8);
     }
 
-    // The runtime accepts strings for fixed64 values, which preserves the exact
-    // 64-bit payload instead of truncating through Number.
     return {
-        lo: lo.toString() as unknown as number,
-        hi: hi.toString() as unknown as number
+        lo,
+        hi
     };
 }

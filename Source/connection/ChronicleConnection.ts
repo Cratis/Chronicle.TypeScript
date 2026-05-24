@@ -1,226 +1,322 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { Channel, ChannelCredentials, ChannelOptions } from '@grpc/grpc-js';
 import {
-	ChronicleConnection as ContractsChronicleConnection,
-	ConnectionServiceDefinition,
-	type ChronicleConnectionOptions,
-	type ChronicleServices
+    ConnectionServiceDefinition,
+    ConstraintsDefinition,
+    EventSeedingDefinition,
+    EventSequencesDefinition,
+    EventStoresDefinition,
+    EventTypesDefinition,
+    FailedPartitionsDefinition,
+    IdentitiesDefinition,
+    JobsDefinition,
+    NamespacesDefinition,
+    ObserversDefinition,
+    ProjectionsDefinition,
+    ReactorsDefinition,
+    ReadModelsDefinition,
+    RecommendationsDefinition,
+    ReducersDefinition,
+    ServerDefinition,
+    type ConnectionServiceClient
 } from '@cratis/chronicle.contracts';
-import type { ConnectionServiceClient } from '@cratis/chronicle.contracts';
-import { createClientFactory } from 'nice-grpc';
+import { createChannel, createClientFactory, waitForChannelReady } from 'nice-grpc';
+import type { ClientMiddleware } from 'nice-grpc-common';
+import { Metadata } from 'nice-grpc-common';
+import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
+import { ChronicleServices } from './ChronicleServices';
+import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider';
 
 /**
- * Wraps the contracts connection and allows recreating the underlying channel
- * during reconnect while keeping a stable object reference for consumers.
+ * Configuration options for Chronicle connection.
  */
-export class ChronicleConnection implements ChronicleServices {
-	private _inner: ContractsChronicleConnection;
-	private _authenticatedConnectionService?: ConnectionServiceClient;
+export interface ChronicleConnectionOptions {
+    /**
+     * The connection string used to connect to Chronicle.
+     */
+    connectionString?: string | ChronicleConnectionString;
 
-	/**
-	 * Creates a new {@link ChronicleConnection}.
-	 * @param _options - Connection options used to create and recreate the underlying connection.
-	 */
-	constructor(private readonly _options: ChronicleConnectionOptions) {
-		this._inner = this.createInnerConnection();
-	}
+    /**
+     * The host and port of the Chronicle server. Used if connectionString is not provided.
+     */
+    serverAddress?: string;
 
-	/**
-	 * Gets the connection string currently used by the inner connection.
-	 */
-	get connectionString() {
-		return this._inner.connectionString;
-	}
+    /**
+     * Optional gRPC credentials. Defaults to credentials based on the connection string.
+     */
+    credentials?: ChannelCredentials;
 
-	/**
-	 * Gets whether the current inner connection is connected.
-	 */
-	get isConnected(): boolean {
-		return this._inner.isConnected;
-	}
+    /**
+     * Optional connection timeout in milliseconds. Defaults to 10000.
+     */
+    connectTimeout?: number;
 
-	/**
-	 * Event stores service.
-	 */
-	get eventStores() {
-		return this._inner.eventStores;
-	}
+    /**
+     * Optional maximum receive message size in bytes.
+     */
+    maxReceiveMessageSize?: number;
 
-	/**
-	 * Namespaces service.
-	 */
-	get namespaces() {
-		return this._inner.namespaces;
-	}
+    /**
+     * Optional maximum send message size in bytes.
+     */
+    maxSendMessageSize?: number;
 
-	/**
-	 * Recommendations service.
-	 */
-	get recommendations() {
-		return this._inner.recommendations;
-	}
+    /**
+     * Optional correlation ID for tracking requests.
+     */
+    correlationId?: string;
 
-	/**
-	 * Identities service.
-	 */
-	get identities() {
-		return this._inner.identities;
-	}
+    /**
+     * Optional authentication authority URL. If not set, uses the Chronicle server itself.
+     */
+    authority?: string;
 
-	/**
-	 * Event sequences service.
-	 */
-	get eventSequences() {
-		return this._inner.eventSequences;
-	}
-
-	/**
-	 * Event types service.
-	 */
-	get eventTypes() {
-		return this._inner.eventTypes;
-	}
-
-	/**
-	 * Constraints service.
-	 */
-	get constraints() {
-		return this._inner.constraints;
-	}
-
-	/**
-	 * Observers service.
-	 */
-	get observers() {
-		return this._inner.observers;
-	}
-
-	/**
-	 * Failed partitions service.
-	 */
-	get failedPartitions() {
-		return this._inner.failedPartitions;
-	}
-
-	/**
-	 * Reactors service.
-	 */
-	get reactors() {
-		return this._inner.reactors;
-	}
-
-	/**
-	 * Reducers service.
-	 */
-	get reducers() {
-		return this._inner.reducers;
-	}
-
-	/**
-	 * Projections service.
-	 */
-	get projections() {
-		return this._inner.projections;
-	}
-
-	/**
-	 * Read models service.
-	 */
-	get readModels() {
-		return this._inner.readModels;
-	}
-
-	/**
-	 * Jobs service.
-	 */
-	get jobs() {
-		return this._inner.jobs;
-	}
-
-	/**
-	 * Event seeding service.
-	 */
-	get eventSeeding() {
-		return this._inner.eventSeeding;
-	}
-
-	/**
-	 * Server service.
-	 */
-	get server() {
-		return this._inner.server;
-	}
-
-	/**
-	 * Connection service — used to register this client with the kernel keep-alive mechanism.
-	 * Uses an authenticated client (same auth middleware as all other services).
-	 */
-	get connections(): ConnectionServiceClient {
-		if (!this._authenticatedConnectionService) {
-			// The inner connectionService lacks auth middleware. Create a properly
-			// authenticated client using the same factory pattern as createServices().
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const inner = this._inner as any;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const factory = createClientFactory().use(inner.createAuthMiddleware() as any);
-			this._authenticatedConnectionService = factory.create(ConnectionServiceDefinition, inner.channel) as unknown as ConnectionServiceClient;
-		}
-		return this._authenticatedConnectionService;
-	}
-
-	/**
-	 * Connects the current inner connection.
-	 */
-	async connect(): Promise<void> {
-		await this._inner.connect();
-	}
-
-	/**
-	 * Recreates the inner connection (new gRPC channel) without calling connect().
-	 * Use this before probing with a real RPC call to ensure a fresh IDLE channel.
-	 */
-	resetChannel(): void {
-		try {
-			this._inner.disconnect();
-		} catch {
-			// Best-effort disconnect before re-creating the channel.
-		}
-		this._inner = this.createInnerConnection();
-		this._authenticatedConnectionService = undefined;
-	}
-
-	/**
-	 * Recreates and connects the inner connection.
-	 */
-	async reconnect(): Promise<void> {
-		try {
-			this._inner.disconnect();
-		} catch {
-			// Best-effort disconnect before re-creating the channel.
-		}
-
-		this._inner = this.createInnerConnection();
-		await this._inner.connect();
-	}
-
-	/**
-	 * Disconnects the current inner connection.
-	 */
-	disconnect(): void {
-		this._inner.disconnect();
-	}
-
-	/**
-	 * Disposes the current inner connection.
-	 */
-	dispose(): void {
-		this._inner.dispose();
-	}
-
-	private createInnerConnection(): ContractsChronicleConnection {
-		return new ContractsChronicleConnection(this._options);
-	}
+    /**
+     * Optional management port for authentication endpoint. Defaults to 8080.
+     */
+    managementPort?: number;
 }
 
-export type { ChronicleConnectionOptions } from '@cratis/chronicle.contracts';
+/**
+ * Manages the gRPC connection to Chronicle and exposes the generated service clients.
+ */
+export class ChronicleConnection implements ChronicleServices {
+    private _channel!: Channel;
+    private _services!: ChronicleServices;
+    private _connections!: ConnectionServiceClient;
+    private readonly _connectionString: ChronicleConnectionString;
+    private readonly _tokenProvider: ITokenProvider;
+    private _isConnected = false;
+
+    constructor(private readonly _options: ChronicleConnectionOptions) {
+        if (_options.connectionString) {
+            this._connectionString = typeof _options.connectionString === 'string'
+                ? new ChronicleConnectionString(_options.connectionString)
+                : _options.connectionString;
+        } else if (_options.serverAddress) {
+            this._connectionString = new ChronicleConnectionString(`chronicle://${_options.serverAddress}`);
+        } else {
+            this._connectionString = ChronicleConnectionString.Default;
+        }
+
+        this._tokenProvider = this.createTokenProvider();
+        this.createClients();
+    }
+
+    get connectionString(): ChronicleConnectionString {
+        return this._connectionString;
+    }
+
+    get isConnected(): boolean {
+        return this._isConnected;
+    }
+
+    get eventStores() {
+        return this._services.eventStores;
+    }
+
+    get namespaces() {
+        return this._services.namespaces;
+    }
+
+    get recommendations() {
+        return this._services.recommendations;
+    }
+
+    get identities() {
+        return this._services.identities;
+    }
+
+    get eventSequences() {
+        return this._services.eventSequences;
+    }
+
+    get eventTypes() {
+        return this._services.eventTypes;
+    }
+
+    get constraints() {
+        return this._services.constraints;
+    }
+
+    get observers() {
+        return this._services.observers;
+    }
+
+    get failedPartitions() {
+        return this._services.failedPartitions;
+    }
+
+    get reactors() {
+        return this._services.reactors;
+    }
+
+    get reducers() {
+        return this._services.reducers;
+    }
+
+    get projections() {
+        return this._services.projections;
+    }
+
+    get readModels() {
+        return this._services.readModels;
+    }
+
+    get jobs() {
+        return this._services.jobs;
+    }
+
+    get eventSeeding() {
+        return this._services.eventSeeding;
+    }
+
+    get server() {
+        return this._services.server;
+    }
+
+    get connections(): ConnectionServiceClient {
+        return this._connections;
+    }
+
+    async connect(): Promise<void> {
+        const deadline = new Date(Date.now() + (this._options.connectTimeout ?? 10_000));
+        await waitForChannelReady(this._channel, deadline);
+        this._isConnected = true;
+    }
+
+    resetChannel(): void {
+        try {
+            this._channel.close();
+        } catch {
+            // Best-effort shutdown before recreating the channel.
+        }
+
+        this._isConnected = false;
+        this.createClients();
+    }
+
+    async reconnect(): Promise<void> {
+        this.resetChannel();
+        await this.connect();
+    }
+
+    disconnect(): void {
+        this._isConnected = false;
+        this._channel.close();
+    }
+
+    dispose(): void {
+        this.disconnect();
+    }
+
+    private createClients(): void {
+        const channelOptions: ChannelOptions = {};
+
+        if (this._options.maxReceiveMessageSize !== undefined) {
+            channelOptions['grpc.max_receive_message_length'] = this._options.maxReceiveMessageSize;
+        }
+
+        if (this._options.maxSendMessageSize !== undefined) {
+            channelOptions['grpc.max_send_message_length'] = this._options.maxSendMessageSize;
+        }
+
+        const serverAddress = `${this._connectionString.serverAddress.host}:${this._connectionString.serverAddress.port}`;
+        const credentials = this._options.credentials ?? this._connectionString.createCredentials();
+
+        this._channel = createChannel(serverAddress, credentials, channelOptions);
+
+        const factory = createClientFactory().use(this.createAuthMiddleware());
+        this._services = {
+            eventStores: factory.create(EventStoresDefinition, this._channel),
+            namespaces: factory.create(NamespacesDefinition, this._channel),
+            recommendations: factory.create(RecommendationsDefinition, this._channel),
+            identities: factory.create(IdentitiesDefinition, this._channel),
+            eventSequences: factory.create(EventSequencesDefinition, this._channel),
+            eventTypes: factory.create(EventTypesDefinition, this._channel),
+            constraints: factory.create(ConstraintsDefinition, this._channel),
+            observers: factory.create(ObserversDefinition, this._channel),
+            failedPartitions: factory.create(FailedPartitionsDefinition, this._channel),
+            reactors: factory.create(ReactorsDefinition, this._channel),
+            reducers: factory.create(ReducersDefinition, this._channel),
+            projections: factory.create(ProjectionsDefinition, this._channel),
+            readModels: factory.create(ReadModelsDefinition, this._channel),
+            jobs: factory.create(JobsDefinition, this._channel),
+            eventSeeding: factory.create(EventSeedingDefinition, this._channel),
+            server: factory.create(ServerDefinition, this._channel)
+        };
+        this._connections = factory.create(ConnectionServiceDefinition, this._channel);
+    }
+
+    private createTokenProvider(): ITokenProvider {
+        const hasUsername = !!this._connectionString.username;
+        const hasPassword = !!this._connectionString.password;
+        const hasApiKey = !!this._connectionString.apiKey;
+
+        if (hasApiKey) {
+            return new NoOpTokenProvider();
+        }
+
+        if (hasUsername !== hasPassword) {
+            return new NoOpTokenProvider();
+        }
+
+        if (hasUsername && hasPassword) {
+            return this.createOAuthTokenProvider(this._connectionString.username!, this._connectionString.password!);
+        }
+
+        return this.createOAuthTokenProvider(
+            ChronicleConnectionString.DEVELOPMENT_CLIENT,
+            ChronicleConnectionString.DEVELOPMENT_CLIENT_SECRET
+        );
+    }
+
+    private createOAuthTokenProvider(username: string, password: string): ITokenProvider {
+        const managementPort = this._options.managementPort ?? 8080;
+        let authorityHost: string;
+        let authorityPort: number;
+
+        if (this._options.authority) {
+            const authority = new URL(this._options.authority);
+            authorityHost = authority.hostname;
+            authorityPort = authority.port ? parseInt(authority.port, 10) : managementPort;
+        } else {
+            authorityHost = this._connectionString.serverAddress.host;
+            authorityPort = managementPort;
+        }
+
+        const scheme = this._connectionString.disableTls ? 'http' : 'https';
+        return new OAuthTokenProvider(
+            `${scheme}://${authorityHost}:${authorityPort}/connect/token`,
+            username,
+            password
+        );
+    }
+
+    private createAuthMiddleware(): ClientMiddleware {
+        const tokenProvider = this._tokenProvider;
+        const connectionString = this._connectionString;
+
+        return async function* authMiddleware(call, options) {
+            try {
+                const token = await tokenProvider.getAccessToken();
+
+                if (token) {
+                    const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
+                    metadata.set('authorization', `Bearer ${token}`);
+                    options.metadata = metadata;
+                } else if (connectionString.authenticationMode === AuthenticationMode.ApiKey && connectionString.apiKey) {
+                    const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
+                    metadata.set('api-key', connectionString.apiKey);
+                    options.metadata = metadata;
+                }
+            } catch {
+                // Continue without auth metadata when token acquisition fails.
+            }
+
+            return yield* call.next(call.request, options);
+        };
+    }
+}

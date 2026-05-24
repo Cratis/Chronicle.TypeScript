@@ -21,7 +21,7 @@ import { JsonSchemaGenerator } from '../Schemas';
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
 
 /** Sentinel sequence number sent back when no event was successfully processed. */
-const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295;
+const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
 
 interface EventTypeEntry {
     readonly id: string;

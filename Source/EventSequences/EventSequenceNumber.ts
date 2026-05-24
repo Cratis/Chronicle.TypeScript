@@ -6,12 +6,12 @@
  */
 export class EventSequenceNumber {
     /** Represents the first possible sequence number. */
-    static readonly first = new EventSequenceNumber(0);
+    static readonly first = new EventSequenceNumber(0n);
 
     /** Represents an unset sequence number. */
-    static readonly unset = new EventSequenceNumber(Number.MAX_SAFE_INTEGER);
+    static readonly unset = new EventSequenceNumber(18446744073709551615n);
 
-    constructor(readonly value: number) {}
+    constructor(readonly value: bigint) {}
 
     /**
      * Determines whether this sequence number comes before another.

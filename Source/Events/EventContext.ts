@@ -9,7 +9,7 @@ import { CausationEntry } from './CausationEntry';
  */
 export interface EventContext {
     /** The sequence number of the event in the event sequence. */
-    readonly sequenceNumber: number;
+    readonly sequenceNumber: bigint;
 
     /** The unique identifier of the event source. */
     readonly eventSourceId: string;
