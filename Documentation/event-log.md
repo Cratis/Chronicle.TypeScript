@@ -33,6 +33,44 @@ const results = await store.eventLog.appendMany('employee-123', [
 ]);
 ```
 
+## Using Concurrency Scope
+
+Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
+
+```typescript
+import { getEventTypeFor } from '@cratis/chronicle';
+
+const tail = await store.eventLog.getTailSequenceNumber('employee-123');
+
+const result = await store.eventLog.append('employee-123', new EmployeeHired('Jane', 'Doe'), {
+    concurrencyScope: {
+        sequenceNumber: tail.value,
+        eventSourceId: true
+    }
+});
+
+if (!result.isSuccess) {
+    console.error(result.errors, result.constraintViolations);
+}
+```
+
+For batch appends, use the same `concurrencyScope` option:
+
+```typescript
+const tail = await store.eventLog.getTailSequenceNumber('employee-123');
+
+await store.eventLog.appendMany('employee-123', [
+    new EmployeeHired('Jane', 'Doe'),
+    new EmployeePromoted('Senior Engineer')
+], {
+    concurrencyScope: {
+        sequenceNumber: tail.value,
+        eventSourceId: true,
+        eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
+    }
+});
+```
+
 ## Checking for Events
 
 ```typescript
