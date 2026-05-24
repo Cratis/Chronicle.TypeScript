@@ -14,6 +14,7 @@ Welcome to the Chronicle TypeScript client documentation.
 
 - [Getting Started](./getting-started.md) — Install and connect to Chronicle
 - [Event Types](./event-types.md) — Defining event types with the `@eventType` decorator
+- [Event Type Migrations](./event-type-migrations.md) — Defining generation migrations with `@eventTypeMigration`
 - [Event Log](./event-log.md) — Appending events and querying the event log
 - [Reactors](./reactors.md) — Reacting to events with the `@reactor` decorator
 - [Reducers](./reducers.md) — Folding events into state with the `@reducer` decorator
