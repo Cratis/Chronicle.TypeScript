@@ -5,6 +5,7 @@ import * as http from 'http';
 import * as https from 'https';
 
 const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+const DEFAULT_TOKEN_EXPIRY_SECONDS = 3600;
 
 /**
  * Interface for providing authentication tokens.
@@ -112,7 +113,7 @@ export class OAuthTokenProvider implements ITokenProvider {
                     try {
                         const tokenResponse = JSON.parse(data) as OAuthTokenResponse;
                         this._accessToken = tokenResponse.access_token;
-                        const expiresInSeconds = tokenResponse.expires_in || 3600;
+                        const expiresInSeconds = tokenResponse.expires_in || DEFAULT_TOKEN_EXPIRY_SECONDS;
                         this._tokenExpiry = new Date(Date.now() + (expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000);
                         resolve(this._accessToken);
                     } catch (error) {
