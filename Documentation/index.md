@@ -17,3 +17,6 @@ Welcome to the Chronicle TypeScript client documentation.
 - [Event Log](./event-log.md) — Appending events and querying the event log
 - [Reactors](./reactors.md) — Reacting to events with the `@reactor` decorator
 - [Reducers](./reducers.md) — Folding events into state with the `@reducer` decorator
+- [Identity](./identity.md) — Tracking who caused a state change
+- [Auditing — Causation](./auditing.md) — Recording the causation chain for events
+- [Correlation](./correlation.md) — Correlating events and operations with a shared identifier
