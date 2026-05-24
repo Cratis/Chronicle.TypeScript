@@ -24,4 +24,7 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered declarative projection constructors. */
     readonly projections: Constructor[];
+
+    /** Gets discovered event type migration constructors. */
+    readonly eventTypeMigrations: Constructor[];
 }

@@ -21,5 +21,8 @@ export enum DecoratorType {
     Constraint = 'constraint',
 
     /** Declarative projection artifacts discovered through the projection decorator. */
-    Projection = 'projection'
+    Projection = 'projection',
+
+    /** Event type migration artifacts discovered through the eventTypeMigration decorator. */
+    EventTypeMigration = 'eventTypeMigration'
 }
