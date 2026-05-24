@@ -14,6 +14,11 @@ class ProjectRegistered {
     constructor(readonly name: string) {}
 }
 
+@eventType()
+class ProjectRenamed {
+    constructor(readonly name: string) {}
+}
+
 @seeder()
 class InitialProjectSeeder implements ICanSeedEvents {
     seed(builder) {
@@ -23,7 +28,8 @@ class InitialProjectSeeder implements ICanSeedEvents {
             ])
             .forNamespace('Sales')
             .forEventSource('project-2', [
-                new ProjectRegistered('Sales')
+                new ProjectRegistered('Sales'),
+                new ProjectRenamed('Sales EMEA')
             ]);
     }
 }
@@ -31,8 +37,8 @@ class InitialProjectSeeder implements ICanSeedEvents {
 
 ## Builder API
 
-- `for(eventSourceId, events)` — seed events for an event source.
-- `forEventSource(eventSourceId, events)` — seed multiple event types for an event source.
+- `for<TEvent>(eventSourceId, events)` — strongly typed seeding when all events in the collection are the same event class.
+- `forEventSource(eventSourceId, events)` — seeding for mixed event classes in one collection.
 - `forNamespace(namespace)` — switch to namespace-scoped seeding for subsequent calls.
 
 By default, seeded events are global (applies to all namespaces). Use `forNamespace(...)` for namespace-specific seed data.
