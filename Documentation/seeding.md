@@ -31,7 +31,7 @@ class InitialProjectSeeder implements ICanSeedEvents {
 
 ## Builder API
 
-- `for(eventSourceId, events)` — seed one event type for an event source.
+- `for(eventSourceId, events)` — seed events for an event source.
 - `forEventSource(eventSourceId, events)` — seed multiple event types for an event source.
 - `forNamespace(namespace)` — switch to namespace-scoped seeding for subsequent calls.
 
