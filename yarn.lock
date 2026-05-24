@@ -33,14 +33,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:^15.25.2":
-  version: 15.25.2
-  resolution: "@cratis/chronicle.contracts@npm:15.25.2"
+"@cratis/chronicle.contracts@npm:^15.31.2":
+  version: 15.31.2
+  resolution: "@cratis/chronicle.contracts@npm:15.31.2"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.0.0"
     "@grpc/grpc-js": "npm:^1.12.4"
     nice-grpc: "npm:^2.1.0"
-  checksum: 10c0/504866a2e089f0257937c4b660041763905e658e79b6760f73f0beb1b7380271aa32025c267e787d883efa2bf3c89d8e696be7fd591894b31e5a1f37d54f751e
+  checksum: 10c0/d3a3ebb5684db5a46e1435b7d1358a0ee9cf042b3bc29507e44b033b290b519267356af0ab920c740f9722e59c5e87698d9a0699b2d85181dbb842489110dbe1
   languageName: node
   linkType: hard
 
@@ -49,10 +49,13 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.12.0"
-    "@cratis/chronicle.contracts": "npm:^15.25.2"
+    "@cratis/chronicle.contracts": "npm:^15.31.2"
     "@cratis/fundamentals": "npm:^7.9.0"
+    "@grpc/grpc-js": "npm:^1.14.0"
     "@opentelemetry/api": "npm:^1.9.1"
     "@types/node": "npm:^25.6.1"
+    nice-grpc: "npm:^2.1.12"
+    nice-grpc-common: "npm:^2.0.2"
     reflect-metadata: "npm:^0.2.2"
     typescript: "npm:^6.0.3"
   languageName: unknown
@@ -1596,7 +1599,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:^15.25.2"
+    "@cratis/chronicle.contracts": "npm:^15.31.2"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft
@@ -2003,7 +2006,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nice-grpc-common@npm:^2.0.3":
+"nice-grpc-common@npm:^2.0.2, nice-grpc-common@npm:^2.0.3":
   version: 2.0.3
   resolution: "nice-grpc-common@npm:2.0.3"
   dependencies:
@@ -2012,7 +2015,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nice-grpc@npm:^2.1.0":
+"nice-grpc@npm:^2.1.0, nice-grpc@npm:^2.1.12":
   version: 2.1.16
   resolution: "nice-grpc@npm:2.1.16"
   dependencies:
