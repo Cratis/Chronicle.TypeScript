@@ -23,6 +23,8 @@ import { Reactors } from './Reactors/Reactors';
 import { IReactors } from './Reactors/IReactors';
 import { Reducers } from './Reducers/Reducers';
 import { IReducers } from './Reducers/IReducers';
+import { EventSeeding } from './Seeding/EventSeeding';
+import { IEventSeeding } from './Seeding/IEventSeeding';
 import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
 
@@ -41,6 +43,7 @@ export class EventStore implements IEventStore {
     readonly projections: IProjections;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
+    readonly seeding: IEventSeeding;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -59,6 +62,7 @@ export class EventStore implements IEventStore {
         this.projections = new Projections(name.value, _connection, artifacts);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
+        this.seeding = new EventSeeding(name.value, _connection, artifacts);
     }
 
     /**
@@ -77,7 +81,8 @@ export class EventStore implements IEventStore {
             this.constraints.discover(),
             this.projections.discover(),
             this.reactors.discover(),
-            this.reducers.discover()
+            this.reducers.discover(),
+            this.seeding.discover()
         ]);
 
         this._logger.debug('Registering discovered artifacts', {
@@ -92,6 +97,8 @@ export class EventStore implements IEventStore {
             this.reactors.register(),
             this.reducers.register()
         ]);
+
+        await this.seeding.register();
 
         this._logger.info('Artifact registration completed', {
             eventStore: this.name.value,

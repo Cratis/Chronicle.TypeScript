@@ -19,6 +19,9 @@ export interface IClientArtifactsProvider {
     /** Gets discovered reducer constructors. */
     readonly reducers: Constructor[];
 
+    /** Gets discovered seeder constructors. */
+    readonly seeders: Constructor[];
+
     /** Gets discovered constraint constructors. */
     readonly constraints: Constructor[];
 

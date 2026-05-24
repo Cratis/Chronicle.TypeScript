@@ -40,6 +40,11 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     }
 
     /** @inheritdoc */
+    get seeders(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Seeder);
+    }
+
+    /** @inheritdoc */
     get constraints(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Constraint);
     }
