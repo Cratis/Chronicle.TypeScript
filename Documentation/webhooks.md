@@ -51,7 +51,7 @@ class EmployeeWebhook implements IWebhook {
 }
 ```
 
-When the event store registers artifacts, discovered webhooks are discovered and registered automatically.
+When the event store registers artifacts, webhooks are discovered and registered automatically.
 
 ## API
 
