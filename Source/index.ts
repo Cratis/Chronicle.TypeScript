@@ -26,3 +26,4 @@ export * from './artifacts';
 export * from './Identity';
 export * from './Auditing';
 export * from './Correlation';
+export * from './Transactions';

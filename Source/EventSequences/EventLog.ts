@@ -5,6 +5,7 @@ import { ChronicleConnection } from '../connection';
 import { EventSequence } from './EventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { IEventLog } from './IEventLog';
+import { IUnitOfWorkManager } from '../Transactions/IUnitOfWorkManager';
 
 /**
  * Implements {@link IEventLog} by extending the base {@link EventSequence}.
@@ -14,8 +15,9 @@ export class EventLog extends EventSequence implements IEventLog {
     constructor(
         eventStoreName: string,
         namespace: string,
-        connection: ChronicleConnection
+        connection: ChronicleConnection,
+        unitOfWorkManager: IUnitOfWorkManager
     ) {
-        super(EventSequenceId.eventLog, eventStoreName, namespace, connection);
+        super(EventSequenceId.eventLog, eventStoreName, namespace, connection, unitOfWorkManager);
     }
 }

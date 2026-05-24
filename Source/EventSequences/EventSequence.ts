@@ -8,27 +8,36 @@ import { getEventTypeFor } from '../Events/eventTypeDecorator';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { ConstraintViolation } from './ConstraintViolation';
+import { EventForEventSourceId } from './EventForEventSourceId';
 import { IEventSequence } from './IEventSequence';
+import { ITransactionalEventSequence } from './ITransactionalEventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
+import { TransactionalEventSequence } from './TransactionalEventSequence';
 import { ChronicleTracer } from '../Tracing';
 import { ChronicleMetrics } from '../Metrics';
 import { identityProvider, Identity } from '../Identity';
 import { causationManager, CausationType } from '../Auditing';
 import { correlationIdManager } from '../Correlation';
 import { toContractsGuid } from '../connection/Guid';
+import { IUnitOfWorkManager } from '../Transactions/IUnitOfWorkManager';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
  * via gRPC using the {@link ChronicleConnection}.
  */
 export class EventSequence implements IEventSequence {
+    readonly transactional: ITransactionalEventSequence;
+
     constructor(
         readonly id: EventSequenceId,
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
-        private readonly _connection: ChronicleConnection
-    ) {}
+        private readonly _connection: ChronicleConnection,
+        private readonly _unitOfWorkManager: IUnitOfWorkManager
+    ) {
+        this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
+    }
 
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
@@ -135,16 +144,30 @@ export class EventSequence implements IEventSequence {
     }
 
     /** @inheritdoc */
-    async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]> {
-        const correlationId = options?.correlationId === undefined
-            ? Guid.as(correlationIdManager.current.value)
-            : Guid.as(options.correlationId);
+    async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]>;
+    async appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
+    async appendMany(
+        eventSourceIdOrEvents: string | EventForEventSourceId[],
+        eventsOrOptions?: object[] | AppendOptions,
+        options?: AppendOptions
+    ): Promise<AppendResult[]> {
+        const eventsForEventSourceIds: EventForEventSourceId[] =
+            typeof eventSourceIdOrEvents === 'string'
+                ? (Array.isArray(eventsOrOptions) ? eventsOrOptions : []).map(event => ({ eventSourceId: eventSourceIdOrEvents, event }))
+                : eventSourceIdOrEvents;
+        const appendOptions = typeof eventSourceIdOrEvents === 'string'
+            ? options
+            : eventsOrOptions as AppendOptions | undefined;
 
-        causationManager.add(CausationType.appendManyEvents, { count: String(events.length) });
+        const correlationId = appendOptions?.correlationId === undefined
+            ? Guid.as(correlationIdManager.current.value)
+            : Guid.as(appendOptions.correlationId);
+
+        causationManager.add(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) });
         const batchCausationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
 
-        const eventsToAppend = events.map(event => {
+        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
             return {
                 EventSourceType: 'Default',
@@ -177,19 +200,23 @@ export class EventSequence implements IEventSequence {
             };
         });
 
+        const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
+
         const batchMetricAttributes = {
             'chronicle.event_store': this._eventStoreName,
             'chronicle.namespace': this._namespace,
             'chronicle.event_sequence_id': this.id.value,
-            'chronicle.events_count': events.length
+            'chronicle.events_count': eventsForEventSourceIds.length
         };
 
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append_many', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
             span.setAttribute('chronicle.namespace', this._namespace);
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_source_id', eventSourceId);
-            span.setAttribute('chronicle.events_count', events.length);
+            if (distinctEventSourceIds.length === 1) {
+                span.setAttribute('chronicle.event_source_id', distinctEventSourceIds[0]);
+            }
+            span.setAttribute('chronicle.events_count', eventsForEventSourceIds.length);
             const startTime = Date.now();
             try {
                 const response = await this._connection.eventSequences.appendMany({
@@ -218,7 +245,7 @@ export class EventSequence implements IEventSequence {
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 ChronicleMetrics.batchAppendsPerformed.add(1, batchMetricAttributes);
-                ChronicleMetrics.eventsAppended.add(events.length, batchMetricAttributes);
+                ChronicleMetrics.eventsAppended.add(eventsForEventSourceIds.length, batchMetricAttributes);
                 ChronicleMetrics.appendManyDuration.record(duration, batchMetricAttributes);
 
                 const totalViolations = result.reduce((sum: number, appendResult: AppendResult) => sum + appendResult.constraintViolations.length, 0);
