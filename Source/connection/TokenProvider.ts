@@ -4,6 +4,8 @@
 import * as http from 'http';
 import * as https from 'https';
 
+const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+
 /**
  * Interface for providing authentication tokens.
  */
@@ -111,7 +113,7 @@ export class OAuthTokenProvider implements ITokenProvider {
                         const tokenResponse = JSON.parse(data) as OAuthTokenResponse;
                         this._accessToken = tokenResponse.access_token;
                         const expiresInSeconds = tokenResponse.expires_in || 3600;
-                        this._tokenExpiry = new Date(Date.now() + (expiresInSeconds - 60) * 1000);
+                        this._tokenExpiry = new Date(Date.now() + (expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000);
                         resolve(this._accessToken);
                     } catch (error) {
                         reject(new Error(`Failed to parse token response: ${error instanceof Error ? error.message : String(error)}`));

@@ -260,7 +260,7 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         if (hasUsername !== hasPassword) {
-            throw new Error('Connection string must contain both username and password when using client credentials authentication');
+            throw new Error('Connection string must contain both username and password, or neither');
         }
 
         if (hasUsername && hasPassword) {
