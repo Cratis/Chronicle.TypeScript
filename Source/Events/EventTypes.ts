@@ -12,6 +12,7 @@ import { EventTypeMigrators } from './Migrations/EventTypeMigrators';
 import { getEventTypeMigrationMetadata } from './Migrations/eventTypeMigration';
 import { IEventTypeMigration } from './Migrations/IEventTypeMigration';
 
+// Mirrors .NET client behavior for migration-only generations that do not have a local CLR/TS type.
 const UNKNOWN_GENERATION_SCHEMA = '{}';
 
 /**
@@ -86,7 +87,17 @@ export class EventTypes implements IEventTypes {
         const registrations = Array.from(groupedById.values()).map(group => {
             const sorted = group
                 .map(type => ({ type, metadata: getEventTypeMetadata(type)! }))
-                .sort((a, b) => a.metadata.eventType.generation.value - b.metadata.eventType.generation.value);
+                .sort((a, b) => {
+                    const left = a.metadata.eventType.generation.value;
+                    const right = b.metadata.eventType.generation.value;
+                    if (left < right) {
+                        return -1;
+                    }
+                    if (left > right) {
+                        return 1;
+                    }
+                    return 0;
+                });
             const latest = sorted[sorted.length - 1];
             const registration = {
                 Type: {
