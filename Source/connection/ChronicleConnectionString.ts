@@ -98,7 +98,7 @@ export class ChronicleConnectionStringBuilder {
         const hasApiKey = !!this.apiKey;
 
         if (hasClientCredentials && hasApiKey) {
-            throw new Error('Cannot specify both client credentials and API key authentication');
+            throw new Error('Cannot specify both username/password and apiKey in the connection string');
         }
 
         if (hasClientCredentials) {
@@ -109,7 +109,7 @@ export class ChronicleConnectionStringBuilder {
             return AuthenticationMode.ApiKey;
         }
 
-        throw new Error('No authentication method specified. Please provide either client credentials or API key');
+        throw new Error('No authentication method specified. Provide either username/password or apiKey in the connection string');
     }
 
     get apiKey(): string | undefined {

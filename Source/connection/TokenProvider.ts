@@ -93,8 +93,7 @@ export class OAuthTokenProvider implements ITokenProvider {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Content-Length': Buffer.byteLength(body)
-                },
-                rejectUnauthorized: false
+                }
             }, response => {
                 let data = '';
 

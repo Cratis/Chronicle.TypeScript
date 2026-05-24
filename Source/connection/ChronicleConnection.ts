@@ -260,7 +260,7 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         if (hasUsername !== hasPassword) {
-            return new NoOpTokenProvider();
+            throw new Error('Connection string must contain both username and password when using client credentials authentication');
         }
 
         if (hasUsername && hasPassword) {
@@ -300,20 +300,16 @@ export class ChronicleConnection implements ChronicleServices {
         const connectionString = this._connectionString;
 
         return async function* authMiddleware(call, options) {
-            try {
-                const token = await tokenProvider.getAccessToken();
+            const token = await tokenProvider.getAccessToken();
 
-                if (token) {
-                    const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
-                    metadata.set('authorization', `Bearer ${token}`);
-                    options.metadata = metadata;
-                } else if (connectionString.authenticationMode === AuthenticationMode.ApiKey && connectionString.apiKey) {
-                    const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
-                    metadata.set('api-key', connectionString.apiKey);
-                    options.metadata = metadata;
-                }
-            } catch {
-                // Continue without auth metadata when token acquisition fails.
+            if (token) {
+                const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
+                metadata.set('authorization', `Bearer ${token}`);
+                options.metadata = metadata;
+            } else if (connectionString.authenticationMode === AuthenticationMode.ApiKey && connectionString.apiKey) {
+                const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
+                metadata.set('api-key', connectionString.apiKey);
+                options.metadata = metadata;
             }
 
             return yield* call.next(call.request, options);
