@@ -54,12 +54,13 @@ if (!result.isSuccess) {
 }
 ```
 
-For batch appends, use the same `concurrencyScope` option:
+For batch appends, use the same `concurrencyScope` option.
+Set `eventTypes` when you only want concurrency validation to consider specific event types for that event source.
 
 ```typescript
 const tail = await store.eventLog.getTailSequenceNumber('employee-123');
 
-await store.eventLog.appendMany('employee-123', [
+const results = await store.eventLog.appendMany('employee-123', [
     new EmployeeHired('Jane', 'Doe'),
     new EmployeePromoted('Senior Engineer')
 ], {
@@ -69,6 +70,10 @@ await store.eventLog.appendMany('employee-123', [
         eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
     }
 });
+
+if (results.some(_ => !_.isSuccess)) {
+    console.error(results);
+}
 ```
 
 ## Checking for Events
