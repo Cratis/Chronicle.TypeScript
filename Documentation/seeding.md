@@ -7,7 +7,7 @@ Seeding lets you populate event streams with initial events when your client sta
 Use `@seeder` on a class that implements `ICanSeedEvents`:
 
 ```typescript
-import { ICanSeedEvents, eventType, seeder } from '@cratis/chronicle';
+import { ICanSeedEvents, IEventSeedingBuilder, eventType, seeder } from '@cratis/chronicle';
 
 @eventType()
 class ProjectRegistered {
@@ -21,9 +21,9 @@ class ProjectRenamed {
 
 @seeder()
 class InitialProjectSeeder implements ICanSeedEvents {
-    seed(builder) {
+    seed(builder: IEventSeedingBuilder) {
         builder
-            .for('project-1', [
+            .for<ProjectRegistered>('project-1', [
                 new ProjectRegistered('Accounting')
             ])
             .forNamespace('Sales')
