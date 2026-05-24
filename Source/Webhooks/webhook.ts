@@ -26,18 +26,33 @@ export interface WebhookMetadata {
 
 /**
  * TypeScript decorator that marks a class as a discoverable webhook.
- * @param id - The webhook identifier. Defaults to class name when omitted.
- * @param targetUrl - The webhook target URL.
+ * Overloads:
+ * - `@webhook(targetUrl)` -> class name is used as identifier.
+ * - `@webhook(id, targetUrl)` -> explicit identifier.
+ * - `@webhook(id, targetUrl, eventSequenceId)` -> explicit identifier and event sequence.
+ * @param idOrTargetUrl - The webhook identifier or target URL.
+ * @param targetUrlOrUndefined - The webhook target URL when id is provided.
  * @param eventSequenceId - Optional event sequence identifier.
  * @returns A class decorator.
  */
-export function webhook(id: string = '', targetUrl: string = '', eventSequenceId?: string): ClassDecorator {
+export function webhook(targetUrl: string): ClassDecorator;
+export function webhook(id: string, targetUrl: string): ClassDecorator;
+export function webhook(id: string, targetUrl: string, eventSequenceId: string): ClassDecorator;
+export function webhook(idOrTargetUrl: string, targetUrlOrUndefined?: string, eventSequenceId?: string): ClassDecorator {
     return (target: object) => {
+        const hasExplicitId = targetUrlOrUndefined !== undefined;
+        const explicitId = hasExplicitId ? idOrTargetUrl : undefined;
+        const resolvedTargetUrl = hasExplicitId ? targetUrlOrUndefined : idOrTargetUrl;
+
+        if (!resolvedTargetUrl) {
+            throw new Error('A webhook targetUrl must be a non-empty string for @webhook.');
+        }
+
         const constructor = target as Function;
-        const webhookId = new WebhookId(id || constructor.name);
+        const webhookId = new WebhookId(explicitId ?? constructor.name);
         const metadata: WebhookMetadata = {
             id: webhookId,
-            targetUrl: new WebhookTargetUrl(targetUrl),
+            targetUrl: new WebhookTargetUrl(resolvedTargetUrl),
             eventSequenceId
         };
         Reflect.defineMetadata(WEBHOOK_METADATA_KEY, metadata, target);

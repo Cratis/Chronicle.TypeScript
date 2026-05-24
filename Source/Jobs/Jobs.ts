@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { JobError, type Job, type JobStep } from '@cratis/chronicle.contracts';
+import type { Job, JobStep } from '@cratis/chronicle.contracts';
 import { Guid } from '@cratis/fundamentals';
 import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
@@ -42,13 +42,7 @@ export class Jobs implements IJobs {
     /** @inheritdoc */
     async getJob(jobId: JobId | Guid | string): Promise<Job | undefined> {
         const result = await this._connection.jobs.getJob(this.createJobRequest(jobId));
-        if (result.Value0) {
-            return result.Value0;
-        }
-        if (result.Value1 === JobError.NotFound) {
-            return undefined;
-        }
-        return undefined;
+        return result.Value0;
     }
 
     /** @inheritdoc */

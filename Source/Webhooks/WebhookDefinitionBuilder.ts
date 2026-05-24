@@ -105,19 +105,21 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
 
     /**
      * Builds a webhook definition.
+     * When no event types are explicitly configured, all registered event types are used.
      * @param id - Webhook identifier.
      * @param targetUrl - Webhook target URL.
      * @returns A contract webhook definition.
      */
     build(id: WebhookId, targetUrl: WebhookTargetUrl): WebhookDefinition {
         if (!targetUrl.value) {
-            throw new Error(`Webhook '${id.value}' is missing target URL.`);
+            throw new Error(`Webhook '${id.value}' has an empty target URL.`);
         }
 
-        const eventTypes = [...(this._eventTypes.size > 0 ? this._eventTypes : this._registeredEventTypes.all)].map(type => {
+        const selectedEventTypes = this._eventTypes.size > 0 ? [...this._eventTypes] : this._registeredEventTypes.all;
+        const eventTypes = selectedEventTypes.map(type => {
             const metadata = getEventTypeFor(type);
-            if (!metadata) {
-                throw new Error(`Event type '${type.name}' is missing @eventType metadata.`);
+            if (metadata.id.value === '00000000-0000-0000-0000-000000000000') {
+                throw new Error(`Event type '${type.name}' has an invalid or uninitialized event type id.`);
             }
             return {
                 Id: metadata.id.value,

@@ -44,13 +44,7 @@ export class Webhooks implements IWebhooks {
                 continue;
             }
 
-            const definition = this.buildDefinition(
-                type,
-                metadata.id,
-                metadata.targetUrl,
-                () => undefined,
-                metadata.eventSequenceId
-            );
+            const definition = this.buildDefinition(type, metadata.id, metadata.targetUrl, undefined, metadata.eventSequenceId);
             this._discovered.set(metadata.id.value, definition);
         }
     }
@@ -111,11 +105,11 @@ export class Webhooks implements IWebhooks {
         type: Constructor | undefined,
         id: WebhookId,
         targetUrl: WebhookTargetUrl,
-        configure: (builder: IWebhookDefinitionBuilder) => void,
+        configure: ((builder: IWebhookDefinitionBuilder) => void) | undefined,
         eventSequenceId?: string
     ): WebhookDefinition {
         const builder = new WebhookDefinitionBuilder(this._eventTypes);
-        configure(builder);
+        configure?.(builder);
 
         if (type) {
             const instance = new (type as new () => IWebhook)();
