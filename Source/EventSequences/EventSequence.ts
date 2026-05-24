@@ -17,6 +17,7 @@ import { identityProvider, Identity } from '../Identity';
 import { causationManager, CausationType } from '../Auditing';
 import { correlationIdManager } from '../Correlation';
 import { toContractsGuid } from '../connection/Guid';
+import type { ConcurrencyScope } from './ConcurrencyScope';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -79,15 +80,7 @@ export class EventSequence implements IEventSequence {
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity),
-                    ConcurrencyScope: {
-                        // ulong.MaxValue sent as BigInt so the server recognises it as ConcurrencyScope.None (no validation)
-                        SequenceNumber: 18446744073709551615n,
-                        EventSourceId: false,
-                        EventStreamType: '',
-                        EventStreamId: '',
-                        EventSourceType: '',
-                        EventTypes: []
-                    },
+                    ConcurrencyScope: this.toContractConcurrencyScope(options?.concurrencyScope),
                     Tags: [],
                     Occurred: undefined,
                     Subject: eventSourceId
@@ -143,6 +136,7 @@ export class EventSequence implements IEventSequence {
         causationManager.add(CausationType.appendManyEvents, { count: String(events.length) });
         const batchCausationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
+        const concurrencyScope = this.toContractConcurrencyScope(options?.concurrencyScope);
 
         const eventsToAppend = events.map(event => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -163,14 +157,7 @@ export class EventSequence implements IEventSequence {
                     Properties: { ...c.properties }
                 })),
                 CausedBy: toContractsCausedBy(identity),
-                ConcurrencyScope: {
-                    SequenceNumber: 18446744073709551615n,
-                    EventSourceId: false,
-                    EventStreamType: '',
-                    EventStreamId: '',
-                    EventSourceType: '',
-                    EventTypes: []
-                },
+                ConcurrencyScope: concurrencyScope,
                 Tags: [],
                 Occurred: undefined,
                 Subject: eventSourceId
@@ -204,7 +191,9 @@ export class EventSequence implements IEventSequence {
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity),
-                    ConcurrencyScopes: {}
+                    ConcurrencyScopes: {
+                        [eventSourceId]: concurrencyScope
+                    }
                 });
 
                 const duration = Date.now() - startTime;
@@ -337,6 +326,21 @@ export class EventSequence implements IEventSequence {
             constraintViolations: mappedViolations,
             errors: mappedErrors,
             isSuccess: mappedViolations.length === 0 && mappedErrors.length === 0
+        };
+    }
+
+    private toContractConcurrencyScope(scope?: ConcurrencyScope) {
+        return {
+            SequenceNumber: scope?.sequenceNumber ?? EventSequenceNumber.unset.value,
+            EventSourceId: scope?.eventSourceId ?? false,
+            EventStreamType: scope?.eventStreamType ?? '',
+            EventStreamId: scope?.eventStreamId ?? '',
+            EventSourceType: scope?.eventSourceType ?? '',
+            EventTypes: (scope?.eventTypes ?? []).map(eventType => ({
+                Id: eventType.id.value,
+                Generation: eventType.generation.value,
+                Tombstone: eventType.tombstone
+            }))
         };
     }
 }

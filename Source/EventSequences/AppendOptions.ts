@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
+import type { ConcurrencyScope } from './ConcurrencyScope';
 
 /**
  * Options for appending an event to an event sequence.
@@ -12,4 +13,7 @@ export interface AppendOptions {
 
     /** Optional explicit sequence number to use for the event. */
     eventSourceId?: string;
+
+    /** Optional concurrency scope to use for append operations. */
+    concurrencyScope?: ConcurrencyScope;
 }
