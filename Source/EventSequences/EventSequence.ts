@@ -151,10 +151,26 @@ export class EventSequence implements IEventSequence {
         eventsOrOptions?: object[] | AppendOptions,
         options?: AppendOptions
     ): Promise<AppendResult[]> {
-        const eventsForEventSourceIds: EventForEventSourceId[] =
-            typeof eventSourceIdOrEvents === 'string'
-                ? (Array.isArray(eventsOrOptions) ? eventsOrOptions : []).map(event => ({ eventSourceId: eventSourceIdOrEvents, event }))
-                : eventSourceIdOrEvents;
+        if (typeof eventSourceIdOrEvents !== 'string' && !Array.isArray(eventSourceIdOrEvents)) {
+            throw new Error('Invalid arguments: first parameter must be an eventSourceId string or an array of { eventSourceId, event }.');
+        }
+        if (typeof eventSourceIdOrEvents === 'string' && !Array.isArray(eventsOrOptions)) {
+            throw new Error('Invalid arguments: use appendMany(eventSourceId, events, options?) where the second parameter is an array of events.');
+        }
+        if (typeof eventSourceIdOrEvents !== 'string' && Array.isArray(eventsOrOptions)) {
+            throw new Error('Invalid arguments: use appendMany(eventsForEventSourceId, options?) where the second parameter is append options.');
+        }
+
+        let eventsForEventSourceIds: EventForEventSourceId[];
+        if (typeof eventSourceIdOrEvents === 'string') {
+            const eventsArray = eventsOrOptions as object[];
+            eventsForEventSourceIds = eventsArray.map((event: object) => ({
+                eventSourceId: eventSourceIdOrEvents,
+                event
+            }));
+        } else {
+            eventsForEventSourceIds = eventSourceIdOrEvents;
+        }
         const appendOptions = typeof eventSourceIdOrEvents === 'string'
             ? options
             : eventsOrOptions as AppendOptions | undefined;

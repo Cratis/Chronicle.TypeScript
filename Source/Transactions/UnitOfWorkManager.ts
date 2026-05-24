@@ -20,9 +20,11 @@ export class UnitOfWorkManager implements IUnitOfWorkManager {
 
     /** @inheritdoc */
     get current(): IUnitOfWork {
-        return this._storage.getStore() ?? (() => {
+        const current = this._storage.getStore();
+        if (current === undefined) {
             throw new NoUnitOfWorkHasBeenStarted();
-        })();
+        }
+        return current;
     }
 
     /** @inheritdoc */
@@ -49,8 +51,15 @@ export class UnitOfWorkManager implements IUnitOfWorkManager {
 
     /** @inheritdoc */
     setCurrent(unitOfWork: IUnitOfWork): void {
+        const key = unitOfWork.correlationId.toString();
+        const existing = this._unitsOfWork.get(key);
+        if (existing === unitOfWork) {
+            this._storage.enterWith(unitOfWork);
+            return;
+        }
+
         this._storage.enterWith(unitOfWork);
-        this._unitsOfWork.set(unitOfWork.correlationId.toString(), unitOfWork);
+        this._unitsOfWork.set(key, unitOfWork);
         unitOfWork.onCompleted(this.unitOfWorkCompleted.bind(this));
     }
 

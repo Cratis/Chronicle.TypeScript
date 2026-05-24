@@ -114,7 +114,11 @@ export class UnitOfWork implements IUnitOfWork {
 
     /** @inheritdoc */
     onCompleted(callback: (unitOfWork: IUnitOfWork) => void): void {
-        this._onCompleted = callback;
+        const previous = this._onCompleted;
+        this._onCompleted = unitOfWork => {
+            previous(unitOfWork);
+            callback(unitOfWork);
+        };
     }
 
     private throwIfCompleted(): void {
