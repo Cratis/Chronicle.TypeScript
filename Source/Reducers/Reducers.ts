@@ -4,14 +4,18 @@
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { Constructor } from '@cratis/fundamentals';
-import { ObservationState, ReducerMessage } from '@cratis/chronicle.contracts';
+import { ObservationState, ReadModelObserverType, ReducerMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
+import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
 import { getEventTypeMetadata } from '../Events/eventTypeDecorator';
 import { EventSequenceId } from '../EventSequences/EventSequenceId';
+import { WellKnownSinks } from '../sinks';
 import { IReducers } from './IReducers';
 import { getReducerMetadata } from './reducer';
+import { getReadModelMetadata } from '../ReadModels';
+import { JsonSchemaGenerator } from '../Schemas';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -139,12 +143,69 @@ export class Reducers implements IReducers {
             await this.discover();
         }
 
+        await this.registerReadModels();
+
         this._logger.info('Registering reducers', { count: this._reducers.size });
         for (const [id, reducerType] of this._reducers) {
             this.startObservation(id, reducerType);
         }
 
         this._registered = true;
+    }
+
+    private async registerReadModels(): Promise<void> {
+        if (this._reducers.size === 0) {
+            return;
+        }
+
+        const readModels = Array.from(this._reducers.entries()).map(([id, reducerType]) => {
+            const readModelName = (reducerType as Function).name;
+            return {
+                Type: {
+                    Identifier: readModelName,
+                    Generation: 1
+                },
+                ContainerName: readModelName,
+                DisplayName: readModelName,
+                Sink: {
+                    ConfigurationId: toContractsGuid(WellKnownSinks.Null),
+                    TypeId: toContractsGuid(WellKnownSinks.MongoDB)
+                },
+                Schema: this.getReducerSchema(reducerType, readModelName),
+                Indexes: [],
+                ObserverType: ReadModelObserverType.Reducer,
+                ObserverIdentifier: id,
+                Owner: 1,
+                Source: 1
+            };
+        });
+
+        this._logger.info('Registering read models for reducers', { count: readModels.length });
+        await this._connection.readModels.registerMany({
+            EventStore: this._eventStoreName,
+            Owner: 1,
+            ReadModels: readModels,
+            Source: 1
+        });
+    }
+
+    private getReducerSchema(reducerType: Constructor, readModelName: string): string {
+        const metadata = getReducerMetadata(reducerType);
+        if (metadata?.readModel) {
+            const readModelMeta = getReadModelMetadata(metadata.readModel);
+            if (readModelMeta?.schema) {
+                return JSON.stringify(readModelMeta.schema);
+            }
+            // No @readModel() decorator — generate from instance
+            return JSON.stringify(JsonSchemaGenerator.generate(metadata.readModel));
+        }
+
+        // No read model type declared — generate from a minimal schema
+        const minimalSchema = {
+            ...JsonSchemaGenerator.createEmptySchema(readModelName),
+            additionalProperties: true
+        };
+        return JSON.stringify(minimalSchema);
     }
 
     private startObservation(id: string, reducerType: Constructor): void {
@@ -191,7 +252,10 @@ export class Reducers implements IReducers {
                         })),
                         ReadModel: readModelName,
                         IsActive: true,
-                        Sink: { TypeId: { lo: 0, hi: 0 }, ConfigurationId: undefined },
+                        Sink: {
+                            TypeId: toContractsGuid(WellKnownSinks.MongoDB),
+                            ConfigurationId: toContractsGuid(WellKnownSinks.Null)
+                        },
                         Tags: [],
                         Filters: {
                             FilterTags: [],

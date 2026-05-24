@@ -8,7 +8,7 @@ Welcome to the Chronicle TypeScript client documentation.
 
 - Appending events to event sequences
 - Managing event stores and namespaces
-- Defining reactors, reducers, projections, and constraints using TypeScript decorators
+- Defining reactors, reducers, projections, constraints, and model-bound read models using TypeScript decorators such as `@readModel` and `@fromEvent`
 
 ## Guides
 

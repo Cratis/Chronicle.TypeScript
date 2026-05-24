@@ -1,18 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { fromEvent, readModel, setFrom } from '@cratis/chronicle';
-import { EmployeeHired, EmployeePromoted, EmployeeMoved } from './events';
-import { Guid } from '@cratis/fundamentals';
+import { fromEvent, Guid, readModel, setFrom } from '@cratis/chronicle';
+import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
 
 /**
  * Model-bound projection artifact discovered by the TypeScript client.
- *
- * Runtime model-bound projection execution is still under implementation in the
- * TypeScript client. This class represents an artifact declaration only.
  */
 @readModel()
 @fromEvent(EmployeeHired)
+@fromEvent(EmployeeAddressSet)
 @fromEvent(EmployeePromoted)
 @fromEvent(EmployeeMoved)
 export class EmployeeDetails {
@@ -28,7 +25,20 @@ export class EmployeeDetails {
     @setFrom(EmployeePromoted, 'newTitle')
     title = '';
 
-    @setFrom(EmployeeMoved, 'newCity')
+    @setFrom(EmployeeAddressSet)
+    @setFrom(EmployeeMoved)
+    address = '';
+
+    @setFrom(EmployeeAddressSet)
+    @setFrom(EmployeeMoved)
     city = '';
+
+    @setFrom(EmployeeAddressSet)
+    @setFrom(EmployeeMoved)
+    zipCode = '';
+
+    @setFrom(EmployeeAddressSet)
+    @setFrom(EmployeeMoved)
+    country = '';
 }
 

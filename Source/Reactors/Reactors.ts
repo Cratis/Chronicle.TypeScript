@@ -233,6 +233,7 @@ export class Reactors implements IReactors {
                         }
 
                         const content = JSON.parse(event.Content) as Record<string, unknown>;
+                        this._logger.debug('Event content', { reactorId: id, eventTypeId, contentKeys: Object.keys(content), rawContent: event.Content.substring(0, 200) });
                         const context: EventContext = {
                             sequenceNumber: event.Context!.SequenceNumber,
                             eventSourceId: event.Context!.EventSourceId,

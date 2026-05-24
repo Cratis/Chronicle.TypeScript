@@ -215,7 +215,7 @@ export class ProjectionBuilderFor<TReadModel> implements IProjectionBuilderFor<T
      * @returns The projection definition object ready to send to the kernel.
      */
     build(identifier: string, readModelName: string): Record<string, unknown> {
-        return {
+        const definition: Record<string, unknown> = {
             EventSequenceId: this._eventSequenceId,
             Identifier: identifier,
             ReadModel: this._containerName ?? readModelName,
@@ -230,11 +230,13 @@ export class ProjectionBuilderFor<TReadModel> implements IProjectionBuilderFor<T
             FromEventProperty: undefined,
             RemovedWith: this._removedWith,
             RemovedWithJoin: this._removedWithJoin,
-            LastUpdated: { Value: new Date().toISOString() },
+            LastUpdated: { Value: '' },
             Tags: [],
             AutoMap: this._autoMap,
             Nested: {}
         };
+        definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
+        return definition;
     }
 
     /**
@@ -273,5 +275,20 @@ export class ProjectionBuilderFor<TReadModel> implements IProjectionBuilderFor<T
             Generation: eventType.generation.value,
             Tombstone: false
         };
+    }
+
+    /**
+     * Computes a stable, deterministic ISO timestamp from the projection definition content,
+     * excluding the LastUpdated field itself. This ensures the server does not interpret
+     * a repeated registration of an unchanged definition as a definition change.
+     */
+    private computeStableLastUpdated(definition: Record<string, unknown>): string {
+        const { LastUpdated: _omit, ...rest } = definition;
+        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        let hash = 5381;
+        for (let i = 0; i < content.length; i++) {
+            hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;
+        }
+        return new Date(hash * 1000).toISOString();
     }
 }

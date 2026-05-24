@@ -1,10 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import {
-    ChronicleConnection,
-    Guid as ContractsGuid
-} from '../connection';
+import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { Guid } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../Events/eventTypeDecorator';
@@ -19,6 +16,7 @@ import { ChronicleMetrics } from '../Metrics';
 import { identityProvider, Identity } from '../Identity';
 import { causationManager, CausationType } from '../Auditing';
 import { correlationIdManager } from '../Correlation';
+import { toContractsGuid } from '../connection/Guid';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -351,20 +349,6 @@ export class EventSequence implements IEventSequence {
  * @param guid - The Guid to convert.
  * @returns The converted protobuf Guid with fixed64-safe hi/lo values.
  */
-function toContractsGuid(guid: Guid): ContractsGuid {
-    const hex = guid.toString().replace(/-/g, '');
-    const hi = BigInt(`0x${hex.substring(0, 16)}`);
-    const lo = BigInt(`0x${hex.substring(16, 32)}`);
-
-    // Mask to MAX_SAFE_INTEGER so the contracts package can decode the Guid
-    // from the response without a longToNumber overflow. Correlation IDs are
-    // opaque identifiers, so 52+52 bits of entropy is more than sufficient.
-    const safe = BigInt(Number.MAX_SAFE_INTEGER);
-    return {
-        hi: Number(hi & safe),
-        lo: Number(lo & safe)
-    };
-}
 
 /**
  * Converts an {@link Identity} into the CausedBy shape used by Chronicle contracts.
