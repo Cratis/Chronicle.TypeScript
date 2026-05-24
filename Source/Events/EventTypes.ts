@@ -12,6 +12,8 @@ import { EventTypeMigrators } from './Migrations/EventTypeMigrators';
 import { getEventTypeMigrationMetadata } from './Migrations/eventTypeMigration';
 import { IEventTypeMigration } from './Migrations/IEventTypeMigration';
 
+const UNKNOWN_GENERATION_SCHEMA = '{}';
+
 /**
  * Implements {@link IEventTypes}, managing discovery and registration of event types
  * with the Chronicle Kernel.
@@ -131,13 +133,13 @@ export class EventTypes implements IEventTypes {
                     if (!registration.Generations.some(_ => _.Generation === metadata.previousEventType.generation.value)) {
                         registration.Generations.push({
                             Generation: metadata.previousEventType.generation.value,
-                            Schema: '{}'
+                            Schema: UNKNOWN_GENERATION_SCHEMA
                         });
                     }
                     if (!registration.Generations.some(_ => _.Generation === metadata.eventType.generation.value)) {
                         registration.Generations.push({
                             Generation: metadata.eventType.generation.value,
-                            Schema: '{}'
+                            Schema: UNKNOWN_GENERATION_SCHEMA
                         });
                     }
                 }
