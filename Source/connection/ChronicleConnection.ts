@@ -20,6 +20,7 @@ import {
     RecommendationsDefinition,
     ReducersDefinition,
     ServerDefinition,
+    WebhooksDefinition,
     type ConnectionServiceClient
 } from '@cratis/chronicle.contracts';
 import { createChannel, createClientFactory, waitForChannelReady } from 'nice-grpc';
@@ -169,6 +170,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.jobs;
     }
 
+    get webhooks() {
+        return this._services.webhooks;
+    }
+
     get eventSeeding() {
         return this._services.eventSeeding;
     }
@@ -244,6 +249,7 @@ export class ChronicleConnection implements ChronicleServices {
             projections: factory.create(ProjectionsDefinition, this._channel),
             readModels: factory.create(ReadModelsDefinition, this._channel),
             jobs: factory.create(JobsDefinition, this._channel),
+            webhooks: factory.create(WebhooksDefinition, this._channel),
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),
             server: factory.create(ServerDefinition, this._channel)
         };

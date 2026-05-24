@@ -25,6 +25,10 @@ import { Reducers } from './Reducers/Reducers';
 import { IReducers } from './Reducers/IReducers';
 import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
+import { IJobs } from './Jobs/IJobs';
+import { Jobs } from './Jobs/Jobs';
+import { IWebhooks } from './Webhooks/IWebhooks';
+import { Webhooks } from './Webhooks/Webhooks';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -41,6 +45,8 @@ export class EventStore implements IEventStore {
     readonly projections: IProjections;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
+    readonly jobs: IJobs;
+    readonly webhooks: IWebhooks;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -59,6 +65,8 @@ export class EventStore implements IEventStore {
         this.projections = new Projections(name.value, _connection, artifacts);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
+        this.jobs = new Jobs(name.value, namespace.value, _connection);
+        this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
     }
 
     /**
@@ -77,7 +85,8 @@ export class EventStore implements IEventStore {
             this.constraints.discover(),
             this.projections.discover(),
             this.reactors.discover(),
-            this.reducers.discover()
+            this.reducers.discover(),
+            this.webhooks.discover()
         ]);
 
         this._logger.debug('Registering discovered artifacts', {
@@ -90,7 +99,8 @@ export class EventStore implements IEventStore {
             this.constraints.register(),
             this.projections.register(),
             this.reactors.register(),
-            this.reducers.register()
+            this.reducers.register(),
+            this.webhooks.registerDiscovered()
         ]);
 
         this._logger.info('Artifact registration completed', {

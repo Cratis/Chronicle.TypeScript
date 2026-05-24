@@ -11,6 +11,8 @@ import { IConstraints } from './Events/Constraints/IConstraints';
 import { IProjections } from './Projections/IProjections';
 import { IReactors } from './Reactors/IReactors';
 import { IReducers } from './Reducers/IReducers';
+import { IJobs } from './Jobs/IJobs';
+import { IWebhooks } from './Webhooks/IWebhooks';
 
 /**
  * Defines the API surface for an event store.
@@ -40,6 +42,12 @@ export interface IEventStore {
 
     /** The reducers manager for this event store. */
     readonly reducers: IReducers;
+
+    /** The jobs manager for this event store. */
+    readonly jobs: IJobs;
+
+    /** The webhooks manager for this event store. */
+    readonly webhooks: IWebhooks;
 
     /**
      * Gets an event sequence by its identifier.
