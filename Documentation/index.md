@@ -20,3 +20,4 @@ Welcome to the Chronicle TypeScript client documentation.
 - [Identity](./identity.md) — Tracking who caused a state change
 - [Auditing — Causation](./auditing.md) — Recording the causation chain for events
 - [Correlation](./correlation.md) — Correlating events and operations with a shared identifier
+- [Transactions (Unit of Work)](./transactions.md) — Group appends and commit or roll back as one unit

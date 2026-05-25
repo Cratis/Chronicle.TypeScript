@@ -25,6 +25,8 @@ import { Reducers } from './Reducers/Reducers';
 import { IReducers } from './Reducers/IReducers';
 import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
+import { IUnitOfWorkManager } from './Transactions/IUnitOfWorkManager';
+import { UnitOfWorkManager } from './Transactions/UnitOfWorkManager';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -41,6 +43,7 @@ export class EventStore implements IEventStore {
     readonly projections: IProjections;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
+    readonly unitOfWorkManager: IUnitOfWorkManager;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -50,7 +53,9 @@ export class EventStore implements IEventStore {
         private readonly _connection: ChronicleConnection,
         lifecycle: ConnectionLifecycle
     ) {
-        this.eventLog = new EventLog(name.value, namespace.value, _connection);
+        this.unitOfWorkManager = new UnitOfWorkManager(this);
+
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         const artifacts = DefaultClientArtifactsProvider.default;
@@ -106,7 +111,7 @@ export class EventStore implements IEventStore {
             return existing;
         }
 
-        const sequence = new EventSequence(id, this.name.value, this.namespace.value, this._connection);
+        const sequence = new EventSequence(id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager);
         this._sequences.set(id.value, sequence);
         return sequence;
     }

@@ -11,6 +11,7 @@ import { IConstraints } from './Events/Constraints/IConstraints';
 import { IProjections } from './Projections/IProjections';
 import { IReactors } from './Reactors/IReactors';
 import { IReducers } from './Reducers/IReducers';
+import { IUnitOfWorkManager } from './Transactions/IUnitOfWorkManager';
 
 /**
  * Defines the API surface for an event store.
@@ -40,6 +41,9 @@ export interface IEventStore {
 
     /** The reducers manager for this event store. */
     readonly reducers: IReducers;
+
+    /** The unit of work manager for transaction-scoped appends. */
+    readonly unitOfWorkManager: IUnitOfWorkManager;
 
     /**
      * Gets an event sequence by its identifier.

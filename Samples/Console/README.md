@@ -8,6 +8,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 2. Reacts to those events via `HrNotificationReactor` (logs notifications)
 3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`)
 4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`) and logs available namespaces
+5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
 
 ## Prerequisites
 
@@ -33,6 +34,7 @@ You should see output with:
 
 - A Chronicle connection log
 - Event appends for hire, promotion, and relocation
+- Transactional staged appends committed as one unit (`T` keyboard command)
 - Event log tail/has-events information
 - Reactor logs for observed events
 
