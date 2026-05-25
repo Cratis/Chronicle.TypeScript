@@ -12,16 +12,17 @@ const alanTuringId = 'a0000003-0000-0000-0000-000000000000';
 export class EmployeeSeeder implements ICanSeedEvents {
     seed(builder: IEventSeedingBuilder): void {
         builder
-            .for<EmployeeHired>(adaLovelaceId, [
+            .forEventSource(adaLovelaceId, [
                 new EmployeeHired('Ada', 'Lovelace', 'Software Engineer')
             ])
-            .for<EmployeeHired>(alanTuringId, [
+            .forEventSource(alanTuringId, [
                 new EmployeeHired('Alan', 'Turing', 'Architect')
-            ])
-            .forNamespace('Sales')
-            .forEventSource(graceHopperId, [
-                new EmployeeHired('Grace', 'Hopper', 'Principal Engineer'),
-                new EmployeeAddressSet('1600 Amphitheatre Parkway', 'Mountain View', '94043', 'USA')
             ]);
+
+        const salesNamespace = builder.forNamespace('Sales');
+        salesNamespace.forEventSource(graceHopperId, [
+            new EmployeeHired('Grace', 'Hopper', 'Principal Engineer'),
+            new EmployeeAddressSet('1600 Amphitheatre Parkway', 'Mountain View', '94043', 'USA')
+        ]);
     }
 }
