@@ -38,6 +38,7 @@ const results = await store.eventLog.appendMany('employee-123', [
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
 Use `eventSourceType` + `eventSourceId` when your concurrency boundary is the whole event source.
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
+Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
 
 ```typescript
 import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
@@ -61,12 +62,12 @@ async function appendWithConcurrencyScopes() {
     const client = new ChronicleClient(ChronicleOptions.development());
     const store = await client.getEventStore('MyStore');
     const eventSourceId = 'employee-123';
-    const expectedTailForAppend = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+    const tailBeforeAppend = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Scope concurrency to this event source.
     const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
         concurrencyScope: {
-            sequenceNumber: expectedTailForAppend,
+            sequenceNumber: tailBeforeAppend,
             eventSourceId: true
         }
     });
@@ -75,7 +76,7 @@ async function appendWithConcurrencyScopes() {
         console.error(appendResult.errors, appendResult.constraintViolations);
     }
 
-    const expectedTailForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+    const tailBeforeBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Combine source + stream fields when your boundary is a specific stream in a specific source.
     const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
@@ -83,7 +84,7 @@ async function appendWithConcurrencyScopes() {
         new EmployeeDepartmentChanged('Platform')
     ], {
         concurrencyScope: {
-            sequenceNumber: expectedTailForBatch,
+            sequenceNumber: tailBeforeBatch,
             eventSourceId: true,
             eventSourceType: 'Default',
             eventStreamType: 'Default',
