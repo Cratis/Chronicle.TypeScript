@@ -38,41 +38,52 @@ const results = await store.eventLog.appendMany('employee-123', [
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
 
 ```typescript
-import { getEventTypeFor } from '@cratis/chronicle';
+import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
 
-const tail = await store.eventLog.getTailSequenceNumber('employee-123');
+@eventType()
+class EmployeeHired {
+    constructor(readonly firstName: string, readonly lastName: string) {}
+}
 
-const result = await store.eventLog.append('employee-123', new EmployeeHired('Jane', 'Doe'), {
+@eventType()
+class EmployeePromoted {
+    constructor(readonly title: string) {}
+}
+
+const client = new ChronicleClient(ChronicleOptions.development());
+const store = await client.getEventStore('MyStore');
+const eventSourceId = 'employee-123';
+const expectedTail = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+
+// Scope concurrency to this event source.
+const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
     concurrencyScope: {
-        sequenceNumber: tail.value,
+        sequenceNumber: expectedTail,
         eventSourceId: true
     }
 });
 
-if (!result.isSuccess) {
-    console.error(result.errors, result.constraintViolations);
+if (!appendResult.isSuccess) {
+    console.error(appendResult.errors, appendResult.constraintViolations);
 }
-```
 
-For batch appends, use the same `concurrencyScope` option.
-Set `eventTypes` when you only want concurrency validation to consider specific event types for that event source.
-
-```typescript
-const tail = await store.eventLog.getTailSequenceNumber('employee-123');
-
-const results = await store.eventLog.appendMany('employee-123', [
+// Scope concurrency to a specific stream and a subset of event types.
+const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
     new EmployeeHired('Jane', 'Doe'),
     new EmployeePromoted('Senior Engineer')
 ], {
     concurrencyScope: {
-        sequenceNumber: tail.value,
+        sequenceNumber: expectedTail,
         eventSourceId: true,
+        eventSourceType: 'Default',
+        eventStreamType: 'Default',
+        eventStreamId: eventSourceId,
         eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
     }
 });
 
-if (results.some(_ => !_.isSuccess)) {
-    console.error(results);
+if (appendManyResults.some(_ => !_.isSuccess)) {
+    console.error(appendManyResults);
 }
 ```
 
