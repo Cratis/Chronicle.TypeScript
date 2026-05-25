@@ -8,7 +8,6 @@ import './telemetry';
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
-import './seeding';
 
 import { EmployeePromoted, EmployeeMoved } from './events';
 
