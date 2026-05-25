@@ -9,7 +9,7 @@ import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
 
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeePromoted, EmployeeMoved } from './events';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
 
@@ -50,19 +50,10 @@ class Random {
     }
 }
 
-async function seedEmployees(store: IEventStore): Promise<void> {
-    const random = new Random();
+async function logSeededEmployeesStatus(store: IEventStore): Promise<void> {
     for (const employee of employees) {
         const hasEvents = await store.eventLog.hasEventsFor(employee.id);
-        if (hasEvents) {
-            logger.info('Employee already seeded, skipping', { id: employee.id });
-            continue;
-        }
-        const title = titles[random.next(titles.length)];
-        const addr  = addresses[random.next(addresses.length)];
-        await store.eventLog.append(employee.id, new EmployeeHired(employee.firstName, employee.lastName, title));
-        await store.eventLog.append(employee.id, new EmployeeAddressSet(addr.address, addr.city, addr.zipCode, addr.country));
-        logger.info('Seeded employee', { name: `${employee.firstName} ${employee.lastName}`, title, city: addr.city });
+        logger.info('Seeder status for employee', { id: employee.id, hasEvents });
     }
 }
 
@@ -78,8 +69,27 @@ async function move(store: IEventStore, person: Person, random: Random): Promise
     console.log(`[${person.id}] Moved ${person.firstName} ${person.lastName} to ${addr.address}, ${addr.city} at sequence ${result.sequenceNumber.value}`);
 }
 
+async function transact(store: IEventStore, selectedIndex: number, random: Random): Promise<void> {
+    const selected = employees[selectedIndex];
+    const alsoUpdate = employees[(selectedIndex + 1) % employees.length];
+
+    const selectedTitle = titles[random.next(titles.length)];
+    const selectedAddress = addresses[random.next(addresses.length)];
+    const secondTitle = titles[random.next(titles.length)];
+
+    const unitOfWork = store.unitOfWorkManager.begin();
+    await store.eventLog.transactional.append(selected.id, new EmployeePromoted(selectedTitle));
+    await store.eventLog.transactional.appendMany(selected.id, [
+        new EmployeeMoved(selectedAddress.address, selectedAddress.city, selectedAddress.zipCode, selectedAddress.country)
+    ]);
+    await store.eventLog.transactional.append(alsoUpdate.id, new EmployeePromoted(secondTitle));
+    await unitOfWork.commit();
+
+    console.log(`[transaction] Committed staged events for ${selected.firstName} ${selected.lastName} and ${alsoUpdate.firstName} ${alsoUpdate.lastName}`);
+}
+
 function writeInstructions(): void {
-    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, Q=Quit.\n');
+    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, T=Transactional update, Q=Quit.\n');
 }
 
 function writeSelectedEmployee(index: number): void {
@@ -105,7 +115,7 @@ async function run(): Promise<void> {
         const store = await client.getEventStore('TestStore');
         logger.info('Event store ready', { name: store.name.value, namespace: store.namespace.value });
 
-        await seedEmployees(store);
+        await logSeededEmployeesStatus(store);
 
         const random = new Random();
         let selectedIndex = 0;
@@ -131,6 +141,7 @@ async function run(): Promise<void> {
             if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex); continue; }
             if (key === 'p') { await promote(store, employees[selectedIndex], random); continue; }
             if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
+            if (key === 't') { await transact(store, selectedIndex, random); continue; }
         }
     } catch (error) {
         logger.error('Unhandled error', { error: String(error) });

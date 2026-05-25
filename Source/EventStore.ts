@@ -5,26 +5,34 @@ import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
-import { EventLog } from './EventSequences/EventLog';
-import { EventSequence } from './EventSequences/EventSequence';
-import { EventSequenceId } from './EventSequences/EventSequenceId';
-import { IEventLog } from './EventSequences/IEventLog';
-import { IEventSequence } from './EventSequences/IEventSequence';
+import { EventLog } from './eventSequences/EventLog';
+import { EventSequence } from './eventSequences/EventSequence';
+import { EventSequenceId } from './eventSequences/EventSequenceId';
+import { IEventLog } from './eventSequences/IEventLog';
+import { IEventSequence } from './eventSequences/IEventSequence';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
 import { IEventStore } from './IEventStore';
-import { EventTypes } from './Events/EventTypes';
-import { IEventTypes } from './Events/IEventTypes';
-import { Constraints } from './Events/Constraints/Constraints';
-import { IConstraints } from './Events/Constraints/IConstraints';
-import { Projections } from './Projections/Projections';
-import { IProjections } from './Projections/IProjections';
-import { Reactors } from './Reactors/Reactors';
-import { IReactors } from './Reactors/IReactors';
-import { Reducers } from './Reducers/Reducers';
-import { IReducers } from './Reducers/IReducers';
+import { EventTypes } from './events/EventTypes';
+import { IEventTypes } from './events/IEventTypes';
+import { Constraints } from './events/constraints/Constraints';
+import { IConstraints } from './events/constraints/IConstraints';
+import { Projections } from './projections/Projections';
+import { IProjections } from './projections/IProjections';
+import { Reactors } from './reactors/Reactors';
+import { IReactors } from './reactors/IReactors';
+import { Reducers } from './reducers/Reducers';
+import { IReducers } from './reducers/IReducers';
+import { EventSeeding } from './seeding/EventSeeding';
+import { IEventSeeding } from './seeding/IEventSeeding';
 import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
+import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager';
+import { UnitOfWorkManager } from './transactions/UnitOfWorkManager';
+import { IJobs } from './jobs/IJobs';
+import { Jobs } from './jobs/Jobs';
+import { IWebhooks } from './webhooks/IWebhooks';
+import { Webhooks } from './webhooks/Webhooks';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -41,6 +49,10 @@ export class EventStore implements IEventStore {
     readonly projections: IProjections;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
+    readonly unitOfWorkManager: IUnitOfWorkManager;
+    readonly jobs: IJobs;
+    readonly webhooks: IWebhooks;
+    readonly seeding: IEventSeeding;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -50,7 +62,9 @@ export class EventStore implements IEventStore {
         private readonly _connection: ChronicleConnection,
         lifecycle: ConnectionLifecycle
     ) {
-        this.eventLog = new EventLog(name.value, namespace.value, _connection);
+        this.unitOfWorkManager = new UnitOfWorkManager(this);
+
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         const artifacts = DefaultClientArtifactsProvider.default;
@@ -59,6 +73,9 @@ export class EventStore implements IEventStore {
         this.projections = new Projections(name.value, _connection, artifacts);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
+        this.jobs = new Jobs(name.value, namespace.value, _connection);
+        this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
+        this.seeding = new EventSeeding(name.value, _connection, artifacts);
     }
 
     /**
@@ -77,7 +94,9 @@ export class EventStore implements IEventStore {
             this.constraints.discover(),
             this.projections.discover(),
             this.reactors.discover(),
-            this.reducers.discover()
+            this.reducers.discover(),
+            this.webhooks.discover(),
+            this.seeding.discover()
         ]);
 
         this._logger.debug('Registering discovered artifacts', {
@@ -90,8 +109,11 @@ export class EventStore implements IEventStore {
             this.constraints.register(),
             this.projections.register(),
             this.reactors.register(),
-            this.reducers.register()
+            this.reducers.register(),
+            this.webhooks.registerDiscovered()
         ]);
+
+        await this.seeding.register();
 
         this._logger.info('Artifact registration completed', {
             eventStore: this.name.value,
@@ -106,7 +128,7 @@ export class EventStore implements IEventStore {
             return existing;
         }
 
-        const sequence = new EventSequence(id, this.name.value, this.namespace.value, this._connection);
+        const sequence = new EventSequence(id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager);
         this._sequences.set(id.value, sequence);
         return sequence;
     }

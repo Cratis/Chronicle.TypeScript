@@ -33,6 +33,80 @@ const results = await store.eventLog.appendMany('employee-123', [
 ]);
 ```
 
+## Using Concurrency Scope
+
+Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
+Use `eventSourceId: true` when you want validation against events already appended for the same `eventSourceId` before this operation.
+Set `eventSourceType` only if you partition event sources by your own named types (for example `Employee`, `Order`, `Invoice`). Omit it when you use Chronicle's default source partitioning.
+Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
+Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
+Set `eventTypes` when you want concurrency validation to consider only specific event types.
+The sample below shows one end-to-end flow using source-level and stream-level concurrency scopes.
+`getTailSequenceNumber()` always returns an `EventSequenceNumber`, so you pass its `.value` (a `bigint`) to `sequenceNumber`.
+
+```typescript
+import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
+
+@eventType()
+class EmployeeHired {
+    constructor(readonly firstName: string, readonly lastName: string) {}
+}
+
+@eventType()
+class EmployeePromoted {
+    constructor(readonly title: string) {}
+}
+
+@eventType()
+class EmployeeDepartmentChanged {
+    constructor(readonly department: string) {}
+}
+
+async function appendWithConcurrencyScopes() {
+    const client = new ChronicleClient(ChronicleOptions.development());
+    const store = await client.getEventStore('MyStore');
+    const eventSourceId = 'employee-123';
+    const expectedSequenceNumber = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+
+    // Scope concurrency to this event source.
+    const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
+        concurrencyScope: {
+            sequenceNumber: expectedSequenceNumber,
+            // true means "use the eventSourceId parameter passed to append()".
+            eventSourceId: true
+        }
+    });
+
+    if (!appendResult.isSuccess) {
+        console.error(appendResult.errors, appendResult.constraintViolations);
+        return;
+    }
+
+    const expectedSequenceNumberForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+
+    // Combine source + stream fields when your boundary is a specific stream in a specific source.
+    const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
+        new EmployeePromoted('Senior Engineer'),
+        new EmployeeDepartmentChanged('Platform')
+    ], {
+        concurrencyScope: {
+            sequenceNumber: expectedSequenceNumberForBatch,
+            eventSourceId: true,
+            eventSourceType: 'Employee', // "Employee" is a custom source type name (not Chronicle's default source type).
+            eventStreamType: 'Career',
+            eventStreamId: `${eventSourceId}-career`,
+            eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
+        }
+    });
+
+    if (appendManyResults.some(_ => !_.isSuccess)) {
+        console.error(appendManyResults);
+    }
+}
+
+await appendWithConcurrencyScopes();
+```
+
 ## Checking for Events
 
 ```typescript

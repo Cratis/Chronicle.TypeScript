@@ -19,9 +19,18 @@ export interface IClientArtifactsProvider {
     /** Gets discovered reducer constructors. */
     readonly reducers: Constructor[];
 
+    /** Gets discovered seeder constructors. */
+    readonly seeders: Constructor[];
+
     /** Gets discovered constraint constructors. */
     readonly constraints: Constructor[];
 
     /** Gets discovered declarative projection constructors. */
     readonly projections: Constructor[];
+
+    /** Gets discovered webhook constructors. */
+    readonly webhooks: Constructor[];
+
+    /** Gets discovered event type migration constructors. */
+    readonly eventTypeMigrations: Constructor[];
 }

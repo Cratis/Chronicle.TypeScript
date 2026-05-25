@@ -17,7 +17,8 @@ import type {
     ReadModelsClient,
     RecommendationsClient,
     ReducersClient,
-    ServerClient
+    ServerClient,
+    WebhooksClient
 } from '@cratis/chronicle.contracts';
 
 /**
@@ -38,6 +39,7 @@ export interface ChronicleServices {
     projections: ProjectionsClient;
     readModels: ReadModelsClient;
     jobs: JobsClient;
+    webhooks: WebhooksClient;
     eventSeeding: EventSeedingClient;
     server: ServerClient;
 }

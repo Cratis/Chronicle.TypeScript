@@ -1,16 +1,20 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IEventLog } from './EventSequences/IEventLog';
-import { IEventSequence } from './EventSequences/IEventSequence';
-import { EventSequenceId } from './EventSequences/EventSequenceId';
+import { IEventLog } from './eventSequences/IEventLog';
+import { IEventSequence } from './eventSequences/IEventSequence';
+import { EventSequenceId } from './eventSequences/EventSequenceId';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
-import { IEventTypes } from './Events/IEventTypes';
-import { IConstraints } from './Events/Constraints/IConstraints';
-import { IProjections } from './Projections/IProjections';
-import { IReactors } from './Reactors/IReactors';
-import { IReducers } from './Reducers/IReducers';
+import { IEventTypes } from './events/IEventTypes';
+import { IConstraints } from './events/constraints/IConstraints';
+import { IProjections } from './projections/IProjections';
+import { IReactors } from './reactors/IReactors';
+import { IReducers } from './reducers/IReducers';
+import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager';
+import { IJobs } from './jobs/IJobs';
+import { IWebhooks } from './webhooks/IWebhooks';
+import { IEventSeeding } from './seeding/IEventSeeding';
 
 /**
  * Defines the API surface for an event store.
@@ -40,6 +44,18 @@ export interface IEventStore {
 
     /** The reducers manager for this event store. */
     readonly reducers: IReducers;
+
+    /** The unit of work manager for transaction-scoped appends. */
+    readonly unitOfWorkManager: IUnitOfWorkManager;
+
+    /** The jobs manager for this event store. */
+    readonly jobs: IJobs;
+
+    /** The webhooks manager for this event store. */
+    readonly webhooks: IWebhooks;
+
+    /** The event seeding manager for this event store. */
+    readonly seeding: IEventSeeding;
 
     /**
      * Gets an event sequence by its identifier.

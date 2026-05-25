@@ -76,6 +76,7 @@ Coupling in TypeScript is often hidden in deep import paths. Barrel files and pa
 - Use the configured path aliases (e.g. `Strings`, `Components`) rather than relative `../../../` chains.
 - Never import from an unrelated feature's internal files — go through that feature's public barrel export.
 - Keep the number of imports in a single file reasonable — many imports from many different areas is a coupling smell.
+- For redistributable packages, keep module folders under `Source/` in `camelCase` and publish each module as a top-level package export in `package.json` (for example `@scope/package/events`).
 
 ## Cross-Cutting Concerns
 

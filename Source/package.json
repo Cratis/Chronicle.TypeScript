@@ -19,6 +19,104 @@
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        "./package.json": "./package.json",
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./events": {
+            "types": "./dist/events/index.d.ts",
+            "import": "./dist/events/index.js",
+            "default": "./dist/events/index.js"
+        },
+        "./eventSequences": {
+            "types": "./dist/eventSequences/index.d.ts",
+            "import": "./dist/eventSequences/index.js",
+            "default": "./dist/eventSequences/index.js"
+        },
+        "./reactors": {
+            "types": "./dist/reactors/index.d.ts",
+            "import": "./dist/reactors/index.js",
+            "default": "./dist/reactors/index.js"
+        },
+        "./reducers": {
+            "types": "./dist/reducers/index.d.ts",
+            "import": "./dist/reducers/index.js",
+            "default": "./dist/reducers/index.js"
+        },
+        "./seeding": {
+            "types": "./dist/seeding/index.d.ts",
+            "import": "./dist/seeding/index.js",
+            "default": "./dist/seeding/index.js"
+        },
+        "./readModels": {
+            "types": "./dist/readModels/index.d.ts",
+            "import": "./dist/readModels/index.js",
+            "default": "./dist/readModels/index.js"
+        },
+        "./projections": {
+            "types": "./dist/projections/index.d.ts",
+            "import": "./dist/projections/index.js",
+            "default": "./dist/projections/index.js"
+        },
+        "./jobs": {
+            "types": "./dist/jobs/index.d.ts",
+            "import": "./dist/jobs/index.js",
+            "default": "./dist/jobs/index.js"
+        },
+        "./webhooks": {
+            "types": "./dist/webhooks/index.d.ts",
+            "import": "./dist/webhooks/index.js",
+            "default": "./dist/webhooks/index.js"
+        },
+        "./observation": {
+            "types": "./dist/observation/index.d.ts",
+            "import": "./dist/observation/index.js",
+            "default": "./dist/observation/index.js"
+        },
+        "./sinks": {
+            "types": "./dist/sinks/index.d.ts",
+            "import": "./dist/sinks/index.js",
+            "default": "./dist/sinks/index.js"
+        },
+        "./schemas": {
+            "types": "./dist/schemas/index.d.ts",
+            "import": "./dist/schemas/index.js",
+            "default": "./dist/schemas/index.js"
+        },
+        "./types": {
+            "types": "./dist/types/index.d.ts",
+            "import": "./dist/types/index.js",
+            "default": "./dist/types/index.js"
+        },
+        "./artifacts": {
+            "types": "./dist/artifacts/index.d.ts",
+            "import": "./dist/artifacts/index.js",
+            "default": "./dist/artifacts/index.js"
+        },
+        "./identity": {
+            "types": "./dist/identity/index.d.ts",
+            "import": "./dist/identity/index.js",
+            "default": "./dist/identity/index.js"
+        },
+        "./auditing": {
+            "types": "./dist/auditing/index.d.ts",
+            "import": "./dist/auditing/index.js",
+            "default": "./dist/auditing/index.js"
+        },
+        "./correlation": {
+            "types": "./dist/correlation/index.d.ts",
+            "import": "./dist/correlation/index.js",
+            "default": "./dist/correlation/index.js"
+        },
+        "./transactions": {
+            "types": "./dist/transactions/index.d.ts",
+            "import": "./dist/transactions/index.js",
+            "default": "./dist/transactions/index.js"
+        }
+    },
     "scripts": {
         "compile": "tsc -b",
         "build": "tsc -b",

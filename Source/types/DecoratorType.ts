@@ -17,9 +17,18 @@ export enum DecoratorType {
     /** Reducer artifacts discovered through the reducer decorator. */
     Reducer = 'reducer',
 
+    /** Seeder artifacts discovered through the seeder decorator. */
+    Seeder = 'seeder',
+
     /** Constraint artifacts discovered through the constraint decorator. */
     Constraint = 'constraint',
 
     /** Declarative projection artifacts discovered through the projection decorator. */
-    Projection = 'projection'
+    Projection = 'projection',
+
+    /** Webhook artifacts discovered through the webhook decorator. */
+    Webhook = 'webhook',
+
+    /** Event type migration artifacts discovered through the eventTypeMigration decorator. */
+    EventTypeMigration = 'eventTypeMigration'
 }

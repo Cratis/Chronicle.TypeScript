@@ -40,6 +40,11 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     }
 
     /** @inheritdoc */
+    get seeders(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Seeder);
+    }
+
+    /** @inheritdoc */
     get constraints(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Constraint);
     }
@@ -47,5 +52,14 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     /** @inheritdoc */
     get projections(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Projection);
+    }
+
+    /** @inheritdoc */
+    get webhooks(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.Webhook);
+    }
+
+    get eventTypeMigrations(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.EventTypeMigration);
     }
 }
