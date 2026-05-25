@@ -39,6 +39,7 @@ Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expecte
 Use `eventSourceType` + `eventSourceId` when your concurrency boundary is the whole event source.
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
+The sample below shows one end-to-end flow using source-level and stream-level concurrency scopes.
 
 ```typescript
 import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
@@ -88,8 +89,8 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: tailBeforeBatch,
             eventSourceId: true,
-            eventSourceType: 'Default',
-            eventStreamType: 'Default',
+            eventSourceType: 'Default', // Use your own source type if you use non-default source partitioning.
+            eventStreamType: 'Default', // Use your own stream type if you use non-default stream partitioning.
             eventStreamId: eventSourceId,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
         }
