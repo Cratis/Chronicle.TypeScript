@@ -27,4 +27,7 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered webhook constructors. */
     readonly webhooks: Constructor[];
+
+    /** Gets discovered event type migration constructors. */
+    readonly eventTypeMigrations: Constructor[];
 }

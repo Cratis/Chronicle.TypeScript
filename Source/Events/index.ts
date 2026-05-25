@@ -12,3 +12,4 @@ export type { AppendedEvent } from './AppendedEvent';
 export type { IEventTypes } from './IEventTypes';
 export { EventTypes } from './EventTypes';
 export * from './Constraints';
+export * from './Migrations';

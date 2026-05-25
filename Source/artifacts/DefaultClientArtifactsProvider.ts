@@ -53,4 +53,8 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     get webhooks(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Webhook);
     }
+
+    get eventTypeMigrations(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.EventTypeMigration);
+    }
 }

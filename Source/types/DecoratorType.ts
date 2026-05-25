@@ -24,5 +24,8 @@ export enum DecoratorType {
     Projection = 'projection',
 
     /** Webhook artifacts discovered through the webhook decorator. */
-    Webhook = 'webhook'
+    Webhook = 'webhook',
+
+    /** Event type migration artifacts discovered through the eventTypeMigration decorator. */
+    EventTypeMigration = 'eventTypeMigration'
 }
