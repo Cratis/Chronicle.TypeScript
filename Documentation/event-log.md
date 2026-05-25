@@ -68,6 +68,7 @@ async function appendWithConcurrencyScopes() {
     const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
         concurrencyScope: {
             sequenceNumber: tailBeforeAppend,
+            // true means "use the eventSourceId parameter passed to append()".
             eventSourceId: true
         }
     });
@@ -79,6 +80,7 @@ async function appendWithConcurrencyScopes() {
     const tailBeforeBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Combine source + stream fields when your boundary is a specific stream in a specific source.
+    // In this event log example, stream ID matches source ID; custom stream partitioning can use a different stream ID.
     const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
         new EmployeePromoted('Senior Engineer'),
         new EmployeeDepartmentChanged('Platform')
