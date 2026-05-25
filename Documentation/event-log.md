@@ -52,41 +52,45 @@ class EmployeePromoted {
     constructor(readonly title: string) {}
 }
 
-const client = new ChronicleClient(ChronicleOptions.development());
-const store = await client.getEventStore('MyStore');
-const eventSourceId = 'employee-123';
-const expectedTail = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+async function appendWithConcurrencyScopes() {
+    const client = new ChronicleClient(ChronicleOptions.development());
+    const store = await client.getEventStore('MyStore');
+    const eventSourceId = 'employee-123';
+    const expectedTail = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
-// Scope concurrency to this event source.
-const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
-    concurrencyScope: {
-        sequenceNumber: expectedTail,
-        eventSourceId: true
+    // Scope concurrency to this event source.
+    const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
+        concurrencyScope: {
+            sequenceNumber: expectedTail,
+            eventSourceId: true
+        }
+    });
+
+    if (!appendResult.isSuccess) {
+        console.error(appendResult.errors, appendResult.constraintViolations);
     }
-});
 
-if (!appendResult.isSuccess) {
-    console.error(appendResult.errors, appendResult.constraintViolations);
+    // Combine source + stream fields when your boundary is a specific stream in a specific source.
+    const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
+        new EmployeeHired('Jane', 'Doe'),
+        new EmployeePromoted('Senior Engineer')
+    ], {
+        concurrencyScope: {
+            sequenceNumber: expectedTail,
+            eventSourceId: true,
+            eventSourceType: 'Default',
+            eventStreamType: 'Default',
+            eventStreamId: eventSourceId,
+            eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
+        }
+    });
+
+    if (appendManyResults.some(_ => !_.isSuccess)) {
+        console.error(appendManyResults);
+    }
 }
 
-// Scope concurrency to a specific stream and a subset of event types.
-const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
-    new EmployeeHired('Jane', 'Doe'),
-    new EmployeePromoted('Senior Engineer')
-], {
-    concurrencyScope: {
-        sequenceNumber: expectedTail,
-        eventSourceId: true,
-        eventSourceType: 'Default',
-        eventStreamType: 'Default',
-        eventStreamId: eventSourceId,
-        eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
-    }
-});
-
-if (appendManyResults.some(_ => !_.isSuccess)) {
-    console.error(appendManyResults);
-}
+await appendWithConcurrencyScopes();
 ```
 
 ## Checking for Events
