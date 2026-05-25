@@ -21,5 +21,8 @@ export enum DecoratorType {
     Constraint = 'constraint',
 
     /** Declarative projection artifacts discovered through the projection decorator. */
-    Projection = 'projection'
+    Projection = 'projection',
+
+    /** Webhook artifacts discovered through the webhook decorator. */
+    Webhook = 'webhook'
 }

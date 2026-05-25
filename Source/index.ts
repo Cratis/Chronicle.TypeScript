@@ -18,6 +18,8 @@ export * from './Reactors';
 export * from './Reducers';
 export * from './ReadModels';
 export * from './Projections';
+export * from './Jobs';
+export * from './Webhooks';
 export * from './Observation';
 export * from './sinks';
 export * from './Schemas';
