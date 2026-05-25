@@ -17,6 +17,9 @@ export enum DecoratorType {
     /** Reducer artifacts discovered through the reducer decorator. */
     Reducer = 'reducer',
 
+    /** Seeder artifacts discovered through the seeder decorator. */
+    Seeder = 'seeder',
+
     /** Constraint artifacts discovered through the constraint decorator. */
     Constraint = 'constraint',
 

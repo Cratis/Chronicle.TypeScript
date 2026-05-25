@@ -23,6 +23,8 @@ import { Reactors } from './Reactors/Reactors';
 import { IReactors } from './Reactors/IReactors';
 import { Reducers } from './Reducers/Reducers';
 import { IReducers } from './Reducers/IReducers';
+import { EventSeeding } from './Seeding/EventSeeding';
+import { IEventSeeding } from './Seeding/IEventSeeding';
 import { ChronicleTracer } from './Tracing';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider';
 import { IUnitOfWorkManager } from './Transactions/IUnitOfWorkManager';
@@ -50,6 +52,7 @@ export class EventStore implements IEventStore {
     readonly unitOfWorkManager: IUnitOfWorkManager;
     readonly jobs: IJobs;
     readonly webhooks: IWebhooks;
+    readonly seeding: IEventSeeding;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -72,6 +75,7 @@ export class EventStore implements IEventStore {
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
+        this.seeding = new EventSeeding(name.value, _connection, artifacts);
     }
 
     /**
@@ -91,7 +95,8 @@ export class EventStore implements IEventStore {
             this.projections.discover(),
             this.reactors.discover(),
             this.reducers.discover(),
-            this.webhooks.discover()
+            this.webhooks.discover(),
+            this.seeding.discover()
         ]);
 
         this._logger.debug('Registering discovered artifacts', {
@@ -107,6 +112,8 @@ export class EventStore implements IEventStore {
             this.reducers.register(),
             this.webhooks.registerDiscovered()
         ]);
+
+        await this.seeding.register();
 
         this._logger.info('Artifact registration completed', {
             eventStore: this.name.value,

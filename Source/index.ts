@@ -16,6 +16,7 @@ export * from './Events';
 export * from './EventSequences';
 export * from './Reactors';
 export * from './Reducers';
+export * from './Seeding';
 export * from './ReadModels';
 export * from './Projections';
 export * from './Jobs';

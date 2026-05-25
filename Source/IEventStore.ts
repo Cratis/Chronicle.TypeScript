@@ -14,6 +14,7 @@ import { IReducers } from './Reducers/IReducers';
 import { IUnitOfWorkManager } from './Transactions/IUnitOfWorkManager';
 import { IJobs } from './Jobs/IJobs';
 import { IWebhooks } from './Webhooks/IWebhooks';
+import { IEventSeeding } from './Seeding/IEventSeeding';
 
 /**
  * Defines the API surface for an event store.
@@ -52,6 +53,9 @@ export interface IEventStore {
 
     /** The webhooks manager for this event store. */
     readonly webhooks: IWebhooks;
+
+    /** The event seeding manager for this event store. */
+    readonly seeding: IEventSeeding;
 
     /**
      * Gets an event sequence by its identifier.
