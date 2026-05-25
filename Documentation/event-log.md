@@ -52,16 +52,21 @@ class EmployeePromoted {
     constructor(readonly title: string) {}
 }
 
+@eventType()
+class EmployeeDepartmentChanged {
+    constructor(readonly department: string) {}
+}
+
 async function appendWithConcurrencyScopes() {
     const client = new ChronicleClient(ChronicleOptions.development());
     const store = await client.getEventStore('MyStore');
     const eventSourceId = 'employee-123';
-    const expectedTail = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+    const expectedTailForAppend = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Scope concurrency to this event source.
     const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
         concurrencyScope: {
-            sequenceNumber: expectedTail,
+            sequenceNumber: expectedTailForAppend,
             eventSourceId: true
         }
     });
@@ -70,18 +75,20 @@ async function appendWithConcurrencyScopes() {
         console.error(appendResult.errors, appendResult.constraintViolations);
     }
 
+    const expectedTailForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+
     // Combine source + stream fields when your boundary is a specific stream in a specific source.
     const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
-        new EmployeeHired('Jane', 'Doe'),
-        new EmployeePromoted('Senior Engineer')
+        new EmployeePromoted('Senior Engineer'),
+        new EmployeeDepartmentChanged('Platform')
     ], {
         concurrencyScope: {
-            sequenceNumber: expectedTail,
+            sequenceNumber: expectedTailForBatch,
             eventSourceId: true,
             eventSourceType: 'Default',
             eventStreamType: 'Default',
             eventStreamId: eventSourceId,
-            eventTypes: [getEventTypeFor(EmployeeHired), getEventTypeFor(EmployeePromoted)]
+            eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
         }
     });
 
