@@ -69,7 +69,7 @@ async function appendWithConcurrencyScopes() {
     // Scope concurrency to this event source.
     const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
         concurrencyScope: {
-            sequenceNumber: tailBeforeAppend,
+            sequenceNumber: expectedSequenceNumber,
             // true means "use the eventSourceId parameter passed to append()".
             eventSourceId: true
         }
@@ -90,7 +90,6 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: expectedSequenceNumberForBatch,
             eventSourceId: true,
-            eventSourceType: 'Default', // "Default" uses Chronicle's built-in source partitioning.
             eventStreamType: 'Default', // "Default" uses Chronicle's built-in stream partitioning.
             eventStreamId: eventSourceId,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
