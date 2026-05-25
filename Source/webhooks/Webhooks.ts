@@ -5,8 +5,8 @@ import { ObserverOwner, type WebhookDefinition } from '@cratis/chronicle.contrac
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
-import { IEventTypes } from '../Events/IEventTypes';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import { IEventTypes } from '../events/IEventTypes';
 import { IWebhook } from './IWebhook';
 import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder';
 import { IWebhooks } from './IWebhooks';

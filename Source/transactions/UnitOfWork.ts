@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import { AppendResult } from '../EventSequences/AppendResult';
-import { EventForEventSourceId } from '../EventSequences/EventForEventSourceId';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
+import { AppendResult } from '../eventSequences/AppendResult';
+import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { IEventStore } from '../IEventStore';
 import { IUnitOfWork } from './IUnitOfWork';
 

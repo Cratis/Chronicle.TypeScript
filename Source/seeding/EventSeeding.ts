@@ -5,7 +5,7 @@ import { diag } from '@opentelemetry/api';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName';
-import { getEventTypeFor } from '../Events/eventTypeDecorator';
+import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { ICanSeedEvents } from './ICanSeedEvents';
 import { IEventSeeding } from './IEventSeeding';
 import { IEventSeedingBuilder } from './IEventSeedingBuilder';

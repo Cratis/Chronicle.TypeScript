@@ -9,13 +9,13 @@ import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
-import { getEventTypeMetadata } from '../Events/eventTypeDecorator';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
+import { getEventTypeMetadata } from '../events/eventTypeDecorator';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { WellKnownSinks } from '../sinks';
 import { IReducers } from './IReducers';
 import { getReducerMetadata } from './reducer';
-import { getReadModelMetadata } from '../ReadModels';
-import { JsonSchemaGenerator } from '../Schemas';
+import { getReadModelMetadata } from '../readModels';
+import { JsonSchemaGenerator } from '../schemas';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -92,7 +92,7 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reducers implements IReducers {
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/Reducers' });
+    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reducers' });
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();

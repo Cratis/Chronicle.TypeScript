@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
 
 /**
  * Defines a builder for webhook definitions.

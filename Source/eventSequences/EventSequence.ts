@@ -4,7 +4,7 @@
 import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { Guid } from '@cratis/fundamentals';
-import { getEventTypeFor } from '../Events/eventTypeDecorator';
+import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { ConstraintViolation } from './ConstraintViolation';
@@ -16,12 +16,12 @@ import { EventSequenceNumber } from './EventSequenceNumber';
 import { TransactionalEventSequence } from './TransactionalEventSequence';
 import { ChronicleTracer } from '../Tracing';
 import { ChronicleMetrics } from '../Metrics';
-import { identityProvider, Identity } from '../Identity';
-import { causationManager, CausationType } from '../Auditing';
-import { correlationIdManager } from '../Correlation';
+import { identityProvider, Identity } from '../identity';
+import { causationManager, CausationType } from '../auditing';
+import { correlationIdManager } from '../correlation';
 import { toContractsGuid } from '../connection/Guid';
 import type { ConcurrencyScope } from './ConcurrencyScope';
-import { IUnitOfWorkManager } from '../Transactions/IUnitOfWorkManager';
+import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel

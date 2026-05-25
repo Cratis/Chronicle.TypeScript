@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IUnitOfWork } from '../Transactions/IUnitOfWork';
+import { IUnitOfWork } from '../transactions/IUnitOfWork';
 
 /**
  * Defines a transactional event sequence that appends to the current unit of work.

@@ -5,7 +5,7 @@ import { ChronicleConnection } from '../connection';
 import { EventSequence } from './EventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { IEventLog } from './IEventLog';
-import { IUnitOfWorkManager } from '../Transactions/IUnitOfWorkManager';
+import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
 
 /**
  * Implements {@link IEventLog} by extending the base {@link EventSequence}.

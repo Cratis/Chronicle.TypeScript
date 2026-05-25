@@ -7,10 +7,10 @@ import { ChronicleConnection } from '../connection';
 import { EventTypeId } from './EventTypeId';
 import { IEventTypes } from './IEventTypes';
 import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
-import { EventMigrationBuilder } from './Migrations/EventMigrationBuilder';
-import { EventTypeMigrators } from './Migrations/EventTypeMigrators';
-import { getEventTypeMigrationMetadata } from './Migrations/eventTypeMigration';
-import { IEventTypeMigration } from './Migrations/IEventTypeMigration';
+import { EventMigrationBuilder } from './migrations/EventMigrationBuilder';
+import { EventTypeMigrators } from './migrations/EventTypeMigrators';
+import { getEventTypeMigrationMetadata } from './migrations/eventTypeMigration';
+import { IEventTypeMigration } from './migrations/IEventTypeMigration';
 
 // Mirrors .NET client behavior for migration-only generations that do not have a local CLR/TS type.
 const UNKNOWN_GENERATION_SCHEMA = '{}';

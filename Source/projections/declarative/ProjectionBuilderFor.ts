@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { AutoMap } from '@cratis/chronicle.contracts';
-import { getEventTypeFor } from '../../Events/eventTypeDecorator';
-import { EventSequenceId } from '../../EventSequences/EventSequenceId';
+import { getEventTypeFor } from '../../events/eventTypeDecorator';
+import { EventSequenceId } from '../../eventSequences/EventSequenceId';
 import { IChildrenBuilder } from './IChildrenBuilder';
 import { IFromBuilder } from './IFromBuilder';
 import { IFromEveryBuilder } from './IFromEveryBuilder';

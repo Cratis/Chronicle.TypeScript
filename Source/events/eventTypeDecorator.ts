@@ -7,7 +7,7 @@ import { EventType } from './EventType';
 import { EventTypeId } from './EventTypeId';
 import { EventTypeGeneration } from './EventTypeGeneration';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types';
-import { JsonSchema, JsonSchemaGenerator } from '../Schemas';
+import { JsonSchema, JsonSchemaGenerator } from '../schemas';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';

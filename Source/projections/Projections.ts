@@ -10,9 +10,9 @@ import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
-import { getEventTypeFor } from '../Events/eventTypeDecorator';
-import { getReadModelMetadata } from '../ReadModels';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import { getEventTypeFor } from '../events/eventTypeDecorator';
+import { getReadModelMetadata } from '../readModels';
 import { WellKnownSinks } from '../sinks';
 import { TypeIntrospector } from '../types';
 import { IProjections } from './IProjections';
@@ -54,7 +54,7 @@ export class Projections implements IProjections {
     private readonly _declarative = new Map<string, Constructor>();
     private readonly _modelBound = new Map<string, Constructor>();
 
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/Projections' });
+    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/projections' });
 
     /**
      * Creates a new {@link Projections} instance.

@@ -8,11 +8,11 @@ import { ObservationState, ReactorMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
-import { getEventTypeMetadata } from '../Events/eventTypeDecorator';
-import { EventContext } from '../Events/EventContext';
-import { EventTypeId } from '../Events/EventTypeId';
-import { EventTypeGeneration } from '../Events/EventTypeGeneration';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
+import { getEventTypeMetadata } from '../events/eventTypeDecorator';
+import { EventContext } from '../events/EventContext';
+import { EventTypeId } from '../events/EventTypeId';
+import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { IReactors } from './IReactors';
 import { getReactorMetadata } from './reactor';
 
@@ -91,7 +91,7 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reactors implements IReactors {
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/Reactors' });
+    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reactors' });
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reactors = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();

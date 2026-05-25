@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import { EventSequenceId } from '../EventSequences/EventSequenceId';
-import { AppendResult } from '../EventSequences/AppendResult';
+import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import { AppendResult } from '../eventSequences/AppendResult';
 
 /**
  * Represents a unit of work for buffering event appends and committing them as transactions.

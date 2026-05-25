@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import type { EventContext } from '../../Events';
+import type { EventContext } from '../../events';
 import { TypeIntrospector } from '../../types';
 
 /** Metadata stored by the setFromContext property decorator. */
