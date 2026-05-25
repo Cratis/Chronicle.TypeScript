@@ -36,8 +36,8 @@ const results = await store.eventLog.appendMany('employee-123', [
 ## Using Concurrency Scope
 
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
-Use `eventSourceId: true` when you want validation across all events for the `eventSourceId` you pass to `append()` / `appendMany()`.
-Set `eventSourceType` when you use custom source partitioning (grouping events by named source types). Omit it for default partitioning.
+Use `eventSourceId: true` when you want validation against events already appended for the same `eventSourceId` before this operation.
+Set `eventSourceType` only if you partition event sources by your own named types (for example `Employee`, `Order`, `Invoice`). Omit it when you use Chronicle's default source partitioning.
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
 Set `eventTypes` when you want concurrency validation to consider only specific event types.
@@ -85,7 +85,6 @@ async function appendWithConcurrencyScopes() {
     const expectedSequenceNumberForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Combine source + stream fields when your boundary is a specific stream in a specific source.
-    // In this event log example, stream ID matches source ID; custom stream partitioning can use a different stream ID.
     const appendManyResults = await store.eventLog.appendMany(eventSourceId, [
         new EmployeePromoted('Senior Engineer'),
         new EmployeeDepartmentChanged('Platform')
@@ -93,7 +92,7 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: expectedSequenceNumberForBatch,
             eventSourceId: true,
-            eventSourceType: 'Employee', // Custom source type example.
+            eventSourceType: 'Employee', // "Employee" is a custom source type name (not Chronicle's default source type).
             eventStreamType: 'Career',
             eventStreamId: `${eventSourceId}-career`,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
