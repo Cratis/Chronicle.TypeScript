@@ -36,7 +36,7 @@ const results = await store.eventLog.appendMany('employee-123', [
 ## Using Concurrency Scope
 
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
-Use `eventSourceType` + `eventSourceId` when your concurrency boundary is the whole event source.
+Use `eventSourceId: true` when your concurrency boundary is the whole event source, and add `eventSourceType` if your source type is not `Default`.
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
 The sample below shows one end-to-end flow using source-level and stream-level concurrency scopes.
@@ -64,7 +64,7 @@ async function appendWithConcurrencyScopes() {
     const client = new ChronicleClient(ChronicleOptions.development());
     const store = await client.getEventStore('MyStore');
     const eventSourceId = 'employee-123';
-    const tailBeforeAppend = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+    const expectedSequenceNumber = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Scope concurrency to this event source.
     const appendResult = await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
@@ -79,7 +79,7 @@ async function appendWithConcurrencyScopes() {
         console.error(appendResult.errors, appendResult.constraintViolations);
     }
 
-    const tailBeforeBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
+    const expectedSequenceNumberForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
 
     // Combine source + stream fields when your boundary is a specific stream in a specific source.
     // In this event log example, stream ID matches source ID; custom stream partitioning can use a different stream ID.
@@ -88,7 +88,7 @@ async function appendWithConcurrencyScopes() {
         new EmployeeDepartmentChanged('Platform')
     ], {
         concurrencyScope: {
-            sequenceNumber: tailBeforeBatch,
+            sequenceNumber: expectedSequenceNumberForBatch,
             eventSourceId: true,
             eventSourceType: 'Default', // "Default" uses Chronicle's built-in source partitioning.
             eventStreamType: 'Default', // "Default" uses Chronicle's built-in stream partitioning.
