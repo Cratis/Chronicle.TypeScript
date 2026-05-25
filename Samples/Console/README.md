@@ -4,10 +4,11 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 
 ## What it does
 
-1. Appends three domain events (`EmployeeHired`, `EmployeePromoted`, `EmployeeMoved`) to a Chronicle event store
-2. Reacts to those events via `HrNotificationReactor` (logs notifications)
-3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`)
-4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`) and logs available namespaces
+1. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
+2. Appends domain events (`EmployeePromoted`, `EmployeeMoved`) to a Chronicle event store during interaction
+3. Reacts to those events via `HrNotificationReactor` (logs notifications)
+4. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`)
+5. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`) and logs available namespaces
 
 ## Prerequisites
 
@@ -33,6 +34,7 @@ You should see output with:
 
 - A Chronicle connection log
 - Event appends for hire, promotion, and relocation
+- Seeder status output for initial employees
 - Event log tail/has-events information
 - Reactor logs for observed events
 
@@ -53,6 +55,7 @@ Samples/Console/
   events.ts                        # Event type declarations
   reducers.ts                      # EmployeeState reducer
   reactors.ts                      # Event-driven side effects
+  seeding.ts                       # Event seeding artifact (`@seeder`)
   projections-declarative.ts       # Declarative projection artifact
   projections-model-bound.ts       # Model-bound projection artifact
   constraints.ts                   # Constraint registration request

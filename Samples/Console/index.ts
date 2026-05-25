@@ -8,8 +8,9 @@ import './telemetry';
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
+import './seeding';
 
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeePromoted, EmployeeMoved } from './events';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
 
@@ -50,19 +51,10 @@ class Random {
     }
 }
 
-async function seedEmployees(store: IEventStore): Promise<void> {
-    const random = new Random();
+async function verifySeededEmployees(store: IEventStore): Promise<void> {
     for (const employee of employees) {
         const hasEvents = await store.eventLog.hasEventsFor(employee.id);
-        if (hasEvents) {
-            logger.info('Employee already seeded, skipping', { id: employee.id });
-            continue;
-        }
-        const title = titles[random.next(titles.length)];
-        const addr  = addresses[random.next(addresses.length)];
-        await store.eventLog.append(employee.id, new EmployeeHired(employee.firstName, employee.lastName, title));
-        await store.eventLog.append(employee.id, new EmployeeAddressSet(addr.address, addr.city, addr.zipCode, addr.country));
-        logger.info('Seeded employee', { name: `${employee.firstName} ${employee.lastName}`, title, city: addr.city });
+        logger.info('Seeder status for employee', { id: employee.id, hasEvents });
     }
 }
 
@@ -105,7 +97,7 @@ async function run(): Promise<void> {
         const store = await client.getEventStore('TestStore');
         logger.info('Event store ready', { name: store.name.value, namespace: store.namespace.value });
 
-        await seedEmployees(store);
+        await verifySeededEmployees(store);
 
         const random = new Random();
         let selectedIndex = 0;
