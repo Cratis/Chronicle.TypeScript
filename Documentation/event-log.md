@@ -36,6 +36,8 @@ const results = await store.eventLog.appendMany('employee-123', [
 ## Using Concurrency Scope
 
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
+Use `eventSourceType` + `eventSourceId` when your concurrency boundary is the whole event source.
+Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 
 ```typescript
 import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
