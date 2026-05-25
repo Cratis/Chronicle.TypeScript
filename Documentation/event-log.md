@@ -36,8 +36,8 @@ const results = await store.eventLog.appendMany('employee-123', [
 ## Using Concurrency Scope
 
 Use `AppendOptions.concurrencyScope` when you want Chronicle to validate expected sequence state before committing events.
-Use `eventSourceId: true` when your concurrency boundary is the whole event source.
-Set `eventSourceType` when you use custom source partitioning (source type is `Default` otherwise).
+Use `eventSourceId: true` when you want validation across all events for the `eventSourceId` you pass to `append()` / `appendMany()`.
+Set `eventSourceType` when you use custom source partitioning (grouping events by named source types). Omit it for default partitioning.
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
 Set `eventTypes` when you want concurrency validation to consider only specific event types.
@@ -93,9 +93,9 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: expectedSequenceNumberForBatch,
             eventSourceId: true,
-            eventSourceType: 'Employee', // Custom source type example. Use "Default" for default source partitioning.
-            eventStreamType: 'Default', // "Default" means Chronicle's built-in stream partitioning.
-            eventStreamId: eventSourceId,
+            eventSourceType: 'Employee', // Custom source type example.
+            eventStreamType: 'Career',
+            eventStreamId: `${eventSourceId}-career`,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
         }
     });
