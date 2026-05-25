@@ -40,6 +40,7 @@ Use `eventSourceType` + `eventSourceId` when your concurrency boundary is the wh
 Use `eventStreamType` + `eventStreamId` when you need concurrency validation against one stream within that source.
 Set `sequenceNumber` to the last known sequence number that must already exist before Chronicle accepts the append.
 The sample below shows one end-to-end flow using source-level and stream-level concurrency scopes.
+`getTailSequenceNumber()` always returns an `EventSequenceNumber`, so you pass its `.value` (a `bigint`) to `sequenceNumber`.
 
 ```typescript
 import { ChronicleClient, ChronicleOptions, eventType, getEventTypeFor } from '@cratis/chronicle';
@@ -89,8 +90,8 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: tailBeforeBatch,
             eventSourceId: true,
-            eventSourceType: 'Default', // Use your own source type if you use non-default source partitioning.
-            eventStreamType: 'Default', // Use your own stream type if you use non-default stream partitioning.
+            eventSourceType: 'Default', // "Default" uses Chronicle's built-in source partitioning.
+            eventStreamType: 'Default', // "Default" uses Chronicle's built-in stream partitioning.
             eventStreamId: eventSourceId,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
         }
