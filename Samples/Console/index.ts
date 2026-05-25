@@ -78,8 +78,27 @@ async function move(store: IEventStore, person: Person, random: Random): Promise
     console.log(`[${person.id}] Moved ${person.firstName} ${person.lastName} to ${addr.address}, ${addr.city} at sequence ${result.sequenceNumber.value}`);
 }
 
+async function transact(store: IEventStore, selectedIndex: number, random: Random): Promise<void> {
+    const selected = employees[selectedIndex];
+    const alsoUpdate = employees[(selectedIndex + 1) % employees.length];
+
+    const selectedTitle = titles[random.next(titles.length)];
+    const selectedAddress = addresses[random.next(addresses.length)];
+    const secondTitle = titles[random.next(titles.length)];
+
+    const unitOfWork = store.unitOfWorkManager.begin();
+    await store.eventLog.transactional.append(selected.id, new EmployeePromoted(selectedTitle));
+    await store.eventLog.transactional.appendMany(selected.id, [
+        new EmployeeMoved(selectedAddress.address, selectedAddress.city, selectedAddress.zipCode, selectedAddress.country)
+    ]);
+    await store.eventLog.transactional.append(alsoUpdate.id, new EmployeePromoted(secondTitle));
+    await unitOfWork.commit();
+
+    console.log(`[transaction] Committed staged events for ${selected.firstName} ${selected.lastName} and ${alsoUpdate.firstName} ${alsoUpdate.lastName}`);
+}
+
 function writeInstructions(): void {
-    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, Q=Quit.\n');
+    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, T=Transactional update, Q=Quit.\n');
 }
 
 function writeSelectedEmployee(index: number): void {
@@ -131,6 +150,7 @@ async function run(): Promise<void> {
             if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex); continue; }
             if (key === 'p') { await promote(store, employees[selectedIndex], random); continue; }
             if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
+            if (key === 't') { await transact(store, selectedIndex, random); continue; }
         }
     } catch (error) {
         logger.error('Unhandled error', { error: String(error) });
