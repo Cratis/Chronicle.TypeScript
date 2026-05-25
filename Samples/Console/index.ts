@@ -51,7 +51,7 @@ class Random {
     }
 }
 
-async function verifySeededEmployees(store: IEventStore): Promise<void> {
+async function logSeededEmployeesStatus(store: IEventStore): Promise<void> {
     for (const employee of employees) {
         const hasEvents = await store.eventLog.hasEventsFor(employee.id);
         logger.info('Seeder status for employee', { id: employee.id, hasEvents });
@@ -97,7 +97,7 @@ async function run(): Promise<void> {
         const store = await client.getEventStore('TestStore');
         logger.info('Event store ready', { name: store.name.value, namespace: store.namespace.value });
 
-        await verifySeededEmployees(store);
+        await logSeededEmployeesStatus(store);
 
         const random = new Random();
         let selectedIndex = 0;
