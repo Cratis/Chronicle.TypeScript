@@ -79,6 +79,7 @@ async function appendWithConcurrencyScopes() {
 
     if (!appendResult.isSuccess) {
         console.error(appendResult.errors, appendResult.constraintViolations);
+        return;
     }
 
     const expectedSequenceNumberForBatch = (await store.eventLog.getTailSequenceNumber(eventSourceId)).value;
@@ -92,7 +93,7 @@ async function appendWithConcurrencyScopes() {
         concurrencyScope: {
             sequenceNumber: expectedSequenceNumberForBatch,
             eventSourceId: true,
-            eventSourceType: 'Employee', // Set this when you use custom source partitioning.
+            eventSourceType: 'Employee', // Custom source type example. Use "Default" for default source partitioning.
             eventStreamType: 'Default', // "Default" means Chronicle's built-in stream partitioning.
             eventStreamId: eventSourceId,
             eventTypes: [getEventTypeFor(EmployeePromoted), getEventTypeFor(EmployeeDepartmentChanged)]
