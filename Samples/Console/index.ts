@@ -10,6 +10,7 @@ import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
 
 import { EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeState } from './reducers';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
 
@@ -88,8 +89,13 @@ async function transact(store: IEventStore, selectedIndex: number, random: Rando
     console.log(`[transaction] Committed staged events for ${selected.firstName} ${selected.lastName} and ${alsoUpdate.firstName} ${alsoUpdate.lastName}`);
 }
 
+async function readModel(store: IEventStore, person: Person): Promise<void> {
+    const state = await store.readModels.getInstanceById(EmployeeState, person.id);
+    console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} @ ${state.address || 'no address yet'}`);
+}
+
 function writeInstructions(): void {
-    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, T=Transactional update, Q=Quit.\n');
+    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, R=Read model, T=Transactional update, Q=Quit.\n');
 }
 
 function writeSelectedEmployee(index: number): void {
@@ -141,6 +147,7 @@ async function run(): Promise<void> {
             if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex); continue; }
             if (key === 'p') { await promote(store, employees[selectedIndex], random); continue; }
             if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
+            if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
             if (key === 't') { await transact(store, selectedIndex, random); continue; }
         }
     } catch (error) {
