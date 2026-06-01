@@ -49,9 +49,9 @@ export class EventStoreSubscriptions implements IEventStoreSubscriptions {
                 Identifier: definition.id.value,
                 SourceEventStore: definition.sourceEventStore,
                 EventTypes: definition.eventTypes.map(_ => ({
-                    Id: _.value,
-                    Generation: 1,
-                    Tombstone: false
+                    Id: _.id.value,
+                    Generation: _.generation.value,
+                    Tombstone: _.tombstone
                 }))
             }]
         });
