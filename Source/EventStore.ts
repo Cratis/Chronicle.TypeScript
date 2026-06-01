@@ -23,6 +23,8 @@ import { Reactors } from './reactors/Reactors';
 import { IReactors } from './reactors/IReactors';
 import { Reducers } from './reducers/Reducers';
 import { IReducers } from './reducers/IReducers';
+import { IReadModels } from './readModels/IReadModels';
+import { ReadModels } from './readModels/ReadModels';
 import { EventSeeding } from './seeding/EventSeeding';
 import { IEventSeeding } from './seeding/IEventSeeding';
 import { ChronicleTracer } from './Tracing';
@@ -49,6 +51,7 @@ export class EventStore implements IEventStore {
     readonly projections: IProjections;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
+    readonly readModels: IReadModels;
     readonly unitOfWorkManager: IUnitOfWorkManager;
     readonly jobs: IJobs;
     readonly webhooks: IWebhooks;
@@ -73,6 +76,7 @@ export class EventStore implements IEventStore {
         this.projections = new Projections(name.value, _connection, artifacts);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
+        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.seeding = new EventSeeding(name.value, _connection, artifacts);
