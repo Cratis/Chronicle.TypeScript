@@ -19,6 +19,7 @@ import * as identity from './identity';
 import * as auditing from './auditing';
 import * as correlation from './correlation';
 import * as transactions from './transactions';
+import * as eventStoreSubscriptions from './eventStoreSubscriptions';
 
 export { ChronicleClient } from './ChronicleClient';
 export type { IChronicleClient } from './IChronicleClient';
@@ -49,6 +50,7 @@ export * from './identity';
 export * from './auditing';
 export * from './correlation';
 export * from './transactions';
+export * from './eventStoreSubscriptions';
 
 export {
     events,
@@ -69,4 +71,5 @@ export {
     auditing,
     correlation,
     transactions,
+    eventStoreSubscriptions,
 };

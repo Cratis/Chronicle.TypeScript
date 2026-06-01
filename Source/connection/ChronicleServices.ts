@@ -20,6 +20,7 @@ import type {
     ServerClient,
     WebhooksClient
 } from '@cratis/chronicle.contracts';
+import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts';
 
 /**
  * Represents all Chronicle gRPC services.
@@ -33,6 +34,7 @@ export interface ChronicleServices {
     eventTypes: EventTypesClient;
     constraints: ConstraintsClient;
     observers: ObserversClient;
+    eventStoreSubscriptions: EventStoreSubscriptionsClient;
     failedPartitions: FailedPartitionsClient;
     reactors: ReactorsClient;
     reducers: ReducersClient;
