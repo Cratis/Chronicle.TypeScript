@@ -26,6 +26,7 @@ import {
 import { createChannel, createClientFactory, waitForChannelReady } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
+import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts';
 import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
 import { ChronicleServices } from './ChronicleServices';
 import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider';
@@ -146,6 +147,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.observers;
     }
 
+    get eventStoreSubscriptions() {
+        return this._services.eventStoreSubscriptions;
+    }
+
     get failedPartitions() {
         return this._services.failedPartitions;
     }
@@ -243,6 +248,7 @@ export class ChronicleConnection implements ChronicleServices {
             eventTypes: factory.create(EventTypesDefinition, this._channel),
             constraints: factory.create(ConstraintsDefinition, this._channel),
             observers: factory.create(ObserversDefinition, this._channel),
+            eventStoreSubscriptions: factory.create(EventStoreSubscriptionsDefinition, this._channel),
             failedPartitions: factory.create(FailedPartitionsDefinition, this._channel),
             reactors: factory.create(ReactorsDefinition, this._channel),
             reducers: factory.create(ReducersDefinition, this._channel),

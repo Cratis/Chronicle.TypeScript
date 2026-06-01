@@ -9,7 +9,8 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`)
 4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`) and logs available namespaces
 5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
-6. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
+6. Queries a reducer-backed read model through `eventStore.readModels.getInstanceById(...)`
+7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
 
 ## Prerequisites
 
@@ -35,6 +36,7 @@ You should see output with:
 
 - A Chronicle connection log
 - Event appends for hire, promotion, and relocation
+- Read-model lookups for the selected employee (`R` keyboard command)
 - Transactional staged appends committed as one unit (`T` keyboard command)
 - Seeder status output for initial employees
 - Event log tail/has-events information

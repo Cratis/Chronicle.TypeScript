@@ -36,6 +36,11 @@
             "import": "./dist/eventSequences/index.js",
             "default": "./dist/eventSequences/index.js"
         },
+        "./eventStoreSubscriptions": {
+            "types": "./dist/eventStoreSubscriptions/index.d.ts",
+            "import": "./dist/eventStoreSubscriptions/index.js",
+            "default": "./dist/eventStoreSubscriptions/index.js"
+        },
         "./reactors": {
             "types": "./dist/reactors/index.d.ts",
             "import": "./dist/reactors/index.js",

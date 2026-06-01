@@ -15,6 +15,8 @@ import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager';
 import { IJobs } from './jobs/IJobs';
 import { IWebhooks } from './webhooks/IWebhooks';
 import { IEventSeeding } from './seeding/IEventSeeding';
+import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
+import { IReadModels } from './readModels/IReadModels';
 
 /**
  * Defines the API surface for an event store.
@@ -45,6 +47,9 @@ export interface IEventStore {
     /** The reducers manager for this event store. */
     readonly reducers: IReducers;
 
+    /** The read-models manager for this event store. */
+    readonly readModels: IReadModels;
+
     /** The unit of work manager for transaction-scoped appends. */
     readonly unitOfWorkManager: IUnitOfWorkManager;
 
@@ -53,6 +58,9 @@ export interface IEventStore {
 
     /** The webhooks manager for this event store. */
     readonly webhooks: IWebhooks;
+
+    /** The event store subscriptions manager for this event store. */
+    readonly subscriptions: IEventStoreSubscriptions;
 
     /** The event seeding manager for this event store. */
     readonly seeding: IEventSeeding;

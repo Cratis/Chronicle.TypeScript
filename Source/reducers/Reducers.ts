@@ -159,7 +159,7 @@ export class Reducers implements IReducers {
         }
 
         const readModels = Array.from(this._reducers.entries()).map(([id, reducerType]) => {
-            const readModelName = (reducerType as Function).name;
+            const readModelName = this.getReducerReadModelIdentifier(reducerType);
             return {
                 Type: {
                     Identifier: readModelName,
@@ -212,7 +212,7 @@ export class Reducers implements IReducers {
         const metadata = getReducerMetadata(reducerType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
         const eventTypes = this.getEventTypesFor(reducerType);
-        const readModelName = (reducerType as Function).name;
+        const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
         this._logger.info('Starting reducer observation', {
             reducerId: id,
@@ -225,6 +225,15 @@ export class Reducers implements IReducers {
         this.observeReducer(id, reducerType, eventSequenceId, eventTypes, readModelName).catch(err => {
             this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(err) });
         });
+    }
+
+    private getReducerReadModelIdentifier(reducerType: Constructor): string {
+        const metadata = getReducerMetadata(reducerType);
+        if (metadata?.readModel) {
+            return getReadModelMetadata(metadata.readModel)?.id.value ?? metadata.readModel.name;
+        }
+
+        return (reducerType as Function).name;
     }
 
     private async observeReducer(
