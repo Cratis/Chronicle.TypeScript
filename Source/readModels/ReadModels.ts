@@ -3,13 +3,10 @@
 
 import type {
     AppendedEvent,
-    ReadModelDefinition,
     ReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import {
-    ReadModelObserverType as ContractReadModelObserverType,
-    ReadModelOwner,
-    ReadModelSource
+    ReadModelObserverType as ContractReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
@@ -57,8 +54,8 @@ export class ReadModels implements IReadModels {
 
         await this._connection.readModels.registerMany({
             EventStore: this._eventStore,
-            Owner: ReadModelOwner.Client,
-            Source: ReadModelSource.Code,
+            Owner: 1,
+            Source: 1,
             ReadModels: readModels.map(readModel => this.toDefinition(readModel))
         });
     }
@@ -226,7 +223,7 @@ export class ReadModels implements IReadModels {
         return resolved;
     }
 
-    private toDefinition(readModel: ResolvedReadModel): ReadModelDefinition {
+    private toDefinition(readModel: ResolvedReadModel) {
         return {
             Type: {
                 Identifier: readModel.identifier,
@@ -242,8 +239,8 @@ export class ReadModels implements IReadModels {
             Indexes: [],
             ObserverType: readModel.observerType,
             ObserverIdentifier: readModel.observerIdentifier,
-            Owner: ReadModelOwner.Client,
-            Source: ReadModelSource.Code
+            Owner: 1,
+            Source: 1
         };
     }
 
