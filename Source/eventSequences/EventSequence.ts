@@ -3,7 +3,7 @@
 
 import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { Guid } from '@cratis/fundamentals';
+import { Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
@@ -46,7 +46,7 @@ export class EventSequence implements IEventSequence {
         const correlationId = options?.correlationId === undefined
             ? Guid.as(correlationIdManager.current.value)
             : Guid.as(options.correlationId);
-        const content = JSON.stringify(event);
+        const content = JsonSerializer.serialize(event);
 
         causationManager.add(CausationType.appendEvent, { eventType: eventType.id.value });
         const causationChain = causationManager.getCurrentChain();
@@ -189,7 +189,7 @@ export class EventSequence implements IEventSequence {
                     Generation: eventType.generation.value,
                     Tombstone: eventType.tombstone
                 },
-                Content: JSON.stringify(event),
+                Content: JsonSerializer.serialize(event),
                 Causation: batchCausationChain.map(c => ({
                     Occurred: { Value: c.occurred.toISOString() },
                     Type: c.type.name,

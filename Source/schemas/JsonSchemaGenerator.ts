@@ -52,8 +52,8 @@ export class JsonSchemaGenerator {
             // Only include properties whose type was resolved. An empty schema ({}) means
             // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
             if (Object.keys(propertySchema).length > 0) {
-                // Add compliance metadata to property schema if present
-                this.addComplianceMetadata(propertySchema, prototype, memberName);
+                // Add compliance metadata to property schema if present (both property and type-level)
+                this.addComplianceMetadata(propertySchema, prototype, memberName, memberType);
                 schemaProperties[memberName] = propertySchema;
             }
         }
@@ -128,20 +128,31 @@ export class JsonSchemaGenerator {
 
     /**
      * Adds compliance metadata to a property schema if the property has compliance decorators.
+     * Also checks if the property's type itself is marked as PII (e.g., ConceptAs types).
      * @param schema - The property schema to add compliance metadata to.
      * @param target - The class prototype.
      * @param propertyKey - The property name.
      */
-    private static addComplianceMetadata(schema: JsonSchema, target: object, propertyKey: string): void {
-        if (!ComplianceMetadataResolver.hasMetadataFor(target, propertyKey)) {
-            return;
+    private static addComplianceMetadata(schema: JsonSchema, target: object, propertyKey: string, propertyType?: Function): void {
+        const complianceArray: Array<{ metadataType: string; details: string }> = [];
+
+        // Check for property-level compliance decorators
+        if (ComplianceMetadataResolver.hasMetadataFor(target, propertyKey)) {
+            const propertyMetadata = ComplianceMetadataResolver.getMetadataFor(target, propertyKey);
+            complianceArray.push(...propertyMetadata.map(metadata => ({
+                metadataType: metadata.metadataType.value.toString(),
+                details: metadata.details
+            })));
         }
 
-        const complianceMetadata = ComplianceMetadataResolver.getMetadataFor(target, propertyKey);
-        const complianceArray = complianceMetadata.map(metadata => ({
-            metadataType: metadata.metadataType.value.toString(),
-            details: metadata.details
-        }));
+        // Check for type-level compliance decorators (e.g., @pii on ConceptAs)
+        if (propertyType) {
+            const typeMetadata = ComplianceMetadataResolver.getMetadataForType(propertyType);
+            complianceArray.push(...typeMetadata.map(metadata => ({
+                metadataType: metadata.metadataType.value.toString(),
+                details: metadata.details
+            })));
+        }
 
         if (complianceArray.length > 0) {
             (schema as Record<string, unknown>).compliance = complianceArray;

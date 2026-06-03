@@ -195,6 +195,9 @@ export class CustomerReducer {
 /**
  * Example usage demonstrating compliance features.
  * 
+ * The @pii decorator now supports both properties and types (class decorators).
+ * Use isPII(type) to check if a type is marked as PII.
+ * 
  * IMPORTANT: The release() method for decrypting PII is not yet available
  * and requires an updated version of @cratis/chronicle.contracts.
  */
@@ -211,6 +214,11 @@ export async function demonstrateCompliance() {
     logger.info('- Each @pii property includes a compliance array in the JSON schema');
     logger.info('- The metadataType is the PII GUID: cae5580e-83d6-44dc-9d7a-a72e8a2f17d7');
     logger.info('- The details field explains why the property is classified as PII');
+    logger.info('');
+    logger.info('New features:');
+    logger.info('- @pii can now decorate types (classes) in addition to properties');
+    logger.info('- Use isPII(type) to check if a type is marked as PII');
+    logger.info('- Schema generator includes compliance metadata from both property and type decorators');
     logger.info('');
     logger.info('Future: release() method will allow decrypting PII when authorized');
     logger.info('Example: const decrypted = await eventStore.readModels.release(Customer, encrypted);');

@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { ComplianceMetadata } from './ComplianceMetadata';
-import { getPIIMetadata } from './pii';
+import { getPIIMetadata, getTypePIIMetadata } from './pii';
 
 /**
- * Resolves compliance metadata for properties.
+ * Resolves compliance metadata for properties and types.
  */
 export class ComplianceMetadataResolver {
     /**
@@ -32,6 +32,20 @@ export class ComplianceMetadataResolver {
             metadata.push(piiMetadata);
         }
         
+        return metadata;
+    }
+
+    /**
+     * Gets compliance metadata for a type (e.g., ConceptAs types).
+     * @param type - The type constructor.
+     * @returns Array of compliance metadata.
+     */
+    static getMetadataForType(type: Function): ComplianceMetadata[] {
+        const metadata: ComplianceMetadata[] = [];
+        const piiMetadata = getTypePIIMetadata(type);
+        if (piiMetadata) {
+            metadata.push(piiMetadata);
+        }
         return metadata;
     }
 }

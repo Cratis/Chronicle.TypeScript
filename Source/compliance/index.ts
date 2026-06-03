@@ -3,5 +3,5 @@
 
 export { ComplianceMetadataType } from './ComplianceMetadataType';
 export type { ComplianceMetadata } from './ComplianceMetadata';
-export { pii, getPIIMetadata, hasPIIMetadata } from './pii';
+export { pii, getPIIMetadata, hasPIIMetadata, getTypePIIMetadata, isPII } from './pii';
 export { ComplianceMetadataResolver } from './ComplianceMetadataResolver';

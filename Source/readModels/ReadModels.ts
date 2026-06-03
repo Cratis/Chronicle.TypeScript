@@ -9,6 +9,7 @@ import {
     ReadModelObserverType as ContractReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
+import { JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { toContractsGuid } from '../connection/Guid';
 import { ChronicleConnection } from '../connection';
@@ -254,7 +255,9 @@ export class ReadModels implements IReadModels {
     }
 
     private deserializeReadModel<TReadModel>(readModelType: Constructor<TReadModel>, json: string): TReadModel {
-        const payload = json ? JSON.parse(json) as object : {};
-        return Object.assign(Object.create(readModelType.prototype), payload) as TReadModel;
+        if (!json) {
+            return Object.create(readModelType.prototype) as TReadModel;
+        }
+        return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
     }
 }
