@@ -14,44 +14,53 @@ The `@pii` decorator:
 - Works as both a property decorator and class decorator
 - Enables cross-cutting compliance through type-level marking
 
-## Cross-Cutting Type-Level PII (Recommended Pattern)
+## Cross-Cutting Type-Level PII with ConceptAs (Recommended Pattern)
 
-The most powerful way to use `@pii` is at the type level. When you mark a type as PII, **all properties of that type automatically inherit the PII classification** - no need to mark individual properties.
+The most powerful way to use `@pii` is at the type level with ConceptAs. When you mark a ConceptAs type as PII, **all properties of that type automatically inherit the PII classification** - no need to mark individual properties.
 
 This demonstrates the **cross-cutting nature** of the decorator: mark the type once, and the compliance metadata flows automatically from events to read models to queries.
 
-### Example: PII Types Flow from Events to Read Models
+### Example: PII ConceptAs Types Flow from Events to Read Models
 
 ```typescript
+import { ConceptAs, field } from '@cratis/fundamentals';
 import { eventType, readModel, reducer, pii } from '@cratis/chronicle';
 
-// Step 1: Define PII types (mark ONCE)
+// Step 1: Define PII ConceptAs types (mark ONCE)
 @pii('Customer email address')
-class CustomerEmail {
-    constructor(public value: string = '') {}
-}
+class CustomerEmailConcept extends ConceptAs<string> {}
+export type CustomerEmail = CustomerEmailConcept | string;
 
 @pii('Customer full legal name')
-class CustomerFullName {
-    constructor(public value: string = '') {}
-}
+class CustomerFullNameConcept extends ConceptAs<string> {}
+export type CustomerFullName = CustomerFullNameConcept | string;
 
 // Step 2: Use in events - PII metadata flows automatically
 @eventType()
 class CustomerRegistered {
-    constructor(
-        public customerId: string,
-        public email: CustomerEmail,      // Automatically PII
-        public fullName: CustomerFullName  // Automatically PII
-    ) {}
+    @field(String)
+    customerId!: string;
+    
+    @field(CustomerEmailConcept)
+    email!: CustomerEmail;      // Automatically PII
+    
+    @field(CustomerFullNameConcept)
+    fullName!: CustomerFullName;  // Automatically PII
 }
 
 // Step 3: Use in read models - same PII metadata flows automatically
 @readModel()
 class Customer {
+    @field(String)
     id: string = '';
-    email: CustomerEmail = new CustomerEmail();      // Automatically PII
-    fullName: CustomerFullName = new CustomerFullName();  // Automatically PII
+    
+    @field(CustomerEmailConcept)
+    email: CustomerEmail = new CustomerEmailConcept();      // Automatically PII
+    
+    @field(CustomerFullNameConcept)
+    fullName: CustomerFullName = new CustomerFullNameConcept();  // Automatically PII
+    
+    @field(String)
     customerNumber: string = '';  // NOT PII
 }
 
@@ -59,73 +68,72 @@ class Customer {
 @reducer('', undefined, Customer)
 class CustomerReducer {
     async customerRegistered(event: CustomerRegistered): Promise<Customer> {
-        return {
-            id: event.customerId,
-            email: event.email,        // PII metadata flows through
-            fullName: event.fullName,  // PII metadata flows through
-            customerNumber: `CUST-${event.customerId}`
-        };
+        const customer = new Customer();
+        customer.id = event.customerId;
+        customer.email = event.email;        // PII metadata flows through
+        customer.fullName = event.fullName;  // PII metadata flows through
+        customer.customerNumber = `CUST-${event.customerId}`;
+        return customer;
     }
 }
 ```
 
 **Benefits:**
-- ✅ Mark PII classification **once** on the type
+- ✅ Mark PII classification **once** on the ConceptAs type
 - ✅ Compliance metadata flows **automatically** through events, read models, and queries
 - ✅ No need to remember to mark individual properties
-- ✅ Type-safe and refactoring-friendly
-- ✅ ConceptAs-ready for future strongly-typed domain identifiers
+- ✅ Type-safe and refactoring-friendly with ConceptAs strong typing
+- ✅ Proper serialization/deserialization via JsonSerializer and @field decorators
+- ✅ Union type exports allow convenient primitive assignment
 
-### ConceptAs-Ready Pattern
-
-Once `ConceptAs` is available in `@cratis/fundamentals`, this pattern works seamlessly:
-
-```typescript
-import { ConceptAs } from '@cratis/fundamentals';
-import { pii } from '@cratis/chronicle';
-
-@pii('Customer email address')
-class CustomerEmailConcept extends ConceptAs<string> {}
-export type CustomerEmail = CustomerEmailConcept | string;
-```
-
-The infrastructure is ready - just swap the type definition when ConceptAs becomes available.
+**Why ConceptAs?**
+- **Strong typing**: Prevents mixing up different domain concepts (email vs. phone number)
+- **Proper serialization**: JsonSerializer handles ConceptAs types automatically via @field decorators
+- **Domain-driven design**: Makes domain concepts explicit in the type system
+- **Self-documenting**: Type names reflect ubiquitous language
 
 ## Usage
 
-### Type-Level PII Marking (Recommended)
+### Type-Level PII Marking with ConceptAs (Recommended)
 
-Apply the `@pii` decorator to value object types that represent PII:
+Apply the `@pii` decorator to ConceptAs types that represent PII:
 
 ```typescript
-import { pii } from '@cratis/chronicle';
+import { ConceptAs, field } from '@cratis/fundamentals';
+import { pii, eventType, readModel } from '@cratis/chronicle';
 
-// Define a PII type
+// Define PII ConceptAs types
 @pii('Customer email address')
-class CustomerEmail {
-    constructor(public value: string = '') {}
-}
+class CustomerEmailConcept extends ConceptAs<string> {}
+export type CustomerEmail = CustomerEmailConcept | string;
 
 @pii('Customer full legal name')
-class CustomerFullName {
-    constructor(public value: string = '') {}
-}
+class CustomerFullNameConcept extends ConceptAs<string> {}
+export type CustomerFullName = CustomerFullNameConcept | string;
 
-// Use in events and read models
+// Use in events and read models with @field decorators
 @eventType()
 class CustomerRegistered {
-    constructor(
-        public customerId: string,
-        public email: CustomerEmail,      // Automatically classified as PII
-        public fullName: CustomerFullName // Automatically classified as PII
-    ) {}
+    @field(String)
+    customerId!: string;
+    
+    @field(CustomerEmailConcept)
+    email!: CustomerEmail;      // Automatically classified as PII
+    
+    @field(CustomerFullNameConcept)
+    fullName!: CustomerFullName; // Automatically classified as PII
 }
 
 @readModel()
 class Customer {
+    @field(String)
     id: string = '';
-    email: CustomerEmail = new CustomerEmail();      // Automatically classified as PII
-    fullName: CustomerFullName = new CustomerFullName(); // Automatically classified as PII
+    
+    @field(CustomerEmailConcept)
+    email: CustomerEmail = new CustomerEmailConcept();      // Automatically classified as PII
+    
+    @field(CustomerFullNameConcept)
+    fullName: CustomerFullName = new CustomerFullNameConcept(); // Automatically classified as PII
 }
 ```
 
@@ -158,14 +166,15 @@ You can programmatically check if a type has been marked as PII:
 
 ```typescript
 import { isPII, getTypePIIMetadata } from '@cratis/chronicle/compliance';
+import { CustomerEmailConcept } from './compliance-types';
 
 // Check if a type is marked as PII
-if (isPII(CustomerEmail)) {
-    console.log('CustomerEmail is PII');
+if (isPII(CustomerEmailConcept)) {
+    console.log('CustomerEmailConcept is PII');
 }
 
 // Get the PII metadata for a type
-const metadata = getTypePIIMetadata(CustomerEmail);
+const metadata = getTypePIIMetadata(CustomerEmailConcept);
 console.log(metadata?.details); // "Customer email address"
 ```
 
@@ -174,28 +183,30 @@ console.log(metadata?.details); // "Customer email address"
 Always provide details explaining why a type or property is classified as PII:
 
 ```typescript
+import { ConceptAs } from '@cratis/fundamentals';
 import { pii } from '@cratis/chronicle';
 
 // Type-level with details (recommended)
 @pii('Customer email address for contact and notifications')
-class CustomerEmail {
-    constructor(public value: string = '') {}
-}
+class CustomerEmailConcept extends ConceptAs<string> {}
+export type CustomerEmail = CustomerEmailConcept | string;
 
 @pii('Customer full legal name as registered')
-class CustomerFullName {
-    constructor(public value: string = '') {}
-}
+class CustomerFullNameConcept extends ConceptAs<string> {}
+export type CustomerFullName = CustomerFullNameConcept | string;
 
-// Property-level with details (fallback)
+// Property-level with details (fallback for non-ConceptAs properties)
 @readModel()
 class Employee {
+    @field(String)
     id: string = '';
     
     @pii('Employee social security number for tax reporting')
+    @field(String)
     ssn: string = '';
     
     @pii('Personal email address for HR communications')
+    @field(String)
     email: string = '';
 }
 ```
@@ -254,122 +265,147 @@ Some PII is considered "special category" and requires extra protection:
 
 ## Examples
 
-### User Profile (Type-Level PII)
+### User Profile (Type-Level PII with ConceptAs)
 
 ```typescript
+import { ConceptAs, field } from '@cratis/fundamentals';
 import { eventType, readModel, reducer, pii } from '@cratis/chronicle';
 
-// Define PII types
+// Define PII ConceptAs types
 @pii('User full name')
-class UserFullName {
-    constructor(public value: string = '') {}
-}
+class UserFullNameConcept extends ConceptAs<string> {}
+export type UserFullName = UserFullNameConcept | string;
 
 @pii('Primary contact email')
-class UserEmail {
-    constructor(public value: string = '') {}
-}
+class UserEmailConcept extends ConceptAs<string> {}
+export type UserEmail = UserEmailConcept | string;
 
 @pii('Primary contact phone')
-class UserPhone {
-    constructor(public value: string = '') {}
-}
+class UserPhoneConcept extends ConceptAs<string> {}
+export type UserPhone = UserPhoneConcept | string;
 
 @pii('Home address')
-class UserAddress {
-    constructor(public value: string = '') {}
-}
+class UserAddressConcept extends ConceptAs<string> {}
+export type UserAddress = UserAddressConcept | string;
 
-// Event with PII types
+// Event with PII ConceptAs types
 @eventType()
 class UserRegistered {
-    constructor(
-        public userId: string,
-        public fullName: UserFullName,
-        public email: UserEmail,
-        public phone: UserPhone
-    ) {}
+    @field(String)
+    userId!: string;
+    
+    @field(UserFullNameConcept)
+    fullName!: UserFullName;
+    
+    @field(UserEmailConcept)
+    email!: UserEmail;
+    
+    @field(UserPhoneConcept)
+    phone!: UserPhone;
 }
 
-// Read model with same PII types
+// Read model with same PII ConceptAs types
 @readModel()
 class UserProfile {
+    @field(String)
     id: string = '';
-    fullName: UserFullName = new UserFullName();  // Automatically PII
-    email: UserEmail = new UserEmail();            // Automatically PII
-    phone: UserPhone = new UserPhone();            // Automatically PII
-    address: UserAddress = new UserAddress();      // Automatically PII
+    
+    @field(UserFullNameConcept)
+    fullName: UserFullName = new UserFullNameConcept();  // Automatically PII
+    
+    @field(UserEmailConcept)
+    email: UserEmail = new UserEmailConcept();            // Automatically PII
+    
+    @field(UserPhoneConcept)
+    phone: UserPhone = new UserPhoneConcept();            // Automatically PII
+    
+    @field(UserAddressConcept)
+    address: UserAddress = new UserAddressConcept();      // Automatically PII
     
     // Not PII - public username
+    @field(String)
     username: string = '';
     
     // Not PII - preference setting
+    @field(String)
     theme: string = '';
 }
 
-// Reducer - PII metadata flows through
+// Reducer - PII metadata flows through ConceptAs types
 @reducer('', undefined, UserProfile)
 class UserProfileReducer {
     async userRegistered(event: UserRegistered): Promise<UserProfile> {
-        return {
-            id: event.userId,
-            fullName: event.fullName,  // PII flows through
-            email: event.email,        // PII flows through
-            phone: event.phone,        // PII flows through
-            username: event.userId,
-            theme: 'light'
-        };
+        const profile = new UserProfile();
+        profile.id = event.userId;
+        profile.fullName = event.fullName;  // PII flows through
+        profile.email = event.email;        // PII flows through
+        profile.phone = event.phone;        // PII flows through
+        profile.username = event.userId;
+        profile.theme = 'light';
+        return profile;
     }
 }
 ```
 
-### Healthcare Record (Type-Level PII)
+### Healthcare Record (Type-Level PII with ConceptAs)
 
 ```typescript
+import { ConceptAs, field } from '@cratis/fundamentals';
 import { eventType, readModel, reducer, pii } from '@cratis/chronicle';
 
-// Define PII types for healthcare
+// Define PII ConceptAs types for healthcare
 @pii('Patient full name')
-class PatientName {
-    constructor(public value: string = '') {}
-}
+class PatientNameConcept extends ConceptAs<string> {}
+export type PatientName = PatientNameConcept | string;
 
 @pii('Date of birth')
-class DateOfBirth {
-    constructor(public value: string = '') {}
-}
+class DateOfBirthConcept extends ConceptAs<string> {}
+export type DateOfBirth = DateOfBirthConcept | string;
 
 @pii('Medical record number')
-class MedicalRecordNumber {
-    constructor(public value: string = '') {}
-}
+class MedicalRecordNumberConcept extends ConceptAs<string> {}
+export type MedicalRecordNumber = MedicalRecordNumberConcept | string;
 
 @pii('Diagnosis information')
-class DiagnosisInfo {
-    constructor(public value: string = '') {}
-}
+class DiagnosisInfoConcept extends ConceptAs<string> {}
+export type DiagnosisInfo = DiagnosisInfoConcept | string;
 
-// Event with PII types
+// Event with PII ConceptAs types
 @eventType()
 class PatientAdmitted {
-    constructor(
-        public patientId: string,
-        public patientName: PatientName,
-        public dateOfBirth: DateOfBirth,
-        public medicalRecordNumber: MedicalRecordNumber
-    ) {}
+    @field(String)
+    patientId!: string;
+    
+    @field(PatientNameConcept)
+    patientName!: PatientName;
+    
+    @field(DateOfBirthConcept)
+    dateOfBirth!: DateOfBirth;
+    
+    @field(MedicalRecordNumberConcept)
+    medicalRecordNumber!: MedicalRecordNumber;
 }
 
-// Read model with same PII types
+// Read model with same PII ConceptAs types
 @readModel()
 class PatientRecord {
+    @field(String)
     id: string = '';
-    patientName: PatientName = new PatientName();                     // Automatically PII
-    dateOfBirth: DateOfBirth = new DateOfBirth();                     // Automatically PII
-    medicalRecordNumber: MedicalRecordNumber = new MedicalRecordNumber(); // Automatically PII
-    diagnosis: DiagnosisInfo = new DiagnosisInfo();                   // Automatically PII
+    
+    @field(PatientNameConcept)
+    patientName: PatientName = new PatientNameConcept();                     // Automatically PII
+    
+    @field(DateOfBirthConcept)
+    dateOfBirth: DateOfBirth = new DateOfBirthConcept();                     // Automatically PII
+    
+    @field(MedicalRecordNumberConcept)
+    medicalRecordNumber: MedicalRecordNumber = new MedicalRecordNumberConcept(); // Automatically PII
+    
+    @field(DiagnosisInfoConcept)
+    diagnosis: DiagnosisInfo = new DiagnosisInfoConcept();                   // Automatically PII
     
     // Not PII - anonymized statistics
+    @field(Number)
     visitCount: number = 0;
 }
 ```
@@ -397,16 +433,19 @@ class SimpleUserRegistered {
 ## Best Practices
 
 ### DO:
-- ✅ **Use type-level `@pii` for cross-cutting compliance** - mark types once, use everywhere
-- ✅ **Create dedicated PII types** for common PII patterns (Email, FullName, PhoneNumber, etc.)
-- ✅ **Reuse PII types** across events and read models for consistency
+- ✅ **Use type-level `@pii` on ConceptAs types for cross-cutting compliance** - mark ConceptAs types once, use everywhere
+- ✅ **Create dedicated PII ConceptAs types** for common PII patterns (Email, FullName, PhoneNumber, etc.)
+- ✅ **Reuse PII ConceptAs types** across events and read models for consistency
+- ✅ **Use @field decorators** to ensure proper JsonSerializer serialization/deserialization
+- ✅ **Export ConceptAs as union types** (e.g., `export type Email = EmailConcept | string`) for convenience
 - ✅ **Provide clear details** explaining why each type is classified as PII
 - ✅ **Review PII classifications** during code reviews
 - ✅ **Document PII classification decisions** for compliance audits
 - ✅ **Be conservative** - when in doubt, mark it as PII
 
 ### DON'T:
-- ❌ **Don't repeat property-level `@pii` everywhere** - use type-level instead
+- ❌ **Don't repeat property-level `@pii` everywhere** - use type-level ConceptAs instead
+- ❌ **Don't forget @field decorators** on ConceptAs properties (serialization won't work properly)
 - ❌ **Don't mark non-PII properties** just to be safe (this adds unnecessary overhead)
 - ❌ **Don't forget to update PII markings** when your data model changes
 - ❌ **Don't use PII data** for non-essential features
