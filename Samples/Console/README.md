@@ -11,6 +11,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
 6. Queries a reducer-backed read model through `eventStore.readModels.getInstanceById(...)`
 7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
+8. Demonstrates compliance features with `@pii` decorator for protecting Personal Identifiable Information
 
 ## Prerequisites
 
@@ -41,6 +42,7 @@ You should see output with:
 - Seeder status output for initial employees
 - Event log tail/has-events information
 - Reactor logs for observed events
+- Compliance feature information (`C` keyboard command)
 
 ## Configuration
 
@@ -63,4 +65,5 @@ Samples/Console/
   projections-declarative.ts       # Declarative projection artifact
   projections-model-bound.ts       # Model-bound projection artifact
   constraints.ts                   # Constraint registration request
+  compliance.ts                    # Compliance feature demonstration (PII)
 ```

@@ -26,3 +26,4 @@ Welcome to the Chronicle TypeScript client documentation.
 - [Auditing — Causation](./auditing.md) — Recording the causation chain for events
 - [Correlation](./correlation.md) — Correlating events and operations with a shared identifier
 - [Transactions (Unit of Work)](./transactions.md) — Group appends and commit or roll back as one unit
+- [Compliance](./compliance/index.md) — Protecting Personal Identifiable Information (PII) and meeting regulatory requirements
