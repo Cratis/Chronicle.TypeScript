@@ -32,13 +32,13 @@ const PII_METADATA_KEY = 'chronicle:compliance:pii';
  * }
  * ```
  */
-export function pii(details: string = ''): PropertyDecorator {
+export function pii(details?: string): PropertyDecorator {
     return (target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const metadata: ComplianceMetadata = {
             metadataType: ComplianceMetadataType.PII,
-            details
+            details: details ?? ''
         };
         Reflect.defineMetadata(PII_METADATA_KEY, metadata, target, key);
     };

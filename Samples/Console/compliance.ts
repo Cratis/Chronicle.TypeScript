@@ -123,6 +123,11 @@ export class Customer {
  * Note: The reducer methods work with plain property values.
  * The Chronicle Kernel handles encryption/decryption automatically based
  * on the @pii decorators in the read model schema.
+ * 
+ * The @reducer decorator parameters are:
+ * - eventStore: '' (empty string = default event store)
+ * - namespace: undefined (default namespace)
+ * - readModelType: Customer (the read model this reducer produces)
  */
 @reducer('', undefined, Customer)
 export class CustomerReducer {
