@@ -11,9 +11,60 @@ Read models are projections of your event stream, and they often contain Persona
 3. **Decryption is controlled** through the release mechanism (coming soon)
 4. **Compliance is transparent** to your application logic
 
-## Decorating Read Models
+## Decorating Read Models with ConceptAs (Recommended)
 
-To add compliance to a read model, simply decorate properties with the appropriate compliance decorators:
+The best way to add compliance to read models is to use ConceptAs types marked with `@pii` at the type level. This demonstrates the cross-cutting nature of compliance where PII metadata flows automatically from events to read models:
+
+```typescript
+import { ConceptAs, field } from '@cratis/fundamentals';
+import { readModel, pii } from '@cratis/chronicle';
+
+// Define PII ConceptAs types once
+@pii('Employee social security number')
+class EmployeeSSNConcept extends ConceptAs<string> {}
+export type EmployeeSSN = EmployeeSSNConcept | string;
+
+@pii('Personal email address')
+class EmployeeEmailConcept extends ConceptAs<string> {}
+export type EmployeeEmail = EmployeeEmailConcept | string;
+
+@pii('Home address')
+class EmployeeAddressConcept extends ConceptAs<string> {}
+export type EmployeeAddress = EmployeeAddressConcept | string;
+
+// Use in read model - PII metadata flows automatically
+@readModel()
+class Employee {
+    @field(String)
+    id: string = '';
+    
+    @field(EmployeeSSNConcept)
+    ssn: EmployeeSSN = new EmployeeSSNConcept();  // Automatically PII
+    
+    @field(EmployeeEmailConcept)
+    email: EmployeeEmail = new EmployeeEmailConcept();  // Automatically PII
+    
+    @field(EmployeeAddressConcept)
+    address: EmployeeAddress = new EmployeeAddressConcept();  // Automatically PII
+    
+    // Not PII
+    @field(String)
+    employeeNumber: string = '';
+    
+    @field(String)
+    department: string = '';
+}
+```
+
+Benefits of the ConceptAs approach:
+- Mark PII classification once on the ConceptAs type
+- Compliance metadata flows automatically from events to read models
+- Type-safe with strong typing
+- Proper serialization via JsonSerializer with @field decorators
+
+### Property-Level Marking (Fallback)
+
+For simple cases where creating ConceptAs types isn't practical, you can mark properties directly:
 
 ```typescript
 import { readModel, pii } from '@cratis/chronicle';
@@ -83,13 +134,11 @@ This encryption is transparent to your application code - you work with plain ob
 
 ## Release (Decryption)
 
-> **Note**: The release functionality requires an updated version of the `@cratis/chronicle.contracts` package and will be available in a future release.
+Chronicle TypeScript now provides full support for releasing (decrypting) PII properties when you have a legitimate need to access them. This is a key part of GDPR compliance: PII should only be decrypted when necessary and authorized.
 
-The "release" mechanism allows you to decrypt PII properties when you have a legitimate need to access them. This is a key part of GDPR compliance: PII should only be decrypted when necessary and authorized.
+### API
 
-### Future API
-
-The planned API for releasing PII will look like this:
+The `release()` and `releaseMany()` methods are available on `IReadModels`:
 
 ```typescript
 // Get an employee with encrypted PII
@@ -117,32 +166,68 @@ When you call `release()`, Chronicle:
 
 This ensures that you can only decrypt PII for the specific individual you're working with, not all PII in your system.
 
+### Implementation Details
+
+The `release()` method:
+- Serializes the read model instance using JsonSerializer
+- Sends the schema and payload to the Compliance service
+- Uses the instance's `id` property as the subject
+- Returns a deserialized instance with decrypted PII values
+- Throws an error if the release operation fails
+
+The `releaseMany()` method calls `release()` for each instance in parallel.
+
 ## Examples
 
-### Basic Read Model with PII
+### Basic Read Model with PII using ConceptAs
 
 ```typescript
+import { ConceptAs, field } from '@cratis/fundamentals';
 import { readModel, pii } from '@cratis/chronicle';
 
+// Define PII ConceptAs types
+@pii('Customer full name')
+class CustomerFullNameConcept extends ConceptAs<string> {}
+export type CustomerFullName = CustomerFullNameConcept | string;
+
+@pii('Primary email')
+class CustomerEmailConcept extends ConceptAs<string> {}
+export type CustomerEmail = CustomerEmailConcept | string;
+
+@pii('Billing address')
+class CustomerBillingAddressConcept extends ConceptAs<string> {}
+export type CustomerBillingAddress = CustomerBillingAddressConcept | string;
+
+@pii('Phone number')
+class CustomerPhoneConcept extends ConceptAs<string> {}
+export type CustomerPhone = CustomerPhoneConcept | string;
+
+// Use in read model
 @readModel()
 class Customer {
+    @field(String)
     id: string = '';
     
-    @pii('Customer full name')
-    fullName: string = '';
+    @field(CustomerFullNameConcept)
+    fullName: CustomerFullName = new CustomerFullNameConcept();
     
-    @pii('Primary email')
-    email: string = '';
+    @field(CustomerEmailConcept)
+    email: CustomerEmail = new CustomerEmailConcept();
     
-    @pii('Billing address')
-    billingAddress: string = '';
+    @field(CustomerBillingAddressConcept)
+    billingAddress: CustomerBillingAddress = new CustomerBillingAddressConcept();
     
-    @pii('Phone number')
-    phone: string = '';
+    @field(CustomerPhoneConcept)
+    phone: CustomerPhone = new CustomerPhoneConcept();
     
     // Not PII
+    @field(String)
     customerNumber: string = '';
+    
+    @field(String)
     accountStatus: string = '';
+    
+    @field(Number)
     totalOrders: number = 0;
 }
 
@@ -150,8 +235,8 @@ class Customer {
 const customer = await eventStore.readModels.getInstanceById(Customer, customerId);
 // customer.email contains encrypted value
 
-// Future: Decrypt when needed
-// const released = await eventStore.readModels.release(Customer, customer);
+// Decrypt when needed
+const released = await eventStore.readModels.release(Customer, customer);
 // released.email contains decrypted value
 ```
 
