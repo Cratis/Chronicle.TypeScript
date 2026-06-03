@@ -33,6 +33,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@cratis/chronicle.contracts@npm:15.32.1":
+  version: 15.32.1
+  resolution: "@cratis/chronicle.contracts@npm:15.32.1"
+  dependencies:
+    "@bufbuild/protobuf": "npm:^2.0.0"
+    "@grpc/grpc-js": "npm:^1.12.4"
+    nice-grpc: "npm:^2.1.0"
+  checksum: 10c0/4dcb9d564bfdc247363f11462805c85e94fb62b4b616cfa9c250716c40ccb0757cb2d90a1b08b42ffbe135b0cd60c48d18cd943cbb40dccbb22dda00b5e49288
+  languageName: node
+  linkType: hard
+
 "@cratis/chronicle.contracts@npm:^15.31.2":
   version: 15.31.2
   resolution: "@cratis/chronicle.contracts@npm:15.31.2"
@@ -1599,7 +1610,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:^15.31.2"
+    "@cratis/chronicle.contracts": "npm:15.32.1"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft
