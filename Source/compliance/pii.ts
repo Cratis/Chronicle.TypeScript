@@ -17,8 +17,12 @@ const PII_TYPE_METADATA_KEY = 'chronicle:compliance:pii:type';
  * according to the GDPR definition. When applied to read model properties or ConceptAs types,
  * the Chronicle Kernel will encrypt the values using compliance-aware encryption.
  *
+ * This decorator can be used in two ways:
+ * - As a property decorator: `@pii('details') propertyName: type`
+ * - As a class decorator: `@pii('details') class TypeName { }`
+ *
  * @param details - Optional details explaining why or to what extent the property/type is classified as PII.
- * @returns A property decorator or class decorator.
+ * @returns A decorator function that can be applied to either properties or classes (but not both on the same target).
  *
  * @example
  * Property usage:
