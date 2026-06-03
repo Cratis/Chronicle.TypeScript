@@ -41,6 +41,11 @@
             "import": "./dist/eventStoreSubscriptions/index.js",
             "default": "./dist/eventStoreSubscriptions/index.js"
         },
+        "./compliance": {
+            "types": "./dist/compliance/index.d.ts",
+            "import": "./dist/compliance/index.js",
+            "default": "./dist/compliance/index.js"
+        },
         "./reactors": {
             "types": "./dist/reactors/index.d.ts",
             "import": "./dist/reactors/index.js",

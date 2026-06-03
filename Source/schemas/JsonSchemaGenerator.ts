@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { Guid } from '@cratis/fundamentals';
 import { JsonSchema } from './JsonSchema';
 import { TypeIntrospector } from '../types';
+import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver';
 
 /**
  * Generates JSON schemas for class constructors using reflection metadata.
@@ -44,12 +45,15 @@ export class JsonSchemaGenerator {
     static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>): JsonSchema {
         const membersToUse = members ?? TypeIntrospector.getMembers(target);
         const schemaProperties: Record<string, JsonSchema> = {};
+        const prototype = target.prototype;
 
         for (const [memberName, memberType] of membersToUse.entries()) {
             const propertySchema = this.mapRuntimeTypeToSchema(memberType);
             // Only include properties whose type was resolved. An empty schema ({}) means
             // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
             if (Object.keys(propertySchema).length > 0) {
+                // Add compliance metadata to property schema if present
+                this.addComplianceMetadata(propertySchema, prototype, memberName);
                 schemaProperties[memberName] = propertySchema;
             }
         }
@@ -120,5 +124,27 @@ export class JsonSchemaGenerator {
     private static normalizeFormat(format: string): string {
         const normalized = format.toLowerCase();
         return this._formatAliases.get(normalized) ?? normalized;
+    }
+
+    /**
+     * Adds compliance metadata to a property schema if the property has compliance decorators.
+     * @param schema - The property schema to add compliance metadata to.
+     * @param target - The class prototype.
+     * @param propertyKey - The property name.
+     */
+    private static addComplianceMetadata(schema: JsonSchema, target: object, propertyKey: string): void {
+        if (!ComplianceMetadataResolver.hasMetadataFor(target, propertyKey)) {
+            return;
+        }
+
+        const complianceMetadata = ComplianceMetadataResolver.getMetadataFor(target, propertyKey);
+        const complianceArray = complianceMetadata.map(metadata => ({
+            metadataType: metadata.metadataType.value.toString(),
+            details: metadata.details
+        }));
+
+        if (complianceArray.length > 0) {
+            (schema as Record<string, unknown>).compliance = complianceArray;
+        }
     }
 }
