@@ -2,11 +2,30 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { ConceptAs, field } from '@cratis/fundamentals';
+import { field } from '@cratis/fundamentals';
 import { readModel, reducer, pii } from '@cratis/chronicle';
 import { eventType } from '@cratis/chronicle';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/ComplianceExample' });
+
+/**
+ * Temporary placeholder for ConceptAs until @cratis/fundamentals publishes it.
+ * 
+ * ConceptAs provides strong typing for domain concepts and proper serialization.
+ * This placeholder demonstrates the pattern - replace with the official implementation
+ * when available in @cratis/fundamentals.
+ */
+class ConceptAs<T> {
+    constructor(public readonly value: T = undefined as any) {}
+    
+    toString(): string {
+        return String(this.value);
+    }
+    
+    valueOf(): T {
+        return this.value;
+    }
+}
 
 /**
  * Customer email address - marked as PII at the type level.

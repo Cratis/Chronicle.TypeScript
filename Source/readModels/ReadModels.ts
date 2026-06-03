@@ -141,6 +141,34 @@ export class ReadModels implements IReadModels {
         });
     }
 
+    /** @inheritdoc */
+    async release<TReadModel>(readModelType: Constructor<TReadModel>, instance: TReadModel): Promise<TReadModel> {
+        const readModel = this.resolveReadModel(readModelType);
+        const schema = this.getReadModelSchema(readModelType, readModel.identifier);
+        const payload = JsonSerializer.serialize(instance);
+        const subject = this.extractSubject(instance);
+
+        const response = await this._connection.compliance.release({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            Subject: subject,
+            Schema: schema,
+            Payload: payload
+        });
+
+        if (response.HasError) {
+            throw new Error(`Failed to release PII: ${response.Error}`);
+        }
+
+        return this.deserializeReadModel(readModelType, response.Payload);
+    }
+
+    /** @inheritdoc */
+    async releaseMany<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]> {
+        const releasePromises = instances.map(instance => this.release(readModelType, instance));
+        return Promise.all(releasePromises);
+    }
+
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
         const resolved = new Map<string, ResolvedReadModel>();
 
@@ -259,5 +287,14 @@ export class ReadModels implements IReadModels {
             return Object.create(readModelType.prototype) as TReadModel;
         }
         return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+    }
+
+    private extractSubject<TReadModel>(instance: TReadModel): string {
+        // By convention, use the 'id' property as the subject
+        const anyInstance = instance as any;
+        if (anyInstance.id !== undefined && anyInstance.id !== null) {
+            return String(anyInstance.id);
+        }
+        throw new Error('Read model instance must have an "id" property to serve as the subject for PII release');
     }
 }

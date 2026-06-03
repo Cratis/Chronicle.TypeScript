@@ -20,6 +20,7 @@ import type {
     ServerClient,
     WebhooksClient
 } from '@cratis/chronicle.contracts';
+import type { ComplianceClient } from '../compliance/ComplianceContracts';
 import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts';
 
 /**
@@ -44,4 +45,5 @@ export interface ChronicleServices {
     webhooks: WebhooksClient;
     eventSeeding: EventSeedingClient;
     server: ServerClient;
+    compliance: ComplianceClient;
 }

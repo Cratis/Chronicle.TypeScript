@@ -23,6 +23,7 @@ import {
     WebhooksDefinition,
     type ConnectionServiceClient
 } from '@cratis/chronicle.contracts';
+import { ComplianceDefinition } from '../compliance/ComplianceContracts';
 import { createChannel, createClientFactory, waitForChannelReady } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
@@ -187,6 +188,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.server;
     }
 
+    get compliance() {
+        return this._services.compliance;
+    }
+
     get connections(): ConnectionServiceClient {
         return this._connections;
     }
@@ -257,7 +262,8 @@ export class ChronicleConnection implements ChronicleServices {
             jobs: factory.create(JobsDefinition, this._channel),
             webhooks: factory.create(WebhooksDefinition, this._channel),
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),
-            server: factory.create(ServerDefinition, this._channel)
+            server: factory.create(ServerDefinition, this._channel),
+            compliance: factory.create(ComplianceDefinition as any, this._channel) as any
         };
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
     }
