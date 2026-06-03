@@ -1,20 +1,21 @@
 # PII (Personal Identifiable Information)
 
-The `@pii` decorator is used to mark properties that contain Personal Identifiable Information according to the GDPR definition. When a property is decorated with `@pii`, the Chronicle Kernel automatically encrypts the property value to ensure compliance with data protection regulations.
+The `@pii` decorator is used to mark properties or types that contain Personal Identifiable Information according to the GDPR definition. When a property or type is decorated with `@pii`, the Chronicle Kernel automatically encrypts the value to ensure compliance with data protection regulations.
 
 ## Overview
 
 Personal Identifiable Information (PII) is any data that could potentially identify a specific individual. Under GDPR, this data requires special protection and handling.
 
 The `@pii` decorator:
-- Marks a property as containing PII
+- Marks a property or type as containing PII
 - Adds compliance metadata to the JSON schema
 - Triggers automatic encryption by the Chronicle Kernel
 - Can include optional details explaining the classification
+- Works as both a property decorator and class decorator
 
 ## Usage
 
-### Basic Usage
+### Property-Level PII Marking
 
 Apply the `@pii` decorator to any property that contains personally identifiable information:
 
@@ -35,9 +36,47 @@ class Employee {
 }
 ```
 
+### Type-Level PII Marking
+
+You can also mark entire types (classes) as containing PII. This is particularly useful with domain value objects and ConceptAs types:
+
+```typescript
+import { pii } from '@cratis/chronicle';
+
+// Mark a type as PII
+@pii('Customer email address')
+class CustomerEmail {
+    constructor(public value: string) {}
+}
+
+// Once ConceptAs is available in @cratis/fundamentals:
+@pii('Customer email address')
+class CustomerEmailConcept extends ConceptAs<string> {}
+export type CustomerEmail = CustomerEmailConcept | string;
+```
+
+When using type-level PII marking, all properties of that type automatically inherit the PII classification in the schema.
+
+### Checking if a Type is PII
+
+You can programmatically check if a type has been marked as PII:
+
+```typescript
+import { isPII, getTypePIIMetadata } from '@cratis/chronicle/compliance';
+
+// Check if a type is marked as PII
+if (isPII(CustomerEmail)) {
+    console.log('CustomerEmail is PII');
+}
+
+// Get the PII metadata for a type
+const metadata = getTypePIIMetadata(CustomerEmail);
+console.log(metadata?.details); // "Customer email address"
+```
+
 ### With Details
 
-It's recommended to provide details explaining why a property is classified as PII:
+It's recommended to provide details explaining why a property or type is classified as PII:
 
 ```typescript
 import { readModel, pii } from '@cratis/chronicle';
