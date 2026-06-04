@@ -3,7 +3,7 @@
 
 import { diag } from '@opentelemetry/api';
 import { readModel, reducer } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved } from './events';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/EmployeeStateReducer' });
 
@@ -16,6 +16,7 @@ export class EmployeeState {
     firstName: string = '';
     lastName: string = '';
     title: string = '';
+    email: string = '';
     address: string = '';
     city: string = '';
     zipCode: string = '';
@@ -44,6 +45,11 @@ export class EmployeeStateReducer {
             zipCode: event.zipCode,
             country: event.country
         });
+    }
+
+    async employeeEmailSet(event: EmployeeEmailSet, state?: EmployeeState): Promise<EmployeeState> {
+        logger.info('Handling EmployeeEmailSet', { email: event.email });
+        return Object.assign(new EmployeeState(), state ?? {}, { email: event.email });
     }
 
     async employeePromoted(event: EmployeePromoted, state?: EmployeeState): Promise<EmployeeState> {

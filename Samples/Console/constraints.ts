@@ -1,43 +1,46 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ConstraintType, RegisterConstraintsRequest } from '@cratis/chronicle.contracts';
-import { getEventTypeFor } from '@cratis/chronicle';
-import { EmployeeHired } from './events';
+import { constraint, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
+import { EmployeeEmailSet, EmployeeHired } from './events';
 
 /**
- * Builds the constraint registration request that prevents the same employee
- * from being hired more than once per event source.
+ * Prevents the same employee from being hired more than once per event source.
  *
- * Constraints are evaluated by the Chronicle Kernel before an event is appended.
- * A violated constraint prevents the append and returns a {@link ConstraintViolation}
- * in the {@link AppendResult}, giving callers structured feedback without exceptions.
+ * Constraints are auto-discovered from classes decorated with {@link constraint} that
+ * implement {@link IConstraint}. The event store calls {@link IConstraint.define} during
+ * connection and registers the resulting constraint with the Chronicle Kernel, which then
+ * evaluates it before an event is appended. A violated constraint prevents the append and
+ * returns a constraint violation in the {@link AppendResult}, giving callers structured
+ * feedback without exceptions.
  *
- * Two constraint types are supported:
- * - **UniqueConstraint** — no two events for different event sources may share the
- *   same value for a given property.
- * - **UniqueEventTypeConstraint** — an event type may only appear once per event source,
- *   preventing duplicate "created" events.
+ * `uniqueFor` builds a unique-event-type constraint: a given event type may only appear
+ * once per event source identifier, which is ideal for "created" style events.
  */
-function buildUniqueHireConstraint(): RegisterConstraintsRequest {
-    const hiredType = getEventTypeFor(EmployeeHired);
-
-    return {
-        EventStore: '',
-        Constraints: [
-            {
-                // Prevent the same employee from being hired more than once per event source.
-                Name: 'UniqueEmployeeHire',
-                Type: ConstraintType.UniqueEventType,
-                RemovedWith: '',
-                Scope: undefined,
-                Definition: {
-                    Value0: undefined,
-                    Value1: { EventTypeId: hiredType.id.value }
-                }
-            }
-        ]
-    };
+@constraint()
+export class UniqueEmployeeHire implements IConstraint {
+    /** @inheritdoc */
+    define(builder: IConstraintBuilder): void {
+        builder.uniqueFor(EmployeeHired, 'An employee can only be hired once.');
+    }
 }
 
-export const uniqueHireConstraint = buildUniqueHireConstraint();
+/**
+ * Ensures no two employees share the same email address.
+ *
+ * Unlike {@link UniqueEmployeeHire} (a unique-event-type constraint, which the Kernel
+ * enforces with a query), a `unique` constraint is backed by a dedicated index collection
+ * in the namespace database. The Kernel maintains the index as matching events are appended,
+ * so attempting to set an email already owned by a different employee is rejected with a
+ * constraint violation. `ignoreCasing` makes the comparison case-insensitive.
+ */
+@constraint()
+export class UniqueEmployeeEmail implements IConstraint {
+    /** @inheritdoc */
+    define(builder: IConstraintBuilder): void {
+        builder.unique(unique => unique
+            .on(EmployeeEmailSet, _ => _.email)
+            .ignoreCasing()
+            .withMessage('That email address is already in use by another employee.'));
+    }
+}

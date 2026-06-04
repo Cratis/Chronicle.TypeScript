@@ -9,23 +9,17 @@ import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
 
-import { EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events';
 import { EmployeeState } from './reducers';
-import { demonstrateCompliance, Customer } from './compliance';
+import { Person, employees, emailFor } from './employees';
+import { demonstrateCompliance } from './compliance';
+
+// Side-effect imports so the @constraint and @seeder decorators run and are
+// discovered and registered with the event store on connect.
+import './constraints';
+import './seeding';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
-
-interface Person {
-    readonly id: string;
-    readonly firstName: string;
-    readonly lastName: string;
-}
-
-const employees: Person[] = [
-    { id: 'a0000001-0000-0000-0000-000000000000', firstName: 'Ada',   lastName: 'Lovelace' },
-    { id: 'a0000002-0000-0000-0000-000000000000', firstName: 'Grace', lastName: 'Hopper'   },
-    { id: 'a0000003-0000-0000-0000-000000000000', firstName: 'Alan',  lastName: 'Turing'   }
-];
 
 const titles = [
     'Software Engineer',
@@ -71,6 +65,32 @@ async function move(store: IEventStore, person: Person, random: Random): Promise
     console.log(`[${person.id}] Moved ${person.firstName} ${person.lastName} to ${addr.address}, ${addr.city} at sequence ${result.sequenceNumber.value}`);
 }
 
+// Sets the selected employee's own unique email address. Succeeds because the email
+// belongs to that employee (re-setting the same value for the same event source is allowed).
+async function setEmail(store: IEventStore, person: Person): Promise<void> {
+    const email = emailFor(person);
+    const result = await store.eventLog.append(person.id, new EmployeeEmailSet(email));
+    if (result.isSuccess) {
+        console.log(`[${person.id}] Set ${person.firstName} ${person.lastName}'s email to ${email} at sequence ${result.sequenceNumber.value}`);
+    } else {
+        console.log(`[${person.id}] Could not set email: ${result.constraintViolations.map(v => v.message).join('; ')}`);
+    }
+}
+
+// Attempts to give the selected employee the next employee's email address, which the
+// UniqueEmployeeEmail constraint rejects because that email is already owned elsewhere.
+async function stealEmail(store: IEventStore, selectedIndex: number): Promise<void> {
+    const person = employees[selectedIndex];
+    const victim = employees[(selectedIndex + 1) % employees.length];
+    const email = emailFor(victim);
+    const result = await store.eventLog.append(person.id, new EmployeeEmailSet(email));
+    if (result.isSuccess) {
+        console.log(`[${person.id}] Unexpectedly took ${email} at sequence ${result.sequenceNumber.value}`);
+    } else {
+        console.log(`[${person.id}] Rejected taking ${victim.firstName}'s email (${email}): ${result.constraintViolations.map(v => v.message).join('; ')}`);
+    }
+}
+
 async function transact(store: IEventStore, selectedIndex: number, random: Random): Promise<void> {
     const selected = employees[selectedIndex];
     const alsoUpdate = employees[(selectedIndex + 1) % employees.length];
@@ -92,7 +112,7 @@ async function transact(store: IEventStore, selectedIndex: number, random: Rando
 
 async function readModel(store: IEventStore, person: Person): Promise<void> {
     const state = await store.readModels.getInstanceById(EmployeeState, person.id);
-    console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} @ ${state.address || 'no address yet'}`);
+    console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} <${state.email || 'no email yet'}> @ ${state.address || 'no address yet'}`);
 }
 
 async function showCompliance(): Promise<void> {
@@ -100,7 +120,16 @@ async function showCompliance(): Promise<void> {
 }
 
 function writeInstructions(): void {
-    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, R=Read model, T=Transactional update, C=Compliance info, Q=Quit.\n');
+    console.log([
+        '',
+        'Use 1-3 to select an employee. Then:',
+        '  P = Promote          A = Move (change address)',
+        '  E = Set email        U = Try to take the next employee\'s email (constraint violation)',
+        '  R = Read model       T = Transactional update',
+        '  C = Compliance info (PII)',
+        '  H or ? = Show this menu          Q = Quit',
+        ''
+    ].join('\n'));
 }
 
 function writeSelectedEmployee(index: number): void {
@@ -152,9 +181,12 @@ async function run(): Promise<void> {
             if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex); continue; }
             if (key === 'p') { await promote(store, employees[selectedIndex], random); continue; }
             if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
+            if (key === 'e') { await setEmail(store, employees[selectedIndex]); continue; }
+            if (key === 'u') { await stealEmail(store, selectedIndex); continue; }
             if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
             if (key === 't') { await transact(store, selectedIndex, random); continue; }
             if (key === 'c') { await showCompliance(); continue; }
+            if (key === 'h' || key === '?') { writeInstructions(); continue; }
         }
     } catch (error) {
         logger.error('Unhandled error', { error: String(error) });

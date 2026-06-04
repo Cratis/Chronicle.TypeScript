@@ -3,7 +3,7 @@
 
 import { diag } from '@opentelemetry/api';
 import { reactor, EventContext } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved } from './events';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/HrNotificationReactor' });
 
@@ -27,6 +27,10 @@ export class HrNotificationReactor {
 
     async employeeAddressSet(event: EmployeeAddressSet, context: EventContext): Promise<void> {
         logger.info('Employee address set', { city: event.city, country: event.country, sequenceNumber: context.sequenceNumber });
+    }
+
+    async employeeEmailSet(event: EmployeeEmailSet, context: EventContext): Promise<void> {
+        logger.info('Employee email set', { email: event.email, sequenceNumber: context.sequenceNumber });
     }
 
     async employeePromoted(event: EmployeePromoted, context: EventContext): Promise<void> {

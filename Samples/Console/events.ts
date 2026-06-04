@@ -11,9 +11,9 @@ import { eventType } from '@cratis/chronicle';
 @eventType()
 export class EmployeeHired {
     constructor(
-        readonly firstName: string,
-        readonly lastName: string,
-        readonly title: string
+        readonly firstName: string = '',
+        readonly lastName: string = '',
+        readonly title: string = ''
     ) {}
 }
 
@@ -23,10 +23,10 @@ export class EmployeeHired {
 @eventType()
 export class EmployeeAddressSet {
     constructor(
-        readonly address: string,
-        readonly city: string,
-        readonly zipCode: string,
-        readonly country: string
+        readonly address: string = '',
+        readonly city: string = '',
+        readonly zipCode: string = '',
+        readonly country: string = ''
     ) {}
 }
 
@@ -35,7 +35,15 @@ export class EmployeeAddressSet {
  */
 @eventType()
 export class EmployeePromoted {
-    constructor(readonly newTitle: string) {}
+    constructor(readonly newTitle: string = '') {}
+}
+
+/**
+ * An employee's email address has been set.
+ */
+@eventType()
+export class EmployeeEmailSet {
+    constructor(readonly email: string = '') {}
 }
 
 /**
@@ -44,9 +52,9 @@ export class EmployeePromoted {
 @eventType()
 export class EmployeeMoved {
     constructor(
-        readonly address: string,
-        readonly city: string,
-        readonly zipCode: string,
-        readonly country: string
+        readonly address: string = '',
+        readonly city: string = '',
+        readonly zipCode: string = '',
+        readonly country: string = ''
     ) {}
 }

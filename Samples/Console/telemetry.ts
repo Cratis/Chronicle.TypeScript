@@ -59,8 +59,13 @@ function writeLog(
         contextArgs = args;
     }
 
+    // BigInt is not serializable by JSON.stringify (e.g. EventContext.sequenceNumber),
+    // so convert any BigInt to its string form. A logger must never throw on its input.
+    const replaceBigInt = (_key: string, value: unknown) =>
+        typeof value === 'bigint' ? value.toString() : value;
+
     const extra = contextArgs
-        .map(a => (typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)))
+        .map(a => (typeof a === 'object' && a !== null ? JSON.stringify(a, replaceBigInt) : String(a)))
         .join(' ');
 
     const detail = extra ? `${body} ${GRAY}${extra}${RESET}` : body;

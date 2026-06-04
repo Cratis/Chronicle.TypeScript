@@ -4,14 +4,31 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 
 ## What it does
 
-1. Appends three domain events (`EmployeeHired`, `EmployeePromoted`, `EmployeeMoved`) to a Chronicle event store
+1. Appends domain events (`EmployeeHired`, `EmployeeEmailSet`, `EmployeePromoted`, `EmployeeAddressSet`, `EmployeeMoved`) to a Chronicle event store
 2. Reacts to those events via `HrNotificationReactor` (logs notifications)
 3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`)
 4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`) and logs available namespaces
 5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
 6. Queries a reducer-backed read model through `eventStore.readModels.getInstanceById(...)`
 7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
-8. Demonstrates compliance features with `@pii` decorator for protecting Personal Identifiable Information
+8. Registers two discoverable `@constraint` artifacts: `UniqueEmployeeHire` (a unique-event-type constraint, enforced by the Kernel via a query) and `UniqueEmployeeEmail` (a `unique` constraint backed by an index collection that rejects duplicate email addresses)
+9. Demonstrates compliance features with the `@pii` decorator for protecting Personally Identifiable Information
+
+## Keyboard controls
+
+Select an employee with `1`–`3`, then:
+
+| Key | Action |
+| --- | --- |
+| `P` | Promote the selected employee to a new title |
+| `A` | Move the selected employee to a new address |
+| `E` | Set the selected employee's own (unique) email address |
+| `U` | Attempt to take the next employee's email — rejected by the `UniqueEmployeeEmail` constraint |
+| `R` | Read the selected employee's read-model state |
+| `T` | Commit a transactional (Unit of Work) batch of events |
+| `C` | Show compliance (PII) information |
+| `H` or `?` | Show the keyboard menu |
+| `Q` | Quit |
 
 ## Prerequisites
 
@@ -57,7 +74,8 @@ CHRONICLE_CONNECTION="chronicle://myserver:35000" yarn start
 
 ```
 Samples/Console/
-  index.ts                         # Demo scenario entry point
+  index.ts                         # Interactive console entry point
+  employees.ts                     # Shared employee data and helpers
   telemetry.ts                     # OpenTelemetry setup
   events.ts                        # Event type declarations
   reducers.ts                      # EmployeeState reducer
@@ -65,6 +83,6 @@ Samples/Console/
   seeding.ts                       # Event seeding artifact (`@seeder`)
   projections-declarative.ts       # Declarative projection artifact
   projections-model-bound.ts       # Model-bound projection artifact
-  constraints.ts                   # Constraint registration request
+  constraints.ts                   # Discoverable `@constraint` artifacts
   compliance.ts                    # Compliance feature demonstration (PII)
 ```
