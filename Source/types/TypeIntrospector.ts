@@ -35,7 +35,12 @@ export class TypeIntrospector {
 
     /**
      * Gets members and their runtime types for a class.
-     * Members are discovered from tracked properties and constructor parameters.
+     * Members are discovered from tracked properties, the properties present on a
+     * default-constructed instance, and constructor parameters. Discovering members
+     * from the default-constructed instance lets field-based types resolve their member
+     * types from default values even when decorator metadata ('design:paramtypes') is
+     * unavailable — for example under esbuild/tsx, which does not emit it. This gives
+     * event types the same schema resolution as read models.
      * @param target - The class constructor to inspect.
      * @returns A map of member name to runtime type.
      */
@@ -43,7 +48,12 @@ export class TypeIntrospector {
         const members = new Map<string, Function | undefined>();
         const defaultValues = this.tryGetDefaultPropertyValues(target);
 
-        for (const property of this.getTrackedProperties(target)) {
+        const propertyNames = new Set<string>([
+            ...this.getTrackedProperties(target),
+            ...Object.keys(defaultValues)
+        ]);
+
+        for (const property of propertyNames) {
             let runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
             if (!runtimeType || runtimeType === Object) {
                 runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]);
