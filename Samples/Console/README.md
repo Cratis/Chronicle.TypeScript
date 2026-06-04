@@ -30,6 +30,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 ```bash
 cd Samples/Console
 yarn install
+docker compose up -d
 yarn start
 ```
 
