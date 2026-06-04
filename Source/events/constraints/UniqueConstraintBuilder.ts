@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { Constructor, PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../eventTypeDecorator';
 import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder';
 
@@ -34,7 +34,6 @@ export interface UniqueConstraintCapture {
  */
 export class UniqueConstraintBuilder implements IUniqueConstraintBuilder {
     private readonly _capture: UniqueConstraintCapture;
-    private _currentEventTypeId?: string;
 
     constructor(capture: UniqueConstraintCapture) {
         this._capture = capture;
@@ -47,16 +46,14 @@ export class UniqueConstraintBuilder implements IUniqueConstraintBuilder {
     }
 
     /** @inheritdoc */
-    on<TEvent>(...properties: PropertyAccessor<TEvent>[]): IUniqueConstraintBuilder {
-        if (!this._currentEventTypeId) {
-            return this;
-        }
+    on<TEvent>(eventType: Constructor<TEvent>, ...properties: PropertyAccessor<TEvent>[]): IUniqueConstraintBuilder {
+        const eventTypeId = getEventTypeFor(eventType).id.value;
         const paths = properties.map(p => resolvePropertyPath(p));
-        const existing = this._capture.eventDefinitions.find(d => d.eventTypeId === this._currentEventTypeId);
+        const existing = this._capture.eventDefinitions.find(d => d.eventTypeId === eventTypeId);
         if (existing) {
             existing.properties.push(...paths);
         } else {
-            this._capture.eventDefinitions.push({ eventTypeId: this._currentEventTypeId, properties: paths });
+            this._capture.eventDefinitions.push({ eventTypeId, properties: paths });
         }
         return this;
     }
@@ -83,15 +80,6 @@ export class UniqueConstraintBuilder implements IUniqueConstraintBuilder {
     /** @inheritdoc */
     withMessageFrom(messageProvider: () => string): IUniqueConstraintBuilder {
         this._capture.message = messageProvider();
-        return this;
-    }
-
-    /**
-     * Sets the current event type context for subsequent {@link on} calls.
-     * @param eventTypeId - The event type identifier string.
-     */
-    withEventType(eventTypeId: string): UniqueConstraintBuilder {
-        this._currentEventTypeId = eventTypeId;
         return this;
     }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { PropertyAccessor } from '@cratis/fundamentals';
+import { Constructor, PropertyAccessor } from '@cratis/fundamentals';
 
 /**
  * Defines the builder for building unique constraints.
@@ -18,10 +18,11 @@ export interface IUniqueConstraintBuilder {
 
     /**
      * Constrains on specific properties of an event type.
+     * @param eventType - The event type constructor the properties belong to.
      * @param properties - Property accessor expressions for specifying the properties on the event.
      * @returns This builder for fluent chaining.
      */
-    on<TEvent>(...properties: PropertyAccessor<TEvent>[]): IUniqueConstraintBuilder;
+    on<TEvent>(eventType: Constructor<TEvent>, ...properties: PropertyAccessor<TEvent>[]): IUniqueConstraintBuilder;
 
     /**
      * Ignores casing when comparing property values during constraint evaluation.
