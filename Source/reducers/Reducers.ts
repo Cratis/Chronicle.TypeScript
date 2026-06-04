@@ -318,7 +318,7 @@ export class Reducers implements IReducers {
                         this._logger.info('Invoking reducer handler', {
                             reducerId: id,
                             method: entry.methodName,
-                            sequenceNumber: event.Context!.SequenceNumber,
+                            sequenceNumber: event.Context!.SequenceNumber.toString(),
                             eventTypeId,
                             hasState: currentState !== undefined
                         });

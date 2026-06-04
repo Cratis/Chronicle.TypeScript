@@ -250,7 +250,7 @@ export class Reactors implements IReactors {
                         this._logger.info('Invoking reactor handler', {
                             reactorId: id,
                             method: entry.methodName,
-                            sequenceNumber: event.Context!.SequenceNumber,
+                            sequenceNumber: event.Context!.SequenceNumber.toString(),
                             eventTypeId
                         });
 
