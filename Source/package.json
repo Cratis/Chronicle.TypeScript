@@ -41,6 +41,11 @@
             "import": "./dist/eventStoreSubscriptions/index.js",
             "default": "./dist/eventStoreSubscriptions/index.js"
         },
+        "./compliance": {
+            "types": "./dist/compliance/index.d.ts",
+            "import": "./dist/compliance/index.js",
+            "default": "./dist/compliance/index.js"
+        },
         "./reactors": {
             "types": "./dist/reactors/index.d.ts",
             "import": "./dist/reactors/index.js",
@@ -129,8 +134,8 @@
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.12.0",
-        "@cratis/chronicle.contracts": "^15.31.2",
-        "@cratis/fundamentals": "^7.9.0",
+        "@cratis/chronicle.contracts": "^15.32.1",
+        "@cratis/fundamentals": "7.10.6",
         "@grpc/grpc-js": "^1.14.0",
         "@opentelemetry/api": "^1.9.1",
         "nice-grpc": "^2.1.12",

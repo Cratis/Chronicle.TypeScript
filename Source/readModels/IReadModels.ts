@@ -62,4 +62,20 @@ export interface IReadModels {
      * @returns A promise that resolves when dehydration completes.
      */
     dehydrateSession<TReadModel>(sessionId: string, readModelType: Constructor<TReadModel>, key: string): Promise<void>;
+
+    /**
+     * Releases (decrypts) PII properties in a read model instance.
+     * @param readModelType - The read model type.
+     * @param instance - The read model instance with encrypted PII.
+     * @returns The read model instance with decrypted PII values.
+     */
+    release<TReadModel>(readModelType: Constructor<TReadModel>, instance: TReadModel): Promise<TReadModel>;
+
+    /**
+     * Releases (decrypts) PII properties in multiple read model instances.
+     * @param readModelType - The read model type.
+     * @param instances - The read model instances with encrypted PII.
+     * @returns The read model instances with decrypted PII values.
+     */
+    releaseMany<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]>;
 }

@@ -33,14 +33,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:^15.31.2":
-  version: 15.31.2
-  resolution: "@cratis/chronicle.contracts@npm:15.31.2"
+"@cratis/chronicle.contracts@npm:15.32.1":
+  version: 15.32.1
+  resolution: "@cratis/chronicle.contracts@npm:15.32.1"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.0.0"
     "@grpc/grpc-js": "npm:^1.12.4"
     nice-grpc: "npm:^2.1.0"
-  checksum: 10c0/d3a3ebb5684db5a46e1435b7d1358a0ee9cf042b3bc29507e44b033b290b519267356af0ab920c740f9722e59c5e87698d9a0699b2d85181dbb842489110dbe1
+  checksum: 10c0/4dcb9d564bfdc247363f11462805c85e94fb62b4b616cfa9c250716c40ccb0757cb2d90a1b08b42ffbe135b0cd60c48d18cd943cbb40dccbb22dda00b5e49288
+  languageName: node
+  linkType: hard
+
+"@cratis/chronicle.contracts@npm:^15.32.1":
+  version: 15.32.3
+  resolution: "@cratis/chronicle.contracts@npm:15.32.3"
+  dependencies:
+    "@bufbuild/protobuf": "npm:^2.0.0"
+    "@grpc/grpc-js": "npm:^1.12.4"
+    nice-grpc: "npm:^2.1.0"
+  checksum: 10c0/3a6876d6ef8a791ebbad3b7295df0bdd8c04a4715fa81b5d3baf16bc57a391abd4f8e688e728380e8da3c4663c0aa9a09f20e629d2411cf4e001bcb02bb105d0
   languageName: node
   linkType: hard
 
@@ -49,8 +60,8 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.12.0"
-    "@cratis/chronicle.contracts": "npm:^15.31.2"
-    "@cratis/fundamentals": "npm:^7.9.0"
+    "@cratis/chronicle.contracts": "npm:^15.32.1"
+    "@cratis/fundamentals": "npm:7.10.6"
     "@grpc/grpc-js": "npm:^1.14.0"
     "@opentelemetry/api": "npm:^1.9.1"
     "@types/node": "npm:^25.6.1"
@@ -61,12 +72,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/fundamentals@npm:^7.9.0":
-  version: 7.9.0
-  resolution: "@cratis/fundamentals@npm:7.9.0"
+"@cratis/fundamentals@npm:7.10.6":
+  version: 7.10.6
+  resolution: "@cratis/fundamentals@npm:7.10.6"
   dependencies:
     reflect-metadata: "npm:^0.2.2"
-  checksum: 10c0/9dc496fec9ea03f9a4de3faa2cf97c0da2f28f8dea5eae28f840967746fe2a0ef616be219354a6cbf1977837d04146aec7119d958100871bed2c5ab5249d23dc
+  checksum: 10c0/ee89d250165ac511d2eb0d04b516efffc524a02c8fc726901d9382032aac000ea6249a076fe2b5bdc84be30cc8d6aca8dc5587da02c3805d74ced977cea97d5d
   languageName: node
   linkType: hard
 
@@ -1599,7 +1610,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:^15.31.2"
+    "@cratis/chronicle.contracts": "npm:15.32.1"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft

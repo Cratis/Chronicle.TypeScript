@@ -11,6 +11,7 @@ import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicl
 
 import { EmployeePromoted, EmployeeMoved } from './events';
 import { EmployeeState } from './reducers';
+import { demonstrateCompliance, Customer } from './compliance';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
 
@@ -94,8 +95,12 @@ async function readModel(store: IEventStore, person: Person): Promise<void> {
     console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} @ ${state.address || 'no address yet'}`);
 }
 
+async function showCompliance(): Promise<void> {
+    await demonstrateCompliance();
+}
+
 function writeInstructions(): void {
-    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, R=Read model, T=Transactional update, Q=Quit.\n');
+    console.log('\nUse 1-3 to select employee. P=Promote, A=Move, R=Read model, T=Transactional update, C=Compliance info, Q=Quit.\n');
 }
 
 function writeSelectedEmployee(index: number): void {
@@ -149,6 +154,7 @@ async function run(): Promise<void> {
             if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
             if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
             if (key === 't') { await transact(store, selectedIndex, random); continue; }
+            if (key === 'c') { await showCompliance(); continue; }
         }
     } catch (error) {
         logger.error('Unhandled error', { error: String(error) });
