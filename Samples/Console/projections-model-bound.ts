@@ -15,30 +15,15 @@ import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } fr
 export class EmployeeDetails {
     id: Guid = Guid.empty;
 
-    @setFrom(EmployeeHired)
     firstName = '';
-
-    @setFrom(EmployeeHired)
     lastName = '';
 
-    @setFrom(EmployeeHired)
     @setFrom(EmployeePromoted, 'newTitle')
     title = '';
 
-    @setFrom(EmployeeAddressSet)
-    @setFrom(EmployeeMoved)
     address = '';
-
-    @setFrom(EmployeeAddressSet)
-    @setFrom(EmployeeMoved)
     city = '';
-
-    @setFrom(EmployeeAddressSet)
-    @setFrom(EmployeeMoved)
     zipCode = '';
-
-    @setFrom(EmployeeAddressSet)
-    @setFrom(EmployeeMoved)
     country = '';
 }
 
