@@ -119,12 +119,18 @@ export class ReadModels implements IReadModels {
             ReadModelKey: key
         });
 
-        return response.Snapshots.map(snapshot => ({
+        const snapshots: ReadModelSnapshot<TReadModel>[] = response.Snapshots.map(snapshot => ({
             readModel: this.deserializeReadModel(readModelType, snapshot.ReadModel),
             events: (snapshot.Events ?? []) as AppendedEvent[],
             occurred: snapshot.Occurred?.Value ? new Date(snapshot.Occurred.Value) : undefined,
             correlationId: snapshot.CorrelationId
         }));
+
+        if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
+            return this.releaseSnapshotInstances(readModelType, snapshots);
+        }
+
+        return snapshots;
     }
 
     /** @inheritdoc */
@@ -185,6 +191,15 @@ export class ReadModels implements IReadModels {
     async releaseMany<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]> {
         const releasePromises = instances.map(instance => this.release(readModelType, instance));
         return Promise.all(releasePromises);
+    }
+
+    private async releaseSnapshotInstances<TReadModel>(readModelType: Constructor<TReadModel>, snapshots: ReadModelSnapshot<TReadModel>[]): Promise<ReadModelSnapshot<TReadModel>[]> {
+        return Promise.all(
+            snapshots.map(async snapshot => ({
+                ...snapshot,
+                readModel: await this.release(readModelType, snapshot.readModel)
+            }))
+        );
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
