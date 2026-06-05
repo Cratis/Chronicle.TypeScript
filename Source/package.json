@@ -134,16 +134,16 @@
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.12.0",
-        "@cratis/chronicle.contracts": "^15.32.1",
-        "@cratis/fundamentals": "7.10.6",
-        "@grpc/grpc-js": "^1.14.0",
+        "@cratis/chronicle.contracts": "^15.33.1",
+        "@cratis/fundamentals": "7.14.0",
+        "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
-        "nice-grpc": "^2.1.12",
-        "nice-grpc-common": "^2.0.2",
+        "nice-grpc": "^2.1.16",
+        "nice-grpc-common": "^2.0.3",
         "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {
-        "@types/node": "^25.6.1",
+        "@types/node": "^25.9.1",
         "typescript": "^6.0.3"
     }
 }
