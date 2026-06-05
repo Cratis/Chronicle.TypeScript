@@ -12,6 +12,7 @@ import {
     FailedPartitionsDefinition,
     IdentitiesDefinition,
     JobsDefinition,
+    MaterializedReadModelsDefinition,
     NamespacesDefinition,
     ObserversDefinition,
     ProjectionsDefinition,
@@ -172,6 +173,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.readModels;
     }
 
+    get materializedReadModels() {
+        return this._services.materializedReadModels;
+    }
+
     get jobs() {
         return this._services.jobs;
     }
@@ -259,6 +264,7 @@ export class ChronicleConnection implements ChronicleServices {
             reducers: factory.create(ReducersDefinition, this._channel),
             projections: factory.create(ProjectionsDefinition, this._channel),
             readModels: factory.create(ReadModelsDefinition, this._channel),
+            materializedReadModels: factory.create(MaterializedReadModelsDefinition, this._channel),
             jobs: factory.create(JobsDefinition, this._channel),
             webhooks: factory.create(WebhooksDefinition, this._channel),
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),

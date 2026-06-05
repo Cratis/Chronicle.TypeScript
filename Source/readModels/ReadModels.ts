@@ -20,6 +20,8 @@ import { getReducerMetadata } from '../reducers/reducer';
 import { JsonSchemaGenerator } from '../schemas';
 import { WellKnownSinks } from '../sinks';
 import { getReadModelMetadata } from './readModel';
+import type { IMaterializedReadModels } from './IMaterializedReadModels';
+import { MaterializedReadModels } from './MaterializedReadModels';
 import type { IReadModels } from './IReadModels';
 import type { ReadModelChangeset } from './ReadModelChangeset';
 import type { ReadModelSnapshot } from './ReadModelSnapshot';
@@ -39,12 +41,16 @@ interface ResolvedReadModel {
  * Implements {@link IReadModels} by working with the Chronicle read-model gRPC service.
  */
 export class ReadModels implements IReadModels {
+    readonly materialized: IMaterializedReadModels;
+
     constructor(
         private readonly _eventStore: string,
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider
-    ) {}
+    ) {
+        this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
+    }
 
     /** @inheritdoc */
     async register<TReadModel>(readModelType?: Constructor<TReadModel>): Promise<void> {
@@ -73,7 +79,13 @@ export class ReadModels implements IReadModels {
             SessionId: sessionId ?? ''
         });
 
-        return this.deserializeReadModel(readModelType, response.ReadModel);
+        const instance = this.deserializeReadModel(readModelType, response.ReadModel);
+
+        if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
+            return this.release(readModelType, instance);
+        }
+
+        return instance;
     }
 
     /** @inheritdoc */
@@ -87,7 +99,13 @@ export class ReadModels implements IReadModels {
             EventCount: eventCount
         });
 
-        return response.Instances.map(instance => this.deserializeReadModel(readModelType, instance));
+        const instances = response.Instances.map(instance => this.deserializeReadModel(readModelType, instance));
+
+        if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
+            return this.releaseMany(readModelType, instances);
+        }
+
+        return instances;
     }
 
     /** @inheritdoc */
@@ -287,6 +305,21 @@ export class ReadModels implements IReadModels {
             return Object.create(readModelType.prototype) as TReadModel;
         }
         return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+    }
+
+    private schemaHasComplianceMetadata(schema: string): boolean {
+        try {
+            const parsed = JSON.parse(schema) as Record<string, unknown>;
+            const properties = parsed.properties as Record<string, Record<string, unknown>> | undefined;
+            if (!properties) {
+                return false;
+            }
+            return Object.values(properties).some(
+                property => Array.isArray(property.compliance) && (property.compliance as unknown[]).length > 0
+            );
+        } catch {
+            return false;
+        }
     }
 
     private extractSubject<TReadModel>(instance: TReadModel): string {

@@ -10,6 +10,7 @@ import type {
     FailedPartitionsClient,
     IdentitiesClient,
     JobsClient,
+    MaterializedReadModelsClient,
     NamespacesClient,
     ObserversClient,
     ProjectionsClient,
@@ -41,6 +42,7 @@ export interface ChronicleServices {
     reducers: ReducersClient;
     projections: ProjectionsClient;
     readModels: ReadModelsClient;
+    materializedReadModels: MaterializedReadModelsClient;
     jobs: JobsClient;
     webhooks: WebhooksClient;
     eventSeeding: EventSeedingClient;
