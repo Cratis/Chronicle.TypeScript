@@ -12,7 +12,7 @@ import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicl
 import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events';
 import { EmployeeState } from './reducers';
 import { Person, employees, emailFor } from './employees';
-import { demonstrateCompliance } from './compliance';
+import { registerCustomerWithPii, showCustomerReadModel } from './compliance';
 
 // Side-effect imports so the @constraint and @seeder decorators run and are
 // discovered and registered with the event store on connect.
@@ -115,10 +115,6 @@ async function readModel(store: IEventStore, person: Person): Promise<void> {
     console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} <${state.email || 'no email yet'}> @ ${state.address || 'no address yet'}`);
 }
 
-async function showCompliance(): Promise<void> {
-    await demonstrateCompliance();
-}
-
 function writeInstructions(): void {
     console.log([
         '',
@@ -126,7 +122,7 @@ function writeInstructions(): void {
         '  P = Promote          A = Move (change address)',
         '  E = Set email        U = Try to take the next employee\'s email (constraint violation)',
         '  R = Read model       T = Transactional update',
-        '  C = Compliance info (PII)',
+        '  C = Register customer with PII   V = View customer PII read model',
         '  H or ? = Show this menu          Q = Quit',
         ''
     ].join('\n'));
@@ -185,7 +181,8 @@ async function run(): Promise<void> {
             if (key === 'u') { await stealEmail(store, selectedIndex); continue; }
             if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
             if (key === 't') { await transact(store, selectedIndex, random); continue; }
-            if (key === 'c') { await showCompliance(); continue; }
+            if (key === 'c') { await registerCustomerWithPii(store); continue; }
+            if (key === 'v') { await showCustomerReadModel(store); continue; }
             if (key === 'h' || key === '?') { writeInstructions(); continue; }
         }
     } catch (error) {

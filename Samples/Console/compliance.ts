@@ -2,30 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { field } from '@cratis/fundamentals';
-import { readModel, reducer, pii } from '@cratis/chronicle';
+import { ConceptAs, field } from '@cratis/fundamentals';
+import { readModel, reducer, pii, IEventStore } from '@cratis/chronicle';
 import { eventType } from '@cratis/chronicle';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/ComplianceExample' });
-
-/**
- * Temporary placeholder for ConceptAs until @cratis/fundamentals publishes it.
- * 
- * ConceptAs provides strong typing for domain concepts and proper serialization.
- * This placeholder demonstrates the pattern - replace with the official implementation
- * when available in @cratis/fundamentals.
- */
-class ConceptAs<T> {
-    constructor(public readonly value: T = undefined as any) {}
-    
-    toString(): string {
-        return String(this.value);
-    }
-    
-    valueOf(): T {
-        return this.value;
-    }
-}
 
 /**
  * Customer email address - marked as PII at the type level.
@@ -40,42 +21,66 @@ class ConceptAs<T> {
  * - Seamless flow of PII metadata from events to read models
  */
 @pii('Customer email address')
-class CustomerEmailConcept extends ConceptAs<string> {}
+class CustomerEmailConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerEmail = CustomerEmailConcept | string;
 
 /**
  * Customer full name - marked as PII at the type level.
  */
 @pii('Customer full legal name')
-class CustomerFullNameConcept extends ConceptAs<string> {}
+class CustomerFullNameConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerFullName = CustomerFullNameConcept | string;
 
 /**
  * Customer phone number - marked as PII at the type level.
  */
 @pii('Customer phone contact number')
-class CustomerPhoneNumberConcept extends ConceptAs<string> {}
+class CustomerPhoneNumberConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerPhoneNumber = CustomerPhoneNumberConcept | string;
 
 /**
  * Customer street address - marked as PII at the type level.
  */
 @pii('Customer street address')
-class CustomerStreetAddressConcept extends ConceptAs<string> {}
+class CustomerStreetAddressConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerStreetAddress = CustomerStreetAddressConcept | string;
 
 /**
  * Customer city - marked as PII at the type level.
  */
 @pii('City of residence')
-class CustomerCityConcept extends ConceptAs<string> {}
+class CustomerCityConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerCity = CustomerCityConcept | string;
 
 /**
  * Customer postal code - marked as PII at the type level.
  */
 @pii('Postal code')
-class CustomerPostalCodeConcept extends ConceptAs<string> {}
+class CustomerPostalCodeConcept extends ConceptAs<string> {
+    constructor(value: string) {
+        super(value);
+    }
+}
 export type CustomerPostalCode = CustomerPostalCodeConcept | string;
 
 /**
@@ -160,37 +165,37 @@ export class Customer {
      * Customer full name - automatically PII because of CustomerFullNameConcept type.
      */
     @field(CustomerFullNameConcept)
-    fullName: CustomerFullName = new CustomerFullNameConcept();
+    fullName: CustomerFullName = '';
 
     /**
      * Primary contact email - automatically PII because of CustomerEmailConcept type.
      */
     @field(CustomerEmailConcept)
-    email: CustomerEmail = new CustomerEmailConcept();
+    email: CustomerEmail = '';
 
     /**
      * Primary phone number - automatically PII because of CustomerPhoneNumberConcept type.
      */
     @field(CustomerPhoneNumberConcept)
-    phoneNumber: CustomerPhoneNumber = new CustomerPhoneNumberConcept();
+    phoneNumber: CustomerPhoneNumber = '';
 
     /**
      * Street address - automatically PII because of CustomerStreetAddressConcept type.
      */
     @field(CustomerStreetAddressConcept)
-    streetAddress: CustomerStreetAddress = new CustomerStreetAddressConcept();
+    streetAddress: CustomerStreetAddress = '';
 
     /**
      * City - automatically PII because of CustomerCityConcept type.
      */
     @field(CustomerCityConcept)
-    city: CustomerCity = new CustomerCityConcept();
+    city: CustomerCity = '';
 
     /**
      * Postal code - automatically PII because of CustomerPostalCodeConcept type.
      */
     @field(CustomerPostalCodeConcept)
-    postalCode: CustomerPostalCode = new CustomerPostalCodeConcept();
+    postalCode: CustomerPostalCode = '';
 
     /**
      * Country - NOT a PII type, so not encrypted.
@@ -309,57 +314,95 @@ export class CustomerReducer {
 }
 
 /**
- * Example usage demonstrating compliance features with ConceptAs.
- * 
- * This sample demonstrates the cross-cutting nature of type-level @pii decorators on ConceptAs types:
- * 
- * 1. PII ConceptAs types (CustomerEmail, CustomerFullName, etc.) are marked with @pii ONCE
- * 2. These types extend ConceptAs<string> for strong typing and proper serialization
- * 3. These types are used in both events and read models
- * 4. The @pii metadata flows automatically through the ConceptAs type system
- * 5. No need to mark individual properties with @pii decorators
- * 6. The Chronicle Kernel automatically encrypts properties of PII types
- * 7. JsonSerializer ensures proper serialization/deserialization of ConceptAs instances
- * 
- * ConceptAs Benefits:
- * - Strong typing prevents mixing up different domain concepts (e.g., email vs. phone number)
- * - Automatic serialization to primitive values and deserialization back to typed instances
- * - Seamless integration with Chronicle's compliance and encryption features
- * - Self-documenting code with explicit domain types
- * 
- * IMPORTANT: The release() method for decrypting PII is not yet available
- * and requires an updated version of @cratis/chronicle.contracts.
+ * A fixed customer whose personally identifiable information flows through the
+ * PII-typed events and into the encrypted {@link Customer} read model. Using a
+ * stable identifier lets us append the events under one key and read the
+ * resulting read model back by the same key under another.
  */
-export async function demonstrateCompliance() {
-    logger.info('=== Compliance Feature Demonstration with ConceptAs ===');
-    logger.info('');
-    logger.info('This sample demonstrates Chronicle\'s cross-cutting compliance features with ConceptAs:');
-    logger.info('');
-    logger.info('1. Type-Level @pii Decorators on ConceptAs:');
-    logger.info('   - CustomerEmailConcept, CustomerFullNameConcept, etc. extend ConceptAs<string>');
-    logger.info('   - Each ConceptAs class is marked with @pii decorator');
-    logger.info('   - Exported as union types for convenient primitive assignment');
-    logger.info('   - These types carry their compliance metadata wherever they\'re used');
-    logger.info('   - No need to mark individual properties in events or read models');
-    logger.info('');
-    logger.info('2. Automatic Flow from Events to Read Models:');
-    logger.info('   - Events use PII ConceptAs types: CustomerRegistered has CustomerEmail property');
-    logger.info('   - Read models use the same PII ConceptAs types: Customer has CustomerEmail property');
-    logger.info('   - The @pii metadata flows automatically through the ConceptAs type system');
-    logger.info('   - JsonSerializer handles serialization/deserialization automatically');
-    logger.info('');
-    logger.info('3. Schema Compliance Metadata:');
-    logger.info('   - Each PII ConceptAs type includes a compliance array in the JSON schema');
-    logger.info('   - The metadataType is the PII GUID: cae5580e-83d6-44dc-9d7a-a72e8a2f17d7');
-    logger.info('   - The details field explains why the type is classified as PII');
-    logger.info('');
-    logger.info('4. ConceptAs Benefits:');
-    logger.info('   - Strong typing: email: CustomerEmail vs phoneNumber: CustomerPhoneNumber');
-    logger.info('   - Automatic serialization: ConceptAs instances serialize to primitive values');
-    logger.info('   - Type safety: prevents mixing up different domain concepts');
-    logger.info('   - Self-documenting: explicit domain types make code clear');
-    logger.info('');
-    logger.info('Future: release() method will allow decrypting PII when authorized');
-    logger.info('Example: const decrypted = await eventStore.readModels.release(Customer, encrypted);');
-    logger.info('');
+export const sampleCustomer = {
+    id: 'c0000001-0000-0000-0000-000000000000',
+    fullName: 'Eve Jackson',
+    email: 'eve.jackson@example.com',
+    phoneNumber: '+1-202-555-0143',
+    streetAddress: '742 Evergreen Terrace',
+    city: 'Springfield',
+    postalCode: '49007',
+    country: 'USA'
+};
+
+/**
+ * Appends a sequence of PII-carrying events for the {@link sampleCustomer}.
+ *
+ * The event properties are typed with @pii ConceptAs types, so when the
+ * {@link CustomerReducer} projects them into the {@link Customer} read model the
+ * Chronicle Kernel encrypts the PII properties automatically — no per-property
+ * annotations are needed at the call site.
+ *
+ * @param store - The event store to append to.
+ */
+export async function registerCustomerWithPii(store: IEventStore): Promise<void> {
+    const registered = new CustomerRegistered();
+    registered.customerId = sampleCustomer.id;
+    registered.fullName = sampleCustomer.fullName;
+    registered.email = sampleCustomer.email;
+    registered.phoneNumber = sampleCustomer.phoneNumber;
+
+    const addressUpdated = new CustomerAddressUpdated();
+    addressUpdated.customerId = sampleCustomer.id;
+    addressUpdated.streetAddress = sampleCustomer.streetAddress;
+    addressUpdated.city = sampleCustomer.city;
+    addressUpdated.postalCode = sampleCustomer.postalCode;
+    addressUpdated.country = sampleCustomer.country;
+
+    const results = await store.eventLog.appendMany(sampleCustomer.id, [registered, addressUpdated]);
+    const failures = results.filter(result => !result.isSuccess);
+    if (failures.length > 0) {
+        const violations = failures.flatMap(result => result.constraintViolations.map(violation => violation.message));
+        console.log(`[pii] Could not register ${sampleCustomer.fullName}: ${violations.join('; ')}`);
+        return;
+    }
+
+    const lastSequence = results[results.length - 1].sequenceNumber.value;
+    console.log(`[pii] Registered ${sampleCustomer.fullName} (${sampleCustomer.id}) with PII events up to sequence ${lastSequence}`);
+}
+
+/** Renders a single read model field, falling back to a placeholder when empty. */
+const formatField = (label: string, value: unknown, isPii: boolean): string => {
+    const text = value?.toString() ?? '';
+    const display = text.length > 0 ? text : '(empty)';
+    return `  ${label.padEnd(15)}: ${display}${isPii ? '   [PII]' : ''}`;
+};
+
+/**
+ * Reads the {@link Customer} read model for the {@link sampleCustomer} back via
+ * {@link IReadModels.getInstanceById} and prints it in a human-friendly layout.
+ *
+ * PII properties are encrypted at rest, so the values printed for the [PII]
+ * fields are the encrypted representations — exactly what is stored. Decrypting
+ * them would go through `store.readModels.release(Customer, instance)`.
+ *
+ * @param store - The event store to read from.
+ */
+export async function showCustomerReadModel(store: IEventStore): Promise<void> {
+    const customer = await store.readModels.getInstanceById(Customer, sampleCustomer.id);
+
+    if (!customer.id) {
+        console.log(`[pii] No Customer read model found for ${sampleCustomer.id}. Append the PII events first.`);
+        return;
+    }
+
+    console.log([
+        `Customer read model for ${customer.id}:`,
+        formatField('Full name', customer.fullName, true),
+        formatField('Email', customer.email, true),
+        formatField('Phone number', customer.phoneNumber, true),
+        formatField('Street address', customer.streetAddress, true),
+        formatField('City', customer.city, true),
+        formatField('Postal code', customer.postalCode, true),
+        formatField('Country', customer.country, false),
+        formatField('Customer number', customer.customerNumber, false),
+        formatField('Account status', customer.accountStatus, false),
+        formatField('Total orders', customer.totalOrders, false),
+        '  PII fields are stored encrypted at rest — values above are the encrypted form.'
+    ].join('\n'));
 }
