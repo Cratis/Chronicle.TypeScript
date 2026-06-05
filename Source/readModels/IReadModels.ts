@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
+import type { IMaterializedReadModels } from './IMaterializedReadModels';
 import type { ReadModelChangeset } from './ReadModelChangeset';
 import type { ReadModelSnapshot } from './ReadModelSnapshot';
 
@@ -9,6 +10,11 @@ import type { ReadModelSnapshot } from './ReadModelSnapshot';
  * Defines a system that works with read models in the event store.
  */
 export interface IReadModels {
+    /**
+     * Gets the {@link IMaterializedReadModels} for working with materialized read model instances from the sink.
+     */
+    readonly materialized: IMaterializedReadModels;
+
     /**
      * Registers all discovered read models.
      * @returns A promise that resolves when registration completes.
