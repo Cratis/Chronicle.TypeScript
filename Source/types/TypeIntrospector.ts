@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { Constructor, Fields } from '@cratis/fundamentals';
 
 /** Metadata key for tracked schema properties on a target type. */
 const TRACKED_PROPERTIES_METADATA_KEY = 'chronicle:typeIntrospection:properties';
@@ -35,26 +36,35 @@ export class TypeIntrospector {
 
     /**
      * Gets members and their runtime types for a class.
-     * Members are discovered from tracked properties, the properties present on a
-     * default-constructed instance, and constructor parameters. Discovering members
-     * from the default-constructed instance lets field-based types resolve their member
-     * types from default values even when decorator metadata ('design:paramtypes') is
-     * unavailable — for example under esbuild/tsx, which does not emit it. This gives
-     * event types the same schema resolution as read models.
+     * Members are discovered from explicit `@field` decorators, tracked properties, the
+     * properties present on a default-constructed instance, and constructor parameters.
+     *
+     * `@field` declarations are the authoritative source: they carry the exact declared
+     * type (including `ConceptAs` types) regardless of whether the property has an
+     * initializer, so event types — whose properties are typically declared with definite
+     * assignment (`prop!: T`) and no default value — resolve their schema just like read
+     * models. Default-value and `design:type` resolution remain as fallbacks for plain
+     * classes that don't use `@field`, and keep working even under esbuild/tsx, which does
+     * not emit decorator metadata ('design:type'/'design:paramtypes').
      * @param target - The class constructor to inspect.
      * @returns A map of member name to runtime type.
      */
     static getMembers(target: Function): Map<string, Function | undefined> {
         const members = new Map<string, Function | undefined>();
         const defaultValues = this.tryGetDefaultPropertyValues(target);
+        const fieldTypes = this.getFieldTypes(target);
 
         const propertyNames = new Set<string>([
             ...this.getTrackedProperties(target),
+            ...fieldTypes.keys(),
             ...Object.keys(defaultValues)
         ]);
 
         for (const property of propertyNames) {
-            let runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+            let runtimeType = fieldTypes.get(property);
+            if (!runtimeType || runtimeType === Object) {
+                runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+            }
             if (!runtimeType || runtimeType === Object) {
                 runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]);
             }
@@ -75,6 +85,15 @@ export class TypeIntrospector {
         }
 
         return members;
+    }
+
+    private static getFieldTypes(target: Function): Map<string, Function | undefined> {
+        const fieldTypes = new Map<string, Function | undefined>();
+        for (const field of Fields.getFieldsForType(target as Constructor)) {
+            fieldTypes.set(field.name, field.type);
+        }
+
+        return fieldTypes;
     }
 
     private static tryGetDefaultPropertyValues(target: Function): Record<string, unknown> {

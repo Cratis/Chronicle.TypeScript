@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { Guid } from '@cratis/fundamentals';
+import { ConceptAs, Guid } from '@cratis/fundamentals';
 import { JsonSchema } from './JsonSchema';
 import { TypeIntrospector } from '../types';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver';
@@ -98,11 +98,34 @@ export class JsonSchemaGenerator {
             return {};
         }
 
+        // A ConceptAs<T> serializes as its underlying primitive value, so the schema must
+        // describe that primitive rather than the wrapper object. The generic argument T is
+        // not available at runtime, so resolve it from the 'value' property's design:type
+        // when present (ts-node/webpack with emitDecoratorMetadata) and fall back to string
+        // when it is not (esbuild/tsx) — string-backed concepts are by far the common case.
+        if (this.isConceptAs(runtimeType)) {
+            const valueType = Reflect.getMetadata('design:type', runtimeType.prototype, 'value') as Function | undefined;
+            return this.mapRuntimeTypeToSchema(valueType ?? String);
+        }
+
         if (runtimeType !== Object) {
             return this.generate(runtimeType);
         }
 
         return { type: 'object' };
+    }
+
+    private static isConceptAs(runtimeType: Function): boolean {
+        let current: Function | null = runtimeType;
+        while (current && current !== Function.prototype) {
+            if (current === ConceptAs) {
+                return true;
+            }
+
+            current = Object.getPrototypeOf(current) as Function | null;
+        }
+
+        return false;
     }
 
     private static getKnownTypeFormat(runtimeType: Function | undefined): JsonSchema | undefined {
