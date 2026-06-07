@@ -7,7 +7,7 @@
 import './telemetry';
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
-import { ChronicleClient, ChronicleOptions, IEventStore } from '@cratis/chronicle';
+import { ChronicleClient, ChronicleOptions, IEventStore, Identity, identityProvider, causationManager, CausationType } from '@cratis/chronicle';
 
 import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events';
 import { EmployeeState } from './reducers';
@@ -20,6 +20,14 @@ import './constraints';
 import './seeding';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
+
+// Three mock users whose identity is attached to every append they trigger.
+// Press I in the console to cycle through them.
+const users = [
+    new Identity('u0000001-0000-0000-0000-000000000000', 'Alice Smith', 'alice.smith'),
+    new Identity('u0000002-0000-0000-0000-000000000000', 'Bob Jones',   'bob.jones'),
+    Identity.system
+];
 
 const titles = [
     'Software Engineer',
@@ -46,6 +54,12 @@ class Random {
     }
 }
 
+function setupCausation(user: Identity, commandName: string, properties: Record<string, string>): void {
+    identityProvider.setCurrentIdentity(user);
+    causationManager.defineRoot({ source: 'console-sample' });
+    causationManager.add(new CausationType(commandName), properties);
+}
+
 async function logSeededEmployeesStatus(store: IEventStore): Promise<void> {
     for (const employee of employees) {
         const hasEvents = await store.eventLog.hasEventsFor(employee.id);
@@ -53,25 +67,28 @@ async function logSeededEmployeesStatus(store: IEventStore): Promise<void> {
     }
 }
 
-async function promote(store: IEventStore, person: Person, random: Random): Promise<void> {
+async function promote(store: IEventStore, person: Person, user: Identity, random: Random): Promise<void> {
     const title = titles[random.next(titles.length)];
+    setupCausation(user, 'ConsoleSample.Commands.Promote', { employeeId: person.id });
     const result = await store.eventLog.append(person.id, new EmployeePromoted(title));
-    console.log(`[${person.id}] Promoted ${person.firstName} ${person.lastName} to '${title}' at sequence ${result.sequenceNumber.value}`);
+    console.log(`[${person.id}] Promoted ${person.firstName} ${person.lastName} to '${title}' at sequence ${result.sequenceNumber.value}  [caused-by: ${user.userName}]`);
 }
 
-async function move(store: IEventStore, person: Person, random: Random): Promise<void> {
+async function move(store: IEventStore, person: Person, user: Identity, random: Random): Promise<void> {
     const addr = addresses[random.next(addresses.length)];
+    setupCausation(user, 'ConsoleSample.Commands.Move', { employeeId: person.id });
     const result = await store.eventLog.append(person.id, new EmployeeMoved(addr.address, addr.city, addr.zipCode, addr.country));
-    console.log(`[${person.id}] Moved ${person.firstName} ${person.lastName} to ${addr.address}, ${addr.city} at sequence ${result.sequenceNumber.value}`);
+    console.log(`[${person.id}] Moved ${person.firstName} ${person.lastName} to ${addr.address}, ${addr.city} at sequence ${result.sequenceNumber.value}  [caused-by: ${user.userName}]`);
 }
 
 // Sets the selected employee's own unique email address. Succeeds because the email
 // belongs to that employee (re-setting the same value for the same event source is allowed).
-async function setEmail(store: IEventStore, person: Person): Promise<void> {
+async function setEmail(store: IEventStore, person: Person, user: Identity): Promise<void> {
     const email = emailFor(person);
+    setupCausation(user, 'ConsoleSample.Commands.SetEmail', { employeeId: person.id });
     const result = await store.eventLog.append(person.id, new EmployeeEmailSet(email));
     if (result.isSuccess) {
-        console.log(`[${person.id}] Set ${person.firstName} ${person.lastName}'s email to ${email} at sequence ${result.sequenceNumber.value}`);
+        console.log(`[${person.id}] Set ${person.firstName} ${person.lastName}'s email to ${email} at sequence ${result.sequenceNumber.value}  [caused-by: ${user.userName}]`);
     } else {
         console.log(`[${person.id}] Could not set email: ${result.constraintViolations.map(v => v.message).join('; ')}`);
     }
@@ -79,25 +96,28 @@ async function setEmail(store: IEventStore, person: Person): Promise<void> {
 
 // Attempts to give the selected employee the next employee's email address, which the
 // UniqueEmployeeEmail constraint rejects because that email is already owned elsewhere.
-async function stealEmail(store: IEventStore, selectedIndex: number): Promise<void> {
+async function stealEmail(store: IEventStore, selectedIndex: number, user: Identity): Promise<void> {
     const person = employees[selectedIndex];
     const victim = employees[(selectedIndex + 1) % employees.length];
     const email = emailFor(victim);
+    setupCausation(user, 'ConsoleSample.Commands.SetEmail', { employeeId: person.id });
     const result = await store.eventLog.append(person.id, new EmployeeEmailSet(email));
     if (result.isSuccess) {
-        console.log(`[${person.id}] Unexpectedly took ${email} at sequence ${result.sequenceNumber.value}`);
+        console.log(`[${person.id}] Unexpectedly took ${email} at sequence ${result.sequenceNumber.value}  [caused-by: ${user.userName}]`);
     } else {
         console.log(`[${person.id}] Rejected taking ${victim.firstName}'s email (${email}): ${result.constraintViolations.map(v => v.message).join('; ')}`);
     }
 }
 
-async function transact(store: IEventStore, selectedIndex: number, random: Random): Promise<void> {
+async function transact(store: IEventStore, selectedIndex: number, user: Identity, random: Random): Promise<void> {
     const selected = employees[selectedIndex];
     const alsoUpdate = employees[(selectedIndex + 1) % employees.length];
 
     const selectedTitle = titles[random.next(titles.length)];
     const selectedAddress = addresses[random.next(addresses.length)];
     const secondTitle = titles[random.next(titles.length)];
+
+    setupCausation(user, 'ConsoleSample.Commands.BulkUpdate', { employees: `${selected.id},${alsoUpdate.id}` });
 
     const unitOfWork = store.unitOfWorkManager.begin();
     await store.eventLog.transactional.append(selected.id, new EmployeePromoted(selectedTitle));
@@ -107,7 +127,7 @@ async function transact(store: IEventStore, selectedIndex: number, random: Rando
     await store.eventLog.transactional.append(alsoUpdate.id, new EmployeePromoted(secondTitle));
     await unitOfWork.commit();
 
-    console.log(`[transaction] Committed staged events for ${selected.firstName} ${selected.lastName} and ${alsoUpdate.firstName} ${alsoUpdate.lastName}`);
+    console.log(`[transaction] Committed staged events for ${selected.firstName} ${selected.lastName} and ${alsoUpdate.firstName} ${alsoUpdate.lastName}  [caused-by: ${user.userName}]`);
 }
 
 async function readModel(store: IEventStore, person: Person): Promise<void> {
@@ -123,14 +143,22 @@ function writeInstructions(): void {
         '  E = Set email        U = Try to take the next employee\'s email (constraint violation)',
         '  R = Read model       T = Transactional update',
         '  C = Register customer with PII   V = View customer PII read model',
+        '  I = Switch user (cycle: Alice Smith → Bob Jones → System)',
         '  H or ? = Show this menu          Q = Quit',
         ''
     ].join('\n'));
 }
 
-function writeSelectedEmployee(index: number): void {
-    const person = employees[index];
-    console.log(`Selected [${index + 1}] ${person.firstName} ${person.lastName} (${person.id})`);
+function writeSelectedEmployee(employeeIndex: number, userIndex: number): void {
+    const person = employees[employeeIndex];
+    const user = users[userIndex];
+    console.log(`Selected  [${employeeIndex + 1}] ${person.firstName} ${person.lastName} (${person.id})`);
+    console.log(`Acting as [${userIndex + 1}] ${user.name} (@${user.userName})`);
+}
+
+function writeSelectedUser(userIndex: number): void {
+    const user = users[userIndex];
+    console.log(`\nSwitched to user [${userIndex + 1}] ${user.name} (@${user.userName})`);
 }
 
 async function readKey(): Promise<string> {
@@ -155,9 +183,10 @@ async function run(): Promise<void> {
 
         const random = new Random();
         let selectedIndex = 0;
+        let userIndex = 0;
 
         writeInstructions();
-        writeSelectedEmployee(selectedIndex);
+        writeSelectedEmployee(selectedIndex, userIndex);
 
         if (process.stdin.isTTY) {
             process.stdin.setRawMode(true);
@@ -172,15 +201,16 @@ async function run(): Promise<void> {
                 break;
             }
 
-            if (key === '1') { selectedIndex = 0; writeSelectedEmployee(selectedIndex); continue; }
-            if (key === '2') { selectedIndex = 1; writeSelectedEmployee(selectedIndex); continue; }
-            if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex); continue; }
-            if (key === 'p') { await promote(store, employees[selectedIndex], random); continue; }
-            if (key === 'a') { await move(store, employees[selectedIndex], random); continue; }
-            if (key === 'e') { await setEmail(store, employees[selectedIndex]); continue; }
-            if (key === 'u') { await stealEmail(store, selectedIndex); continue; }
+            if (key === '1') { selectedIndex = 0; writeSelectedEmployee(selectedIndex, userIndex); continue; }
+            if (key === '2') { selectedIndex = 1; writeSelectedEmployee(selectedIndex, userIndex); continue; }
+            if (key === '3') { selectedIndex = 2; writeSelectedEmployee(selectedIndex, userIndex); continue; }
+            if (key === 'i') { userIndex = (userIndex + 1) % users.length; writeSelectedUser(userIndex); continue; }
+            if (key === 'p') { await promote(store, employees[selectedIndex], users[userIndex], random); continue; }
+            if (key === 'a') { await move(store, employees[selectedIndex], users[userIndex], random); continue; }
+            if (key === 'e') { await setEmail(store, employees[selectedIndex], users[userIndex]); continue; }
+            if (key === 'u') { await stealEmail(store, selectedIndex, users[userIndex]); continue; }
             if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
-            if (key === 't') { await transact(store, selectedIndex, random); continue; }
+            if (key === 't') { await transact(store, selectedIndex, users[userIndex], random); continue; }
             if (key === 'c') { await registerCustomerWithPii(store); continue; }
             if (key === 'v') { await showCustomerReadModel(store); continue; }
             if (key === 'h' || key === '?') { writeInstructions(); continue; }
