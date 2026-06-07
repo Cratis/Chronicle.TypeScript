@@ -148,7 +148,7 @@ async function run(): Promise<void> {
     const client = new ChronicleClient(options);
 
     try {
-        const store = await client.getEventStore('TestStore');
+        const store = await client.getEventStore('TestStoreTS');
         logger.info('Event store ready', { name: store.name.value, namespace: store.namespace.value });
 
         await logSeededEmployeesStatus(store);
