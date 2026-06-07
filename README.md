@@ -1,6 +1,6 @@
 # Chronicle TypeScript Client
 
-A TypeScript-idiomatic client for [Cratis Chronicle](https://github.com/Cratis/Chronicle) — the open source event-sourcing kernel.
+A TypeScript-idiomatic client for [Cratis Chronicle](https://github.com/Cratis/Chronicle).
 
 ## Overview
 
