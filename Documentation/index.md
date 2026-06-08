@@ -19,6 +19,7 @@ Welcome to the Chronicle TypeScript client documentation.
 - [Reactors](./reactors.md) — Reacting to events with the `@reactor` decorator
 - [Reducers](./reducers.md) — Folding events into state with the `@reducer` decorator
 - [Read Models](./read-models.md) — Querying and watching read model instances from an event store
+- [Sinks](./sinks.md) — Configuring where read models are persisted
 - [Jobs](./jobs.md) — Managing Chronicle jobs from an event store
 - [Webhooks](./webhooks.md) — Registering and discovering client webhooks
 - [Seeding](./seeding.md) — Seeding initial events with the `@seeder` decorator
