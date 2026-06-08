@@ -66,7 +66,8 @@ export class EventStore implements IEventStore {
         readonly name: EventStoreName,
         readonly namespace: EventStoreNamespaceName,
         private readonly _connection: ChronicleConnection,
-        lifecycle: ConnectionLifecycle
+        lifecycle: ConnectionLifecycle,
+        defaultSinkTypeId: string
     ) {
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
@@ -76,10 +77,10 @@ export class EventStore implements IEventStore {
         const artifacts = DefaultClientArtifactsProvider.default;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
-        this.projections = new Projections(name.value, _connection, artifacts);
+        this.projections = new Projections(name.value, _connection, artifacts, defaultSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle);
-        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle);
-        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts);
+        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
+        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);

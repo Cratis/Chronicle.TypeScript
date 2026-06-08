@@ -9,7 +9,7 @@ import {
     ReadModelObserverType as ContractReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
-import { JsonSerializer } from '@cratis/fundamentals';
+import { Guid, JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { toContractsGuid } from '../connection/Guid';
 import { ChronicleConnection } from '../connection';
@@ -18,7 +18,6 @@ import { getProjectionMetadata } from '../projections/declarative/projection';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent';
 import { getReducerMetadata } from '../reducers/reducer';
 import { JsonSchemaGenerator } from '../schemas';
-import { WellKnownSinks } from '../sinks';
 import { getReadModelMetadata } from './readModel';
 import type { IMaterializedReadModels } from './IMaterializedReadModels';
 import { MaterializedReadModels } from './MaterializedReadModels';
@@ -47,7 +46,8 @@ export class ReadModels implements IReadModels {
         private readonly _eventStore: string,
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
-        private readonly _clientArtifacts: IClientArtifactsProvider
+        private readonly _clientArtifacts: IClientArtifactsProvider,
+        private readonly _defaultSinkTypeId: string
     ) {
         this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
     }
@@ -294,8 +294,8 @@ export class ReadModels implements IReadModels {
             ContainerName: readModel.identifier,
             DisplayName: readModel.identifier,
             Sink: {
-                ConfigurationId: toContractsGuid(WellKnownSinks.Null),
-                TypeId: toContractsGuid(WellKnownSinks.MongoDB)
+                ConfigurationId: toContractsGuid(Guid.empty),
+                TypeId: this._defaultSinkTypeId
             },
             Schema: readModel.schema,
             Indexes: [],

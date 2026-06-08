@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
-import { Constructor } from '@cratis/fundamentals';
+import { Constructor, Guid } from '@cratis/fundamentals';
 import { ObservationState, ReadModelObserverType, ReducerMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
@@ -11,7 +11,6 @@ import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { WellKnownSinks } from '../sinks';
 import { IReducers } from './IReducers';
 import { getReducerMetadata } from './reducer';
 import { getReadModelMetadata } from '../readModels';
@@ -105,13 +104,15 @@ export class Reducers implements IReducers {
      * @param _eventStoreName - The name of the event store.
      * @param _namespace - The namespace within the event store.
      * @param lifecycle - The connection lifecycle used to react to disconnect events.
+     * @param _defaultSinkTypeId - The default sink type identifier used when registering read models.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _connection: ChronicleConnection,
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
-        lifecycle: ConnectionLifecycle
+        lifecycle: ConnectionLifecycle,
+        private readonly _defaultSinkTypeId: string
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -168,8 +169,8 @@ export class Reducers implements IReducers {
                 ContainerName: readModelName,
                 DisplayName: readModelName,
                 Sink: {
-                    ConfigurationId: toContractsGuid(WellKnownSinks.Null),
-                    TypeId: toContractsGuid(WellKnownSinks.MongoDB)
+                    ConfigurationId: toContractsGuid(Guid.empty),
+                    TypeId: this._defaultSinkTypeId
                 },
                 Schema: this.getReducerSchema(reducerType, readModelName),
                 Indexes: [],
@@ -262,8 +263,8 @@ export class Reducers implements IReducers {
                         ReadModel: readModelName,
                         IsActive: true,
                         Sink: {
-                            TypeId: toContractsGuid(WellKnownSinks.MongoDB),
-                            ConfigurationId: toContractsGuid(WellKnownSinks.Null)
+                            TypeId: this._defaultSinkTypeId,
+                            ConfigurationId: toContractsGuid(Guid.empty)
                         },
                         Tags: [],
                         Filters: {
