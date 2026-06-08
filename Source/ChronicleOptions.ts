@@ -3,6 +3,7 @@
 
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts';
 import { ChronicleConnectionString } from './connection';
+import { WellKnownSinks } from './sinks';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;
@@ -11,11 +12,13 @@ type ChronicleOptionsConstructorParams = {
     softwareCommit?: string;
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
+    defaultSinkTypeId?: string;
 };
 
 type ChronicleOptionsFactoryParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
+    defaultSinkTypeId?: string;
 };
 
 /**
@@ -54,6 +57,13 @@ export class ChronicleOptions {
      */
     readonly discoveryPatterns: string[];
 
+    /**
+     * The default sink type identifier used when registering projections, reducers and read models.
+     * Defaults to {@link WellKnownSinks.MongoDB}. Set to {@link WellKnownSinks.SQL} to persist read
+     * models into a SQL database.
+     */
+    readonly defaultSinkTypeId: string;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -71,6 +81,7 @@ export class ChronicleOptions {
             '!**/*.spec.ts',
             '!**/*.test.ts'
         ];
+        this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
     }
 
     /**
@@ -85,7 +96,12 @@ export class ChronicleOptions {
         const parsed = typeof connectionString === 'string'
             ? new ChronicleConnectionString(connectionString)
             : connectionString;
-        return new ChronicleOptions({ connectionString: parsed, clientArtifactsProvider: options?.clientArtifactsProvider, discoveryPatterns: options?.discoveryPatterns });
+        return new ChronicleOptions({
+            connectionString: parsed,
+            clientArtifactsProvider: options?.clientArtifactsProvider,
+            discoveryPatterns: options?.discoveryPatterns,
+            defaultSinkTypeId: options?.defaultSinkTypeId
+        });
     }
 
     /**

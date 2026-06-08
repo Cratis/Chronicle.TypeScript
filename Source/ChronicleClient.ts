@@ -129,7 +129,7 @@ export class ChronicleClient implements IChronicleClient {
                     });
                     await this._connection.eventStores.ensure({ Name: storeName.value });
 
-                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle);
+                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId);
                     this._stores.set(key, created);
 
                     await this.registerArtifactsForStore(created, 'new-store');

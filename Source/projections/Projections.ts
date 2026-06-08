@@ -6,14 +6,13 @@ import {
     AutoMap,
     ProjectionOwner
 } from '@cratis/chronicle.contracts';
-import { Constructor } from '@cratis/fundamentals';
+import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { getReadModelMetadata } from '../readModels';
-import { WellKnownSinks } from '../sinks';
 import { TypeIntrospector } from '../types';
 import { IProjections } from './IProjections';
 import { getProjectionMetadata } from './declarative/projection';
@@ -63,7 +62,8 @@ export class Projections implements IProjections {
     constructor(
         private readonly _eventStore: string,
         private readonly _connection: ChronicleConnection,
-        private readonly _clientArtifacts: IClientArtifactsProvider
+        private readonly _clientArtifacts: IClientArtifactsProvider,
+        private readonly _defaultSinkTypeId: string
     ) {}
 
     /** @inheritdoc */
@@ -184,8 +184,8 @@ export class Projections implements IProjections {
                 ContainerName: readModelIdentifier,
                 DisplayName: readModelIdentifier,
                 Sink: {
-                    ConfigurationId: toContractsGuid(WellKnownSinks.Null),
-                    TypeId: toContractsGuid(WellKnownSinks.MongoDB)
+                    ConfigurationId: toContractsGuid(Guid.empty),
+                    TypeId: this._defaultSinkTypeId
                 },
                 Schema: this.getReadModelSchema(readModelIdentifier),
                 Indexes: [],
