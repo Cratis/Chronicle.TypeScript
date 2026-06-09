@@ -16,8 +16,10 @@ import { ChronicleConnection } from '../connection';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { getProjectionMetadata } from '../projections/declarative/projection';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent';
+import { isPassive } from '../projections/modelBound/passive';
 import { getReducerMetadata } from '../reducers/reducer';
 import { JsonSchemaGenerator } from '../schemas';
+import { WellKnownSinks } from '../sinks';
 import { getReadModelMetadata } from './readModel';
 import type { IMaterializedReadModels } from './IMaterializedReadModels';
 import { MaterializedReadModels } from './MaterializedReadModels';
@@ -34,6 +36,7 @@ interface ResolvedReadModel {
     readonly observerType: ReadModelObserverType;
     readonly observerIdentifier: string;
     readonly schema: string;
+    readonly isActive: boolean;
 }
 
 /**
@@ -223,7 +226,8 @@ export class ReadModels implements IReadModels {
                 eventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
                 observerType: ContractReadModelObserverType.Projection,
                 observerIdentifier: metadata.id.value,
-                schema: this.getReadModelSchema(metadata.readModelType, identifier)
+                schema: this.getReadModelSchema(metadata.readModelType, identifier),
+                isActive: !isPassive(metadata.readModelType)
             });
         }
 
@@ -247,7 +251,8 @@ export class ReadModels implements IReadModels {
                 eventSequenceId: EventSequenceId.eventLog.value,
                 observerType: ContractReadModelObserverType.Projection,
                 observerIdentifier: metadata.id.value,
-                schema: JSON.stringify(metadata.schema)
+                schema: JSON.stringify(metadata.schema),
+                isActive: !isPassive(modelBoundType)
             });
         }
 
@@ -269,7 +274,8 @@ export class ReadModels implements IReadModels {
                 eventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
                 observerType: ContractReadModelObserverType.Reducer,
                 observerIdentifier: metadata.id.value,
-                schema: this.getReadModelSchema(metadata.readModel, identifier)
+                schema: this.getReadModelSchema(metadata.readModel, identifier),
+                isActive: true
             });
         }
 
@@ -295,7 +301,9 @@ export class ReadModels implements IReadModels {
             DisplayName: readModel.identifier,
             Sink: {
                 ConfigurationId: toContractsGuid(Guid.empty),
-                TypeId: this._defaultSinkTypeId
+                // Passive read models never write to a materialized sink, so they register with the
+                // None sink and the kernel resolves them via immediate projection instead of an empty sink.
+                TypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None
             },
             Schema: readModel.schema,
             Indexes: [],
