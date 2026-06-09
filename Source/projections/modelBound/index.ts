@@ -30,6 +30,7 @@ export type { RemovedWithMetadata } from './removedWith';
 export { removedWithJoin, getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin';
 export type { RemovedWithJoinMetadata } from './removedWithJoin';
 export { notRewindable, isNotRewindable } from './notRewindable';
+export { passive, isPassive } from './passive';
 export { setValue, getSetValueMetadata } from './setValue';
 export type { SetValueMetadata } from './setValue';
 export { fromEvery, getFromEveryMetadata } from './fromEvery';
