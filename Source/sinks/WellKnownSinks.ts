@@ -8,8 +8,8 @@ export const WellKnownSinks = {
     /** In-memory sink. */
     InMemory: 'InMemory',
 
-    /** NotSet sink (no sink). */
-    NotSet: 'NotSet',
+    /** None sink (no sink). */
+    None: 'None',
 
     /** MongoDB sink. */
     MongoDB: 'MongoDB',
