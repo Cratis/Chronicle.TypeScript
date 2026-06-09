@@ -10,6 +10,7 @@ import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
+import { WellKnownSinks } from '../sinks';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { getReadModelMetadata } from '../readModels';
@@ -30,6 +31,7 @@ import { getJoinMetadata } from './modelBound/join';
 import { ProjectionId } from './ProjectionId';
 import { isNested } from './modelBound/nested';
 import { isNotRewindable } from './modelBound/notRewindable';
+import { isPassive } from './modelBound/passive';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin';
 import { getSetFromMetadata } from './modelBound/setFrom';
@@ -185,7 +187,10 @@ export class Projections implements IProjections {
                 DisplayName: readModelIdentifier,
                 Sink: {
                     ConfigurationId: toContractsGuid(Guid.empty),
-                    TypeId: this._defaultSinkTypeId
+                    // Passive projections never write to a materialized sink, so they register with
+                    // the None sink. This lets the kernel fall through to immediate projection when
+                    // resolving the instance by key instead of reading an empty sink and returning null.
+                    TypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId
                 },
                 Schema: this.getReadModelSchema(readModelIdentifier),
                 Indexes: [],
@@ -374,7 +379,7 @@ export class Projections implements IProjections {
             EventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
             Identifier: metadata.id.value,
             ReadModel: metadata.readModelIdentifier,
-            IsActive: true,
+            IsActive: !isPassive(type),
             IsRewindable: !isNotRewindable(type),
             InitialModelState: '{}',
             From: Array.from(fromByEventType.values()),
