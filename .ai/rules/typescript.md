@@ -184,7 +184,6 @@ All identifiers, comments, JSDoc, and string literals must use **American Englis
 - Favor functional folder structure over technical folder structure.
   - Group files by the feature or concept they belong to, not by their technical role.
   - Avoid folders like `components/`, `hooks/`, `utils/`, `types/` at the feature level.
-- For redistributable TypeScript/JavaScript packages, use `camelCase` folder and module names under `Source/` (never `PascalCase`), and expose each module as a top-level package export in `package.json` (for example `@scope/package/events`).
 
 ## Advanced Type Safety
 
