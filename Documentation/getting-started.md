@@ -63,3 +63,11 @@ const options = ChronicleOptions.development();
 ```
 
 This connects to `chronicle://localhost:35000` by default.
+
+## Where to next
+
+- [Events and event logs](event-log.md), [Event Types](event-types.md), and [Event Evolution](event-type-migrations.md) to model and evolve your event schema.
+- [Reducers](reducers.md), [Reactors](reactors.md), and [Projections](projections.md) to build read models and side effects from your events.
+- [Read Models](read-models.md) to query projected state.
+- [Event Seeding](seeding.md) and [Transactions](transactions.md) for test data and unit-of-work semantics.
+- [Compliance](compliance/index.md) for PII handling and GDPR erasure.

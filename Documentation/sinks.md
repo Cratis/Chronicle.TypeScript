@@ -1,8 +1,6 @@
 # Sinks
 
-A **sink** is where Chronicle persists the read models produced by your projections and reducers. When you register a projection, reducer, or model-bound read model, Chronicle needs to know which storage technology should hold the resulting state. That choice is expressed as a **sink type**.
-
-By default the client uses **MongoDB**, so most applications never need to think about sinks at all. You only configure a sink type when you want your read models stored somewhere else — for example, a SQL database.
+See [Sinks](/chronicle/sinks/) for what a sink is and the storage backends Chronicle ships with. By default the client uses **MongoDB**, so most applications never need to think about sinks at all. You only configure a sink type when you want your read models stored somewhere else — for example, a SQL database.
 
 ## Well-Known Sink Types
 

@@ -1,30 +1,28 @@
-# Chronicle TypeScript Client Documentation
+# Chronicle TypeScript Client
 
-Welcome to the Chronicle TypeScript client documentation.
+`@cratis/chronicle` is the TypeScript SDK for Chronicle. It builds on top of the [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) gRPC contracts package and provides TypeScript APIs for event stores, event logs, observers, read models, jobs, sinks, and metadata.
 
-## Overview
+Use this section for TypeScript installation, connection setup, decorators, generated APIs, and runtime integration details. Shared Chronicle concepts and workflows live in the main Chronicle docs and use language tabs when code differs by client.
 
-`@cratis/chronicle` is a TypeScript-idiomatic client for the Cratis Chronicle event-sourcing kernel. It builds on top of the [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) gRPC contracts package and provides a clean, type-safe API for:
+## Shared Chronicle topics
 
-- Appending events to event sequences
-- Managing event stores and namespaces
-- Defining reactors, reducers, seeders, projections, constraints, and model-bound read models using TypeScript decorators such as `@readModel` and `@fromEvent`
+- [Get started](/chronicle/get-started/)
+- [Events and event logs](/chronicle/events/)
+- [Appending events](/chronicle/events/appending/)
+- [Read models](/chronicle/read-models/)
+- [Projections](/chronicle/projections/)
+- [Reactors](/chronicle/reactors/)
+- [Reducers](/chronicle/reducers/)
+- [Constraints](/chronicle/constraints/)
+- [Event seeding](/chronicle/event-seeding/)
+- [Compliance](/chronicle/compliance/)
+- [Transactions and unit of work](/chronicle/events/transactions/)
+- [Event evolution](/chronicle/understanding-event-evolution/)
 
-## Guides
+## TypeScript-specific pages
 
-- [Getting Started](./getting-started.md) — Install and connect to Chronicle
-- [Event Types](./event-types.md) — Defining event types with the `@eventType` decorator
-- [Event Type Migrations](./event-type-migrations.md) — Defining generation migrations with `@eventTypeMigration`
-- [Event Log](./event-log.md) — Appending events and querying the event log
-- [Reactors](./reactors.md) — Reacting to events with the `@reactor` decorator
-- [Reducers](./reducers.md) — Folding events into state with the `@reducer` decorator
-- [Read Models](./read-models.md) — Querying and watching read model instances from an event store
-- [Sinks](./sinks.md) — Configuring where read models are persisted
-- [Jobs](./jobs.md) — Managing Chronicle jobs from an event store
-- [Webhooks](./webhooks.md) — Registering and discovering client webhooks
-- [Seeding](./seeding.md) — Seeding initial events with the `@seeder` decorator
-- [Identity](./identity.md) — Tracking who caused a state change
-- [Auditing — Causation](./auditing.md) — Recording the causation chain for events
-- [Correlation](./correlation.md) — Correlating events and operations with a shared identifier
-- [Transactions (Unit of Work)](./transactions.md) — Group appends and commit or roll back as one unit
-- [Compliance](./compliance/index.md) — Protecting Personal Identifiable Information (PII) and meeting regulatory requirements
+- [Getting Started](./getting-started.md) — install and connect the TypeScript client
+- [Sinks](./sinks.md) — configuring read-model persistence targets
+- [Jobs](./jobs.md) — managing Chronicle jobs from TypeScript
+- [Webhooks](./webhooks.md) — registering and discovering client webhooks
+- [Identity](./identity.md), [Causation](./auditing.md), and [Correlation](./correlation.md) — TypeScript call-context metadata

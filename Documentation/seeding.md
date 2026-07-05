@@ -1,48 +1,107 @@
 # Seeding
 
-Seeding lets you populate event streams with initial events when your client starts.
+This page shows how to seed events using the Chronicle TypeScript client. Seeding is sent to the Chronicle Server when the event store connects, and the server applies it once per namespace. See [Event Seeding](/chronicle/event-seeding/) for the concept this page assumes.
 
-## Defining a Seeder
-
-Use `@seeder` on a class that implements `ICanSeedEvents`:
+## Define events
 
 ```typescript
-import { ICanSeedEvents, IEventSeedingBuilder, eventType, seeder } from '@cratis/chronicle';
+import { eventType } from '@cratis/chronicle';
 
 @eventType()
-class ProjectRegistered {
-    constructor(readonly name: string) {}
+class AccountOpened {
+    constructor(
+        readonly accountId: string,
+        readonly ownerName: string,
+        readonly initialBalance: number
+    ) {}
 }
 
 @eventType()
-class ProjectRenamed {
-    constructor(readonly name: string) {}
+class FundsDeposited {
+    constructor(
+        readonly accountId: string,
+        readonly amount: number
+    ) {}
 }
+```
+
+## Implement a seeder
+
+Decorate a class with `@seeder()`, implement `ICanSeedEvents`, and use the builder's `for`/`forEventSource` to accumulate events:
+
+```typescript
+import { seeder, ICanSeedEvents, IEventSeedingBuilder } from '@cratis/chronicle';
 
 @seeder()
-class InitialProjectSeeder implements ICanSeedEvents {
-    seed(builder: IEventSeedingBuilder) {
-        builder
-            .for<ProjectRegistered>('project-1', [
-                new ProjectRegistered('Accounting')
-            ])
-            .forNamespace('Sales')
-            .forEventSource('project-2', [
-                new ProjectRegistered('Sales'),
-                new ProjectRenamed('Sales EMEA')
-            ]);
+class AccountSeeder implements ICanSeedEvents {
+    seed(builder: IEventSeedingBuilder): void {
+        builder.for('account-1', [
+            new AccountOpened('account-1', 'Alice', 1000)
+        ]);
     }
 }
 ```
 
-## Builder API
+## Seed multiple events of the same type
 
-- `for<TEvent>(eventSourceId, events)` — strongly typed seeding when all events in the collection are the same event class.
-- `forEventSource(eventSourceId, events)` — seeding for mixed event classes in one collection.
-- `forNamespace(namespace)` — switch to namespace-scoped seeding for subsequent calls.
+```typescript
+seed(builder: IEventSeedingBuilder): void {
+    builder.for('account-1', [
+        new AccountOpened('account-1', 'Alice', 1000)
+    ]);
+}
+```
 
-By default, seeded events are global (applies to all namespaces). Use `forNamespace(...)` for namespace-specific seed data.
+## Seed mixed event types
 
-## Discovery and Registration
+Use `forEventSource` to seed several different event types for the same event source:
 
-Seeders are discovered as client artifacts (just like reactors and reducers). During event store artifact registration, seed data is sent after observers are registered.
+```typescript
+seed(builder: IEventSeedingBuilder): void {
+    builder.forEventSource('account-1', [
+        new AccountOpened('account-1', 'Alice', 1000),
+        new FundsDeposited('account-1', 500)
+    ]);
+}
+```
+
+## Namespace-scoped seed data
+
+By default, seed data applies to all namespaces in the event store. To target a specific namespace, use `forNamespace` to get a scoped builder:
+
+```typescript
+seed(builder: IEventSeedingBuilder): void {
+    builder
+        .forNamespace('production')
+        .for('account-1', [new AccountOpened('account-1', 'Alice', 1000)]);
+}
+```
+
+The scoped builder supports the same `for`/`forEventSource` methods as the top-level builder. Each namespace receives only its own scoped events in addition to any global events.
+
+## Running seeders
+
+Discover and register seeders explicitly through the event store:
+
+```typescript
+import { IEventStore } from '@cratis/chronicle';
+
+async function runSeeders(store: IEventStore): Promise<void> {
+    await store.seeding.discover();
+    await store.seeding.register();
+}
+```
+
+## How it runs
+
+- Seed batches are sent to the Chronicle Server when the event store connects.
+- The server deduplicates seeded events and applies them once per namespace.
+- Events are appended in a single batch for efficient startup.
+
+## Best practices
+
+- Keep seed data minimal and deterministic.
+- Use clear event source IDs to make debugging easier.
+- Group seeders by scenario so you can remove or adjust them easily.
+- Only call `store.seeding.discover()`/`.register()` when you want seeding to run — for example, guard it behind a development-only build flag or configuration check.
+- Use `forNamespace` when seed data is tenant-specific or environment-specific to avoid polluting other namespaces.

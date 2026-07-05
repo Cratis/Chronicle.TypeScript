@@ -1,6 +1,6 @@
 # Webhooks
 
-Use `eventStore.webhooks` to register webhook observers for event streams.
+See [Webhooks](/chronicle/webhooks/) for what a webhook is. Use `eventStore.webhooks` to register webhook observers for event streams.
 
 ## Register a webhook programmatically
 

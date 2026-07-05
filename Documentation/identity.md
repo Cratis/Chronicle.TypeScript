@@ -1,6 +1,6 @@
 # Identity
 
-Every state change in Chronicle is tied to an *identity* — the user, service, or system that caused it. The `Identity` class captures that information and is sent with every event append as the `CausedBy` field.
+See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what identity means and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. The `Identity` class is sent with every event append as the `CausedBy` field.
 
 ## The `Identity` class
 
