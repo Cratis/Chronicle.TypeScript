@@ -1,6 +1,6 @@
 # Jobs
 
-Use `eventStore.jobs` to inspect and control Chronicle jobs in a namespace.
+See [Jobs](/chronicle/jobs/) for what a job is. Use `eventStore.jobs` to inspect and control Chronicle jobs in a namespace.
 
 ## API
 

@@ -1,6 +1,6 @@
 # Correlation
 
-A correlation identifier (`CorrelationId`) ties together all events, commands, and side effects that belong to the same logical operation — for example, a single HTTP request or a message-bus handler invocation. It is sent with every event append as the `CorrelationId` field.
+See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what a correlation ID is and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. A `CorrelationId` is sent with every event append as the `CorrelationId` field.
 
 ## `CorrelationId`
 

@@ -1,0 +1,20 @@
+- name: TypeScript Client
+  href: index.md
+- name: Get Started
+  href: getting-started.md
+- name: Runtime
+  items:
+    - name: Sinks
+      href: sinks.md
+    - name: Jobs
+      href: jobs.md
+    - name: Webhooks
+      href: webhooks.md
+    - name: Seeding
+      href: seeding.md
+    - name: Identity
+      href: identity.md
+    - name: Causation
+      href: auditing.md
+    - name: Correlation
+      href: correlation.md

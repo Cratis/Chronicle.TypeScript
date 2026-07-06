@@ -1,0 +1,58 @@
+name: Client Snippet Verification
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - "**"
+    paths:
+      - "Documentation/client-snippets/**"
+      - "Documentation/validate-client-snippets.py"
+      - "Source/**"
+      - ".github/workflows/client-snippets.yml"
+
+  push:
+    branches: ["main"]
+    paths:
+      - "Documentation/client-snippets/**"
+      - "Documentation/validate-client-snippets.py"
+      - "Source/**"
+      - ".github/workflows/client-snippets.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23.x
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: |
+            .yarn/cache
+            **/node_modules
+            **/.eslintcache
+            **/yarn.lock
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package.json') }}
+
+      - name: Yarn install
+        run: yarn
+
+      - name: Compile client snippets
+        run: python3 Documentation/validate-client-snippets.py

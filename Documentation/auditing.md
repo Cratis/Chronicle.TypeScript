@@ -1,6 +1,6 @@
 # Auditing — Causation
 
-Causation records *why* an event was appended — a chain of reasons from the root of a business operation down to the individual command or handler that triggered the append. This chain is stored with every event and enables full audit-trail tracing.
+See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what causation means and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. The causation chain is stored with every event and enables full audit-trail tracing.
 
 ## Concepts
 
