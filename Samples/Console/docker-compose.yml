@@ -10,7 +10,6 @@ services:
       - Cratis__Chronicle__Storage__Type=MongoDB
       - Cratis__Chronicle__Storage__ConnectionDetails=mongodb://mongodb:27017/?directConnection=true
     ports:
-      - 8080:8080
       - 35000:35000
 
   mongodb:

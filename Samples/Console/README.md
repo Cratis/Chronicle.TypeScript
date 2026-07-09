@@ -39,7 +39,7 @@ Select an employee with `1`–`3`, then:
 > **Tip:** The easiest way to run Chronicle locally is via Docker:
 >
 > ```bash
-> docker run -p 35000:35000 -p 8080:8080 cratis/chronicle:latest-development
+> docker run -p 35000:35000 cratis/chronicle:latest-development
 > ```
 
 ## Running
