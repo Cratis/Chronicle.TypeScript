@@ -321,7 +321,11 @@ export class ChronicleConnectionString {
             return grpc.credentials.createInsecure();
         }
 
-        return grpc.credentials.createSsl();
+        // Chronicle generates a self-signed certificate in development. grpc-js has no
+        // per-error hook to accept only self-signed/untrusted-root chains the way a
+        // finer-grained validator would, so unpinned connections skip chain validation
+        // entirely to allow development clients to connect without extra certificate setup.
+        return grpc.credentials.createSsl(null, null, null, { rejectUnauthorized: false });
     }
 
     toString(): string {
