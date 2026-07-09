@@ -89,14 +89,18 @@ export class OAuthTokenProvider implements ITokenProvider {
 
         return new Promise((resolve, reject) => {
             const url = new URL(this._tokenEndpoint);
-            const httpModule = url.protocol === 'https:' ? https : http;
+            const isHttps = url.protocol === 'https:';
+            const httpModule = isHttps ? https : http;
 
             const req = httpModule.request(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Content-Length': Buffer.byteLength(body)
-                }
+                },
+                // Chronicle generates a self-signed certificate in development, so chain
+                // validation is skipped, matching the gRPC channel's credentials.
+                ...(isHttps ? { rejectUnauthorized: false } : {})
             }, response => {
                 let data = '';
 

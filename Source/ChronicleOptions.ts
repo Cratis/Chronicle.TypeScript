@@ -107,14 +107,13 @@ export class ChronicleOptions {
     /**
      * Creates a {@link ChronicleOptions} instance for local development.
      * Connects to Chronicle on localhost:35000 using the standard development
-     * client credentials and with TLS disabled, matching the default Chronicle
-     * development server configuration.
+     * client credentials, matching the default Chronicle development server
+     * configuration. The Chronicle server requires TLS on its single port, so
+     * this connects over TLS against the server's self-signed development
+     * certificate.
      * @returns A new ChronicleOptions instance for development.
      */
     static development(options?: ChronicleOptionsFactoryParams): ChronicleOptions {
-        return ChronicleOptions.fromConnectionString(
-            'chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000?disableTls=true',
-            options
-        );
+        return ChronicleOptions.fromConnectionString(ChronicleConnectionString.Development, options);
     }
 }

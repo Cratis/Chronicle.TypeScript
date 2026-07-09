@@ -26,7 +26,7 @@ You need a Chronicle Kernel available before running samples or application code
 The easiest local setup is the development Docker image:
 
 ```bash
-docker run -p 35000:35000 -p 8080:8080 cratis/chronicle:latest-development
+docker run -p 35000:35000 cratis/chronicle:latest-development
 ```
 
 ## Getting Started

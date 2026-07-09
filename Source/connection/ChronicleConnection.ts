@@ -76,11 +76,6 @@ export interface ChronicleConnectionOptions {
      * Optional authentication authority URL. If not set, uses the Chronicle server itself.
      */
     authority?: string;
-
-    /**
-     * Optional management port for authentication endpoint. Defaults to 8080.
-     */
-    managementPort?: number;
 }
 
 /**
@@ -298,17 +293,19 @@ export class ChronicleConnection implements ChronicleServices {
     }
 
     private createOAuthTokenProvider(username: string, password: string): ITokenProvider {
-        const managementPort = this._options.managementPort ?? 8080;
+        // Chronicle serves the authentication endpoint on the same port as the rest of the
+        // Kernel, so the authority defaults to the connection string's server address.
+        const serverPort = this._connectionString.serverAddress.port;
         let authorityHost: string;
         let authorityPort: number;
 
         if (this._options.authority) {
             const authority = new URL(this._options.authority);
             authorityHost = authority.hostname;
-            authorityPort = authority.port ? parseInt(authority.port, 10) : managementPort;
+            authorityPort = authority.port ? parseInt(authority.port, 10) : serverPort;
         } else {
             authorityHost = this._connectionString.serverAddress.host;
-            authorityPort = managementPort;
+            authorityPort = serverPort;
         }
 
         const scheme = this._connectionString.disableTls ? 'http' : 'https';
