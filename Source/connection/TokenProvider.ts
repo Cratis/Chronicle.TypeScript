@@ -54,7 +54,7 @@ export class OAuthTokenProvider implements ITokenProvider {
         private readonly _tokenEndpoint: string,
         private readonly _clientId: string,
         private readonly _clientSecret: string,
-        private readonly _skipTlsValidation: boolean = false
+        private readonly _skipTlsValidation: boolean = true
     ) {}
 
     async getAccessToken(): Promise<string | undefined> {

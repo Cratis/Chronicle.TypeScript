@@ -239,10 +239,12 @@ export class ChronicleConnectionStringBuilder {
     /**
      * Whether TLS certificate validation is skipped for the gRPC channel and OAuth token
      * requests. Distinct from {@link disableTls}, which controls whether TLS is used at
-     * all. Defaults to `false` - full certificate validation applies whenever TLS is on.
+     * all. Defaults to `true` - set to `false` to require full certificate validation
+     * whenever TLS is on.
      */
     get skipTlsValidation(): boolean {
-        return this._properties.get(ChronicleConnectionStringBuilder._skipTlsValidationKey) === 'true';
+        const raw = this._properties.get(ChronicleConnectionStringBuilder._skipTlsValidationKey);
+        return raw === undefined || raw === 'true';
     }
 
     set skipTlsValidation(value: boolean) {
@@ -343,8 +345,8 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push('disableTls=true');
         }
 
-        if (this.skipTlsValidation) {
-            queryParameters.push('skipTlsValidation=true');
+        if (!this.skipTlsValidation) {
+            queryParameters.push('skipTlsValidation=false');
         }
 
         if (this.certificatePath) {
@@ -451,11 +453,10 @@ export class ChronicleConnectionString {
     static readonly DEVELOPMENT_CLIENT = 'chronicle-dev-client';
     static readonly DEVELOPMENT_CLIENT_SECRET = 'chronicle-dev-secret';
     static readonly Default = new ChronicleConnectionString('chronicle://localhost:35000');
+    // skipTlsValidation defaults to true, so no explicit query parameter is needed here for
+    // this to connect to the Kernel's self-signed development certificate.
     static readonly Development = new ChronicleConnectionString(
-        // skipTlsValidation is required here: the Kernel's self-signed development
-        // certificate fails default chain validation, and skipTlsValidation now defaults
-        // to false (full validation) since it is a distinct, explicit opt-in.
-        `chronicle://${ChronicleConnectionString.DEVELOPMENT_CLIENT}:${ChronicleConnectionString.DEVELOPMENT_CLIENT_SECRET}@localhost:35000?skipTlsValidation=true`
+        `chronicle://${ChronicleConnectionString.DEVELOPMENT_CLIENT}:${ChronicleConnectionString.DEVELOPMENT_CLIENT_SECRET}@localhost:35000`
     );
 
     private readonly _builder: ChronicleConnectionStringBuilder;
@@ -566,10 +567,11 @@ export class ChronicleConnectionString {
         }
 
         if (this.skipTlsValidation) {
-            // Chronicle generates a self-signed certificate in development. grpc-js has no
+            // Chronicle generates a self-signed certificate in development, and skipTlsValidation
+            // defaults to true so this works without extra configuration. grpc-js has no
             // per-error hook to accept only self-signed/untrusted-root chains the way a
             // finer-grained validator would, so skipTlsValidation bypasses chain validation
-            // entirely for connections that explicitly opt into it.
+            // entirely. Set skipTlsValidation=false for a server with a verifiable certificate.
             return grpc.credentials.createSsl(null, null, null, { rejectUnauthorized: false });
         }
 
