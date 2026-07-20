@@ -53,7 +53,8 @@ export class OAuthTokenProvider implements ITokenProvider {
     constructor(
         private readonly _tokenEndpoint: string,
         private readonly _clientId: string,
-        private readonly _clientSecret: string
+        private readonly _clientSecret: string,
+        private readonly _skipTlsValidation: boolean = false
     ) {}
 
     async getAccessToken(): Promise<string | undefined> {
@@ -98,9 +99,9 @@ export class OAuthTokenProvider implements ITokenProvider {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Content-Length': Buffer.byteLength(body)
                 },
-                // Chronicle generates a self-signed certificate in development, so chain
-                // validation is skipped, matching the gRPC channel's credentials.
-                ...(isHttps ? { rejectUnauthorized: false } : {})
+                // Chain validation is skipped only when skipTlsValidation is explicitly set,
+                // matching the gRPC channel's credentials for the same connection string.
+                ...(isHttps && this._skipTlsValidation ? { rejectUnauthorized: false } : {})
             }, response => {
                 let data = '';
 

@@ -212,15 +212,16 @@ export class ChronicleClient implements IChronicleClient {
 
         while (!this._isDisposed) {
             try {
-                if (attempt > 0) {
-                    // Recreate the gRPC channel so we start from IDLE. A failed
-                    // probe can leave the channel in TRANSIENT_FAILURE, which gRPC
-                    // won't recover without a fresh channel. The contracts connect()
-                    // is also bypassed here — it uses watchConnectivityState and
-                    // rejects as soon as the state changes to CONNECTING (not READY),
-                    // making it unreliable for initial connection establishment.
-                    this._connection.resetChannel();
-                }
+                // Resolve (DNS SRV, when applicable) and select (load balancer strategy) a
+                // server address and rebuild the gRPC channel from scratch on every attempt,
+                // including the first — not just once at startup — so membership and load
+                // changes are always picked up. This also guarantees a fresh IDLE channel: a
+                // failed probe can leave a channel in TRANSIENT_FAILURE, which gRPC won't
+                // recover from without a new channel. The contracts connect() is bypassed
+                // here — it uses watchConnectivityState and rejects as soon as the state
+                // changes to CONNECTING (not READY), making it unreliable for initial
+                // connection establishment.
+                await this._connection.resetChannel();
 
                 this._logger.debug('Connecting to Chronicle kernel', { attempt: attempt + 1 });
 
@@ -290,7 +291,7 @@ export class ChronicleClient implements IChronicleClient {
                 let attempt = 0;
                 while (!this._isDisposed) {
                     try {
-                        this._connection.resetChannel();
+                        await this._connection.resetChannel();
                         await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
                         this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
                         await this.startKernelKeepAlive();
