@@ -140,7 +140,8 @@
         "@opentelemetry/api": "^1.9.1",
         "nice-grpc": "^2.1.16",
         "nice-grpc-common": "^2.0.3",
-        "reflect-metadata": "^0.2.2"
+        "reflect-metadata": "^0.2.2",
+        "undici": "^8.7.0"
     },
     "devDependencies": {
         "@types/node": "^25.9.1",

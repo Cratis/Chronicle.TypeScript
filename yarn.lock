@@ -69,6 +69,7 @@ __metadata:
     nice-grpc-common: "npm:^2.0.3"
     reflect-metadata: "npm:^0.2.2"
     typescript: "npm:^6.0.3"
+    undici: "npm:^8.7.0"
   languageName: unknown
   linkType: soft
 
@@ -2360,6 +2361,13 @@ __metadata:
   version: 6.25.0
   resolution: "undici@npm:6.25.0"
   checksum: 10c0/2597cc6689bdb02c210c557b1f85febbfda65becae6e6fc1061508e2f33734d25207f81cd8af56ada9956329eb3a7bd7431e87dcfeceba20ee87059b57dcf985
+  languageName: node
+  linkType: hard
+
+"undici@npm:^8.7.0":
+  version: 8.7.0
+  resolution: "undici@npm:8.7.0"
+  checksum: 10c0/b7e5ecb4de82fa4f905011a77544fe7ba4da06f27167ff99313a7ae2869f3cb233d676dcd085533bc69f36989bc40871f5ae6ea6e4c9b91db92616b9e91b579d
   languageName: node
   linkType: hard
 
