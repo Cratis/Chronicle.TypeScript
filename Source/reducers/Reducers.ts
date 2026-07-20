@@ -262,10 +262,6 @@ export class Reducers implements IReducers {
                         })),
                         ReadModel: readModelName,
                         IsActive: true,
-                        Sink: {
-                            TypeId: this._defaultSinkTypeId,
-                            ConfigurationId: toContractsGuid(Guid.empty)
-                        },
                         Tags: [],
                         Filters: {
                             FilterTags: [],

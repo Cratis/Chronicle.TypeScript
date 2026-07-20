@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import * as os from 'os';
 import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
@@ -392,7 +393,17 @@ export class ChronicleClient implements IChronicleClient {
         const { signal } = this._keepAliveAbortController;
 
         const keepAliveStream = this._connection.connections.connect(
-            { ConnectionId: this._lifecycle.connectionId, ClientVersion: '1.0.0', IsRunningWithDebugger: false },
+            {
+                ConnectionId: this._lifecycle.connectionId,
+                // TODO: Not derived from this package's own version anywhere yet; kept as
+                // the pre-existing hardcoded placeholder until such a mechanism exists.
+                ClientVersion: '1.0.0',
+                IsRunningWithDebugger: false,
+                ProcessId: process.pid,
+                ProcessPath: process.execPath,
+                MachineName: os.hostname(),
+                ClientType: 'TypeScript'
+            },
             { signal }
         );
         const iterator = keepAliveStream[Symbol.asyncIterator]();
