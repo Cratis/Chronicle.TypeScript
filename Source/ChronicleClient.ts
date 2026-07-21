@@ -7,6 +7,7 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
 import { ChronicleConnection } from './connection';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
+import { KernelKeepAlive } from './connection/KernelKeepAlive';
 import { EventStore } from './EventStore';
 import { EventStoreName } from './EventStoreName';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName';
@@ -31,6 +32,7 @@ import { TypeDiscoverer } from './types';
  */
 export class ChronicleClient implements IChronicleClient {
     private static readonly _healthCheckIntervalMs = 5000;
+    private static readonly _maxBackoffMs = 30_000;
 
     private readonly _connection: ChronicleConnection;
     private readonly _stores: Map<string, EventStore> = new Map();
@@ -46,6 +48,7 @@ export class ChronicleClient implements IChronicleClient {
     private _discoveryOperation?: Promise<void>;
     private _isDisposed = false;
     private _keepAliveAbortController?: AbortController;
+    private _healthCheckInFlight = false;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
@@ -242,13 +245,8 @@ export class ChronicleClient implements IChronicleClient {
 
             } catch (error) {
                 attempt++;
-                const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 30_000);
-                this._logger.warn('Connection attempt failed, retrying', {
-                    attempt,
-                    delayMs,
-                    error: this.toErrorMessage(error)
-                });
-                await new Promise(resolve => setTimeout(resolve, delayMs));
+                const delayMs = await this.backOff(attempt, 'Connection attempt failed, retrying', error);
+                this._logger.verbose('Backed off before next connection attempt', { attempt, delayMs });
             }
         }
 
@@ -304,13 +302,7 @@ export class ChronicleClient implements IChronicleClient {
                         return;
                     } catch (reconnectError) {
                         attempt++;
-                        const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 30_000);
-                        this._logger.warn('Reconnect attempt failed, retrying', {
-                            attempt,
-                            delayMs,
-                            error: this.toErrorMessage(reconnectError)
-                        });
-                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                        await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
                     }
                 }
             })().finally(() => {
@@ -319,6 +311,25 @@ export class ChronicleClient implements IChronicleClient {
         }
 
         await this._reconnectOperation;
+    }
+
+    /**
+     * Waits out the exponential backoff for a failed attempt and reports why.
+     * The delay is jittered so a fleet of clients that lost the same kernel does
+     * not come back in lockstep and knock it over again.
+     */
+    private async backOff(attempt: number, message: string, error: unknown): Promise<number> {
+        const ceiling = Math.min(1000 * Math.pow(2, attempt - 1), ChronicleClient._maxBackoffMs);
+        const delayMs = Math.round(ceiling / 2 + Math.random() * (ceiling / 2));
+
+        this._logger.warn(message, {
+            attempt,
+            delayMs,
+            error: this.toErrorMessage(error)
+        });
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        return delayMs;
     }
 
     private async withReconnect<T>(operation: string, action: () => Promise<T>): Promise<T> {
@@ -375,15 +386,20 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private async runHealthCheck(): Promise<void> {
-        if (this._isDisposed || !this._lifecycle.isConnected) {
+        // A black-holed connection makes the probe itself hang, so without the
+        // in-flight guard every tick would stack another one that never returns.
+        if (this._isDisposed || !this._lifecycle.isConnected || this._healthCheckInFlight) {
             return;
         }
 
+        this._healthCheckInFlight = true;
         try {
-            await this._connection.server.getVersionInfo({});
+            await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
             this._logger.verbose('Connection health check passed');
         } catch (error) {
             await this.reconnect('watchdog-health-check', error);
+        } finally {
+            this._healthCheckInFlight = false;
         }
     }
 
@@ -392,7 +408,19 @@ export class ChronicleClient implements IChronicleClient {
         this._keepAliveAbortController = new AbortController();
         const { signal } = this._keepAliveAbortController;
 
-        const keepAliveStream = this._connection.connections.connect(
+        // Losing the keep-alive means the kernel has stopped counting us as
+        // connected, so observers are already being torn down server-side.
+        // Reconnecting is the only way back — without this the client sits on a
+        // dead session, appends keep working, and reactors never fire again.
+        const keepAlive = new KernelKeepAlive(this._connection.connections, (reason, error) => {
+            if (this._isDisposed || signal.aborted) {
+                return;
+            }
+
+            void this.reconnect(reason, error);
+        });
+
+        await keepAlive.start(
             {
                 ConnectionId: this._lifecycle.connectionId,
                 // TODO: Not derived from this package's own version anywhere yet; kept as
@@ -404,43 +432,12 @@ export class ChronicleClient implements IChronicleClient {
                 MachineName: os.hostname(),
                 ClientType: 'TypeScript'
             },
-            { signal }
+            signal
         );
-        const iterator = keepAliveStream[Symbol.asyncIterator]();
-        const firstResult = await iterator.next();
-        if (firstResult.done) {
-            throw new Error('Connection service stream ended before sending first keep-alive');
-        }
 
-        await this._connection.connections.connectionKeepAlive(firstResult.value);
         this._logger.info('Client registered with kernel keep-alive mechanism', {
             connectionId: this._lifecycle.connectionId
         });
-
-        void this.runKeepAliveLoop(iterator, signal);
-    }
-
-    private async runKeepAliveLoop(iterator: AsyncIterator<unknown, void>, signal: AbortSignal): Promise<void> {
-        try {
-            while (!signal.aborted) {
-                const result = await iterator.next();
-                if (result.done) {
-                    this._logger.info('Keep-alive stream ended');
-                    break;
-                }
-
-                await this._connection.connections.connectionKeepAlive(result.value as object);
-                this._logger.verbose('Keep-alive ping responded', {
-                    connectionId: this._lifecycle.connectionId
-                });
-            }
-        } catch (err) {
-            if (!signal.aborted) {
-                this._logger.warn('Keep-alive loop ended with error', {
-                    error: this.toErrorMessage(err)
-                });
-            }
-        }
     }
 
     private async registerArtifactsForStore(store: EventStore, reason: string): Promise<void> {
