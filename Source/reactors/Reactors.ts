@@ -91,6 +91,9 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reactors implements IReactors {
+    /** How long to wait before re-establishing an observation whose stream ended. */
+    private static readonly _reobserveDelayMs = 2000;
+
     private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reactors' });
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reactors = new Map<string, Constructor>();
@@ -162,9 +165,50 @@ export class Reactors implements IReactors {
             handlers: eventTypes.map(e => e.methodName)
         });
 
-        this.observeReactor(id, reactorType, eventSequenceId, eventTypes).catch(err => {
-            this._logger.error('Reactor observation loop exited with error', { reactorId: id, error: String(err) });
-        });
+        void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
+    }
+
+    private async runObservation(
+        id: string,
+        reactorType: Constructor,
+        eventSequenceId: string,
+        eventTypes: EventTypeEntry[]
+    ): Promise<void> {
+        try {
+            await this.observeReactor(id, reactorType, eventSequenceId, eventTypes);
+        } catch (error) {
+            this._logger.error('Reactor observation loop exited with error', { reactorId: id, error: String(error) });
+        }
+
+        this.scheduleReobserve(id, reactorType);
+    }
+
+    /**
+     * Re-establishes an observation whose stream ended.
+     *
+     * The stream ending without an error is not proof that all is well — the kernel
+     * closes a cross-store (inbox) reactor's stream rather than tailing it forever,
+     * so a reactor that does not re-subscribe there silently stops observing until
+     * the whole client reconnects. Both endings are therefore retried, and the delay
+     * keeps a stream that keeps ending from becoming a hot loop.
+     */
+    private scheduleReobserve(id: string, reactorType: Constructor): void {
+        // A disconnect clears the registration; the reconnect re-registers every
+        // reactor from scratch, so retrying here as well would double up.
+        if (!this._registered) {
+            return;
+        }
+
+        const handle = setTimeout(() => {
+            if (!this._registered) {
+                return;
+            }
+
+            this._logger.info('Re-establishing reactor observation', { reactorId: id });
+            this.startObservation(id, reactorType);
+        }, Reactors._reobserveDelayMs);
+
+        handle.unref?.();
     }
 
     private async observeReactor(
@@ -285,7 +329,12 @@ export class Reactors implements IReactors {
                 this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error: String(err) });
             }
         } finally {
-            this._queues.delete(id);
+            // Only retire our own queue: a reconnect can already have replaced it,
+            // and deleting the new one would leave that observation untracked and
+            // leak a duplicate stream on every reconnect.
+            if (this._queues.get(id) === queue) {
+                this._queues.delete(id);
+            }
         }
     }
 

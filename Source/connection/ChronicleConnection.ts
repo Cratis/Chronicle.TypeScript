@@ -30,7 +30,11 @@ import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts';
 import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
+import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver';
 import { ChronicleServices } from './ChronicleServices';
+import { formatServerAddress } from './formatServerAddress';
+import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
+import { createLoadBalancerStrategy } from './LoadBalancerStrategyFactory';
 import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider';
 
 /**
@@ -87,7 +91,10 @@ export class ChronicleConnection implements ChronicleServices {
     private _connections!: ConnectionServiceClient;
     private readonly _connectionString: ChronicleConnectionString;
     private readonly _tokenProvider: ITokenProvider;
+    private readonly _addressResolver: ChronicleServerAddressResolver;
+    private readonly _loadBalancerStrategy: ILoadBalancerStrategy;
     private _isConnected = false;
+    private _clientsReady: Promise<void>;
 
     constructor(private readonly _options: ChronicleConnectionOptions) {
         if (_options.connectionString) {
@@ -101,7 +108,15 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         this._tokenProvider = this.createTokenProvider();
-        this.createClients();
+        this._addressResolver = new ChronicleServerAddressResolver();
+        this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
+
+        this._clientsReady = this.createClients();
+        // Building the initial channel is async (address resolution + load balancer
+        // selection), so the constructor cannot await it. Real failures still surface to
+        // callers that await connect()/resetChannel(); this only prevents an unhandled
+        // rejection warning from the fire-and-forget initial build.
+        this._clientsReady.catch(() => {});
     }
 
     get connectionString(): ChronicleConnectionString {
@@ -197,37 +212,39 @@ export class ChronicleConnection implements ChronicleServices {
     }
 
     async connect(): Promise<void> {
+        await this._clientsReady;
         const deadline = new Date(Date.now() + (this._options.connectTimeout ?? 10_000));
         await waitForChannelReady(this._channel, deadline);
         this._isConnected = true;
     }
 
-    resetChannel(): void {
+    async resetChannel(): Promise<void> {
         try {
-            this._channel.close();
+            this._channel?.close();
         } catch {
             // Best-effort shutdown before recreating the channel.
         }
 
         this._isConnected = false;
-        this.createClients();
+        this._clientsReady = this.createClients();
+        await this._clientsReady;
     }
 
     async reconnect(): Promise<void> {
-        this.resetChannel();
+        await this.resetChannel();
         await this.connect();
     }
 
     disconnect(): void {
         this._isConnected = false;
-        this._channel.close();
+        this._channel?.close();
     }
 
     dispose(): void {
         this.disconnect();
     }
 
-    private createClients(): void {
+    private async createClients(): Promise<void> {
         const channelOptions: ChannelOptions = {};
 
         if (this._options.maxReceiveMessageSize !== undefined) {
@@ -238,7 +255,12 @@ export class ChronicleConnection implements ChronicleServices {
             channelOptions['grpc.max_send_message_length'] = this._options.maxSendMessageSize;
         }
 
-        const serverAddress = `${this._connectionString.serverAddress.host}:${this._connectionString.serverAddress.port}`;
+        // Re-resolved (DNS SRV, when applicable) and re-selected (load balancer strategy)
+        // on every call, so every connect/reconnect attempt picks up membership and load
+        // changes rather than pinning to whatever was selected at startup.
+        const candidates = await this._addressResolver.resolve(this._connectionString);
+        const selected = await this._loadBalancerStrategy.select(candidates);
+        const serverAddress = formatServerAddress(selected);
         const credentials = this._options.credentials ?? this._connectionString.createCredentials();
 
         this._channel = createChannel(serverAddress, credentials, channelOptions);
@@ -312,7 +334,8 @@ export class ChronicleConnection implements ChronicleServices {
         return new OAuthTokenProvider(
             `${scheme}://${authorityHost}:${authorityPort}/connect/token`,
             username,
-            password
+            password,
+            this._connectionString.skipTlsValidation
         );
     }
 

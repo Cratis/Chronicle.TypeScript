@@ -91,6 +91,9 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reducers implements IReducers {
+    /** How long to wait before re-establishing an observation whose stream ended. */
+    private static readonly _reobserveDelayMs = 2000;
+
     private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reducers' });
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reducers = new Map<string, Constructor>();
@@ -223,9 +226,52 @@ export class Reducers implements IReducers {
             handlers: eventTypes.map(e => e.methodName)
         });
 
-        this.observeReducer(id, reducerType, eventSequenceId, eventTypes, readModelName).catch(err => {
-            this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(err) });
-        });
+        void this.runObservation(id, reducerType, eventSequenceId, eventTypes, readModelName);
+    }
+
+    private async runObservation(
+        id: string,
+        reducerType: Constructor,
+        eventSequenceId: string,
+        eventTypes: EventTypeEntry[],
+        readModelName: string
+    ): Promise<void> {
+        try {
+            await this.observeReducer(id, reducerType, eventSequenceId, eventTypes, readModelName);
+        } catch (error) {
+            this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(error) });
+        }
+
+        this.scheduleReobserve(id, reducerType);
+    }
+
+    /**
+     * Re-establishes an observation whose stream ended.
+     *
+     * The stream ending without an error is not proof that all is well — the kernel
+     * closes a cross-store (inbox) observation's stream rather than tailing it
+     * forever, so a reducer that does not re-subscribe there silently stops
+     * observing until the whole client reconnects. Both endings are therefore
+     * retried, and the delay keeps a stream that keeps ending from becoming a hot
+     * loop.
+     */
+    private scheduleReobserve(id: string, reducerType: Constructor): void {
+        // A disconnect clears the registration; the reconnect re-registers every
+        // reducer from scratch, so retrying here as well would double up.
+        if (!this._registered) {
+            return;
+        }
+
+        const handle = setTimeout(() => {
+            if (!this._registered) {
+                return;
+            }
+
+            this._logger.info('Re-establishing reducer observation', { reducerId: id });
+            this.startObservation(id, reducerType);
+        }, Reducers._reobserveDelayMs);
+
+        handle.unref?.();
     }
 
     private getReducerReadModelIdentifier(reducerType: Constructor): string {
@@ -262,10 +308,6 @@ export class Reducers implements IReducers {
                         })),
                         ReadModel: readModelName,
                         IsActive: true,
-                        Sink: {
-                            TypeId: this._defaultSinkTypeId,
-                            ConfigurationId: toContractsGuid(Guid.empty)
-                        },
                         Tags: [],
                         Filters: {
                             FilterTags: [],
@@ -360,7 +402,12 @@ export class Reducers implements IReducers {
                 this._logger.error('Reducer observation stream ended unexpectedly', { reducerId: id, error: String(err) });
             }
         } finally {
-            this._queues.delete(id);
+            // Only retire our own queue: a reconnect can already have replaced it,
+            // and deleting the new one would leave that observation untracked and
+            // leak a duplicate stream on every reconnect.
+            if (this._queues.get(id) === queue) {
+                this._queues.delete(id);
+            }
         }
     }
 
