@@ -1,11 +1,16 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import * as http from 'http';
-import * as https from 'https';
+import { diag } from '@opentelemetry/api';
+import { fetchOAuthAccessToken, type OAuthTokenResponse } from './fetchOAuthAccessToken';
 
-const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+// Refresh once the token has less than this long left before it expires.
+const TOKEN_REFRESH_MARGIN_MS = 60_000;
+// Assumed lifetime when the token response carries no usable expires_in.
 const DEFAULT_TOKEN_EXPIRY_SECONDS = 3600;
+// Minimum pause between failed fetch attempts, so an auth outage does not turn
+// every RPC into a token request.
+const FAILED_FETCH_RETRY_DELAY_MS = 5_000;
 
 /**
  * Interface for providing authentication tokens.
@@ -13,6 +18,10 @@ const DEFAULT_TOKEN_EXPIRY_SECONDS = 3600;
 export interface ITokenProvider {
     /**
      * Gets the current access token.
+     *
+     * Never rejects — when no token can be obtained the result is undefined, the RPC
+     * proceeds without authorization and fails with the server's rejection, which the
+     * session machinery recovers from.
      * @returns Promise resolving to the access token or undefined if not available.
      */
     getAccessToken(): Promise<string | undefined>;
@@ -37,28 +46,46 @@ export class NoOpTokenProvider implements ITokenProvider {
     }
 }
 
-interface OAuthTokenResponse {
-    access_token: string;
-    expires_in: number;
-}
-
 /**
- * OAuth token provider using client credentials flow.
+ * OAuth token provider using the client credentials flow.
+ *
+ * Owns the access token so it can be attached to every RPC individually instead of
+ * being baked into the channel at connect time: the token is fetched lazily on first
+ * use, cached, and refreshed once it enters the refresh margin ahead of expiry, so
+ * token expiry never invalidates the channel. A failed refresh falls back to the
+ * cached token while it is still actually valid — only the refresh margin has been
+ * crossed, not the expiry — and further attempts are throttled so an unreachable
+ * auth endpoint does not turn every RPC into a fetch attempt.
  */
 export class OAuthTokenProvider implements ITokenProvider {
+    private readonly _logger = diag.createComponentLogger({
+        namespace: '@cratis/chronicle/OAuthTokenProvider'
+    });
+
     private _accessToken?: string;
-    private _tokenExpiry = new Date(0);
+    private _expiresAt = 0;
+    private _lastFailedFetch?: number;
     private _refreshPromise?: Promise<string | undefined>;
 
+    /**
+     * Creates a new {@link OAuthTokenProvider}.
+     * @param tokenEndpoint - The OAuth2 token endpoint to request tokens from.
+     * @param clientId - The client identifier.
+     * @param clientSecret - The client secret.
+     * @param skipTlsValidation - Whether to skip TLS certificate chain validation.
+     * @param _fetchToken - Test-only seam replacing the OAuth2 token request.
+     */
     constructor(
-        private readonly _tokenEndpoint: string,
-        private readonly _clientId: string,
-        private readonly _clientSecret: string,
-        private readonly _skipTlsValidation: boolean = true
+        tokenEndpoint: string,
+        clientId: string,
+        clientSecret: string,
+        skipTlsValidation: boolean = true,
+        private readonly _fetchToken: () => Promise<OAuthTokenResponse> = () =>
+            fetchOAuthAccessToken(tokenEndpoint, clientId, clientSecret, skipTlsValidation)
     ) {}
 
     async getAccessToken(): Promise<string | undefined> {
-        if (this._accessToken && new Date() < this._tokenExpiry) {
+        if (this.hasFreshToken()) {
             return this._accessToken;
         }
 
@@ -66,7 +93,11 @@ export class OAuthTokenProvider implements ITokenProvider {
             return this._refreshPromise;
         }
 
-        this._refreshPromise = this.fetchAccessToken();
+        if (this.isThrottled()) {
+            return this.cachedTokenWhileValid();
+        }
+
+        this._refreshPromise = this.fetchAndCacheAccessToken();
         try {
             return await this._refreshPromise;
         } finally {
@@ -76,64 +107,44 @@ export class OAuthTokenProvider implements ITokenProvider {
 
     async refresh(): Promise<string | undefined> {
         this._accessToken = undefined;
-        this._tokenExpiry = new Date(0);
+        this._expiresAt = 0;
+        this._lastFailedFetch = undefined;
         return this.getAccessToken();
     }
 
-    private async fetchAccessToken(): Promise<string | undefined> {
-        const params = new URLSearchParams();
-        params.append('grant_type', 'client_credentials');
-        params.append('client_id', this._clientId);
-        params.append('client_secret', this._clientSecret);
+    private hasFreshToken(): boolean {
+        return !!this._accessToken && this._expiresAt - Date.now() > TOKEN_REFRESH_MARGIN_MS;
+    }
 
-        const body = params.toString();
+    private isThrottled(): boolean {
+        return this._lastFailedFetch !== undefined && Date.now() - this._lastFailedFetch < FAILED_FETCH_RETRY_DELAY_MS;
+    }
 
-        return new Promise((resolve, reject) => {
-            const url = new URL(this._tokenEndpoint);
-            const isHttps = url.protocol === 'https:';
-            const httpModule = isHttps ? https : http;
+    private cachedTokenWhileValid(): string | undefined {
+        return this._accessToken && Date.now() < this._expiresAt ? this._accessToken : undefined;
+    }
 
-            const req = httpModule.request(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Content-Length': Buffer.byteLength(body)
-                },
-                // Chain validation is skipped only when skipTlsValidation is explicitly set,
-                // matching the gRPC channel's credentials for the same connection string.
-                ...(isHttps && this._skipTlsValidation ? { rejectUnauthorized: false } : {})
-            }, response => {
-                let data = '';
-
-                response.on('data', chunk => {
-                    data += chunk;
-                });
-
-                response.on('end', () => {
-                    if (response.statusCode !== 200) {
-                        reject(new Error(`Token request failed with status ${response.statusCode}: ${data}`));
-                        return;
-                    }
-
-                    try {
-                        const tokenResponse = JSON.parse(data) as OAuthTokenResponse;
-                        this._accessToken = tokenResponse.access_token;
-                        const expiresInSeconds = tokenResponse.expires_in || DEFAULT_TOKEN_EXPIRY_SECONDS;
-                        this._tokenExpiry = new Date(Date.now() + (expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000);
-                        resolve(this._accessToken);
-                    } catch (error) {
-                        reject(new Error(`Failed to parse token response: ${error instanceof Error ? error.message : String(error)}`));
-                    }
-                });
+    private async fetchAndCacheAccessToken(): Promise<string | undefined> {
+        try {
+            const response = await this._fetchToken();
+            this._accessToken = response.access_token;
+            this._expiresAt = Date.now() + this.lifetimeSecondsFrom(response) * 1000;
+            this._lastFailedFetch = undefined;
+            return this._accessToken;
+        } catch (error) {
+            this._logger.warn('Failed to fetch OAuth2 token', {
+                error: error instanceof Error ? error.message : String(error)
             });
+            this._lastFailedFetch = Date.now();
+            return this.cachedTokenWhileValid();
+        }
+    }
 
-            req.on('error', error => {
-                reject(new Error(`Token request failed: ${error.message}`));
-            });
-
-            req.write(body);
-            req.end();
-        });
+    // expires_in is RECOMMENDED but not required by OAuth2, and some servers send it
+    // as a string.
+    private lifetimeSecondsFrom(response: OAuthTokenResponse): number {
+        const seconds = Number(response.expires_in);
+        return Number.isFinite(seconds) && seconds > 0 ? seconds : DEFAULT_TOKEN_EXPIRY_SECONDS;
     }
 }
 
