@@ -39,6 +39,8 @@ import { EventStoreSubscriptions } from './eventStoreSubscriptions/EventStoreSub
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
 import { ExternalServices } from './externalServices/ExternalServices';
 import { IExternalServices } from './externalServices/IExternalServices';
+import { IdentityManager } from './identities/IdentityManager';
+import { IIdentityManager } from './identities/IIdentityManager';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -62,6 +64,7 @@ export class EventStore implements IEventStore {
     readonly subscriptions: IEventStoreSubscriptions;
     readonly seeding: IEventSeeding;
     readonly externalServices: IExternalServices;
+    readonly identities: IIdentityManager;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -89,6 +92,7 @@ export class EventStore implements IEventStore {
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);
         this.seeding = new EventSeeding(name.value, _connection, artifacts);
         this.externalServices = new ExternalServices(name.value, _connection);
+        this.identities = new IdentityManager(name.value, namespace.value, _connection);
     }
 
     /**

@@ -11,6 +11,7 @@ import * as projections from './projections';
 import * as jobs from './jobs';
 import * as webhooks from './webhooks';
 import * as externalServices from './externalServices';
+import * as identities from './identities';
 import * as observation from './observation';
 import * as sinks from './sinks';
 import * as schemas from './schemas';
@@ -44,6 +45,7 @@ export * from './projections';
 export * from './jobs';
 export * from './webhooks';
 export * from './externalServices';
+export * from './identities';
 export * from './observation';
 export * from './sinks';
 export * from './schemas';
@@ -67,6 +69,7 @@ export {
     jobs,
     webhooks,
     externalServices,
+    identities,
     observation,
     sinks,
     schemas,

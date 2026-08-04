@@ -18,6 +18,7 @@ import { IEventSeeding } from './seeding/IEventSeeding';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
 import { IReadModels } from './readModels/IReadModels';
 import { IExternalServices } from './externalServices/IExternalServices';
+import { IIdentityManager } from './identities/IIdentityManager';
 
 /**
  * Defines the API surface for an event store.
@@ -68,6 +69,9 @@ export interface IEventStore {
 
     /** The external services manager for this event store. */
     readonly externalServices: IExternalServices;
+
+    /** The identities manager for this event store. */
+    readonly identities: IIdentityManager;
 
     /**
      * Gets an event sequence by its identifier.
