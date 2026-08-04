@@ -41,6 +41,8 @@ import { ExternalServices } from './externalServices/ExternalServices';
 import { IExternalServices } from './externalServices/IExternalServices';
 import { IdentityManager } from './identities/IdentityManager';
 import { IIdentityManager } from './identities/IIdentityManager';
+import { PIIManager } from './compliance/PIIManager';
+import { IPIIManager } from './compliance/IPIIManager';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -65,6 +67,7 @@ export class EventStore implements IEventStore {
     readonly seeding: IEventSeeding;
     readonly externalServices: IExternalServices;
     readonly identities: IIdentityManager;
+    readonly pii: IPIIManager;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -93,6 +96,7 @@ export class EventStore implements IEventStore {
         this.seeding = new EventSeeding(name.value, _connection, artifacts);
         this.externalServices = new ExternalServices(name.value, _connection);
         this.identities = new IdentityManager(name.value, namespace.value, _connection);
+        this.pii = new PIIManager(name.value, namespace.value, _connection);
     }
 
     /**

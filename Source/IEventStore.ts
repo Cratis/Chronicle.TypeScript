@@ -19,6 +19,7 @@ import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreS
 import { IReadModels } from './readModels/IReadModels';
 import { IExternalServices } from './externalServices/IExternalServices';
 import { IIdentityManager } from './identities/IIdentityManager';
+import { IPIIManager } from './compliance/IPIIManager';
 
 /**
  * Defines the API surface for an event store.
@@ -72,6 +73,9 @@ export interface IEventStore {
 
     /** The identities manager for this event store. */
     readonly identities: IIdentityManager;
+
+    /** The PII (Personal Identifiable Information) compliance manager for this event store. */
+    readonly pii: IPIIManager;
 
     /**
      * Gets an event sequence by its identifier.
