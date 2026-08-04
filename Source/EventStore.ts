@@ -37,6 +37,8 @@ import { IWebhooks } from './webhooks/IWebhooks';
 import { Webhooks } from './webhooks/Webhooks';
 import { EventStoreSubscriptions } from './eventStoreSubscriptions/EventStoreSubscriptions';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
+import { ExternalServices } from './externalServices/ExternalServices';
+import { IExternalServices } from './externalServices/IExternalServices';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -59,6 +61,7 @@ export class EventStore implements IEventStore {
     readonly webhooks: IWebhooks;
     readonly subscriptions: IEventStoreSubscriptions;
     readonly seeding: IEventSeeding;
+    readonly externalServices: IExternalServices;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -85,6 +88,7 @@ export class EventStore implements IEventStore {
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);
         this.seeding = new EventSeeding(name.value, _connection, artifacts);
+        this.externalServices = new ExternalServices(name.value, _connection);
     }
 
     /**

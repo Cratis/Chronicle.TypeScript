@@ -81,6 +81,11 @@
             "import": "./dist/webhooks/index.js",
             "default": "./dist/webhooks/index.js"
         },
+        "./externalServices": {
+            "types": "./dist/externalServices/index.d.ts",
+            "import": "./dist/externalServices/index.js",
+            "default": "./dist/externalServices/index.js"
+        },
         "./observation": {
             "types": "./dist/observation/index.d.ts",
             "import": "./dist/observation/index.js",

@@ -10,6 +10,7 @@ import * as readModels from './readModels';
 import * as projections from './projections';
 import * as jobs from './jobs';
 import * as webhooks from './webhooks';
+import * as externalServices from './externalServices';
 import * as observation from './observation';
 import * as sinks from './sinks';
 import * as schemas from './schemas';
@@ -42,6 +43,7 @@ export * from './readModels';
 export * from './projections';
 export * from './jobs';
 export * from './webhooks';
+export * from './externalServices';
 export * from './observation';
 export * from './sinks';
 export * from './schemas';
@@ -64,6 +66,7 @@ export {
     projections,
     jobs,
     webhooks,
+    externalServices,
     observation,
     sinks,
     schemas,

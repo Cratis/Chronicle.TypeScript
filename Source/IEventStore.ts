@@ -17,6 +17,7 @@ import { IWebhooks } from './webhooks/IWebhooks';
 import { IEventSeeding } from './seeding/IEventSeeding';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
 import { IReadModels } from './readModels/IReadModels';
+import { IExternalServices } from './externalServices/IExternalServices';
 
 /**
  * Defines the API surface for an event store.
@@ -64,6 +65,9 @@ export interface IEventStore {
 
     /** The event seeding manager for this event store. */
     readonly seeding: IEventSeeding;
+
+    /** The external services manager for this event store. */
+    readonly externalServices: IExternalServices;
 
     /**
      * Gets an event sequence by its identifier.
