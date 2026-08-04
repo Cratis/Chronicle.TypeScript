@@ -136,7 +136,6 @@
     "dependencies": {
         "@bufbuild/protobuf": "^2.12.0",
         "@cratis/chronicle.contracts": "16.4.0",
-        "@cratis/fundamentals": "7.14.0",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
         "nice-grpc": "^2.1.16",
@@ -145,8 +144,12 @@
         "undici": "^8.7.0"
     },
     "devDependencies": {
+        "@cratis/fundamentals": "7.14.0",
         "@types/node": "^25.9.1",
         "typescript": "^6.0.3",
         "vitest": "^4.1.10"
+    },
+    "peerDependencies": {
+        "@cratis/fundamentals": "^7"
     }
 }
