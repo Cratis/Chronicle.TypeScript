@@ -150,6 +150,6 @@
         "vitest": "^4.1.10"
     },
     "peerDependencies": {
-        "@cratis/fundamentals": "^7"
+        "@cratis/fundamentals": "^7.14.0"
     }
 }
