@@ -13,6 +13,7 @@ import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events';
 import { EmployeeState } from './reducers';
 import { Person, employees, emailFor } from './employees';
 import { registerCustomerWithPii, showCustomerReadModel } from './compliance';
+import { registerCustomersApi } from './externalServices';
 
 // Side-effect imports so the @constraint and @seeder decorators run and are
 // discovered and registered with the event store on connect.
@@ -143,6 +144,7 @@ function writeInstructions(): void {
         '  E = Set email        U = Try to take the next employee\'s email (constraint violation)',
         '  R = Read model       T = Transactional update',
         '  C = Register customer with PII   V = View customer PII read model',
+        '  X = Register external HTTP service (bearer token)',
         '  I = Switch user (cycle: Alice Smith → Bob Jones → System)',
         '  H or ? = Show this menu          Q = Quit',
         ''
@@ -213,6 +215,7 @@ async function run(): Promise<void> {
             if (key === 't') { await transact(store, selectedIndex, users[userIndex], random); continue; }
             if (key === 'c') { await registerCustomerWithPii(store); continue; }
             if (key === 'v') { await showCustomerReadModel(store); continue; }
+            if (key === 'x') { await registerCustomersApi(store); continue; }
             if (key === 'h' || key === '?') { writeInstructions(); continue; }
         }
     } catch (error) {

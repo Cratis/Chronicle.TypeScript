@@ -13,6 +13,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
 8. Registers two discoverable `@constraint` artifacts: `UniqueEmployeeHire` (a unique-event-type constraint, enforced by the Kernel via a query) and `UniqueEmployeeEmail` (a `unique` constraint backed by an index collection that rejects duplicate email addresses)
 9. Demonstrates compliance features with the `@pii` decorator for protecting Personally Identifiable Information
+10. Registers an external HTTP service with the Chronicle Kernel via `eventStore.externalServices.register(...)`, secured with a bearer token and a custom header
 
 ## Keyboard controls
 
@@ -27,6 +28,7 @@ Select an employee with `1`–`3`, then:
 | `R` | Read the selected employee's read-model state |
 | `T` | Commit a transactional (Unit of Work) batch of events |
 | `C` | Show compliance (PII) information |
+| `X` | Register an external HTTP service (bearer token) |
 | `H` or `?` | Show the keyboard menu |
 | `Q` | Quit |
 
@@ -61,6 +63,7 @@ You should see output with:
 - Event log tail/has-events information
 - Reactor logs for observed events
 - Compliance feature information (`C` keyboard command)
+- External service registration confirmation (`X` keyboard command)
 
 ## Configuration
 
@@ -85,4 +88,5 @@ Samples/Console/
   projections-model-bound.ts       # Model-bound projection artifact
   constraints.ts                   # Discoverable `@constraint` artifacts
   compliance.ts                    # Compliance feature demonstration (PII)
+  externalServices.ts              # External service registration demonstration
 ```
