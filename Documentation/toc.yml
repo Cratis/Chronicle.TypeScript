@@ -10,6 +10,8 @@
       href: jobs.md
     - name: Webhooks
       href: webhooks.md
+    - name: External Services
+      href: external-services.md
     - name: Seeding
       href: seeding.md
     - name: Identity
