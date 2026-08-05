@@ -184,7 +184,15 @@ export class EventSequence implements IEventSequence {
         causationManager.add(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) });
         const batchCausationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
-        const concurrencyScope = this.toContractConcurrencyScope(appendOptions?.concurrencyScope);
+
+        // Each distinct event source id in the batch gets its own concurrency scope: an explicit
+        // entry in options.concurrencyScopes wins, falling back to the shared options.concurrencyScope
+        // when no per-source entry is given — mirroring C#'s AppendMany(IEnumerable<EventForEventSourceId>, ...)
+        // overload, which takes an IDictionary<EventSourceId, ConcurrencyScope> rather than one shared scope.
+        const concurrencyScopesByEventSourceId = appendOptions?.concurrencyScopes;
+        const defaultConcurrencyScope = appendOptions?.concurrencyScope;
+        const resolveConcurrencyScope = (eventSourceId: string) =>
+            this.toContractConcurrencyScope(concurrencyScopesByEventSourceId?.[eventSourceId] ?? defaultConcurrencyScope);
 
         const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -205,7 +213,6 @@ export class EventSequence implements IEventSequence {
                     Properties: { ...c.properties }
                 })),
                 CausedBy: toContractsCausedBy(identity),
-                ConcurrencyScope: concurrencyScope,
                 Tags: [],
                 Occurred: undefined,
                 Subject: eventSourceId
@@ -244,7 +251,7 @@ export class EventSequence implements IEventSequence {
                     })),
                     CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScopes: {
-                        ...Object.fromEntries(distinctEventSourceIds.map(eventSourceId => [eventSourceId, concurrencyScope]))
+                        ...Object.fromEntries(distinctEventSourceIds.map(eventSourceId => [eventSourceId, resolveConcurrencyScope(eventSourceId)]))
                     }
                 });
 

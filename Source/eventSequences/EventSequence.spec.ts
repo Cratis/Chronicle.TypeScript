@@ -28,6 +28,7 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [] }),
         getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value }),
         completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 3n, Error: 0 }),
+        appendMany: vi.fn().mockResolvedValue({ SequenceNumbers: [], ConstraintViolations: [], Errors: [] }),
         ...overrides
     };
     const connection = { eventSequences } as unknown as ChronicleConnection;
@@ -47,7 +48,8 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getForEventSourceIdAndEventTypes: eventSequences.getForEventSourceIdAndEventTypes,
         getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber,
         getTailSequenceNumber: eventSequences.getTailSequenceNumber,
-        completeStream: eventSequences.completeStream
+        completeStream: eventSequences.completeStream,
+        appendMany: eventSequences.appendMany
     };
 }
 
@@ -259,6 +261,70 @@ describe('EventSequence', () => {
             if (!result.isSuccess) {
                 expect(result.error).toEqual(CompleteStreamError.AlreadyCompleted);
             }
+        });
+    });
+
+    describe('when appending many events for distinct event sources with a shared concurrency scope option', () => {
+        const { eventSequence, appendMany } = createEventSequence();
+
+        it('should apply the same concurrency scope to every distinct event source id', async () => {
+            await eventSequence.appendMany(
+                [
+                    { eventSourceId: 'source-1', event: new SomethingHappened('a') },
+                    { eventSourceId: 'source-2', event: new SomethingHappened('b') }
+                ],
+                { concurrencyScope: { sequenceNumber: 5n } });
+
+            expect(appendMany).toHaveBeenCalledTimes(1);
+            const request = appendMany.mock.calls[0][0];
+            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
+            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(5n);
+        });
+    });
+
+    describe('when appending many events for distinct event sources with a per-event-source-id concurrency scope map', () => {
+        const { eventSequence, appendMany } = createEventSequence();
+
+        it('should apply the distinct concurrency scope for each event source id', async () => {
+            await eventSequence.appendMany(
+                [
+                    { eventSourceId: 'source-1', event: new SomethingHappened('a') },
+                    { eventSourceId: 'source-2', event: new SomethingHappened('b') }
+                ],
+                {
+                    concurrencyScopes: {
+                        'source-1': { sequenceNumber: 5n },
+                        'source-2': { sequenceNumber: 9n }
+                    }
+                });
+
+            expect(appendMany).toHaveBeenCalledTimes(1);
+            const request = appendMany.mock.calls[0][0];
+            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
+            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(9n);
+        });
+    });
+
+    describe('when appending many events with a per-event-source-id map that only covers some sources', () => {
+        const { eventSequence, appendMany } = createEventSequence();
+
+        it('should fall back to the shared concurrency scope for sources without a map entry', async () => {
+            await eventSequence.appendMany(
+                [
+                    { eventSourceId: 'source-1', event: new SomethingHappened('a') },
+                    { eventSourceId: 'source-2', event: new SomethingHappened('b') }
+                ],
+                {
+                    concurrencyScope: { sequenceNumber: 1n },
+                    concurrencyScopes: {
+                        'source-1': { sequenceNumber: 5n }
+                    }
+                });
+
+            expect(appendMany).toHaveBeenCalledTimes(1);
+            const request = appendMany.mock.calls[0][0];
+            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
+            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(1n);
         });
     });
 });

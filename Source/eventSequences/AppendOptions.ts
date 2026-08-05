@@ -16,4 +16,12 @@ export interface AppendOptions {
 
     /** Optional concurrency scope to use for append operations. */
     concurrencyScope?: ConcurrencyScope;
+
+    /**
+     * Optional per-event-source-id concurrency scopes, keyed by event source id.
+     * Only meaningful for the `appendMany(events: EventForEventSourceId[], options?)` overload, which
+     * can target multiple distinct event sources in a single batch. When an event source id has no
+     * entry here, it falls back to {@link concurrencyScope}.
+     */
+    concurrencyScopes?: Record<string, ConcurrencyScope>;
 }
