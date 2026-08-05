@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../connection';
 import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
 import { eventType } from '../events/eventTypeDecorator';
+import { CompleteStreamError } from './CompleteStreamError';
 import { EventSequence } from './EventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
@@ -26,6 +27,7 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [] }),
         getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [] }),
         getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value }),
+        completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 3n, Error: 0 }),
         ...overrides
     };
     const connection = { eventSequences } as unknown as ChronicleConnection;
@@ -44,7 +46,8 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         redactForEventSource: eventSequences.redactForEventSource,
         getForEventSourceIdAndEventTypes: eventSequences.getForEventSourceIdAndEventTypes,
         getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber,
-        getTailSequenceNumber: eventSequences.getTailSequenceNumber
+        getTailSequenceNumber: eventSequences.getTailSequenceNumber,
+        completeStream: eventSequences.completeStream
     };
 }
 
@@ -206,6 +209,56 @@ describe('EventSequence', () => {
             const request = getTailSequenceNumber.mock.calls[0][0];
             expect(request.EventTypes).toContainEqual({ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false });
             expect(request.EventTypes).not.toContainEqual({ Id: 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g', Generation: 1, Tombstone: false });
+        });
+    });
+
+    describe('when completing a non-default stream successfully', () => {
+        const { eventSequence, completeStream } = createEventSequence({
+            completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 9n, Error: 0 })
+        });
+
+        it('should call the RPC and return the tail sequence number', async () => {
+            const result = await eventSequence.completeStream('my-stream-type', 'my-stream-id');
+
+            expect(completeStream).toHaveBeenCalledTimes(1);
+            const request = completeStream.mock.calls[0][0];
+            expect(request.EventStreamType).toEqual('my-stream-type');
+            expect(request.EventStreamId).toEqual('my-stream-id');
+
+            expect(result.isSuccess).toBe(true);
+            if (result.isSuccess) {
+                expect(result.sequenceNumber.value).toEqual(9n);
+            }
+        });
+    });
+
+    describe('when completing the default stream', () => {
+        const { eventSequence } = createEventSequence({
+            completeStream: vi.fn().mockResolvedValue({ IsSuccess: false, SequenceNumber: 0n, Error: 1 })
+        });
+
+        it('should return the DefaultStreamCannotBeCompleted error', async () => {
+            const result = await eventSequence.completeStream('Default', '');
+
+            expect(result.isSuccess).toBe(false);
+            if (!result.isSuccess) {
+                expect(result.error).toEqual(CompleteStreamError.DefaultStreamCannotBeCompleted);
+            }
+        });
+    });
+
+    describe('when completing an already-completed stream', () => {
+        const { eventSequence } = createEventSequence({
+            completeStream: vi.fn().mockResolvedValue({ IsSuccess: false, SequenceNumber: 0n, Error: 0 })
+        });
+
+        it('should return the AlreadyCompleted error', async () => {
+            const result = await eventSequence.completeStream('my-stream-type', 'my-stream-id');
+
+            expect(result.isSuccess).toBe(false);
+            if (!result.isSuccess) {
+                expect(result.error).toEqual(CompleteStreamError.AlreadyCompleted);
+            }
         });
     });
 });

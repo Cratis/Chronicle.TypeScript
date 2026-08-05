@@ -4,6 +4,7 @@
 import type { Constructor } from '@cratis/fundamentals';
 import type { AppendedEvent } from '../events/AppendedEvent';
 import { AppendOptions } from './AppendOptions';
+import { CompleteStreamResult } from './CompleteStreamResult';
 import { EventForEventSourceId } from './EventForEventSourceId';
 import { AppendResult } from './AppendResult';
 import { EventSequenceId } from './EventSequenceId';
@@ -137,4 +138,18 @@ export interface IEventSequence {
      * or other compliance erasure requirements. It is not a field-level mask.
      */
     redactForEventSource(eventSourceId: string, reason: string, eventTypes?: Constructor[]): Promise<void>;
+
+    /**
+     * Completes a stream so that no further events can be appended to it.
+     * @param eventStreamType - The event stream type identifying the stream's type.
+     * @param eventStreamId - The event stream identifier identifying the stream within the type.
+     * @returns The tail sequence number at the moment of completion on success, or a typed error
+     * describing why the operation was rejected.
+     * @remarks
+     * The default stream can never be completed and will return `DefaultStreamCannotBeCompleted`.
+     * Completing an already-completed stream returns `AlreadyCompleted` and leaves the stream in its
+     * completed state. After a successful completion any subsequent append targeting the same stream
+     * results in a constraint violation of type `StreamClosed`.
+     */
+    completeStream(eventStreamType: string, eventStreamId: string): Promise<CompleteStreamResult>;
 }

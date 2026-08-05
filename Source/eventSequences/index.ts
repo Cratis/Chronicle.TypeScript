@@ -7,6 +7,8 @@ export type { AppendError } from './AppendError';
 export type { ConstraintViolation } from './ConstraintViolation';
 export type { AppendResult } from './AppendResult';
 export type { AppendOptions } from './AppendOptions';
+export { CompleteStreamError } from './CompleteStreamError';
+export type { CompleteStreamResult } from './CompleteStreamResult';
 export type { ConcurrencyScope } from './ConcurrencyScope';
 export type { EventForEventSourceId } from './EventForEventSourceId';
 export type { IEventSequence } from './IEventSequence';

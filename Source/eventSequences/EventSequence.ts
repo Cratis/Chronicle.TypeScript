@@ -14,6 +14,8 @@ import { DecoratorType } from '../types/DecoratorType';
 import { TypeDiscoverer } from '../types/TypeDiscoverer';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
+import { CompleteStreamError } from './CompleteStreamError';
+import { CompleteStreamResult } from './CompleteStreamResult';
 import { ConstraintViolation } from './ConstraintViolation';
 import { EventForEventSourceId } from './EventForEventSourceId';
 import { IEventSequence } from './IEventSequence';
@@ -549,6 +551,45 @@ export class EventSequence implements IEventSequence {
             const methodName = className.charAt(0).toLowerCase() + className.slice(1);
             return typeof prototype[methodName] === 'function';
         });
+    }
+
+    /** @inheritdoc */
+    async completeStream(eventStreamType: string, eventStreamId: string): Promise<CompleteStreamResult> {
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.complete_stream', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_stream_type', eventStreamType);
+            span.setAttribute('chronicle.event_stream_id', eventStreamId);
+            try {
+                const response = await this._connection.eventSequences.completeStream({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    EventStreamType: eventStreamType,
+                    EventStreamId: eventStreamId
+                });
+
+                const result: CompleteStreamResult = response.IsSuccess
+                    ? { isSuccess: true, sequenceNumber: new EventSequenceNumber(response.SequenceNumber ?? 0n) }
+                    : { isSuccess: false, error: this.toClientCompleteStreamError(response.Error) };
+
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
+    }
+
+    private toClientCompleteStreamError(error: number): CompleteStreamError {
+        // Mirrors the C# client's switch: any wire value other than DefaultStreamCannotBeCompleted
+        // (including UNRECOGNIZED) is treated as AlreadyCompleted.
+        return error === 1 ? CompleteStreamError.DefaultStreamCannotBeCompleted : CompleteStreamError.AlreadyCompleted;
     }
 
     private toContractEventTypes(eventTypes: Constructor[]) {
