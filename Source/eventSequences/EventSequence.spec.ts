@@ -540,4 +540,49 @@ describe('EventSequence', () => {
             expect(result.failedPartitions).toEqual([]);
         });
     });
+
+    describe('when a single append fails with a concurrency violation', () => {
+        const { eventSequence } = createEventSequence({
+            append: vi.fn().mockResolvedValue({
+                SequenceNumber: 18446744073709551615n,
+                ConstraintViolations: [],
+                Errors: [],
+                ConcurrencyViolation: { EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }
+            })
+        });
+
+        it('should map the concurrency violation and report the append as unsuccessful', async () => {
+            const result = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            expect(result.isSuccess).toBe(false);
+            expect(result.concurrencyViolation).toEqual({
+                eventSourceId: 'some-event-source',
+                expectedSequenceNumber: new EventSequenceNumber(1n),
+                actualSequenceNumber: new EventSequenceNumber(2n)
+            });
+        });
+    });
+
+    describe('when appendMany fails with a concurrency violation', () => {
+        const { eventSequence } = createEventSequence({
+            appendMany: vi.fn().mockResolvedValue({
+                SequenceNumbers: [18446744073709551615n],
+                ConstraintViolations: [],
+                Errors: [],
+                ConcurrencyViolations: [{ EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }]
+            })
+        });
+
+        it('should map the first concurrency violation onto every per-event result', async () => {
+            const results = await eventSequence.appendMany('some-event-source', [new SomethingHappened('a')]);
+
+            expect(results).toHaveLength(1);
+            expect(results[0].isSuccess).toBe(false);
+            expect(results[0].concurrencyViolation).toEqual({
+                eventSourceId: 'some-event-source',
+                expectedSequenceNumber: new EventSequenceNumber(1n),
+                actualSequenceNumber: new EventSequenceNumber(2n)
+            });
+        });
+    });
 });

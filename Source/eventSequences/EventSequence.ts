@@ -19,6 +19,7 @@ import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { CompleteStreamError } from './CompleteStreamError';
 import { CompleteStreamResult } from './CompleteStreamResult';
+import { ConcurrencyViolation } from './ConcurrencyViolation';
 import { ConstraintViolation } from './ConstraintViolation';
 import { EventForEventSourceId } from './EventForEventSourceId';
 import { IEventSequence } from './IEventSequence';
@@ -116,7 +117,8 @@ export class EventSequence implements IEventSequence {
                 const result = this.mapAppendResponse(
                     response.SequenceNumber,
                     response.ConstraintViolations ?? [],
-                    response.Errors ?? []
+                    response.Errors ?? [],
+                    response.ConcurrencyViolation
                 );
                 span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value.toString());
                 span.setStatus({ code: SpanStatusCode.OK });
@@ -283,11 +285,16 @@ export class EventSequence implements IEventSequence {
                 });
 
                 const duration = Date.now() - startTime;
+                // Mirrors the C# client: every per-event AppendResult in a batch carries all
+                // constraint violations and the first concurrency violation of the whole batch —
+                // the wire response doesn't correlate either back to a specific event index.
+                const firstConcurrencyViolation = (response.ConcurrencyViolations ?? [])[0];
                 const result = (response.SequenceNumbers ?? []).map((sequenceNumber: bigint, index: number) =>
                     this.mapAppendResponse(
                         sequenceNumber,
                         response.ConstraintViolations ?? [],
-                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index)
+                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index),
+                        firstConcurrencyViolation
                     )
                 );
                 span.setStatus({ code: SpanStatusCode.OK });
@@ -690,7 +697,8 @@ export class EventSequence implements IEventSequence {
     private mapAppendResponse(
         sequenceNumber: bigint,
         constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
-        errors: string[]
+        errors: string[],
+        concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
     ): AppendResult {
         const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => ({
             constraintId: violation.ConstraintId ?? '',
@@ -700,13 +708,22 @@ export class EventSequence implements IEventSequence {
 
         const mappedErrors = errors.map(message => ({ message }));
 
+        const mappedConcurrencyViolation: ConcurrencyViolation | undefined = concurrencyViolation
+            ? {
+                eventSourceId: concurrencyViolation.EventSourceId ?? '',
+                expectedSequenceNumber: new EventSequenceNumber(concurrencyViolation.ExpectedSequenceNumber ?? 0n),
+                actualSequenceNumber: new EventSequenceNumber(concurrencyViolation.ActualSequenceNumber ?? 0n)
+            }
+            : undefined;
+
         const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
         const eventSequenceNumber = new EventSequenceNumber(safeSequenceNumber);
-        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0;
+        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0 && !mappedConcurrencyViolation;
 
         return {
             sequenceNumber: eventSequenceNumber,
             constraintViolations: mappedViolations,
+            concurrencyViolation: mappedConcurrencyViolation,
             errors: mappedErrors,
             isSuccess,
             waitForCompletion: (timeoutMs?: number) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, timeoutMs)

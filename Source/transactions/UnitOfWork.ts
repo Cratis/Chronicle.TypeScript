@@ -2,7 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
+import { AppendError } from '../eventSequences/AppendError';
 import { AppendResult } from '../eventSequences/AppendResult';
+import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation';
+import { ConstraintViolation } from '../eventSequences/ConstraintViolation';
 import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { IEventStore } from '../IEventStore';
@@ -63,6 +66,23 @@ export class UnitOfWork implements IUnitOfWork {
     /** @inheritdoc */
     getAppendResults(): ReadonlyArray<AppendResult> {
         return this._appendResults;
+    }
+
+    /** @inheritdoc */
+    getConstraintViolations(): ReadonlyArray<ConstraintViolation> {
+        return this._appendResults.flatMap(appendResult => appendResult.constraintViolations);
+    }
+
+    /** @inheritdoc */
+    getConcurrencyViolations(): ReadonlyArray<ConcurrencyViolation> {
+        return this._appendResults
+            .map(appendResult => appendResult.concurrencyViolation)
+            .filter((violation): violation is ConcurrencyViolation => violation !== undefined);
+    }
+
+    /** @inheritdoc */
+    getAppendErrors(): ReadonlyArray<AppendError> {
+        return this._appendResults.flatMap(appendResult => appendResult.errors);
     }
 
     /** @inheritdoc */

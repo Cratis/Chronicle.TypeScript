@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { AppendError } from './AppendError';
+import { ConcurrencyViolation } from './ConcurrencyViolation';
 import { ConstraintViolation } from './ConstraintViolation';
 import { EventSequenceNumber } from './EventSequenceNumber';
 import { WaitForCompletionResult } from './WaitForCompletionResult';
@@ -15,6 +16,9 @@ export interface AppendResult {
 
     /** Constraint violations that occurred, if any. */
     readonly constraintViolations: ReadonlyArray<ConstraintViolation>;
+
+    /** The concurrency violation that occurred, if any. */
+    readonly concurrencyViolation?: ConcurrencyViolation;
 
     /** Errors that occurred during appending, if any. */
     readonly errors: ReadonlyArray<AppendError>;

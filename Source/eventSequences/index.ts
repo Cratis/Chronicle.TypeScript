@@ -4,6 +4,7 @@
 export { EventSequenceId } from './EventSequenceId';
 export { EventSequenceNumber } from './EventSequenceNumber';
 export type { AppendError } from './AppendError';
+export type { ConcurrencyViolation } from './ConcurrencyViolation';
 export type { ConstraintViolation } from './ConstraintViolation';
 export type { AppendResult } from './AppendResult';
 export type { AppendedEventWithResult } from './AppendedEventWithResult';
