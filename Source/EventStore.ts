@@ -43,6 +43,8 @@ import { IdentityManager } from './identities/IdentityManager';
 import { IIdentityManager } from './identities/IIdentityManager';
 import { PIIManager } from './compliance/PIIManager';
 import { IPIIManager } from './compliance/IPIIManager';
+import { FailedPartitions } from './observation/FailedPartitions';
+import { IFailedPartitions } from './observation/IFailedPartitions';
 
 /**
  * Implements {@link IEventStore} by communicating with the Chronicle Kernel
@@ -68,6 +70,7 @@ export class EventStore implements IEventStore {
     readonly externalServices: IExternalServices;
     readonly identities: IIdentityManager;
     readonly pii: IPIIManager;
+    readonly failedPartitions: IFailedPartitions;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
 
@@ -97,6 +100,7 @@ export class EventStore implements IEventStore {
         this.externalServices = new ExternalServices(name.value, _connection);
         this.identities = new IdentityManager(name.value, namespace.value, _connection);
         this.pii = new PIIManager(name.value, namespace.value, _connection);
+        this.failedPartitions = new FailedPartitions(name.value, namespace.value, _connection);
     }
 
     /**

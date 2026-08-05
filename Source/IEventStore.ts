@@ -20,6 +20,7 @@ import { IReadModels } from './readModels/IReadModels';
 import { IExternalServices } from './externalServices/IExternalServices';
 import { IIdentityManager } from './identities/IIdentityManager';
 import { IPIIManager } from './compliance/IPIIManager';
+import { IFailedPartitions } from './observation/IFailedPartitions';
 
 /**
  * Defines the API surface for an event store.
@@ -76,6 +77,9 @@ export interface IEventStore {
 
     /** The PII (Personal Identifiable Information) compliance manager for this event store. */
     readonly pii: IPIIManager;
+
+    /** The failed partitions manager for this event store. */
+    readonly failedPartitions: IFailedPartitions;
 
     /**
      * Gets an event sequence by its identifier.

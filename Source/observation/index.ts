@@ -3,3 +3,7 @@
 
 export { ObserverId } from './ObserverId';
 export { ObserverRunningState } from './ObserverRunningState';
+export type { FailedPartition } from './FailedPartition';
+export type { FailedPartitionAttempt } from './FailedPartitionAttempt';
+export type { IFailedPartitions } from './IFailedPartitions';
+export { FailedPartitions } from './FailedPartitions';
