@@ -12,6 +12,7 @@ export { CompleteStreamError } from './CompleteStreamError';
 export type { CompleteStreamResult } from './CompleteStreamResult';
 export type { ConcurrencyScope } from './ConcurrencyScope';
 export type { EventForEventSourceId } from './EventForEventSourceId';
+export type { WaitForCompletionResult } from './WaitForCompletionResult';
 export type { IEventSequence } from './IEventSequence';
 export type { IEventLog } from './IEventLog';
 export type { ITransactionalEventSequence } from './ITransactionalEventSequence';

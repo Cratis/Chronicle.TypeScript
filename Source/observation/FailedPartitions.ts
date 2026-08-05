@@ -1,12 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { FailedPartition as ContractsFailedPartition } from '@cratis/chronicle.contracts';
 import { ChronicleConnection } from '../connection';
-import { fromContractsGuid } from '../connection/Guid';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
 import { FailedPartition } from './FailedPartition';
 import { IFailedPartitions } from './IFailedPartitions';
+import { toClientFailedPartition } from './toClientFailedPartition';
 
 /**
  * Implements {@link IFailedPartitions} by proxying to the Chronicle Kernel over the client connection.
@@ -41,20 +39,6 @@ export class FailedPartitions implements IFailedPartitions {
             ObserverId: observerId
         });
 
-        return (response.items ?? []).map(failedPartition => this.toClientFailedPartition(failedPartition));
-    }
-
-    private toClientFailedPartition(failedPartition: ContractsFailedPartition): FailedPartition {
-        return {
-            id: fromContractsGuid(failedPartition.Id).toString(),
-            observerId: failedPartition.ObserverId,
-            partition: failedPartition.Partition,
-            attempts: (failedPartition.Attempts ?? []).map(attempt => ({
-                occurred: new Date(attempt.Occurred?.Value ?? ''),
-                sequenceNumber: new EventSequenceNumber(attempt.SequenceNumber ?? 0n),
-                messages: attempt.Messages ?? [],
-                stackTrace: attempt.StackTrace ?? ''
-            }))
-        };
+        return (response.items ?? []).map(failedPartition => toClientFailedPartition(failedPartition));
     }
 }

@@ -20,7 +20,10 @@ class SomethingElseHappened {
 }
 eventType('b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g')(SomethingElseHappened);
 
-function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>> = {}) {
+function createEventSequence(
+    overrides: Record<string, ReturnType<typeof vi.fn>> = {},
+    observerOverrides: Record<string, ReturnType<typeof vi.fn>> = {}
+) {
     const eventSequences = {
         redact: vi.fn().mockResolvedValue({}),
         redactForEventSource: vi.fn().mockResolvedValue({}),
@@ -32,7 +35,11 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         append: vi.fn().mockResolvedValue({ SequenceNumber: 0n, ConstraintViolations: [], Errors: [] }),
         ...overrides
     };
-    const connection = { eventSequences } as unknown as ChronicleConnection;
+    const observers = {
+        waitForCompletion: vi.fn().mockResolvedValue({ IsSuccess: true, FailedPartitions: [] }),
+        ...observerOverrides
+    };
+    const connection = { eventSequences, observers } as unknown as ChronicleConnection;
     const unitOfWorkManager = {} as IUnitOfWorkManager;
 
     const eventSequence = new EventSequence(
@@ -51,7 +58,8 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getTailSequenceNumber: eventSequences.getTailSequenceNumber,
         completeStream: eventSequences.completeStream,
         appendMany: eventSequences.appendMany,
-        append: eventSequences.append
+        append: eventSequences.append,
+        waitForCompletion: observers.waitForCompletion
     };
 }
 
@@ -457,6 +465,79 @@ describe('EventSequence', () => {
 
             expect(result.isSuccess).toBe(true);
             expect(eventSequence.appendOperations.hasSubscribers).toBe(false);
+        });
+    });
+
+    describe('when waiting for completion after a successful append', () => {
+        const { eventSequence, waitForCompletion } = createEventSequence(
+            { append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] }) },
+            { waitForCompletion: vi.fn().mockResolvedValue({ IsSuccess: true, FailedPartitions: [] }) });
+
+        it('should call the WaitForCompletion RPC with the appended tail sequence number', async () => {
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const result = await appendResult.waitForCompletion();
+
+            expect(waitForCompletion).toHaveBeenCalledTimes(1);
+            const request = waitForCompletion.mock.calls[0][0];
+            expect(request.EventStore).toEqual('my-event-store');
+            expect(request.Namespace).toEqual('my-namespace');
+            expect(request.EventSequenceId).toEqual(EventSequenceId.eventLog.value);
+            expect(request.TailEventSequenceNumber).toEqual(42n);
+            expect(result.isSuccess).toBe(true);
+            expect(result.failedPartitions).toEqual([]);
+        });
+
+        it('should pass the timeout as an abort signal', async () => {
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            await appendResult.waitForCompletion(1234);
+
+            const options = waitForCompletion.mock.calls[0][1];
+            expect(options.signal).toBeInstanceOf(AbortSignal);
+        });
+    });
+
+    describe('when waiting for completion and observers report a failed partition', () => {
+        const { eventSequence } = createEventSequence(
+            { append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] }) },
+            {
+                waitForCompletion: vi.fn().mockResolvedValue({
+                    IsSuccess: false,
+                    FailedPartitions: [{
+                        Id: { lo: 1n, hi: 0n },
+                        ObserverId: 'some-observer',
+                        Partition: 'some-partition',
+                        Attempts: []
+                    }]
+                })
+            });
+
+        it('should report failure with the failed partitions', async () => {
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const result = await appendResult.waitForCompletion();
+
+            expect(result.isSuccess).toBe(false);
+            expect(result.failedPartitions).toHaveLength(1);
+            expect(result.failedPartitions[0].observerId).toEqual('some-observer');
+            expect(result.failedPartitions[0].partition).toEqual('some-partition');
+        });
+    });
+
+    describe('when waiting for completion after an append that itself failed', () => {
+        const { eventSequence, waitForCompletion } = createEventSequence({
+            append: vi.fn().mockResolvedValue({
+                SequenceNumber: 0n,
+                ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: {} }],
+                Errors: []
+            })
+        });
+
+        it('should not call the RPC and resolve immediately as successful', async () => {
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const result = await appendResult.waitForCompletion();
+
+            expect(waitForCompletion).not.toHaveBeenCalled();
+            expect(result.isSuccess).toBe(true);
+            expect(result.failedPartitions).toEqual([]);
         });
     });
 });

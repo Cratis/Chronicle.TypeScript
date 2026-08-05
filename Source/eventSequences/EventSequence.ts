@@ -12,6 +12,7 @@ import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
 import { DecoratorType } from '../types/DecoratorType';
 import { TypeDiscoverer } from '../types/TypeDiscoverer';
+import { toClientFailedPartition } from '../observation/toClientFailedPartition';
 import { AppendedEventWithResult } from './AppendedEventWithResult';
 import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster';
 import { AppendOptions } from './AppendOptions';
@@ -25,6 +26,10 @@ import { ITransactionalEventSequence } from './ITransactionalEventSequence';
 import { EventSequenceId } from './EventSequenceId';
 import { EventSequenceNumber } from './EventSequenceNumber';
 import { TransactionalEventSequence } from './TransactionalEventSequence';
+import { WaitForCompletionResult } from './WaitForCompletionResult';
+
+/** Default timeout for {@link AppendResult.waitForCompletion}, matching the C# client's default. */
+const DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS = 5000;
 import { ChronicleTracer } from '../Tracing';
 import { ChronicleMetrics } from '../Metrics';
 import { identityProvider, Identity } from '../identity';
@@ -696,12 +701,43 @@ export class EventSequence implements IEventSequence {
         const mappedErrors = errors.map(message => ({ message }));
 
         const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
+        const eventSequenceNumber = new EventSequenceNumber(safeSequenceNumber);
+        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0;
 
         return {
-            sequenceNumber: new EventSequenceNumber(safeSequenceNumber),
+            sequenceNumber: eventSequenceNumber,
             constraintViolations: mappedViolations,
             errors: mappedErrors,
-            isSuccess: mappedViolations.length === 0 && mappedErrors.length === 0
+            isSuccess,
+            waitForCompletion: (timeoutMs?: number) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, timeoutMs)
+        };
+    }
+
+    /**
+     * Waits for all observers affected by an append to either process up to the given tail sequence
+     * number or fail. Backs {@link AppendResult.waitForCompletion}.
+     */
+    private async waitForObserverCompletion(
+        tailSequenceNumber: EventSequenceNumber,
+        appendWasSuccessful: boolean,
+        timeoutMs = DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS
+    ): Promise<WaitForCompletionResult> {
+        if (!appendWasSuccessful) {
+            return { isSuccess: true, failedPartitions: [] };
+        }
+
+        const response = await this._connection.observers.waitForCompletion(
+            {
+                EventStore: this._eventStoreName,
+                Namespace: this._namespace,
+                EventSequenceId: this.id.value,
+                TailEventSequenceNumber: tailSequenceNumber.value
+            },
+            { signal: AbortSignal.timeout(timeoutMs) });
+
+        return {
+            isSuccess: response.IsSuccess,
+            failedPartitions: (response.FailedPartitions ?? []).map(failedPartition => toClientFailedPartition(failedPartition))
         };
     }
 
