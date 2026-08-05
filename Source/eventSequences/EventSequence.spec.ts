@@ -19,12 +19,15 @@ class SomethingElseHappened {
 }
 eventType('b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g')(SomethingElseHappened);
 
-function createEventSequence() {
-    const redact = vi.fn().mockResolvedValue({});
-    const redactForEventSource = vi.fn().mockResolvedValue({});
-    const connection = {
-        eventSequences: { redact, redactForEventSource }
-    } as unknown as ChronicleConnection;
+function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>> = {}) {
+    const eventSequences = {
+        redact: vi.fn().mockResolvedValue({}),
+        redactForEventSource: vi.fn().mockResolvedValue({}),
+        getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [] }),
+        getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [] }),
+        ...overrides
+    };
+    const connection = { eventSequences } as unknown as ChronicleConnection;
     const unitOfWorkManager = {} as IUnitOfWorkManager;
 
     const eventSequence = new EventSequence(
@@ -34,7 +37,39 @@ function createEventSequence() {
         connection,
         unitOfWorkManager);
 
-    return { eventSequence, redact, redactForEventSource };
+    return {
+        eventSequence,
+        redact: eventSequences.redact,
+        redactForEventSource: eventSequences.redactForEventSource,
+        getForEventSourceIdAndEventTypes: eventSequences.getForEventSourceIdAndEventTypes,
+        getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber
+    };
+}
+
+function wireAppendedEvent() {
+    return {
+        Context: {
+            EventType: { Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false },
+            EventSourceType: 'Default',
+            EventSourceId: 'some-event-source',
+            SequenceNumber: 7n,
+            EventStreamType: 'Default',
+            EventStreamId: 'some-event-source',
+            Occurred: { Value: '2024-01-15T12:30:00.0000000+00:00' },
+            EventStore: 'my-event-store',
+            Namespace: 'my-namespace',
+            CorrelationId: undefined,
+            Causation: [{ Occurred: { Value: '2024-01-15T12:30:00.0000000+00:00' }, Type: 'SomeCausation', Properties: { key: 'value' } }],
+            CausedBy: undefined,
+            ObservationState: 0,
+            Tags: [],
+            Hash: ''
+        },
+        Content: JSON.stringify({ value: 'hello' }),
+        OriginalContent: JSON.stringify({ value: 'hello' }),
+        Revisions: [],
+        GenerationalContent: {}
+    };
 }
 
 describe('EventSequence', () => {
@@ -84,6 +119,47 @@ describe('EventSequence', () => {
                 { Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false },
                 { Id: 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g', Generation: 1, Tombstone: false }
             ]);
+        });
+    });
+
+    describe('when getting events for an event source and event types', () => {
+        const { eventSequence, getForEventSourceIdAndEventTypes } = createEventSequence({
+            getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [wireAppendedEvent()] })
+        });
+
+        it('should call the RPC with the resolved event type filter and map the response', async () => {
+            const result = await eventSequence.getForEventSourceIdAndEventTypes('some-event-source', [SomethingHappened]);
+
+            expect(getForEventSourceIdAndEventTypes).toHaveBeenCalledTimes(1);
+            const request = getForEventSourceIdAndEventTypes.mock.calls[0][0];
+            expect(request.EventSourceId).toEqual('some-event-source');
+            expect(request.EventTypes).toEqual([{ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false }]);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].context.sequenceNumber).toEqual(7n);
+            expect(result[0].context.eventSourceId).toEqual('some-event-source');
+            expect(result[0].context.causation).toEqual([{ type: 'SomeCausation', properties: { key: 'value' } }]);
+            expect(result[0].eventType.id.value).toEqual('a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f');
+            expect(result[0].content).toEqual({ value: 'hello' });
+        });
+    });
+
+    describe('when getting events from a sequence number', () => {
+        const { eventSequence, getEventsFromEventSequenceNumber } = createEventSequence({
+            getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [wireAppendedEvent()] })
+        });
+
+        it('should call the RPC starting from the given sequence number and map the response', async () => {
+            const result = await eventSequence.getFromSequenceNumber(new EventSequenceNumber(7n), 'some-event-source', [SomethingHappened]);
+
+            expect(getEventsFromEventSequenceNumber).toHaveBeenCalledTimes(1);
+            const request = getEventsFromEventSequenceNumber.mock.calls[0][0];
+            expect(request.FromEventSequenceNumber).toEqual(7n);
+            expect(request.EventSourceId).toEqual('some-event-source');
+            expect(request.EventTypes).toEqual([{ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false }]);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].content).toEqual({ value: 'hello' });
         });
     });
 });

@@ -3,8 +3,13 @@
 
 import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
+import type { AppendedEvent as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
 import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
+import type { AppendedEvent } from '../events/AppendedEvent';
+import { EventType } from '../events/EventType';
+import { EventTypeId } from '../events/EventTypeId';
+import { EventTypeGeneration } from '../events/EventTypeGeneration';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { ConstraintViolation } from './ConstraintViolation';
@@ -19,7 +24,7 @@ import { ChronicleMetrics } from '../Metrics';
 import { identityProvider, Identity } from '../identity';
 import { causationManager, CausationType } from '../auditing';
 import { correlationIdManager } from '../correlation';
-import { toContractsGuid } from '../connection/Guid';
+import { fromContractsGuid, toContractsGuid } from '../connection/Guid';
 import type { ConcurrencyScope } from './ConcurrencyScope';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
 
@@ -350,6 +355,79 @@ export class EventSequence implements IEventSequence {
     }
 
     /** @inheritdoc */
+    async getForEventSourceIdAndEventTypes(
+        eventSourceId: string,
+        eventTypes: Constructor[],
+        eventStreamType?: string,
+        eventStreamId?: string,
+        eventSourceType?: string
+    ): Promise<AppendedEvent[]> {
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_for_event_source_id_and_event_types', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_source_id', eventSourceId);
+            try {
+                const response = await this._connection.eventSequences.getForEventSourceIdAndEventTypes({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    EventSourceType: eventSourceType ?? 'Default',
+                    EventSourceId: eventSourceId,
+                    EventStreamType: eventStreamType ?? 'Default',
+                    EventStreamId: eventStreamId ?? '',
+                    EventTypes: this.toContractEventTypes(eventTypes)
+                });
+
+                const result = (response.Events ?? []).map(event => this.toClientAppendedEvent(event));
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
+    }
+
+    /** @inheritdoc */
+    async getFromSequenceNumber(
+        sequenceNumber: EventSequenceNumber,
+        eventSourceId?: string,
+        filterEventTypes?: Constructor[]
+    ): Promise<AppendedEvent[]> {
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_from_sequence_number', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
+            try {
+                const response = await this._connection.eventSequences.getEventsFromEventSequenceNumber({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    FromEventSequenceNumber: sequenceNumber.value,
+                    ToEventSequenceNumber: 0n,
+                    EventSourceId: eventSourceId ?? '',
+                    EventTypes: this.toContractEventTypes(filterEventTypes ?? [])
+                });
+
+                const result = (response.Events ?? []).map(event => this.toClientAppendedEvent(event));
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
+    }
+
+    /** @inheritdoc */
     async redact(sequenceNumber: EventSequenceNumber, reason: string): Promise<void> {
         causationManager.add(CausationType.redact, { sequenceNumber: sequenceNumber.value.toString() });
         const causationChain = causationManager.getCurrentChain();
@@ -432,6 +510,42 @@ export class EventSequence implements IEventSequence {
                 span.end();
             }
         });
+    }
+
+    private toContractEventTypes(eventTypes: Constructor[]) {
+        return eventTypes.map(constructor => {
+            const eventType = getEventTypeFor(constructor as unknown as Function);
+            return {
+                Id: eventType.id.value,
+                Generation: eventType.generation.value,
+                Tombstone: eventType.tombstone
+            };
+        });
+    }
+
+    private toClientAppendedEvent(wireEvent: ContractsAppendedEvent): AppendedEvent {
+        const context = wireEvent.Context!;
+        const eventType = new EventType(
+            new EventTypeId(context.EventType?.Id ?? ''),
+            new EventTypeGeneration(context.EventType?.Generation ?? EventTypeGeneration.firstValue),
+            context.EventType?.Tombstone ?? false
+        );
+
+        return {
+            context: {
+                sequenceNumber: context.SequenceNumber,
+                eventSourceId: context.EventSourceId,
+                eventType,
+                occurred: new Date(context.Occurred?.Value ?? ''),
+                correlationId: fromContractsGuid(context.CorrelationId).toString(),
+                causation: (context.Causation ?? []).map(c => ({
+                    type: c.Type,
+                    properties: { ...c.Properties }
+                }))
+            },
+            eventType,
+            content: JSON.parse(wireEvent.Content) as Record<string, unknown>
+        };
     }
 
     private mapAppendResponse(

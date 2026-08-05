@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
+import type { AppendedEvent } from '../events/AppendedEvent';
 import { AppendOptions } from './AppendOptions';
 import { EventForEventSourceId } from './EventForEventSourceId';
 import { AppendResult } from './AppendResult';
@@ -58,6 +59,37 @@ export interface IEventSequence {
      * @returns True if there are events for the given event source.
      */
     hasEventsFor(eventSourceId: string): Promise<boolean>;
+
+    /**
+     * Gets all events for a specific event source, optionally filtered to specific event types.
+     * @param eventSourceId - The event source identifier to get events for.
+     * @param eventTypes - Collection of event type constructors to filter by.
+     * @param eventStreamType - Optional event stream type. Defaults to the default stream type.
+     * @param eventStreamId - Optional event stream identifier. Defaults to the default stream.
+     * @param eventSourceType - Optional event source type. Defaults to the default source type.
+     * @returns A collection of appended events.
+     */
+    getForEventSourceIdAndEventTypes(
+        eventSourceId: string,
+        eventTypes: Constructor[],
+        eventStreamType?: string,
+        eventStreamId?: string,
+        eventSourceType?: string
+    ): Promise<AppendedEvent[]>;
+
+    /**
+     * Gets all events after and including a given sequence number, optionally filtered by event
+     * source identifier and event types.
+     * @param sequenceNumber - The sequence number of the first event to get from.
+     * @param eventSourceId - Optional event source identifier to filter by.
+     * @param filterEventTypes - Optional collection of event type constructors to filter by.
+     * @returns A collection of appended events.
+     */
+    getFromSequenceNumber(
+        sequenceNumber: EventSequenceNumber,
+        eventSourceId?: string,
+        filterEventTypes?: Constructor[]
+    ): Promise<AppendedEvent[]>;
 
     /**
      * Redacts a single event at a specific sequence number.
