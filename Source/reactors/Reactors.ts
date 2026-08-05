@@ -14,6 +14,7 @@ import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import type { IEventLog } from '../eventSequences/IEventLog';
+import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle';
 import { IReactors } from './IReactors';
 import { appendReactorSideEffects } from './ReactorSideEffects';
 import { getReactorMetadata } from './reactor';
@@ -262,10 +263,20 @@ export class Reactors implements IReactors {
                 this._logger.debug('Received events to observe', {
                     reactorId: id,
                     partition: eventsToObserve.Partition,
-                    count: eventsToObserve.Events.length
+                    count: eventsToObserve.Events.length,
+                    replayState: eventsToObserve.ReplayState
                 });
 
-                for (const event of eventsToObserve.Events) {
+                try {
+                    await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
+                } catch (err) {
+                    this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: String(err) });
+                    exceptionMessages.push(String(err));
+                    exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                    state = ObservationState.Failed;
+                }
+
+                for (const event of state === ObservationState.Failed ? [] : eventsToObserve.Events) {
                     try {
                         const eventTypeId = event.Context?.EventType?.Id;
                         if (!eventTypeId) {
