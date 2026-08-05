@@ -3,6 +3,7 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import type { AppendedEvent } from '../events/AppendedEvent';
+import { AppendedEventWithResult } from './AppendedEventWithResult';
 import { AppendOptions } from './AppendOptions';
 import { CompleteStreamResult } from './CompleteStreamResult';
 import { EventForEventSourceId } from './EventForEventSourceId';
@@ -20,6 +21,18 @@ export interface IEventSequence {
 
     /** Transactional append operations for this event sequence. */
     readonly transactional: ITransactionalEventSequence;
+
+    /**
+     * A hot, multicast async iterable that yields the events appended through this specific
+     * {@link IEventSequence} instance, together with their result, after each {@link append} or
+     * {@link appendMany} call completes (whether it succeeded or failed). A single-event append
+     * yields an array of one element; a batch append yields the full batch.
+     * @remarks
+     * This does not fire for transactional appends through `transactional`. Values are only
+     * published while at least one consumer is iterating — there is no replay buffer, so a
+     * consumer that starts iterating after an append misses it.
+     */
+    readonly appendOperations: AsyncIterable<AppendedEventWithResult[]>;
 
     /**
      * Appends a single event to the event sequence.

@@ -29,6 +29,7 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value }),
         completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 3n, Error: 0 }),
         appendMany: vi.fn().mockResolvedValue({ SequenceNumbers: [], ConstraintViolations: [], Errors: [] }),
+        append: vi.fn().mockResolvedValue({ SequenceNumber: 0n, ConstraintViolations: [], Errors: [] }),
         ...overrides
     };
     const connection = { eventSequences } as unknown as ChronicleConnection;
@@ -49,8 +50,20 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber,
         getTailSequenceNumber: eventSequences.getTailSequenceNumber,
         completeStream: eventSequences.completeStream,
-        appendMany: eventSequences.appendMany
+        appendMany: eventSequences.appendMany,
+        append: eventSequences.append
     };
+}
+
+/** Reads exactly one value from an async iterable, then stops iterating it. */
+async function takeOne<T>(iterable: AsyncIterable<T>): Promise<T> {
+    const iterator = iterable[Symbol.asyncIterator]();
+    try {
+        const { value } = await iterator.next();
+        return value as T;
+    } finally {
+        await iterator.return?.();
+    }
 }
 
 function wireAppendedEvent() {
@@ -325,6 +338,82 @@ describe('EventSequence', () => {
             const request = appendMany.mock.calls[0][0];
             expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
             expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(1n);
+        });
+    });
+
+    describe('when subscribing to appendOperations and appending a single event', () => {
+        const { eventSequence } = createEventSequence({
+            append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] })
+        });
+
+        it('should publish the appended event and its result to the subscriber', async () => {
+            const operations = takeOne(eventSequence.appendOperations);
+
+            // Give the subscriber a chance to attach its iterator before the append fires,
+            // since appendOperations is a hot stream with no replay buffer.
+            await new Promise(resolve => setTimeout(resolve, 0));
+            await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            const published = await operations;
+            expect(published).toHaveLength(1);
+            expect(published[0].event.context.sequenceNumber).toEqual(42n);
+            expect(published[0].event.context.eventSourceId).toEqual('some-event-source');
+            expect(published[0].result.sequenceNumber.value).toEqual(42n);
+            expect(published[0].result.isSuccess).toBe(true);
+        });
+    });
+
+    describe('when subscribing to appendOperations and appending many events', () => {
+        const { eventSequence } = createEventSequence({
+            appendMany: vi.fn().mockResolvedValue({ SequenceNumbers: [10n, 11n], ConstraintViolations: [], Errors: [] })
+        });
+
+        it('should publish the full batch to the subscriber', async () => {
+            const operations = takeOne(eventSequence.appendOperations);
+
+            await new Promise(resolve => setTimeout(resolve, 0));
+            await eventSequence.appendMany([
+                { eventSourceId: 'source-1', event: new SomethingHappened('a') },
+                { eventSourceId: 'source-2', event: new SomethingElseHappened('b') }
+            ]);
+
+            const published = await operations;
+            expect(published).toHaveLength(2);
+            expect(published[0].event.context.eventSourceId).toEqual('source-1');
+            expect(published[0].result.sequenceNumber.value).toEqual(10n);
+            expect(published[1].event.context.eventSourceId).toEqual('source-2');
+            expect(published[1].result.sequenceNumber.value).toEqual(11n);
+        });
+    });
+
+    describe('when two subscribers are iterating appendOperations at the same time', () => {
+        const { eventSequence } = createEventSequence({
+            append: vi.fn().mockResolvedValue({ SequenceNumber: 1n, ConstraintViolations: [], Errors: [] })
+        });
+
+        it('should multicast the same append to every subscriber', async () => {
+            const first = takeOne(eventSequence.appendOperations);
+            const second = takeOne(eventSequence.appendOperations);
+
+            await new Promise(resolve => setTimeout(resolve, 0));
+            await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            const [firstResult, secondResult] = await Promise.all([first, second]);
+            expect(firstResult[0].result.sequenceNumber.value).toEqual(1n);
+            expect(secondResult[0].result.sequenceNumber.value).toEqual(1n);
+        });
+    });
+
+    describe('when nobody is subscribed to appendOperations', () => {
+        const { eventSequence } = createEventSequence({
+            append: vi.fn().mockResolvedValue({ SequenceNumber: 1n, ConstraintViolations: [], Errors: [] })
+        });
+
+        it('should still complete the append normally', async () => {
+            const result = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            expect(result.isSuccess).toBe(true);
+            expect(eventSequence.appendOperations.hasSubscribers).toBe(false);
         });
     });
 });

@@ -6,6 +6,7 @@ export { EventSequenceNumber } from './EventSequenceNumber';
 export type { AppendError } from './AppendError';
 export type { ConstraintViolation } from './ConstraintViolation';
 export type { AppendResult } from './AppendResult';
+export type { AppendedEventWithResult } from './AppendedEventWithResult';
 export type { AppendOptions } from './AppendOptions';
 export { CompleteStreamError } from './CompleteStreamError';
 export type { CompleteStreamResult } from './CompleteStreamResult';

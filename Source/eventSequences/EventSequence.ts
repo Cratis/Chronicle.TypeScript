@@ -12,6 +12,8 @@ import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
 import { DecoratorType } from '../types/DecoratorType';
 import { TypeDiscoverer } from '../types/TypeDiscoverer';
+import { AppendedEventWithResult } from './AppendedEventWithResult';
+import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { CompleteStreamError } from './CompleteStreamError';
@@ -38,6 +40,7 @@ import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
  */
 export class EventSequence implements IEventSequence {
     readonly transactional: ITransactionalEventSequence;
+    readonly appendOperations = new AppendOperationsBroadcaster<AppendedEventWithResult[]>();
 
     constructor(
         readonly id: EventSequenceId,
@@ -129,6 +132,25 @@ export class EventSequence implements IEventSequence {
                         'chronicle.event_sequence_id': this.id.value
                     });
                 }
+
+                if (this.appendOperations.hasSubscribers) {
+                    this.appendOperations.publish([{
+                        event: {
+                            context: {
+                                sequenceNumber: result.sequenceNumber.value,
+                                eventSourceId,
+                                eventType,
+                                occurred: new Date(),
+                                correlationId: correlationId.toString(),
+                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }))
+                            },
+                            eventType,
+                            content: event as Record<string, unknown>
+                        },
+                        result
+                    }]);
+                }
+
                 return result;
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
@@ -285,6 +307,31 @@ export class EventSequence implements IEventSequence {
                         'chronicle.event_sequence_id': this.id.value
                     });
                 }
+
+                if (this.appendOperations.hasSubscribers && result.length > 0) {
+                    const occurredAt = new Date();
+                    const causationEntries = batchCausationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }));
+                    this.appendOperations.publish(result.map((appendResult: AppendResult, index: number) => {
+                        const { eventSourceId, event } = eventsForEventSourceIds[index];
+                        const eventType = getEventTypeFor(event.constructor as Function);
+                        return {
+                            event: {
+                                context: {
+                                    sequenceNumber: appendResult.sequenceNumber.value,
+                                    eventSourceId,
+                                    eventType,
+                                    occurred: occurredAt,
+                                    correlationId: correlationId.toString(),
+                                    causation: causationEntries
+                                },
+                                eventType,
+                                content: event as Record<string, unknown>
+                            },
+                            result: appendResult
+                        };
+                    }));
+                }
+
                 return result;
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
