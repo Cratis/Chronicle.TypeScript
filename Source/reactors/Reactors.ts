@@ -13,7 +13,9 @@ import { EventContext } from '../events/EventContext';
 import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import type { IEventLog } from '../eventSequences/IEventLog';
 import { IReactors } from './IReactors';
+import { appendReactorSideEffects } from './ReactorSideEffects';
 import { getReactorMetadata } from './reactor';
 
 /** Expression used to partition reactor observations by event source ID. */
@@ -107,13 +109,15 @@ export class Reactors implements IReactors {
      * @param _eventStoreName - The name of the event store.
      * @param _namespace - The namespace within the event store.
      * @param lifecycle - The connection lifecycle used to react to disconnect events.
+     * @param _eventLog - The event log used to append side-effect events a reactor handler returns.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _connection: ChronicleConnection,
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
-        lifecycle: ConnectionLifecycle
+        lifecycle: ConnectionLifecycle,
+        private readonly _eventLog: IEventLog
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -298,7 +302,17 @@ export class Reactors implements IReactors {
                             eventTypeId
                         });
 
-                        await reactorInstance[entry.methodName](content, context);
+                        const handlerResult = await reactorInstance[entry.methodName](content, context);
+                        const sideEffectResult = await appendReactorSideEffects(
+                            this._eventLog,
+                            handlerResult,
+                            event.Context!.EventSourceId,
+                            event.Context!.EventStreamType,
+                            event.Context!.EventStreamId);
+                        if (!sideEffectResult.isSuccess) {
+                            throw new Error(`Reactor side effect failed to append: ${sideEffectResult.errors.join('; ')}`);
+                        }
+
                         lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                     } catch (err) {
                         this._logger.error('Error handling event in reactor', { reactorId: id, error: String(err) });
