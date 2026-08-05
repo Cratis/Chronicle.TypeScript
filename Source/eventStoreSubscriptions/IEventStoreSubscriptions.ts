@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { EventStoreName } from '../EventStoreName';
+import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition';
 import { EventStoreSubscriptionId } from './EventStoreSubscriptionId';
 import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder';
 
@@ -26,4 +27,10 @@ export interface IEventStoreSubscriptions {
      * @param subscriptionId - The subscription identifier to remove.
      */
     unsubscribe(subscriptionId: EventStoreSubscriptionId | string): Promise<void>;
+
+    /**
+     * Gets all subscriptions registered for this event store.
+     * @returns A collection of {@link EventStoreSubscriptionDefinition}.
+     */
+    getAll(): Promise<EventStoreSubscriptionDefinition[]>;
 }

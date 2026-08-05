@@ -28,6 +28,14 @@ export interface RemoveEventStoreSubscriptions {
     SubscriptionIds: string[];
 }
 
+export interface GetEventStoreSubscriptions {
+    TargetEventStore: string;
+}
+
+export interface IEnumerableEventStoreSubscriptionDefinitionContract {
+    items: EventStoreSubscriptionDefinitionContract[];
+}
+
 function createBaseEmpty(): Empty {
     return {};
 }
@@ -46,6 +54,14 @@ function createBaseEventType(): EventTypeContract {
 
 function createBaseRemoveEventStoreSubscriptions(): RemoveEventStoreSubscriptions {
     return { TargetEventStore: '', SubscriptionIds: [] };
+}
+
+function createBaseGetEventStoreSubscriptions(): GetEventStoreSubscriptions {
+    return { TargetEventStore: '' };
+}
+
+function createBaseIEnumerableEventStoreSubscriptionDefinition(): IEnumerableEventStoreSubscriptionDefinitionContract {
+    return { items: [] };
 }
 
 export const EmptyMessage: MessageFns<Empty> = {
@@ -322,6 +338,100 @@ export const RemoveEventStoreSubscriptionsMessage: MessageFns<RemoveEventStoreSu
     }
 };
 
+export const GetEventStoreSubscriptionsMessage: MessageFns<GetEventStoreSubscriptions> = {
+    encode(message: GetEventStoreSubscriptions, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+        if (message.TargetEventStore !== '') {
+            writer.uint32(10).string(message.TargetEventStore);
+        }
+        return writer;
+    },
+    decode(input: BinaryReader | Uint8Array, length?: number): GetEventStoreSubscriptions {
+        const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseGetEventStoreSubscriptions();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.TargetEventStore = reader.string();
+                    continue;
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object: unknown): GetEventStoreSubscriptions {
+        const value = object as { TargetEventStore?: unknown };
+        return {
+            TargetEventStore: typeof value.TargetEventStore === 'string' ? value.TargetEventStore : ''
+        };
+    },
+    toJSON(message: GetEventStoreSubscriptions): unknown {
+        return {
+            TargetEventStore: message.TargetEventStore
+        };
+    },
+    create(base?: DeepPartial<GetEventStoreSubscriptions>): GetEventStoreSubscriptions {
+        return GetEventStoreSubscriptionsMessage.fromPartial(base ?? {});
+    },
+    fromPartial(object: DeepPartial<GetEventStoreSubscriptions>): GetEventStoreSubscriptions {
+        return {
+            TargetEventStore: object.TargetEventStore ?? ''
+        };
+    }
+};
+
+export const IEnumerableEventStoreSubscriptionDefinitionMessage: MessageFns<IEnumerableEventStoreSubscriptionDefinitionContract> = {
+    encode(message: IEnumerableEventStoreSubscriptionDefinitionContract, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+        for (const item of message.items) {
+            EventStoreSubscriptionDefinitionMessage.encode(item, writer.uint32(10).fork()).join();
+        }
+        return writer;
+    },
+    decode(input: BinaryReader | Uint8Array, length?: number): IEnumerableEventStoreSubscriptionDefinitionContract {
+        const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message = createBaseIEnumerableEventStoreSubscriptionDefinition();
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.items.push(EventStoreSubscriptionDefinitionMessage.decode(reader, reader.uint32()));
+                    continue;
+            }
+            if ((tag & 7) === 4 || tag === 0) {
+                break;
+            }
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+    fromJSON(object: unknown): IEnumerableEventStoreSubscriptionDefinitionContract {
+        const value = object as { items?: unknown[] };
+        return {
+            items: Array.isArray(value.items)
+                ? value.items.map(_ => EventStoreSubscriptionDefinitionMessage.fromJSON(_))
+                : []
+        };
+    },
+    toJSON(message: IEnumerableEventStoreSubscriptionDefinitionContract): unknown {
+        return {
+            items: message.items.map(_ => EventStoreSubscriptionDefinitionMessage.toJSON(_))
+        };
+    },
+    create(base?: DeepPartial<IEnumerableEventStoreSubscriptionDefinitionContract>): IEnumerableEventStoreSubscriptionDefinitionContract {
+        return IEnumerableEventStoreSubscriptionDefinitionMessage.fromPartial(base ?? {});
+    },
+    fromPartial(object: DeepPartial<IEnumerableEventStoreSubscriptionDefinitionContract>): IEnumerableEventStoreSubscriptionDefinitionContract {
+        return {
+            items: object.items?.map(_ => EventStoreSubscriptionDefinitionMessage.fromPartial(_)) ?? []
+        };
+    }
+};
+
 export const EventStoreSubscriptionsDefinition = {
     name: 'EventStoreSubscriptions',
     fullName: 'Cratis.Chronicle.Contracts.Observation.EventStoreSubscriptions.EventStoreSubscriptions',
@@ -331,6 +441,14 @@ export const EventStoreSubscriptionsDefinition = {
             requestType: AddEventStoreSubscriptionsMessage,
             requestStream: false,
             responseType: EmptyMessage,
+            responseStream: false,
+            options: {}
+        },
+        getSubscriptions: {
+            name: 'GetSubscriptions',
+            requestType: GetEventStoreSubscriptionsMessage,
+            requestStream: false,
+            responseType: IEnumerableEventStoreSubscriptionDefinitionMessage,
             responseStream: false,
             options: {}
         },
@@ -347,11 +465,19 @@ export const EventStoreSubscriptionsDefinition = {
 
 export interface EventStoreSubscriptionsClient<CallOptionsExt = {}> {
     add(request: DeepPartial<AddEventStoreSubscriptions>, options?: CallOptions & CallOptionsExt): Promise<Empty>;
+    getSubscriptions(
+        request: DeepPartial<GetEventStoreSubscriptions>,
+        options?: CallOptions & CallOptionsExt
+    ): Promise<IEnumerableEventStoreSubscriptionDefinitionContract>;
     remove(request: DeepPartial<RemoveEventStoreSubscriptions>, options?: CallOptions & CallOptionsExt): Promise<Empty>;
 }
 
 export interface EventStoreSubscriptionsServiceImplementation<CallContextExt = {}> {
     add(request: AddEventStoreSubscriptions, context: CallContext & CallContextExt): Promise<DeepPartial<Empty>>;
+    getSubscriptions(
+        request: GetEventStoreSubscriptions,
+        context: CallContext & CallContextExt
+    ): Promise<DeepPartial<IEnumerableEventStoreSubscriptionDefinitionContract>>;
     remove(request: RemoveEventStoreSubscriptions, context: CallContext & CallContextExt): Promise<DeepPartial<Empty>>;
 }
 

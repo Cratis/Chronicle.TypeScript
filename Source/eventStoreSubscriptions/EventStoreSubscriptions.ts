@@ -4,8 +4,9 @@
 import { diag } from '@opentelemetry/api';
 import { ChronicleConnection } from '../connection';
 import { EventStoreName } from '../EventStoreName';
-import { IEventTypes } from '../events';
+import { EventType, EventTypeGeneration, EventTypeId, IEventTypes } from '../events';
 import { EventStoreSubscriptionBuilder } from './EventStoreSubscriptionBuilder';
+import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition';
 import { EventStoreSubscriptionId } from './EventStoreSubscriptionId';
 import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder';
 import { IEventStoreSubscriptions } from './IEventStoreSubscriptions';
@@ -70,5 +71,22 @@ export class EventStoreSubscriptions implements IEventStoreSubscriptions {
             TargetEventStore: this._targetEventStore,
             SubscriptionIds: [id]
         });
+    }
+
+    /** @inheritdoc */
+    async getAll(): Promise<EventStoreSubscriptionDefinition[]> {
+        const response = await this._connection.eventStoreSubscriptions.getSubscriptions({
+            TargetEventStore: this._targetEventStore
+        });
+
+        return (response.items ?? []).map(definition => new EventStoreSubscriptionDefinition(
+            new EventStoreSubscriptionId(definition.Identifier),
+            definition.SourceEventStore,
+            (definition.EventTypes ?? []).map(eventType => new EventType(
+                new EventTypeId(eventType.Id),
+                new EventTypeGeneration(eventType.Generation),
+                eventType.Tombstone
+            ))
+        ));
     }
 }
