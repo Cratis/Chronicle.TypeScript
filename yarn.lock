@@ -71,6 +71,8 @@ __metadata:
     typescript: "npm:^6.0.3"
     undici: "npm:^8.7.0"
     vitest: "npm:^4.1.10"
+  peerDependencies:
+    "@cratis/fundamentals": ^7.14.0
   languageName: unknown
   linkType: soft
 

@@ -19,16 +19,15 @@ Use this instead of `CommandDialog` when:
 
 A single command collects all fields across all steps. Each step contributes properties to the same command instance.
 
-```csharp
-// Projects/CreateProject/CreateProject.cs — the slice file
+```tsx
+// API/Projects/CreateProject.ts  (proxy-generated — run dotnet build first)
+// C# side:
 [Command]
-public record CreateProject(ProjectName Name, EmailAddress Email, Description Description, Money Budget)
+public record CreateProject(string Name, string Email, string Description, decimal Budget)
 {
     public ProjectCreated Handle() => new(Name, Email, Description, Budget);
 }
 ```
-
-Run a Release `dotnet build` to generate the `CreateProject` TypeScript proxy before importing it.
 
 ---
 
@@ -98,21 +97,23 @@ const CreateProjectDialog = () => {
 
 ```tsx
 import { useDialog } from '@cratis/arc.react/dialogs';
-import { Button } from 'primereact/button';
 
 export const ProjectsPage = () => {
     const [CreateProjectDialogWrapper, showCreateProject] = useDialog(CreateProjectDialog);
 
     return (
         <>
-            <Button label="New Project" onClick={() => showCreateProject()} />
+            <button
+                className="p-button p-component"
+                onClick={() => showCreateProject()}
+            >
+                New Project
+            </button>
             <CreateProjectDialogWrapper />
         </>
     );
 };
 ```
-
-Use the PrimeReact `Button` (or a Cratis Components wrapper) — never a raw `<button className="p-button">`.
 
 ---
 
