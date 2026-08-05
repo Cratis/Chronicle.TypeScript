@@ -4,7 +4,13 @@
 export { projection, getProjectionMetadata, isProjection } from './projection';
 export type { ProjectionMetadata } from './projection';
 export { ProjectionBuilderFor } from './ProjectionBuilderFor';
+export { ProjectionBuilderCore } from './ProjectionBuilderCore';
+export { ChildrenBuilder } from './ChildrenBuilder';
+export { NestedBuilder } from './NestedBuilder';
+export { AddChildBuilder } from './AddChildBuilder';
+export type { ChildAdditionEntry } from './AddChildBuilder';
 export { FromBuilder } from './FromBuilder';
+export { JoinBuilder } from './JoinBuilder';
 export { SetBuilder } from './SetBuilder';
 export { AddBuilder } from './AddBuilder';
 export { SubtractBuilder } from './SubtractBuilder';

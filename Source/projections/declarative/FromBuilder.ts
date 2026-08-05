@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { AddBuilder } from './AddBuilder';
+import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder';
 import { IAddBuilder } from './IAddBuilder';
 import { IAddChildBuilder } from './IAddChildBuilder';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
@@ -19,6 +20,7 @@ export interface FromEntry {
     properties: Record<string, string>;
     key: string;
     parentKey: string;
+    children: ChildAdditionEntry[];
 }
 
 /**
@@ -30,7 +32,8 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     readonly entry: FromEntry = {
         properties: {},
         key: '$eventSourceId',
-        parentKey: ''
+        parentKey: '',
+        children: []
     };
 
     /** @inheritdoc */
@@ -151,14 +154,29 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
 
     /** @inheritdoc */
     addChild<TChildModel>(
-        _targetPropertyAccessor: PropertyAccessor<TReadModel>,
-        _eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
+        targetPropertyAccessor: PropertyAccessor<TReadModel>,
+        eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
     ): this {
-        throw new Error('addChild is not implemented yet.');
+        const targetHandler = new PropertyPathResolverProxyHandler();
+        const targetProxy = new Proxy({}, targetHandler);
+        targetPropertyAccessor(targetProxy as TReadModel);
+
+        const probe = new AddChildBuilder<TChildModel, TEvent>();
+        const probeProxy = new Proxy({}, probe);
+        (eventPropertyAccessorOrBuilderCallback as (value: unknown) => void)(probeProxy);
+
+        this.entry.children.push(probe.usedAsBuilder
+            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty }
+            : { targetProperty: targetHandler.property, fromEventProperty: probe.capturedEventProperty });
+        return this;
     }
 
     /** @inheritdoc */
     setThisValue(): ISetBuilder<TEvent, this> {
-        throw new Error('setThisValue is not implemented yet.');
+        return new SetBuilder<TEvent, this>(
+            '$this',
+            (rp, expr) => { this.entry.properties[rp] = expr; },
+            this
+        );
     }
 }
