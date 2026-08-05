@@ -14,6 +14,8 @@ import { EmployeeState } from './reducers';
 import { Person, employees, emailFor } from './employees';
 import { registerCustomerWithPii, showCustomerReadModel } from './compliance';
 import { registerCustomersApi } from './externalServices';
+import { redactLastEmailChange, eraseEmployee } from './redaction';
+import { viewAuditLog } from './reactors';
 
 // Side-effect imports so the @constraint and @seeder decorators run and are
 // discovered and registered with the event store on connect.
@@ -73,6 +75,27 @@ async function promote(store: IEventStore, person: Person, user: Identity, rando
     setupCausation(user, 'ConsoleSample.Commands.Promote', { employeeId: person.id });
     const result = await store.eventLog.append(person.id, new EmployeePromoted(title));
     console.log(`[${person.id}] Promoted ${person.firstName} ${person.lastName} to '${title}' at sequence ${result.sequenceNumber.value}  [caused-by: ${user.userName}]`);
+}
+
+// Promotes the employee, then waits for every observer affected by the append (the
+// EmployeeState reducer, the model-bound and declarative projections, the reactor) to
+// either catch up to the appended sequence number or fail, before reading the read
+// model back. Reading immediately after append without waiting can race the read
+// model's asynchronous processing and observe stale state; waitForCompletion removes
+// that race by default with a 5 second timeout.
+async function promoteAndConfirm(store: IEventStore, person: Person, user: Identity, random: Random): Promise<void> {
+    const title = titles[random.next(titles.length)];
+    setupCausation(user, 'ConsoleSample.Commands.PromoteAndConfirm', { employeeId: person.id });
+    const result = await store.eventLog.append(person.id, new EmployeePromoted(title));
+
+    const completion = await result.waitForCompletion();
+    if (!completion.isSuccess) {
+        console.log(`[wait-for-completion] ${completion.failedPartitions.length} observer partition(s) failed while catching up on the promotion.`);
+        return;
+    }
+
+    const state = await store.readModels.getInstanceById(EmployeeState, person.id);
+    console.log(`[wait-for-completion] Promoted ${person.firstName} ${person.lastName} to '${title}' and confirmed the read model shows it: '${state.title}'  [caused-by: ${user.userName}]`);
 }
 
 async function move(store: IEventStore, person: Person, user: Identity, random: Random): Promise<void> {
@@ -143,6 +166,10 @@ function writeInstructions(): void {
         '  P = Promote          A = Move (change address)',
         '  E = Set email        U = Try to take the next employee\'s email (constraint violation)',
         '  R = Read model       T = Transactional update',
+        '  W = Promote and wait for the read model to catch up (waitForCompletion)',
+        '  D = Redact last email change (single-event, destructive)',
+        '  G = Erase employee entirely (GDPR erasure, destructive)',
+        '  L = View HR audit log (reactor side-effect events)',
         '  C = Register customer with PII   V = View customer PII read model',
         '  X = Register external HTTP service (bearer token)',
         '  I = Switch user (cycle: Alice Smith → Bob Jones → System)',
@@ -213,6 +240,10 @@ async function run(): Promise<void> {
             if (key === 'u') { await stealEmail(store, selectedIndex, users[userIndex]); continue; }
             if (key === 'r') { await readModel(store, employees[selectedIndex]); continue; }
             if (key === 't') { await transact(store, selectedIndex, users[userIndex], random); continue; }
+            if (key === 'w') { await promoteAndConfirm(store, employees[selectedIndex], users[userIndex], random); continue; }
+            if (key === 'd') { await redactLastEmailChange(store, employees[selectedIndex]); continue; }
+            if (key === 'g') { await eraseEmployee(store, employees[selectedIndex]); continue; }
+            if (key === 'l') { await viewAuditLog(store); continue; }
             if (key === 'c') { await registerCustomerWithPii(store); continue; }
             if (key === 'v') { await showCustomerReadModel(store); continue; }
             if (key === 'x') { await registerCustomersApi(store); continue; }
