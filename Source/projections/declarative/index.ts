@@ -9,6 +9,7 @@ export { ChildrenBuilder } from './ChildrenBuilder';
 export { NestedBuilder } from './NestedBuilder';
 export { AddChildBuilder } from './AddChildBuilder';
 export type { ChildAdditionEntry } from './AddChildBuilder';
+export { CompositeKeyBuilder } from './CompositeKeyBuilder';
 export { FromBuilder } from './FromBuilder';
 export { JoinBuilder } from './JoinBuilder';
 export { SetBuilder } from './SetBuilder';

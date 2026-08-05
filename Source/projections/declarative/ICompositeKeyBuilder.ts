@@ -19,4 +19,10 @@ export interface ICompositeKeyBuilder<TKeyType, TEvent> {
         targetPropertyAccessor: PropertyAccessor<TKeyType>,
         sourcePropertyAccessor: PropertyAccessor<TEvent>
     ): ICompositeKeyBuilder<TKeyType, TEvent>;
+
+    /**
+     * Builds the composite key expression from the configured parts.
+     * @returns The `$composite(...)` property expression.
+     */
+    build(): string;
 }

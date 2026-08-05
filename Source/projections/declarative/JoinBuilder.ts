@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { AddBuilder } from './AddBuilder';
 import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder';
+import { CompositeKeyBuilder } from './CompositeKeyBuilder';
 import { IAddBuilder } from './IAddBuilder';
 import { IAddChildBuilder } from './IAddChildBuilder';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
@@ -76,22 +77,31 @@ export class JoinBuilder<TReadModel, TEvent> implements IJoinBuilder<TReadModel,
 
     /** @inheritdoc */
     usingParentKey(_keyAccessor: PropertyAccessor<TEvent>): this {
-        throw new Error('usingParentKey is not supported for join mappings.');
+        // A join's wire definition (JoinDefinition) has no ParentKey slot - the C# client
+        // accepts this call too (it is inherited from the shared key-builder base) but its
+        // JoinBuilder.Build() only ever reads On/Properties/Key, so the value is silently
+        // unused there as well. Matching that: accept the call, but it has no effect.
+        return this;
     }
 
     /** @inheritdoc */
     usingParentKeyFromContext(_contextPropertyName: string): this {
-        throw new Error('usingParentKeyFromContext is not supported for join mappings.');
+        // See usingParentKey - accepted for interface parity with From, no wire effect for Join.
+        return this;
     }
 
     /** @inheritdoc */
-    usingCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingCompositeKey is not implemented yet.');
+    usingCompositeKey<TKeyType>(builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
+        const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
+        builderCallback(compositeKeyBuilder);
+        this.entry.key = compositeKeyBuilder.build();
+        return this;
     }
 
     /** @inheritdoc */
     usingParentCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingParentCompositeKey is not supported for join mappings.');
+        // See usingParentKey - accepted for interface parity with From, no wire effect for Join.
+        return this;
     }
 
     /** @inheritdoc */
@@ -102,7 +112,8 @@ export class JoinBuilder<TReadModel, TEvent> implements IJoinBuilder<TReadModel,
 
     /** @inheritdoc */
     usingConstantParentKey(_value: string): this {
-        throw new Error('usingConstantParentKey is not supported for join mappings.');
+        // See usingParentKey - accepted for interface parity with From, no wire effect for Join.
+        return this;
     }
 
     /** @inheritdoc */

@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { AddBuilder } from './AddBuilder';
 import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder';
+import { CompositeKeyBuilder } from './CompositeKeyBuilder';
 import { IAddBuilder } from './IAddBuilder';
 import { IAddChildBuilder } from './IAddChildBuilder';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
@@ -80,13 +81,19 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
-    usingCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingCompositeKey is not implemented yet.');
+    usingCompositeKey<TKeyType>(builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
+        const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
+        builderCallback(compositeKeyBuilder);
+        this.entry.key = compositeKeyBuilder.build();
+        return this;
     }
 
     /** @inheritdoc */
-    usingParentCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingParentCompositeKey is not implemented yet.');
+    usingParentCompositeKey<TKeyType>(builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
+        const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
+        builderCallback(compositeKeyBuilder);
+        this.entry.parentKey = compositeKeyBuilder.build();
+        return this;
     }
 
     /** @inheritdoc */
