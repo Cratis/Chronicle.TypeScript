@@ -25,6 +25,7 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         redactForEventSource: vi.fn().mockResolvedValue({}),
         getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [] }),
         getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [] }),
+        getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value }),
         ...overrides
     };
     const connection = { eventSequences } as unknown as ChronicleConnection;
@@ -42,7 +43,8 @@ function createEventSequence(overrides: Record<string, ReturnType<typeof vi.fn>>
         redact: eventSequences.redact,
         redactForEventSource: eventSequences.redactForEventSource,
         getForEventSourceIdAndEventTypes: eventSequences.getForEventSourceIdAndEventTypes,
-        getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber
+        getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber,
+        getTailSequenceNumber: eventSequences.getTailSequenceNumber
     };
 }
 
@@ -160,6 +162,50 @@ describe('EventSequence', () => {
 
             expect(result).toHaveLength(1);
             expect(result[0].content).toEqual({ value: 'hello' });
+        });
+    });
+
+    describe('when getting the next sequence number and the sequence is empty', () => {
+        const { eventSequence, getTailSequenceNumber } = createEventSequence({
+            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value })
+        });
+
+        it('should return the first sequence number', async () => {
+            const result = await eventSequence.getNextSequenceNumber();
+
+            expect(getTailSequenceNumber).toHaveBeenCalledTimes(1);
+            expect(result.value).toEqual(EventSequenceNumber.first.value);
+        });
+    });
+
+    describe('when getting the next sequence number and events already exist', () => {
+        const { eventSequence } = createEventSequence({
+            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: 41n })
+        });
+
+        it('should return one past the tail sequence number', async () => {
+            const result = await eventSequence.getNextSequenceNumber();
+
+            expect(result.value).toEqual(42n);
+        });
+    });
+
+    describe('when getting the tail sequence number for an observer type', () => {
+        class SomeReactor {
+            async somethingHappened(): Promise<void> {}
+        }
+
+        const { eventSequence, getTailSequenceNumber } = createEventSequence({
+            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: 5n })
+        });
+
+        it('should filter the tail sequence number lookup to the event types the observer handles', async () => {
+            await eventSequence.getTailSequenceNumberForObserver(SomeReactor);
+
+            expect(getTailSequenceNumber).toHaveBeenCalledTimes(1);
+            const request = getTailSequenceNumber.mock.calls[0][0];
+            expect(request.EventTypes).toContainEqual({ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false });
+            expect(request.EventTypes).not.toContainEqual({ Id: 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g', Generation: 1, Tombstone: false });
         });
     });
 });

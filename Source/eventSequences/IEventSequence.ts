@@ -47,11 +47,35 @@ export interface IEventSequence {
     appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
 
     /**
+     * Gets the next sequence number that will be assigned to the next appended event.
+     * @returns The next sequence number.
+     */
+    getNextSequenceNumber(): Promise<EventSequenceNumber>;
+
+    /**
      * Gets the tail sequence number (the number of the most recently appended event).
      * @param eventSourceId - Optional event source identifier to filter by.
+     * @param eventSourceType - Optional event source type to filter by.
+     * @param eventStreamType - Optional event stream type to filter by.
+     * @param eventStreamId - Optional event stream identifier to filter by.
+     * @param filterEventTypes - Optional collection of event type constructors to filter by.
      * @returns The tail sequence number.
      */
-    getTailSequenceNumber(eventSourceId?: string): Promise<EventSequenceNumber>;
+    getTailSequenceNumber(
+        eventSourceId?: string,
+        eventSourceType?: string,
+        eventStreamType?: string,
+        eventStreamId?: string,
+        filterEventTypes?: Constructor[]
+    ): Promise<EventSequenceNumber>;
+
+    /**
+     * Gets the tail sequence number for a specific observer (reactor/reducer) type, based on the
+     * tail of the event types the observer handles.
+     * @param observerType - The observer (reactor/reducer) type to get the tail sequence number for.
+     * @returns The tail sequence number.
+     */
+    getTailSequenceNumberForObserver(observerType: Constructor): Promise<EventSequenceNumber>;
 
     /**
      * Determines whether there are events for a given event source identifier.

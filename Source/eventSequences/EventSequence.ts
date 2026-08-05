@@ -10,6 +10,8 @@ import type { AppendedEvent } from '../events/AppendedEvent';
 import { EventType } from '../events/EventType';
 import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { DecoratorType } from '../types/DecoratorType';
+import { TypeDiscoverer } from '../types/TypeDiscoverer';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
 import { ConstraintViolation } from './ConstraintViolation';
@@ -291,7 +293,22 @@ export class EventSequence implements IEventSequence {
     }
 
     /** @inheritdoc */
-    async getTailSequenceNumber(eventSourceId?: string): Promise<EventSequenceNumber> {
+    async getNextSequenceNumber(): Promise<EventSequenceNumber> {
+        const tail = await this.getTailSequenceNumber();
+        if (tail.value === EventSequenceNumber.unset.value) {
+            return EventSequenceNumber.first;
+        }
+        return new EventSequenceNumber(tail.value + 1n);
+    }
+
+    /** @inheritdoc */
+    async getTailSequenceNumber(
+        eventSourceId?: string,
+        eventSourceType?: string,
+        eventStreamType?: string,
+        eventStreamId?: string,
+        filterEventTypes?: Constructor[]
+    ): Promise<EventSequenceNumber> {
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_tail_sequence_number', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
             span.setAttribute('chronicle.namespace', this._namespace);
@@ -305,10 +322,10 @@ export class EventSequence implements IEventSequence {
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId ?? '',
-                    EventTypes: [],
-                    EventSourceType: 'Default',
-                    EventStreamId: '',
-                    EventStreamType: 'Default'
+                    EventTypes: this.toContractEventTypes(filterEventTypes ?? []),
+                    EventSourceType: eventSourceType ?? 'Default',
+                    EventStreamId: eventStreamId ?? '',
+                    EventStreamType: eventStreamType ?? 'Default'
                 });
 
                 const result = new EventSequenceNumber(response.SequenceNumber ?? 0n);
@@ -323,6 +340,12 @@ export class EventSequence implements IEventSequence {
                 span.end();
             }
         });
+    }
+
+    /** @inheritdoc */
+    async getTailSequenceNumberForObserver(observerType: Constructor): Promise<EventSequenceNumber> {
+        const eventTypes = this.getEventTypesHandledBy(observerType);
+        return this.getTailSequenceNumber(undefined, undefined, undefined, undefined, eventTypes);
     }
 
     /** @inheritdoc */
@@ -509,6 +532,22 @@ export class EventSequence implements IEventSequence {
             } finally {
                 span.end();
             }
+        });
+    }
+
+    /**
+     * Resolves which registered event type classes a given observer (reactor/reducer) type handles,
+     * using the same naming convention the observation runtimes use to dispatch events to handler
+     * methods: an event type named `SomethingHappened` dispatches to a method named `somethingHappened`.
+     */
+    private getEventTypesHandledBy(observerType: Constructor): Constructor[] {
+        const prototype = (observerType as unknown as Function).prototype as Record<string, unknown>;
+        const eventTypeClasses = TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType);
+
+        return eventTypeClasses.filter(eventTypeClass => {
+            const className = (eventTypeClass as unknown as Function).name;
+            const methodName = className.charAt(0).toLowerCase() + className.slice(1);
+            return typeof prototype[methodName] === 'function';
         });
     }
 
