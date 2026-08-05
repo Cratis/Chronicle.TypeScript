@@ -3,7 +3,7 @@
 
 import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { Guid, JsonSerializer } from '@cratis/fundamentals';
+import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { AppendOptions } from './AppendOptions';
 import { AppendResult } from './AppendResult';
@@ -339,6 +339,91 @@ export class EventSequence implements IEventSequence {
                 span.setAttribute('chronicle.has_events', result);
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
+    }
+
+    /** @inheritdoc */
+    async redact(sequenceNumber: EventSequenceNumber, reason: string): Promise<void> {
+        causationManager.add(CausationType.redact, { sequenceNumber: sequenceNumber.value.toString() });
+        const causationChain = causationManager.getCurrentChain();
+        const identity = identityProvider.getCurrent();
+        const correlationId = Guid.as(correlationIdManager.current.value);
+
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
+            try {
+                await this._connection.eventSequences.redact({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    SequenceNumber: sequenceNumber.value,
+                    Reason: reason,
+                    CorrelationId: toContractsGuid(correlationId),
+                    Causation: causationChain.map(c => ({
+                        Occurred: { Value: c.occurred.toISOString() },
+                        Type: c.type.name,
+                        Properties: { ...c.properties }
+                    })),
+                    CausedBy: toContractsCausedBy(identity)
+                });
+                span.setStatus({ code: SpanStatusCode.OK });
+            } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+                span.recordException(error as Error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
+    }
+
+    /** @inheritdoc */
+    async redactForEventSource(eventSourceId: string, reason: string, eventTypes?: Constructor[]): Promise<void> {
+        causationManager.add(CausationType.redactForEventSource, { eventSourceId });
+        const causationChain = causationManager.getCurrentChain();
+        const identity = identityProvider.getCurrent();
+        const correlationId = Guid.as(correlationIdManager.current.value);
+        const wireEventTypes = (eventTypes ?? []).map(constructor => {
+            const eventType = getEventTypeFor(constructor as unknown as Function);
+            return {
+                Id: eventType.id.value,
+                Generation: eventType.generation.value,
+                Tombstone: eventType.tombstone
+            };
+        });
+
+        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact_for_event_source', async span => {
+            span.setAttribute('chronicle.event_store', this._eventStoreName);
+            span.setAttribute('chronicle.namespace', this._namespace);
+            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+            span.setAttribute('chronicle.event_source_id', eventSourceId);
+            try {
+                await this._connection.eventSequences.redactForEventSource({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    EventSourceId: eventSourceId,
+                    Reason: reason,
+                    EventTypes: wireEventTypes,
+                    CorrelationId: toContractsGuid(correlationId),
+                    Causation: causationChain.map(c => ({
+                        Occurred: { Value: c.occurred.toISOString() },
+                        Type: c.type.name,
+                        Properties: { ...c.properties }
+                    })),
+                    CausedBy: toContractsCausedBy(identity)
+                });
+                span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
                 span.recordException(error as Error);
