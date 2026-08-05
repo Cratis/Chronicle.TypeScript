@@ -293,6 +293,7 @@ export class Reducers implements IReducers {
     ): Promise<void> {
         const queue = new AsyncQueue<ReducerMessage>();
         this._queues.set(id, queue);
+        const isActive = getReducerMetadata(reducerType)?.isActive ?? true;
 
         queue.send({
             Content: {
@@ -308,7 +309,7 @@ export class Reducers implements IReducers {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         ReadModel: readModelName,
-                        IsActive: true,
+                        IsActive: isActive,
                         Tags: [],
                         Filters: {
                             FilterTags: [],

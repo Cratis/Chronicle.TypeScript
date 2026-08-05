@@ -21,6 +21,13 @@ export interface ReducerMetadata {
 
     /** The optional read model type produced by the reducer. */
     readonly readModel: Constructor | undefined;
+
+    /**
+     * Whether the reducer is active. An inactive (passive) reducer is registered with the
+     * Chronicle Kernel but does not automatically observe events — it can still be invoked
+     * on demand. Defaults to true.
+     */
+    readonly isActive: boolean;
 }
 
 /**
@@ -34,6 +41,8 @@ export interface ReducerMetadata {
  * @param id - The unique identifier for the reducer. Defaults to the class name if omitted.
  * @param eventSequenceId - Optional explicit event sequence identifier.
  * @param readModel - Optional read model type produced by the reducer.
+ * @param isActive - Whether the reducer is active (automatically observes events). Defaults to true.
+ * A passive reducer is registered but must be invoked on demand rather than observing automatically.
  * @returns A class decorator.
  *
  * @example
@@ -46,11 +55,11 @@ export interface ReducerMetadata {
  * }
  * ```
  */
-export function reducer(id: string = '', eventSequenceId?: string, readModel?: Constructor): ClassDecorator {
+export function reducer(id: string = '', eventSequenceId?: string, readModel?: Constructor, isActive: boolean = true): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const reducerId = new ReducerId(id || constructor.name);
-        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId, readModel };
+        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId, readModel, isActive };
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reducer,
