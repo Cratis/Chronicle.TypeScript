@@ -216,13 +216,13 @@ export class EventSequence implements IEventSequence {
         const resolveConcurrencyScope = (eventSourceId: string) =>
             this.toContractConcurrencyScope(concurrencyScopesByEventSourceId?.[eventSourceId] ?? defaultConcurrencyScope);
 
-        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event }) => {
+        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
             return {
-                EventSourceType: 'Default',
+                EventSourceType: eventSourceType ?? 'Default',
                 EventSourceId: eventSourceId,
-                EventStreamType: 'Default',
-                EventStreamId: eventSourceId,
+                EventStreamType: eventStreamType ?? 'Default',
+                EventStreamId: eventStreamId ?? eventSourceId,
                 EventType: {
                     Id: eventType.id.value,
                     Generation: eventType.generation.value,
@@ -237,7 +237,7 @@ export class EventSequence implements IEventSequence {
                 CausedBy: toContractsCausedBy(identity),
                 Tags: [],
                 Occurred: undefined,
-                Subject: eventSourceId
+                Subject: subject ?? eventSourceId
             };
         });
 

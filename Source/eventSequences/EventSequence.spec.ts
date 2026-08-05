@@ -341,6 +341,49 @@ describe('EventSequence', () => {
         });
     });
 
+    describe('when an EventForEventSourceId specifies its own stream targeting', () => {
+        const { eventSequence, appendMany } = createEventSequence();
+
+        it('should use the wrapper\'s own event stream type, id, source type, and subject', async () => {
+            await eventSequence.appendMany([
+                {
+                    eventSourceId: 'source-1',
+                    event: new SomethingHappened('a'),
+                    eventStreamType: 'custom-stream-type',
+                    eventStreamId: 'custom-stream-id',
+                    eventSourceType: 'custom-source-type',
+                    subject: 'custom-subject'
+                }
+            ]);
+
+            expect(appendMany).toHaveBeenCalledTimes(1);
+            const request = appendMany.mock.calls[0][0];
+            const [event] = request.Events;
+            expect(event.EventStreamType).toEqual('custom-stream-type');
+            expect(event.EventStreamId).toEqual('custom-stream-id');
+            expect(event.EventSourceType).toEqual('custom-source-type');
+            expect(event.Subject).toEqual('custom-subject');
+        });
+    });
+
+    describe('when an EventForEventSourceId does not specify stream targeting', () => {
+        const { eventSequence, appendMany } = createEventSequence();
+
+        it('should default to the default stream type, the event source id as stream id, and the event source id as subject', async () => {
+            await eventSequence.appendMany([
+                { eventSourceId: 'source-1', event: new SomethingHappened('a') }
+            ]);
+
+            expect(appendMany).toHaveBeenCalledTimes(1);
+            const request = appendMany.mock.calls[0][0];
+            const [event] = request.Events;
+            expect(event.EventStreamType).toEqual('Default');
+            expect(event.EventStreamId).toEqual('source-1');
+            expect(event.EventSourceType).toEqual('Default');
+            expect(event.Subject).toEqual('source-1');
+        });
+    });
+
     describe('when subscribing to appendOperations and appending a single event', () => {
         const { eventSequence } = createEventSequence({
             append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] })
