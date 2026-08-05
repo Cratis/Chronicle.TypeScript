@@ -1,3 +1,6 @@
-```text
-TypeScript does not support this workflow yet.
+```typescript
+class CompositeOrderKey {
+    customerId = '';
+    orderNumber = '';
+}
 ```
