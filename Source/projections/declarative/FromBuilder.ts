@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { AddBuilder } from './AddBuilder';
 import { IAddBuilder } from './IAddBuilder';
 import { IAddChildBuilder } from './IAddChildBuilder';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
@@ -9,6 +10,7 @@ import { IFromBuilder } from './IFromBuilder';
 import { ISetBuilder } from './ISetBuilder';
 import { ISubtractBuilder } from './ISubtractBuilder';
 import { SetBuilder } from './SetBuilder';
+import { SubtractBuilder } from './SubtractBuilder';
 
 /**
  * Accumulated property mapping for a from clause.
@@ -115,18 +117,36 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
-    add(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAddBuilder<TEvent, this> {
-        throw new Error('add is not implemented yet.');
+    add(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAddBuilder<TEvent, this> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        return new AddBuilder<TEvent, this>(
+            handler.property,
+            (property, expression) => { this.entry.properties[property] = expression; },
+            this
+        );
     }
 
     /** @inheritdoc */
-    subtract(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISubtractBuilder<TEvent, this> {
-        throw new Error('subtract is not implemented yet.');
+    subtract(readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISubtractBuilder<TEvent, this> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        return new SubtractBuilder<TEvent, this>(
+            handler.property,
+            (property, expression) => { this.entry.properties[property] = expression; },
+            this
+        );
     }
 
     /** @inheritdoc */
-    count(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): this {
-        throw new Error('count is not implemented yet.');
+    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>): this {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        this.entry.properties[handler.property] = '$count';
+        return this;
     }
 
     /** @inheritdoc */

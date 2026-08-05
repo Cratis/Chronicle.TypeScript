@@ -337,6 +337,40 @@ export class Projections implements IProjections {
                 entry.Value.Properties[property] = JSON.stringify(mapping.value);
             }
 
+            for (const mapping of getAddFromMetadata(prototype, property)) {
+                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
+                entry.Value.Properties[property] = `$add(${mapping.eventPropertyName ?? property})`;
+            }
+
+            for (const mapping of getSubtractFromMetadata(prototype, property)) {
+                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
+                entry.Value.Properties[property] = `$subtract(${mapping.eventPropertyName ?? property})`;
+            }
+
+            for (const mapping of getIncrementMetadata(prototype, property)) {
+                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
+                entry.Value.Properties[property] = '$increment';
+                if (mapping.constantKey) {
+                    entry.Value.Key = `$value(${mapping.constantKey})`;
+                }
+            }
+
+            for (const mapping of getDecrementMetadata(prototype, property)) {
+                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
+                entry.Value.Properties[property] = '$decrement';
+                if (mapping.constantKey) {
+                    entry.Value.Key = `$value(${mapping.constantKey})`;
+                }
+            }
+
+            for (const mapping of getCountMetadata(prototype, property)) {
+                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
+                entry.Value.Properties[property] = '$count';
+                if (mapping.constantKey) {
+                    entry.Value.Key = `$value(${mapping.constantKey})`;
+                }
+            }
+
             for (const mapping of getJoinMetadata(prototype, property)) {
                 const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
                 entry.Value.On = mapping.on ?? entry.Value.On;
@@ -417,21 +451,6 @@ export class Projections implements IProjections {
     }
 
     private throwIfUnsupportedModelBoundDecorators(typeName: string, prototype: object, property: string): void {
-        if (getAddFromMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @addFrom on '${property}', which is not implemented yet.`);
-        }
-        if (getSubtractFromMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @subtractFrom on '${property}', which is not implemented yet.`);
-        }
-        if (getIncrementMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @increment on '${property}', which is not implemented yet.`);
-        }
-        if (getDecrementMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @decrement on '${property}', which is not implemented yet.`);
-        }
-        if (getCountMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @count on '${property}', which is not implemented yet.`);
-        }
         if (getChildrenFromMetadata(prototype, property).length > 0) {
             throw new Error(`Model-bound projection '${typeName}' uses @childrenFrom on '${property}', which is not implemented yet.`);
         }

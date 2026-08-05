@@ -6,6 +6,8 @@ export type { ProjectionMetadata } from './projection';
 export { ProjectionBuilderFor } from './ProjectionBuilderFor';
 export { FromBuilder } from './FromBuilder';
 export { SetBuilder } from './SetBuilder';
+export { AddBuilder } from './AddBuilder';
+export { SubtractBuilder } from './SubtractBuilder';
 export { RemovedWithBuilder } from './RemovedWithBuilder';
 export type { IProjectionFor } from './IProjectionFor';
 export type { IProjectionBuilderFor } from './IProjectionBuilderFor';
