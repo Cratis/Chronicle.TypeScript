@@ -12,21 +12,25 @@ import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { WellKnownSinks } from '../sinks';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { getReadModelMetadata } from '../readModels';
 import { TypeIntrospector } from '../types';
 import { IProjections } from './IProjections';
 import { getProjectionMetadata } from './declarative/projection';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor';
 import type { IProjectionFor } from './declarative/IProjectionFor';
-import { getAddFromMetadata } from './modelBound/addFrom';
+import {
+    applyPropertyMappings,
+    buildChildrenEntry,
+    buildNestedEntry,
+    ChildrenDefinitionLike,
+    ContractEventType,
+    FromRecord,
+    getEventTypeMapKey,
+    toContractEventType
+} from './modelBound/childrenAndNestedBuilder';
 import { getChildrenFromMetadata } from './modelBound/childrenFrom';
-import { getClearWithClassMetadata, getClearWithPropertyMetadata } from './modelBound/clearWith';
-import { getCountMetadata } from './modelBound/count';
-import { getDecrementMetadata } from './modelBound/decrement';
 import { getFromEveryMetadata } from './modelBound/fromEvery';
 import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent';
-import { getIncrementMetadata } from './modelBound/increment';
 import { getJoinMetadata } from './modelBound/join';
 import { ProjectionId } from './ProjectionId';
 import { isNested } from './modelBound/nested';
@@ -34,12 +38,6 @@ import { isNotRewindable } from './modelBound/notRewindable';
 import { isPassive } from './modelBound/passive';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin';
-import { getSetFromMetadata } from './modelBound/setFrom';
-import { getSetFromContextMetadata } from './modelBound/setFromContext';
-import { getSetValueMetadata } from './modelBound/setValue';
-import { getSubtractFromMetadata } from './modelBound/subtractFrom';
-
-type ContractEventType = { Id: string; Generation: number; Tombstone: boolean };
 
 interface ResolvedModelBoundMetadata {
     id: ProjectionId;
@@ -277,15 +275,17 @@ export class Projections implements IProjections {
         const properties = TypeIntrospector.getTrackedProperties(type);
         const prototype = type.prototype;
 
-        const fromByEventType = new Map<string, { Key: ContractEventType; Value: { Properties: Record<string, string>; Key: string; ParentKey: string } }>();
+        const fromByEventType = new Map<string, FromRecord>();
         const joinByEventType = new Map<string, { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } }>();
         const removedWithByEventType = new Map<string, { Key: ContractEventType; Value: { Key: string; ParentKey: string } }>();
         const removedWithJoinByEventType = new Map<string, { Key: ContractEventType; Value: { Key: string } }>();
+        const childrenByProperty: Record<string, ChildrenDefinitionLike> = {};
+        const nestedByProperty: Record<string, ChildrenDefinitionLike> = {};
 
         const fromEvents = getFromEventMetadata(type);
         for (const fromEvent of fromEvents) {
-            const eventType = this.toContractEventType(fromEvent.eventType);
-            const eventKey = this.getEventTypeMapKey(eventType);
+            const eventType = toContractEventType(fromEvent.eventType);
+            const eventKey = getEventTypeMapKey(eventType);
             fromByEventType.set(eventKey, {
                 Key: eventType,
                 Value: {
@@ -296,15 +296,10 @@ export class Projections implements IProjections {
             });
         }
 
-        const clearWithClass = getClearWithClassMetadata(type);
-        if (clearWithClass.length > 0) {
-            throw new Error(`Model-bound projection '${type.name}' uses @clearWith on class level, which is not implemented yet.`);
-        }
-
         const removedWithClass = getRemovedWithClassMetadata(type);
         for (const removed of removedWithClass) {
-            const eventType = this.toContractEventType(removed.eventType);
-            removedWithByEventType.set(this.getEventTypeMapKey(eventType), {
+            const eventType = toContractEventType(removed.eventType);
+            removedWithByEventType.set(getEventTypeMapKey(eventType), {
                 Key: eventType,
                 Value: { Key: removed.key ?? '$eventSourceId', ParentKey: removed.parentKey ?? '' }
             });
@@ -312,30 +307,15 @@ export class Projections implements IProjections {
 
         const removedWithJoinClass = getRemovedWithJoinClassMetadata(type);
         for (const removed of removedWithJoinClass) {
-            const eventType = this.toContractEventType(removed.eventType);
-            removedWithJoinByEventType.set(this.getEventTypeMapKey(eventType), {
+            const eventType = toContractEventType(removed.eventType);
+            removedWithJoinByEventType.set(getEventTypeMapKey(eventType), {
                 Key: eventType,
                 Value: { Key: removed.key ?? '$eventSourceId' }
             });
         }
 
         for (const property of properties) {
-            this.throwIfUnsupportedModelBoundDecorators(type.name, prototype, property);
-
-            for (const mapping of getSetFromMetadata(prototype, property)) {
-                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
-                entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
-            }
-
-            for (const mapping of getSetFromContextMetadata(prototype, property)) {
-                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
-                entry.Value.Properties[property] = mapping.contextPropertyName ?? property;
-            }
-
-            for (const mapping of getSetValueMetadata(prototype, property)) {
-                const entry = this.ensureFromEntry(fromByEventType, mapping.eventType);
-                entry.Value.Properties[property] = JSON.stringify(mapping.value);
-            }
+            applyPropertyMappings(prototype, property, fromByEventType);
 
             for (const mapping of getJoinMetadata(prototype, property)) {
                 const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
@@ -343,25 +323,29 @@ export class Projections implements IProjections {
                 entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
             }
 
-            const fromEvery = getFromEveryMetadata(prototype, property);
-            if (fromEvery) {
-                // Applied later to projection.All
-            }
-
             for (const removed of getRemovedWithPropertyMetadata(prototype, property)) {
-                const eventType = this.toContractEventType(removed.eventType);
-                removedWithByEventType.set(this.getEventTypeMapKey(eventType), {
+                const eventType = toContractEventType(removed.eventType);
+                removedWithByEventType.set(getEventTypeMapKey(eventType), {
                     Key: eventType,
                     Value: { Key: removed.key ?? '$eventSourceId', ParentKey: removed.parentKey ?? '' }
                 });
             }
 
             for (const removed of getRemovedWithJoinPropertyMetadata(prototype, property)) {
-                const eventType = this.toContractEventType(removed.eventType);
-                removedWithJoinByEventType.set(this.getEventTypeMapKey(eventType), {
+                const eventType = toContractEventType(removed.eventType);
+                removedWithJoinByEventType.set(getEventTypeMapKey(eventType), {
                     Key: eventType,
                     Value: { Key: removed.key ?? '$eventSourceId' }
                 });
+            }
+
+            const childrenFromList = getChildrenFromMetadata(prototype, property);
+            if (childrenFromList.length > 0) {
+                childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList);
+            }
+
+            if (isNested(prototype, property)) {
+                nestedByProperty[property] = buildNestedEntry(type, property);
             }
         }
 
@@ -384,7 +368,7 @@ export class Projections implements IProjections {
             InitialModelState: '{}',
             From: Array.from(fromByEventType.values()),
             Join: Array.from(joinByEventType.values()),
-            Children: {},
+            Children: childrenByProperty,
             FromEvery: [],
             All: {
                 Properties: allProperties,
@@ -396,7 +380,7 @@ export class Projections implements IProjections {
             LastUpdated: { Value: '' },
             Tags: [],
             AutoMap: AutoMap.Enabled,
-            Nested: {}
+            Nested: nestedByProperty
         };
         definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
         return definition;
@@ -416,62 +400,12 @@ export class Projections implements IProjections {
         return undefined;
     }
 
-    private throwIfUnsupportedModelBoundDecorators(typeName: string, prototype: object, property: string): void {
-        if (getAddFromMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @addFrom on '${property}', which is not implemented yet.`);
-        }
-        if (getSubtractFromMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @subtractFrom on '${property}', which is not implemented yet.`);
-        }
-        if (getIncrementMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @increment on '${property}', which is not implemented yet.`);
-        }
-        if (getDecrementMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @decrement on '${property}', which is not implemented yet.`);
-        }
-        if (getCountMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @count on '${property}', which is not implemented yet.`);
-        }
-        if (getChildrenFromMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @childrenFrom on '${property}', which is not implemented yet.`);
-        }
-        if (isNested(prototype, property)) {
-            throw new Error(`Model-bound projection '${typeName}' uses @nested on '${property}', which is not implemented yet.`);
-        }
-        if (getClearWithPropertyMetadata(prototype, property).length > 0) {
-            throw new Error(`Model-bound projection '${typeName}' uses @clearWith on '${property}', which is not implemented yet.`);
-        }
-    }
-
-    private ensureFromEntry(
-        fromByEventType: Map<string, { Key: ContractEventType; Value: { Properties: Record<string, string>; Key: string; ParentKey: string } }>,
-        eventTypeConstructor: Function
-    ): { Key: ContractEventType; Value: { Properties: Record<string, string>; Key: string; ParentKey: string } } {
-        const eventType = this.toContractEventType(eventTypeConstructor);
-        const key = this.getEventTypeMapKey(eventType);
-        const existing = fromByEventType.get(key);
-        if (existing) {
-            return existing;
-        }
-
-        const created = {
-            Key: eventType,
-            Value: {
-                Properties: {},
-                Key: '$eventSourceId',
-                ParentKey: ''
-            }
-        };
-        fromByEventType.set(key, created);
-        return created;
-    }
-
     private ensureJoinEntry(
         joinByEventType: Map<string, { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } }>,
         eventTypeConstructor: Function
     ): { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } } {
-        const eventType = this.toContractEventType(eventTypeConstructor);
-        const key = this.getEventTypeMapKey(eventType);
+        const eventType = toContractEventType(eventTypeConstructor);
+        const key = getEventTypeMapKey(eventType);
         const existing = joinByEventType.get(key);
         if (existing) {
             return existing;
@@ -487,22 +421,6 @@ export class Projections implements IProjections {
         };
         joinByEventType.set(key, created);
         return created;
-    }
-
-    private toContractEventType(eventTypeConstructor: Function): ContractEventType {
-        const eventType = getEventTypeFor(eventTypeConstructor);
-        if (eventType.id.value === '') {
-            throw new Error(`Event type '${eventTypeConstructor.name}' is not decorated with @eventType().`);
-        }
-        return {
-            Id: eventType.id.value,
-            Generation: eventType.generation.value,
-            Tombstone: false
-        };
-    }
-
-    private getEventTypeMapKey(eventType: ContractEventType): string {
-        return `${eventType.Id}:${eventType.Generation}:${eventType.Tombstone ? '1' : '0'}`;
     }
 
     /**

@@ -2,6 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
+import { AppendError } from '../eventSequences/AppendError';
+import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation';
+import { ConstraintViolation } from '../eventSequences/ConstraintViolation';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { AppendResult } from '../eventSequences/AppendResult';
 
@@ -37,6 +40,24 @@ export interface IUnitOfWork {
      * @returns The append results in append order.
      */
     getAppendResults(): ReadonlyArray<AppendResult>;
+
+    /**
+     * Gets any constraint violations that occurred across the append results from the latest commit.
+     * @returns A thin filter over {@link getAppendResults}.
+     */
+    getConstraintViolations(): ReadonlyArray<ConstraintViolation>;
+
+    /**
+     * Gets any concurrency violations that occurred across the append results from the latest commit.
+     * @returns A thin filter over {@link getAppendResults}.
+     */
+    getConcurrencyViolations(): ReadonlyArray<ConcurrencyViolation>;
+
+    /**
+     * Gets any errors that occurred while attempting to commit.
+     * @returns A thin filter over {@link getAppendResults}.
+     */
+    getAppendErrors(): ReadonlyArray<AppendError>;
 
     /**
      * Commits all buffered events.

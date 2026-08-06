@@ -23,6 +23,7 @@ import type {
 } from '@cratis/chronicle.contracts';
 import type { ComplianceClient } from '../compliance/ComplianceContracts';
 import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts';
+import type { ExternalServicesClient } from '../externalServices/ExternalServicesContracts';
 
 /**
  * Represents all Chronicle gRPC services.
@@ -48,4 +49,5 @@ export interface ChronicleServices {
     eventSeeding: EventSeedingClient;
     server: ServerClient;
     compliance: ComplianceClient;
+    externalServices: ExternalServicesClient;
 }

@@ -17,6 +17,10 @@ import { IWebhooks } from './webhooks/IWebhooks';
 import { IEventSeeding } from './seeding/IEventSeeding';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
 import { IReadModels } from './readModels/IReadModels';
+import { IExternalServices } from './externalServices/IExternalServices';
+import { IIdentityManager } from './identities/IIdentityManager';
+import { IPIIManager } from './compliance/IPIIManager';
+import { IFailedPartitions } from './observation/IFailedPartitions';
 
 /**
  * Defines the API surface for an event store.
@@ -64,6 +68,18 @@ export interface IEventStore {
 
     /** The event seeding manager for this event store. */
     readonly seeding: IEventSeeding;
+
+    /** The external services manager for this event store. */
+    readonly externalServices: IExternalServices;
+
+    /** The identities manager for this event store. */
+    readonly identities: IIdentityManager;
+
+    /** The PII (Personal Identifiable Information) compliance manager for this event store. */
+    readonly pii: IPIIManager;
+
+    /** The failed partitions manager for this event store. */
+    readonly failedPartitions: IFailedPartitions;
 
     /**
      * Gets an event sequence by its identifier.

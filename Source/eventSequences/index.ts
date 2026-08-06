@@ -4,11 +4,16 @@
 export { EventSequenceId } from './EventSequenceId';
 export { EventSequenceNumber } from './EventSequenceNumber';
 export type { AppendError } from './AppendError';
+export type { ConcurrencyViolation } from './ConcurrencyViolation';
 export type { ConstraintViolation } from './ConstraintViolation';
 export type { AppendResult } from './AppendResult';
+export type { AppendedEventWithResult } from './AppendedEventWithResult';
 export type { AppendOptions } from './AppendOptions';
+export { CompleteStreamError } from './CompleteStreamError';
+export type { CompleteStreamResult } from './CompleteStreamResult';
 export type { ConcurrencyScope } from './ConcurrencyScope';
 export type { EventForEventSourceId } from './EventForEventSourceId';
+export type { WaitForCompletionResult } from './WaitForCompletionResult';
 export type { IEventSequence } from './IEventSequence';
 export type { IEventLog } from './IEventLog';
 export type { ITransactionalEventSequence } from './ITransactionalEventSequence';

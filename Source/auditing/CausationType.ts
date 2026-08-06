@@ -26,6 +26,16 @@ export class CausationType {
     static readonly appendManyEvents = new CausationType('TypeScriptClient.AppendMany');
 
     /**
+     * Represents the causation type for redacting a single event via the TypeScript client.
+     */
+    static readonly redact = new CausationType('TypeScriptClient.Redact');
+
+    /**
+     * Represents the causation type for redacting all events for an event source via the TypeScript client.
+     */
+    static readonly redactForEventSource = new CausationType('TypeScriptClient.RedactForEventSource');
+
+    /**
      * Initializes a new instance of the {@link CausationType} class.
      * @param name - The name of the causation type.
      */

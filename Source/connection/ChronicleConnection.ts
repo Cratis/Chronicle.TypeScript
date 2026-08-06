@@ -29,6 +29,7 @@ import { createChannel, createClientFactory, waitForChannelReady } from 'nice-gr
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts';
+import { ExternalServicesDefinition } from '../externalServices/ExternalServicesContracts';
 import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver';
 import { ChronicleServices } from './ChronicleServices';
@@ -207,6 +208,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.compliance;
     }
 
+    get externalServices() {
+        return this._services.externalServices;
+    }
+
     get connections(): ConnectionServiceClient {
         return this._connections;
     }
@@ -286,7 +291,8 @@ export class ChronicleConnection implements ChronicleServices {
             webhooks: factory.create(WebhooksDefinition, this._channel),
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),
             server: factory.create(ServerDefinition, this._channel),
-            compliance: factory.create(ComplianceDefinition as any, this._channel) as any
+            compliance: factory.create(ComplianceDefinition as any, this._channel) as any,
+            externalServices: factory.create(ExternalServicesDefinition, this._channel)
         };
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
     }

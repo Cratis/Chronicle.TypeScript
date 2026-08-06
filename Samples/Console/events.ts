@@ -58,3 +58,19 @@ export class EmployeeMoved {
         readonly country: string = ''
     ) {}
 }
+
+/**
+ * A promotion has been recorded in the HR audit trail.
+ *
+ * Appended by {@link HrNotificationReactor} as a side effect of an `EmployeePromoted`
+ * event — not to the promoted employee's own stream, but to a separate shared
+ * "hr-audit-log" event source, demonstrating that a reactor's returned side-effect
+ * events can target any event source rather than only the one that triggered it.
+ */
+@eventType()
+export class PromotionRecorded {
+    constructor(
+        readonly employeeId: string = '',
+        readonly newTitle: string = ''
+    ) {}
+}

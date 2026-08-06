@@ -81,6 +81,16 @@
             "import": "./dist/webhooks/index.js",
             "default": "./dist/webhooks/index.js"
         },
+        "./externalServices": {
+            "types": "./dist/externalServices/index.d.ts",
+            "import": "./dist/externalServices/index.js",
+            "default": "./dist/externalServices/index.js"
+        },
+        "./identities": {
+            "types": "./dist/identities/index.d.ts",
+            "import": "./dist/identities/index.js",
+            "default": "./dist/identities/index.js"
+        },
         "./observation": {
             "types": "./dist/observation/index.d.ts",
             "import": "./dist/observation/index.js",
@@ -135,7 +145,7 @@
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.12.0",
-        "@cratis/chronicle.contracts": "16.4.0",
+        "@cratis/chronicle.contracts": "16.13.4",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
         "nice-grpc": "^2.1.16",

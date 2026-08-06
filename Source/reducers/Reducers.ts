@@ -11,6 +11,7 @@ import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle';
 import { IReducers } from './IReducers';
 import { getReducerMetadata } from './reducer';
 import { getReadModelMetadata } from '../readModels';
@@ -292,6 +293,7 @@ export class Reducers implements IReducers {
     ): Promise<void> {
         const queue = new AsyncQueue<ReducerMessage>();
         this._queues.set(id, queue);
+        const isActive = getReducerMetadata(reducerType)?.isActive ?? true;
 
         queue.send({
             Content: {
@@ -307,7 +309,7 @@ export class Reducers implements IReducers {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         ReadModel: readModelName,
-                        IsActive: true,
+                        IsActive: isActive,
                         Tags: [],
                         Filters: {
                             FilterTags: [],
@@ -334,14 +336,24 @@ export class Reducers implements IReducers {
                     reducerId: id,
                     partition: operation.Partition,
                     count: operation.Events.length,
-                    hasInitialState: operation.InitialState !== ''
+                    hasInitialState: operation.InitialState !== '',
+                    replayState: operation.ReplayState
                 });
+
+                try {
+                    await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
+                } catch (err) {
+                    this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: String(err) });
+                    exceptionMessages.push(String(err));
+                    exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                    state = ObservationState.Failed;
+                }
 
                 let currentState: unknown = operation.InitialState
                     ? JSON.parse(operation.InitialState) as unknown
                     : undefined;
 
-                for (const event of operation.Events) {
+                for (const event of state === ObservationState.Failed ? [] : operation.Events) {
                     try {
                         const eventTypeId = event.Context?.EventType?.Id;
                         if (!eventTypeId) {

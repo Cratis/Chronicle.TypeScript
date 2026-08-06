@@ -28,3 +28,21 @@ export function toContractsGuid(guid: FundamentalGuid): ContractsGuid {
         hi
     };
 }
+
+/**
+ * Converts a protobuf-net bcl.Guid from the contracts package into a Chronicle Guid.
+ * The reverse of {@link toContractsGuid}.
+ */
+export function fromContractsGuid(guid: ContractsGuid | undefined): FundamentalGuid {
+    if (!guid) {
+        return FundamentalGuid.empty;
+    }
+
+    const bytes = new Array<number>(16).fill(0);
+    for (let index = 0; index < 8; index++) {
+        bytes[index] = Number((guid.lo >> BigInt(index * 8)) & 0xffn);
+        bytes[index + 8] = Number((guid.hi >> BigInt(index * 8)) & 0xffn);
+    }
+
+    return new FundamentalGuid(bytes);
+}

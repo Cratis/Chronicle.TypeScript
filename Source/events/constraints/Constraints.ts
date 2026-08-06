@@ -84,7 +84,7 @@ export class Constraints implements IConstraints {
                     Definition: {
                         Value0: undefined,
                         Value1: {
-                            EventTypeId: uet.eventTypeId
+                            EventTypeIds: [uet.eventTypeId]
                         }
                     },
                     Scope: scope

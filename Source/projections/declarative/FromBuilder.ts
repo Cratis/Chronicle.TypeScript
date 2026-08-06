@@ -2,6 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { AddBuilder } from './AddBuilder';
+import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder';
+import { CompositeKeyBuilder } from './CompositeKeyBuilder';
 import { IAddBuilder } from './IAddBuilder';
 import { IAddChildBuilder } from './IAddChildBuilder';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
@@ -9,6 +12,7 @@ import { IFromBuilder } from './IFromBuilder';
 import { ISetBuilder } from './ISetBuilder';
 import { ISubtractBuilder } from './ISubtractBuilder';
 import { SetBuilder } from './SetBuilder';
+import { SubtractBuilder } from './SubtractBuilder';
 
 /**
  * Accumulated property mapping for a from clause.
@@ -17,6 +21,7 @@ export interface FromEntry {
     properties: Record<string, string>;
     key: string;
     parentKey: string;
+    children: ChildAdditionEntry[];
 }
 
 /**
@@ -28,7 +33,8 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     readonly entry: FromEntry = {
         properties: {},
         key: '$eventSourceId',
-        parentKey: ''
+        parentKey: '',
+        children: []
     };
 
     /** @inheritdoc */
@@ -75,13 +81,19 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
-    usingCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingCompositeKey is not implemented yet.');
+    usingCompositeKey<TKeyType>(builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
+        const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
+        builderCallback(compositeKeyBuilder);
+        this.entry.key = compositeKeyBuilder.build();
+        return this;
     }
 
     /** @inheritdoc */
-    usingParentCompositeKey<TKeyType>(_builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
-        throw new Error('usingParentCompositeKey is not implemented yet.');
+    usingParentCompositeKey<TKeyType>(builderCallback: (builder: ICompositeKeyBuilder<TKeyType, TEvent>) => void): this {
+        const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
+        builderCallback(compositeKeyBuilder);
+        this.entry.parentKey = compositeKeyBuilder.build();
+        return this;
     }
 
     /** @inheritdoc */
@@ -115,30 +127,63 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
-    add(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAddBuilder<TEvent, this> {
-        throw new Error('add is not implemented yet.');
+    add(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAddBuilder<TEvent, this> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        return new AddBuilder<TEvent, this>(
+            handler.property,
+            (property, expression) => { this.entry.properties[property] = expression; },
+            this
+        );
     }
 
     /** @inheritdoc */
-    subtract(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISubtractBuilder<TEvent, this> {
-        throw new Error('subtract is not implemented yet.');
+    subtract(readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISubtractBuilder<TEvent, this> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        return new SubtractBuilder<TEvent, this>(
+            handler.property,
+            (property, expression) => { this.entry.properties[property] = expression; },
+            this
+        );
     }
 
     /** @inheritdoc */
-    count(_readModelPropertyAccessor: PropertyAccessor<TReadModel>): this {
-        throw new Error('count is not implemented yet.');
+    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>): this {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        this.entry.properties[handler.property] = '$count';
+        return this;
     }
 
     /** @inheritdoc */
     addChild<TChildModel>(
-        _targetPropertyAccessor: PropertyAccessor<TReadModel>,
-        _eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
+        targetPropertyAccessor: PropertyAccessor<TReadModel>,
+        eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
     ): this {
-        throw new Error('addChild is not implemented yet.');
+        const targetHandler = new PropertyPathResolverProxyHandler();
+        const targetProxy = new Proxy({}, targetHandler);
+        targetPropertyAccessor(targetProxy as TReadModel);
+
+        const probe = new AddChildBuilder<TChildModel, TEvent>();
+        const probeProxy = new Proxy({}, probe);
+        (eventPropertyAccessorOrBuilderCallback as (value: unknown) => void)(probeProxy);
+
+        this.entry.children.push(probe.usedAsBuilder
+            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty }
+            : { targetProperty: targetHandler.property, fromEventProperty: probe.capturedEventProperty });
+        return this;
     }
 
     /** @inheritdoc */
     setThisValue(): ISetBuilder<TEvent, this> {
-        throw new Error('setThisValue is not implemented yet.');
+        return new SetBuilder<TEvent, this>(
+            '$this',
+            (rp, expr) => { this.entry.properties[rp] = expr; },
+            this
+        );
     }
 }
