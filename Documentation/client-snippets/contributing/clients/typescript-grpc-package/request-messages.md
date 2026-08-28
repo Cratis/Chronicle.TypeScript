@@ -1,9 +1,9 @@
 ```typescript
-import { EnsureEventStore, EnsureNamespace, GetNamespacesRequest } from '@cratis/chronicle.contracts';
+import { EnsureEventStoreRequest, EnsureNamespaceRequest, AllNamespacesRequest } from '@cratis/chronicle.contracts';
 
-const eventStore = EnsureEventStore.create({ Name: 'shopping' });
-const namespace = EnsureNamespace.create({ EventStore: eventStore.Name, Name: 'tenant-one' });
-const namespaces = GetNamespacesRequest.create({ EventStore: eventStore.Name });
+const eventStore = EnsureEventStoreRequest.create({ Name: 'shopping' });
+const namespace = EnsureNamespaceRequest.create({ EventStore: eventStore.Name, Namespace: 'tenant-one' });
+const namespaces = AllNamespacesRequest.create({ EventStore: eventStore.Name });
 
 console.log(eventStore, namespace, namespaces);
 ```

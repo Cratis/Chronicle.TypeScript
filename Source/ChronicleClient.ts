@@ -6,6 +6,7 @@ import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
 import { ChronicleConnection } from './connection';
+import { ensureCommandSuccess, ensureQuerySuccess, firstQueryResult } from './connection/callResults';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
 import { KernelKeepAlive } from './connection/KernelKeepAlive';
 import { EventStore } from './EventStore';
@@ -131,7 +132,7 @@ export class ChronicleClient implements IChronicleClient {
                     this._logger.debug('Ensuring event store exists in kernel', {
                         eventStore: storeName.value
                     });
-                    await this._connection.eventStores.ensure({ Name: storeName.value });
+                    ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
 
                     const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId);
                     this._stores.set(key, created);
@@ -167,9 +168,9 @@ export class ChronicleClient implements IChronicleClient {
             try {
                 const response = await this.withReconnect('get_event_stores', async () => {
                     await this.ensureConnected();
-                    return this._connection.eventStores.getEventStores({});
+                    return firstQueryResult('get event stores', this._connection.eventStores.allEventStores({}));
                 });
-                const result = (response.items ?? []).map((name: string) => new EventStoreName(name));
+                const result = ensureQuerySuccess('get event stores', response).map((name: string) => new EventStoreName(name));
                 this._logger.verbose('Retrieved event stores from kernel', {
                     count: result.length
                 });
