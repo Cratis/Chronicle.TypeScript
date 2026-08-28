@@ -9,6 +9,8 @@
 
 Chronicle is an event-sourcing database and processing runtime with a first-class .NET SDK and additional TypeScript, Kotlin/Java (JVM), and Elixir clients — with a Python client coming soon — plus pluggable storage-provider implementations including MongoDB (default), PostgreSQL, SQL Server, and SQLite. This repository is the **TypeScript client**, published to npm as [`@cratis/chronicle`](https://www.npmjs.com/package/@cratis/chronicle).
 
+We believe event sourcing is worth it for almost any system dealing with information and business flows — and that in TypeScript it should feel like TypeScript. This client is designed to be idiomatic — decorators, value objects, and a fluent API — so it reads as familiar code even if you have never event-sourced before, with less friction and boilerplate. It is part of one deliberately simple Cratis ecosystem, designed for productivity, quality, and reliability — AI-friendly by design, with free [AI skills](https://github.com/Cratis/AI) for building with the stack.
+
 ## Overview
 
 `@cratis/chronicle` provides a clean, type-safe TypeScript API for interacting with the Chronicle Kernel. It builds on top of [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) (the gRPC contracts package) and exposes idiomatic TypeScript constructs including:
