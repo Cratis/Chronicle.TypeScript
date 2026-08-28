@@ -1,9 +1,24 @@
 {
     "name": "@cratis/chronicle",
     "version": "1.0.0",
-    "description": "TypeScript idiomatic client for Cratis Chronicle",
+    "description": "Event sourcing for TypeScript and Node.js — the idiomatic client for Cratis Chronicle, the open-source event-sourcing database",
     "author": "Cratis",
     "license": "MIT",
+    "homepage": "https://www.cratis.io/chronicle/",
+    "keywords": [
+        "event-sourcing",
+        "eventsourcing",
+        "event-store",
+        "eventstore",
+        "cqrs",
+        "ddd",
+        "projections",
+        "grpc",
+        "typescript",
+        "nodejs",
+        "chronicle",
+        "cratis"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/Cratis/Chronicle.TypeScript.git"
