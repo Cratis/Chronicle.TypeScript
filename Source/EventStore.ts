@@ -5,6 +5,7 @@ import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
+import { ensureQuerySuccess, firstQueryResult } from './connection/callResults';
 import { EventLog } from './eventSequences/EventLog';
 import { EventSequence } from './eventSequences/EventSequence';
 import { EventSequenceId } from './eventSequences/EventSequenceId';
@@ -163,8 +164,8 @@ export class EventStore implements IEventStore {
         return ChronicleTracer.startActiveSpan('chronicle.event_store.get_namespaces', async span => {
             span.setAttribute('chronicle.event_store', this.name.value);
             try {
-                const response = await this._connection.namespaces.getNamespaces({ EventStore: this.name.value });
-                const result = (response.items ?? []).map((namespace: string) => new EventStoreNamespaceName(namespace));
+                const response = await firstQueryResult('get namespaces', this._connection.namespaces.allNamespaces({ EventStore: this.name.value }));
+                const result = ensureQuerySuccess('get namespaces', response).map((namespace: string) => new EventStoreNamespaceName(namespace));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {

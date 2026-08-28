@@ -60,7 +60,7 @@ export class Constraints implements IConstraints {
                 return {
                     Name: capture.name,
                     Type: ConstraintType.Unique,
-                    RemovedWith: uc.removedWithEventTypeId ?? '',
+                    RemovedWith: uc.removedWithEventTypeId ? [uc.removedWithEventTypeId] : [],
                     Definition: {
                         Value0: {
                             EventDefinitions: uc.eventDefinitions.map(ed => ({
@@ -80,7 +80,7 @@ export class Constraints implements IConstraints {
                 return {
                     Name: uet.name ?? capture.name,
                     Type: ConstraintType.UniqueEventType,
-                    RemovedWith: '',
+                    RemovedWith: [],
                     Definition: {
                         Value0: undefined,
                         Value1: {
@@ -94,7 +94,7 @@ export class Constraints implements IConstraints {
             return {
                 Name: capture.name,
                 Type: ConstraintType.Unknown,
-                RemovedWith: '',
+                RemovedWith: [],
                 Definition: undefined,
                 Scope: scope
             };

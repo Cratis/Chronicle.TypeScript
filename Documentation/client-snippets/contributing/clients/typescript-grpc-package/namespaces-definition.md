@@ -1,7 +1,7 @@
 ```typescript
 import { NamespacesDefinition } from '@cratis/chronicle.contracts';
 
-const getNamespacesMethod = NamespacesDefinition.methods.getNamespaces;
+const allNamespacesMethod = NamespacesDefinition.methods.allNamespaces;
 
-console.log(`${NamespacesDefinition.fullName}.${getNamespacesMethod.name}`);
+console.log(`${NamespacesDefinition.fullName}.${allNamespacesMethod.name}`);
 ```

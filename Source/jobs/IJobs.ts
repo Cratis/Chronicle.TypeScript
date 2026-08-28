@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import type { Job, JobStep } from '@cratis/chronicle.contracts';
+import type { JobSummaryResponse, JobStepSummaryResponse } from '@cratis/chronicle.contracts';
 import { JobId } from './JobId';
 
 /**
@@ -32,18 +32,18 @@ export interface IJobs {
      * @param jobId - The job identifier.
      * @returns The job, or undefined when not found.
      */
-    getJob(jobId: JobId | Guid | string): Promise<Job | undefined>;
+    getJob(jobId: JobId | Guid | string): Promise<JobSummaryResponse | undefined>;
 
     /**
      * Gets all jobs for the event store namespace.
      * @returns All jobs.
      */
-    getJobs(): Promise<Job[]>;
+    getJobs(): Promise<JobSummaryResponse[]>;
 
     /**
      * Gets all steps for a specific job.
      * @param jobId - The job identifier.
      * @returns The job steps.
      */
-    getJobSteps(jobId: JobId | Guid | string): Promise<JobStep[]>;
+    getJobSteps(jobId: JobId | Guid | string): Promise<JobStepSummaryResponse[]>;
 }

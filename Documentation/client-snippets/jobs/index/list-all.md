@@ -1,11 +1,11 @@
 ```typescript
 import { IEventStore } from '@cratis/chronicle';
-import { Job } from '@cratis/chronicle.contracts';
+import { JobSummaryResponse } from '@cratis/chronicle.contracts';
 
 class JobsIndexListAll {
     constructor(private readonly store: IEventStore) {}
 
-    async getAllJobs(): Promise<Job[]> {
+    async getAllJobs(): Promise<JobSummaryResponse[]> {
         return this.store.jobs.getJobs();
     }
 }
