@@ -28,4 +28,13 @@ export class PIIManager implements IPIIManager {
             Identifier: identifier
         });
     }
+
+    /** @inheritdoc */
+    async allowNewEncryptionKeyFor(identifier: string): Promise<void> {
+        await this._connection.compliance.allowNewEncryptionKey({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            Identifier: identifier
+        });
+    }
 }

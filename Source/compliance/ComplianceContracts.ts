@@ -34,6 +34,16 @@ export interface DeleteEncryptionKeyRequest {
 }
 
 /**
+ * Request to authorize a new encryption key for a PII encryption key identifier whose key was
+ * previously erased, so a later lawful lifecycle can protect their data again.
+ */
+export interface AllowNewEncryptionKeyRequest {
+    EventStore: string;
+    Namespace: string;
+    Identifier: string;
+}
+
+/**
  * An empty protobuf message.
  */
 export interface Empty {}
@@ -49,6 +59,7 @@ export type DeepPartial<T> = T extends Builtin ? T : T extends globalThis.Array<
 export interface ComplianceClient<CallOptionsExt = {}> {
     release(request: DeepPartial<ReleaseRequest>, options?: CallOptions & CallOptionsExt): Promise<ReleaseResponse>;
     deleteEncryptionKey(request: DeepPartial<DeleteEncryptionKeyRequest>, options?: CallOptions & CallOptionsExt): Promise<Empty>;
+    allowNewEncryptionKey(request: DeepPartial<AllowNewEncryptionKeyRequest>, options?: CallOptions & CallOptionsExt): Promise<Empty>;
 }
 
 export const ReleaseRequest = {
@@ -181,6 +192,46 @@ export const DeleteEncryptionKeyRequest = {
     }
 };
 
+export const AllowNewEncryptionKeyRequest = {
+    encode(message: AllowNewEncryptionKeyRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+        if (message.EventStore !== '') {
+            writer.uint32(10).string(message.EventStore);
+        }
+        if (message.Namespace !== '') {
+            writer.uint32(18).string(message.Namespace);
+        }
+        if (message.Identifier !== '') {
+            writer.uint32(26).string(message.Identifier);
+        }
+        return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number): AllowNewEncryptionKeyRequest {
+        const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+        const end = length === undefined ? reader.len : reader.pos + length;
+        const message: AllowNewEncryptionKeyRequest = { EventStore: '', Namespace: '', Identifier: '' };
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1: message.EventStore = reader.string(); continue;
+                case 2: message.Namespace = reader.string(); continue;
+                case 3: message.Identifier = reader.string(); continue;
+            }
+            if ((tag & 7) === 4 || tag === 0) break;
+            reader.skip(tag & 7);
+        }
+        return message;
+    },
+
+    fromPartial(object: DeepPartial<AllowNewEncryptionKeyRequest>): AllowNewEncryptionKeyRequest {
+        return {
+            EventStore: object.EventStore ?? '',
+            Namespace: object.Namespace ?? '',
+            Identifier: object.Identifier ?? ''
+        };
+    }
+};
+
 export const Empty = {
     encode(_: Empty, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
         return writer;
@@ -220,6 +271,14 @@ export const ComplianceDefinition = {
         deleteEncryptionKey: {
             name: 'DeleteEncryptionKey',
             requestType: DeleteEncryptionKeyRequest,
+            requestStream: false as const,
+            responseType: Empty,
+            responseStream: false as const,
+            options: {}
+        },
+        allowNewEncryptionKey: {
+            name: 'AllowNewEncryptionKey',
+            requestType: AllowNewEncryptionKeyRequest,
             requestStream: false as const,
             responseType: Empty,
             responseStream: false as const,
