@@ -10,6 +10,12 @@ import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator';
+import { EventContext } from '../events/EventContext';
+import { EventTypeId } from '../events/EventTypeId';
+import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { Tag } from '../events/Tag';
+import { getTagsFor } from '../events/tagDecorator';
+import { getFilterTagsFor } from '../events/filterEventsByTagDecorator';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle';
 import { IReducers } from './IReducers';
@@ -310,9 +316,9 @@ export class Reducers implements IReducers {
                         })),
                         ReadModel: readModelName,
                         IsActive: isActive,
-                        Tags: [],
+                        Tags: getTagsFor(reducerType).map(t => t.value),
                         Filters: {
-                            FilterTags: [],
+                            FilterTags: getFilterTagsFor(reducerType).map(t => t.value),
                             EventSourceType: '',
                             EventStreamType: 'All'
                         }
@@ -369,6 +375,19 @@ export class Reducers implements IReducers {
                         }
 
                         const content = JSON.parse(event.Content) as Record<string, unknown>;
+                        const context: EventContext = {
+                            sequenceNumber: event.Context!.SequenceNumber,
+                            eventSourceId: event.Context!.EventSourceId,
+                            eventType: {
+                                id: new EventTypeId(event.Context!.EventType!.Id),
+                                generation: new EventTypeGeneration(event.Context!.EventType!.Generation),
+                                tombstone: event.Context!.EventType!.Tombstone
+                            },
+                            occurred: new Date(event.Context!.Occurred?.Value ?? ''),
+                            correlationId: event.Context?.CorrelationId ? `${event.Context.CorrelationId.lo}-${event.Context.CorrelationId.hi}` : '',
+                            causation: [],
+                            tags: (event.Context!.Tags ?? []).map(value => new Tag(value))
+                        };
 
                         this._logger.info('Invoking reducer handler', {
                             reducerId: id,
@@ -378,7 +397,7 @@ export class Reducers implements IReducers {
                             hasState: currentState !== undefined
                         });
 
-                        currentState = await reducerInstance[entry.methodName](content, currentState);
+                        currentState = await reducerInstance[entry.methodName](content, currentState, context);
                         lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                     } catch (err) {
                         this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });

@@ -12,6 +12,9 @@ import { getEventTypeMetadata } from '../events/eventTypeDecorator';
 import { EventContext } from '../events/EventContext';
 import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { Tag } from '../events/Tag';
+import { getTagsFor } from '../events/tagDecorator';
+import { getFilterTagsFor } from '../events/filterEventsByTagDecorator';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import type { IEventLog } from '../eventSequences/IEventLog';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle';
@@ -239,9 +242,9 @@ export class Reactors implements IReactors {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         IsReplayable: false,
-                        Tags: [],
+                        Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {
-                            FilterTags: [],
+                            FilterTags: getFilterTagsFor(reactorType).map(t => t.value),
                             EventSourceType: '',
                             EventStreamType: 'All'
                         }
@@ -303,7 +306,8 @@ export class Reactors implements IReactors {
                             },
                             occurred: new Date(event.Context!.Occurred?.Value ?? ''),
                             correlationId: event.Context?.CorrelationId ? `${event.Context.CorrelationId.lo}-${event.Context.CorrelationId.hi}` : '',
-                            causation: []
+                            causation: [],
+                            tags: (event.Context!.Tags ?? []).map(value => new Tag(value))
                         };
 
                         this._logger.info('Invoking reactor handler', {

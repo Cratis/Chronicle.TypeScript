@@ -6,6 +6,7 @@ import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
+import { getTagsFor } from '../events/tagDecorator';
 import { ICanSeedEvents } from './ICanSeedEvents';
 import { IEventSeeding } from './IEventSeeding';
 import { IEventSeedingBuilder } from './IEventSeedingBuilder';
@@ -104,11 +105,12 @@ export class EventSeeding implements IEventSeeding {
     private addEntries<TEvent extends object>(eventSourceId: string, events: Iterable<TEvent>, isGlobal: boolean, targetNamespace: string): void {
         for (const event of events) {
             const eventType = getEventTypeFor(event.constructor as Function);
+            const tags = getTagsFor(event.constructor as Function).map(t => t.value);
             this._entries.push({
                 eventSourceId,
                 eventTypeId: eventType.id.value,
                 content: JSON.stringify(event),
-                tags: [],
+                tags,
                 isGlobal,
                 targetNamespace
             });

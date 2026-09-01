@@ -3,6 +3,7 @@
 
 import { EventType } from './EventType';
 import { CausationEntry } from './CausationEntry';
+import { Tag } from './Tag';
 
 /**
  * Represents contextual information about an appended event.
@@ -25,4 +26,7 @@ export interface EventContext {
 
     /** The causation chain for the event. */
     readonly causation: ReadonlyArray<CausationEntry>;
+
+    /** The tags the event carries. */
+    readonly tags: ReadonlyArray<Tag>;
 }
