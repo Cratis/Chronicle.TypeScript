@@ -29,15 +29,19 @@ import {
     buildNestedEntry,
     ChildrenDefinitionLike,
     ContractEventType,
+    ensureFromEntry,
     FromRecord,
     getEventTypeMapKey,
     toContractEventType
 } from './modelBound/childrenAndNestedBuilder';
 import { getChildrenFromMetadata } from './modelBound/childrenFrom';
+import { getClearWithPropertyMetadata } from './modelBound/clearWith';
 import { getEventSequenceMetadata } from './modelBound/eventSequence';
+import { getFromAllMetadata } from './modelBound/fromAll';
 import { getFromEveryMetadata } from './modelBound/fromEvery';
 import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent';
 import { getJoinMetadata } from './modelBound/join';
+import { isNoAutoMap, isPropertyNoAutoMap } from './modelBound/noAutoMap';
 import { ProjectionId } from './ProjectionId';
 import { ProjectionQueryResult } from './ProjectionQueryResult';
 import { ProjectionState } from './ProjectionState';
@@ -503,14 +507,25 @@ export class Projections implements IProjections {
                 childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList);
             }
 
-            if (isNested(prototype, property)) {
+            const propertyIsNested = isNested(prototype, property);
+            if (propertyIsNested) {
                 nestedByProperty[property] = buildNestedEntry(type, property);
+            }
+
+            // A scalar (non-nested, non-children-collection) root property clears back to no value
+            // every time the given event is observed. A nested single-object property's clearWith is
+            // handled by buildNestedEntry instead, which clears the whole nested object.
+            if (childrenFromList.length === 0 && !propertyIsNested) {
+                for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
+                    const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
+                    entry.Value.Properties[property] = '$null';
+                }
             }
         }
 
         const allProperties: Record<string, string> = {};
         for (const property of properties) {
-            const fromEvery = getFromEveryMetadata(prototype, property);
+            const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
                     ? fromEvery.contextProperty
@@ -538,7 +553,8 @@ export class Projections implements IProjections {
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
             LastUpdated: { Value: '' },
             Tags: [],
-            AutoMap: AutoMap.Enabled,
+            AutoMap: isNoAutoMap(type) ? AutoMap.Disabled : AutoMap.Enabled,
+            NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
             Nested: nestedByProperty
         };
         definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
@@ -551,7 +567,7 @@ export class Projections implements IProjections {
         if (readModelMetadata && hasFromEventMetadata(type)) {
             return {
                 id: new ProjectionId(readModelMetadata.id.value),
-                eventSequenceId: undefined,
+                eventSequenceId: getEventSequenceMetadata(type),
                 readModelIdentifier: readModelMetadata.id.value
             };
         }

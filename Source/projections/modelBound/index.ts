@@ -35,4 +35,7 @@ export { setValue, getSetValueMetadata } from './setValue';
 export type { SetValueMetadata } from './setValue';
 export { fromEvery, getFromEveryMetadata } from './fromEvery';
 export type { FromEveryMetadata } from './fromEvery';
+export { fromAll, getFromAllMetadata } from './fromAll';
+export type { FromAllMetadata } from './fromAll';
+export { noAutoMap, isNoAutoMap, isPropertyNoAutoMap } from './noAutoMap';
 export { eventSequence, eventLog, getEventSequenceMetadata } from './eventSequence';
