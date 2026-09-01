@@ -159,14 +159,14 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@bufbuild/protobuf": "^2.14.0",
+        "@bufbuild/protobuf": "^2.14.1",
         "@cratis/chronicle.contracts": "17.0.0",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
         "nice-grpc": "^2.1.17",
         "nice-grpc-common": "^2.0.4",
         "reflect-metadata": "^0.2.2",
-        "undici": "^8.10.0"
+        "undici": "^8.10.1"
     },
     "devDependencies": {
         "@cratis/fundamentals": "7.18.2",
