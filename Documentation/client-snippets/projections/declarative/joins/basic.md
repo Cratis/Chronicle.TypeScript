@@ -1,28 +1,5 @@
 ```typescript
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
-
-@eventType()
-class DecJoinsUserCreated {
-    name = '';
-    email = '';
-}
-
-@eventType()
-class DecJoinsUserAssignedToGroup {
-    userId = '';
-    groupId = '';
-}
-
-@eventType()
-class DecJoinsGroupCreated {
-    name = '';
-    description = '';
-}
-
-@eventType()
-class DecJoinsGroupRenamed {
-    newName = '';
-}
+import { IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @projection()
 class DecJoinsUserProjection implements IProjectionFor<DecJoinsUser> {
