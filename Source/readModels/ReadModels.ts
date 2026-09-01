@@ -23,6 +23,7 @@ import { WellKnownSinks } from '../sinks';
 import { getReadModelMetadata } from './readModel';
 import type { IMaterializedReadModels } from './IMaterializedReadModels';
 import { MaterializedReadModels } from './MaterializedReadModels';
+import { ReadModelSubjectResolver } from './ReadModelSubjectResolver';
 import type { IReadModels } from './IReadModels';
 import type { ReadModelChangeset } from './ReadModelChangeset';
 import type { ReadModelSnapshot } from './ReadModelSnapshot';
@@ -173,7 +174,7 @@ export class ReadModels implements IReadModels {
         const readModel = this.resolveReadModel(readModelType);
         const schema = this.getReadModelSchema(readModelType, readModel.identifier);
         const payload = JsonSerializer.serialize(instance);
-        const subject = this.extractSubject(instance);
+        const subject = this.extractSubject(readModelType, instance);
 
         const response = await this._connection.compliance.release({
             EventStore: this._eventStore,
@@ -345,12 +346,11 @@ export class ReadModels implements IReadModels {
         }
     }
 
-    private extractSubject<TReadModel>(instance: TReadModel): string {
-        // By convention, use the 'id' property as the subject
-        const anyInstance = instance as any;
-        if (anyInstance.id !== undefined && anyInstance.id !== null) {
-            return String(anyInstance.id);
+    private extractSubject<TReadModel>(readModelType: Constructor<TReadModel>, instance: TReadModel): string {
+        const subject = ReadModelSubjectResolver.resolveFrom(readModelType, instance);
+        if (subject !== undefined) {
+            return subject;
         }
-        throw new Error('Read model instance must have an "id" property to serve as the subject for PII release');
+        throw new Error('Read model instance must have a property decorated with @subject() or an "id" property to serve as the subject for PII release');
     }
 }
