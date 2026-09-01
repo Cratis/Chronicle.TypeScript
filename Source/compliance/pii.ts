@@ -4,7 +4,11 @@
 import 'reflect-metadata';
 import type { ComplianceMetadata } from './ComplianceMetadata';
 import { ComplianceMetadataType } from './ComplianceMetadataType';
+import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId';
 import { TypeIntrospector } from '../types';
+
+/** The property name this client uses everywhere for the event source identifier. */
+const EVENT_SOURCE_ID_PROPERTY = 'eventSourceId';
 
 /** Metadata key for PII decorator on properties. */
 const PII_PROPERTY_METADATA_KEY = 'chronicle:compliance:pii:property';
@@ -66,7 +70,18 @@ export function pii(details?: string): PropertyDecorator & ClassDecorator {
         // Property decorator usage
         if (propertyKey !== undefined) {
             const key = propertyKey.toString();
-            TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
+            const declaringType = (target as { constructor: Function }).constructor;
+
+            // Encrypting the event source identifier would make its own decryption key
+            // unfindable - the identifier is required, in the clear, to correlate events and
+            // look up the key that protects everything else. Mirrors C#'s
+            // PIINotSupportedOnEventSourceId guard, which throws for the same reason when
+            // [PII] is applied to an EventSourceId/EventSourceId<T> type.
+            if (key === EVENT_SOURCE_ID_PROPERTY) {
+                throw new PIINotSupportedOnEventSourceId(declaringType.name);
+            }
+
+            TypeIntrospector.trackProperty(declaringType, key);
             const metadata: ComplianceMetadata = {
                 metadataType: ComplianceMetadataType.PII,
                 details: details ?? ''
