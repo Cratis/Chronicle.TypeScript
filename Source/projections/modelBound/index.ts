@@ -35,3 +35,4 @@ export { setValue, getSetValueMetadata } from './setValue';
 export type { SetValueMetadata } from './setValue';
 export { fromEvery, getFromEveryMetadata } from './fromEvery';
 export type { FromEveryMetadata } from './fromEvery';
+export { eventSequence, eventLog, getEventSequenceMetadata } from './eventSequence';
