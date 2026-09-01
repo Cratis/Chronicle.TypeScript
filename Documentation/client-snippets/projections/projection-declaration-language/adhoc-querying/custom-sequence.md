@@ -1,3 +1,8 @@
-```text
-TypeScript does not support this workflow yet.
+```typescript
+const result = await store.projections.query(
+    `
+    projection InboxMessages
+      from MessageReceived
+    `,
+    'inbox');
 ```
