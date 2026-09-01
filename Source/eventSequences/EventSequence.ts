@@ -10,6 +10,9 @@ import type { AppendedEvent } from '../events/AppendedEvent';
 import { EventType } from '../events/EventType';
 import { EventTypeId } from '../events/EventTypeId';
 import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { Tag } from '../events/Tag';
+import { getTagsFor } from '../events/tagDecorator';
+import { mergeTags } from '../events/mergeTags';
 import { DecoratorType } from '../types/DecoratorType';
 import { TypeDiscoverer } from '../types/TypeDiscoverer';
 import { toClientFailedPartition } from '../observation/toClientFailedPartition';
@@ -66,6 +69,9 @@ export class EventSequence implements IEventSequence {
             : Guid.as(options.correlationId);
         const content = JsonSerializer.serialize(event);
 
+        // Merge static tags declared on the event type with tags supplied at append time.
+        const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
+
         causationManager.add(CausationType.appendEvent, { eventType: eventType.id.value });
         const causationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
@@ -108,7 +114,7 @@ export class EventSequence implements IEventSequence {
                     })),
                     CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScope: this.toContractConcurrencyScope(options?.concurrencyScope),
-                    Tags: [],
+                    Tags: tags,
                     Occurred: undefined,
                     Subject: eventSourceId
                 });
@@ -149,7 +155,8 @@ export class EventSequence implements IEventSequence {
                                 eventType,
                                 occurred: new Date(),
                                 correlationId: correlationId.toString(),
-                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }))
+                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } })),
+                                tags: tags.map(value => new Tag(value))
                             },
                             eventType,
                             content: event as Record<string, unknown>
@@ -223,8 +230,13 @@ export class EventSequence implements IEventSequence {
         const resolveConcurrencyScope = (eventSourceId: string) =>
             this.toContractConcurrencyScope(concurrencyScopesByEventSourceId?.[eventSourceId] ?? defaultConcurrencyScope);
 
-        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject }) => {
+        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, tags: instanceTags }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
+
+            // Merge static tags declared on the event type, tags carried by this specific
+            // EventForEventSourceId entry, and tags supplied at call time for the whole batch.
+            const tags = mergeTags(getTagsFor(event.constructor as Function), instanceTags, appendOptions?.tags);
+
             return {
                 EventSourceType: eventSourceType ?? 'Default',
                 EventSourceId: eventSourceId,
@@ -242,7 +254,7 @@ export class EventSequence implements IEventSequence {
                     Properties: { ...c.properties }
                 })),
                 CausedBy: toContractsCausedBy(identity),
-                Tags: [],
+                Tags: tags,
                 Occurred: undefined,
                 Subject: subject ?? eventSourceId
             };
@@ -334,7 +346,8 @@ export class EventSequence implements IEventSequence {
                                     eventType,
                                     occurred: occurredAt,
                                     correlationId: correlationId.toString(),
-                                    causation: causationEntries
+                                    causation: causationEntries,
+                                    tags: eventsToAppend[index].Tags.map(value => new Tag(value))
                                 },
                                 eventType,
                                 content: event as Record<string, unknown>
@@ -687,7 +700,8 @@ export class EventSequence implements IEventSequence {
                 causation: (context.Causation ?? []).map(c => ({
                     type: c.Type,
                     properties: { ...c.Properties }
-                }))
+                })),
+                tags: (context.Tags ?? []).map(value => new Tag(value))
             },
             eventType,
             content: JSON.parse(wireEvent.Content) as Record<string, unknown>

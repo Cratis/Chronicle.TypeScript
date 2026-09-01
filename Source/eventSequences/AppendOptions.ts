@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
+import type { Tag } from '../events/Tag';
 import type { ConcurrencyScope } from './ConcurrencyScope';
 
 /**
@@ -16,6 +17,14 @@ export interface AppendOptions {
 
     /** Optional concurrency scope to use for append operations. */
     concurrencyScope?: ConcurrencyScope;
+
+    /**
+     * Optional tags to associate with the event(s) being appended. These are combined with any
+     * static tags declared on the event type(s) via `@tag()`/`@tags()`, and - for the
+     * `appendMany(events: EventForEventSourceId[], options?)` overload - with any tags carried
+     * by the individual {@link EventForEventSourceId} entries.
+     */
+    tags?: ReadonlyArray<string | Tag>;
 
     /**
      * Optional per-event-source-id concurrency scopes, keyed by event source id.
