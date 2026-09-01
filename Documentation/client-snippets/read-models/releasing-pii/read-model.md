@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, pii, reducer } from '@cratis/chronicle';
+import { EventContext, eventType, pii, reducer, subject } from '@cratis/chronicle';
 
 @eventType()
 class ReleasingPiiSupportTicketOpened {
@@ -7,8 +7,12 @@ class ReleasingPiiSupportTicketOpened {
 }
 
 class ReleasingPiiSupportTicket {
-    // Read models are keyed by 'id' by convention - the same property release() uses as the subject.
+    // The ticket's own id identifies the ticket, not the person the PII belongs to - @subject()
+    // tells release() to use customerId as the encryption key's owner instead. Without it,
+    // release() would fall back to id.
     id = '';
+
+    @subject()
     customerId = '';
 
     @pii('The name of the person who opened the ticket')
