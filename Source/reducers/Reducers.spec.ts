@@ -121,4 +121,47 @@ describe('Reducers', () => {
             expect(message.Content.Value0.Reducer.IsActive).toBe(false);
         });
     });
+
+    describe('when registering a reducer that is tagged and filters by tag', () => {
+        type TaggedRegistration = {
+            Content: { Value0: { Reducer: { Tags: string[]; Filters: { FilterTags: string[] } } } };
+        };
+
+        const register = async () => {
+            const { connection, registrationMessages } = createConnection();
+            const reducers = new Reducers(createArtifacts([SomeTaggedReducer]), connection, 'my-event-store', 'my-namespace', new ConnectionLifecycle(), 'default-sink');
+
+            await reducers.register();
+            await flush();
+
+            return (registrationMessages[0] as TaggedRegistration).Content.Value0.Reducer;
+        };
+
+        it('should carry the tags the reducer is labeled with', async () => {
+            expect((await register()).Tags).toEqual(['Analytics', 'Reporting']);
+        });
+
+        it('should carry every tag it filters events by', async () => {
+            expect((await register()).Filters.FilterTags).toEqual(['vip', 'priority']);
+        });
+    });
+
+    describe('when registering a reducer that is neither tagged nor filtered', () => {
+        class SomeUntaggedReducer {}
+        reducer('some-untagged-reducer')(SomeUntaggedReducer);
+
+        it('should send empty tag lists rather than omitting them', async () => {
+            const { connection, registrationMessages } = createConnection();
+            const reducers = new Reducers(createArtifacts([SomeUntaggedReducer]), connection, 'my-event-store', 'my-namespace', new ConnectionLifecycle(), 'default-sink');
+
+            await reducers.register();
+            await flush();
+
+            const message = registrationMessages[0] as {
+                Content: { Value0: { Reducer: { Tags: string[]; Filters: { FilterTags: string[] } } } };
+            };
+            expect(message.Content.Value0.Reducer.Tags).toEqual([]);
+            expect(message.Content.Value0.Reducer.Filters.FilterTags).toEqual([]);
+        });
+    });
 });
