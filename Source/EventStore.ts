@@ -90,7 +90,7 @@ export class EventStore implements IEventStore {
         const artifacts = DefaultClientArtifactsProvider.default;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
-        this.projections = new Projections(name.value, _connection, artifacts, defaultSinkTypeId);
+        this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);

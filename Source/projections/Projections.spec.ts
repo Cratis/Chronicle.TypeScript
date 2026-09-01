@@ -85,7 +85,7 @@ function createProjections(readModels: (new (...args: unknown[]) => unknown)[]) 
         eventTypeMigrations: []
     };
 
-    const projections = new Projections('test-store', connection, clientArtifacts, 'test-sink');
+    const projections = new Projections('test-store', 'test-namespace', connection, clientArtifacts, 'test-sink');
     return { projections, registerMock };
 }
 

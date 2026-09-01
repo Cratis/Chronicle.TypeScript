@@ -1,3 +1,12 @@
-```text
-TypeScript does not support this workflow yet.
+```typescript
+interface PdlOrderSummary {
+    orderId: string;
+}
+
+const result = await store.projections.query(`
+    projection OrderSummary
+      from OrderPlaced
+`);
+
+const summaries = result.readModelEntries.map(json => JSON.parse(json) as PdlOrderSummary);
 ```
