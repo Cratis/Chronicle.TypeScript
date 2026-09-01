@@ -6,6 +6,7 @@ import { JsonSerializer } from '@cratis/fundamentals';
 import { ChronicleConnection } from '../connection';
 import { JsonSchemaGenerator } from '../schemas';
 import { getReadModelMetadata } from './readModel';
+import { ReadModelSubjectResolver } from './ReadModelSubjectResolver';
 import type { IMaterializedReadModels } from './IMaterializedReadModels';
 
 const defaultTake = 50;
@@ -97,7 +98,7 @@ export class MaterializedReadModels implements IMaterializedReadModels {
     }
 
     private async releaseInstance<TReadModel>(readModelType: Constructor<TReadModel>, instance: TReadModel, schema: string): Promise<TReadModel> {
-        const subject = this.extractSubject(instance);
+        const subject = ReadModelSubjectResolver.resolveFrom(readModelType, instance);
         if (!subject) {
             return instance;
         }
@@ -141,11 +142,4 @@ export class MaterializedReadModels implements IMaterializedReadModels {
         }
     }
 
-    private extractSubject<TReadModel>(instance: TReadModel): string | undefined {
-        const anyInstance = instance as Record<string, unknown>;
-        if (anyInstance.id !== undefined && anyInstance.id !== null) {
-            return String(anyInstance.id);
-        }
-        return undefined;
-    }
 }
