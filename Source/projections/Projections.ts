@@ -12,6 +12,11 @@ import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { WellKnownSinks } from '../sinks';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
+import { JobId } from '../jobs/JobId';
+import { FailedPartition } from '../observation/FailedPartition';
+import { FailedPartitions } from '../observation/FailedPartitions';
+import { toObserverRunningState } from '../observation/toObserverRunningState';
 import { getReadModelMetadata } from '../readModels';
 import { TypeIntrospector } from '../types';
 import { IProjections } from './IProjections';
@@ -24,20 +29,28 @@ import {
     buildNestedEntry,
     ChildrenDefinitionLike,
     ContractEventType,
+    ensureFromEntry,
     FromRecord,
     getEventTypeMapKey,
     toContractEventType
 } from './modelBound/childrenAndNestedBuilder';
 import { getChildrenFromMetadata } from './modelBound/childrenFrom';
+import { getClearWithPropertyMetadata } from './modelBound/clearWith';
+import { getEventSequenceMetadata } from './modelBound/eventSequence';
+import { getFromAllMetadata } from './modelBound/fromAll';
 import { getFromEveryMetadata } from './modelBound/fromEvery';
 import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent';
 import { getJoinMetadata } from './modelBound/join';
+import { isNoAutoMap, isPropertyNoAutoMap } from './modelBound/noAutoMap';
 import { ProjectionId } from './ProjectionId';
+import { ProjectionQueryResult } from './ProjectionQueryResult';
+import { ProjectionState } from './ProjectionState';
 import { isNested } from './modelBound/nested';
 import { isNotRewindable } from './modelBound/notRewindable';
 import { isPassive } from './modelBound/passive';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin';
+import { UnableToQueryProjection } from './UnableToQueryProjection';
 
 interface ResolvedModelBoundMetadata {
     id: ProjectionId;
@@ -52,19 +65,27 @@ interface ResolvedModelBoundMetadata {
 export class Projections implements IProjections {
     private readonly _declarative = new Map<string, Constructor>();
     private readonly _modelBound = new Map<string, Constructor>();
+    private readonly _failedPartitions: FailedPartitions;
 
     private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/projections' });
 
     /**
      * Creates a new {@link Projections} instance.
+     * @param _eventStore - The event store name.
+     * @param _namespace - The event store namespace.
+     * @param _connection - Chronicle connection.
      * @param _clientArtifacts - Provider for discovered client artifact types.
+     * @param _defaultSinkTypeId - The identifier of the default read model sink.
      */
     constructor(
         private readonly _eventStore: string,
+        private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _defaultSinkTypeId: string
-    ) {}
+    ) {
+        this._failedPartitions = new FailedPartitions(_eventStore, _namespace, _connection);
+    }
 
     /** @inheritdoc */
     async discover(): Promise<void> {
@@ -135,6 +156,148 @@ export class Projections implements IProjections {
             const identifier = String((projection as { Identifier?: unknown }).Identifier ?? '<unknown>');
             await this.registerWithRetry(projection, identifier);
         }
+    }
+
+    /** @inheritdoc */
+    hasFor(projectionId: ProjectionId | string): boolean {
+        const id = this.toProjectionIdValue(projectionId);
+        return this._declarative.has(id) || this._modelBound.has(id);
+    }
+
+    /** @inheritdoc */
+    hasForModel(readModelType: Constructor): boolean {
+        try {
+            this.resolveProjectionIdForModel(readModelType);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /** @inheritdoc */
+    getProjectionIdFor(readModelType: Constructor): ProjectionId {
+        return this.resolveProjectionIdForModel(readModelType);
+    }
+
+    /** @inheritdoc */
+    async getStateFor(projectionId: ProjectionId | string): Promise<ProjectionState> {
+        const id = this.toProjectionIdValue(projectionId);
+        const eventSequenceId = this.resolveEventSequenceIdFor(id);
+
+        const response = await this._connection.observers.getObserverInformation({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ObserverId: id,
+            EventSequenceId: eventSequenceId
+        });
+
+        return {
+            runningState: toObserverRunningState(response.RunningState),
+            isSubscribed: response.IsSubscribed,
+            nextEventSequenceNumber: new EventSequenceNumber(response.NextEventSequenceNumber),
+            lastHandledEventSequenceNumber: new EventSequenceNumber(response.LastHandledEventSequenceNumber),
+            tailEventSequenceNumber: new EventSequenceNumber(response.TailEventSequenceNumber)
+        };
+    }
+
+    /** @inheritdoc */
+    getStateForModel(readModelType: Constructor): Promise<ProjectionState> {
+        return this.getStateFor(this.resolveProjectionIdForModel(readModelType));
+    }
+
+    /** @inheritdoc */
+    getFailedPartitionsForModel(readModelType: Constructor): Promise<FailedPartition[]> {
+        const projectionId = this.resolveProjectionIdForModel(readModelType);
+        return this._failedPartitions.getFailedPartitionsFor(projectionId.value);
+    }
+
+    /** @inheritdoc */
+    async replay(projectionId: ProjectionId | string): Promise<JobId> {
+        const id = this.toProjectionIdValue(projectionId);
+
+        const response = await this._connection.observers.replay({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ObserverId: id,
+
+            // The kernel resolves the observer's own event sequence from its identifier - it does not
+            // need to be told which one to replay.
+            EventSequenceId: ''
+        });
+
+        return response.JobId ? JobId.from(response.JobId) : JobId.from(Guid.empty);
+    }
+
+    /** @inheritdoc */
+    replayForModel(readModelType: Constructor): Promise<JobId> {
+        return this.replay(this.resolveProjectionIdForModel(readModelType));
+    }
+
+    /** @inheritdoc */
+    async query(declaration: string, eventSequenceId: string = EventSequenceId.eventLog.value): Promise<ProjectionQueryResult> {
+        const result = await this._connection.projections.preview({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            EventSequenceId: eventSequenceId,
+            Declaration: declaration
+        });
+
+        if (result.Value1) {
+            throw new UnableToQueryProjection(result.Value1.Errors.map(error => error.Message));
+        }
+
+        return {
+            readModelEntries: result.Value0?.ReadModelEntries ?? []
+        };
+    }
+
+    private toProjectionIdValue(projectionId: ProjectionId | string): string {
+        return typeof projectionId === 'string' ? projectionId : projectionId.value;
+    }
+
+    /**
+     * Resolves the {@link ProjectionId} of the projection that maintains a specific read model type,
+     * from what has already been discovered.
+     * @param readModelType - The read model type to resolve for.
+     * @returns The resolved {@link ProjectionId}.
+     */
+    private resolveProjectionIdForModel(readModelType: Constructor): ProjectionId {
+        for (const [id, type] of this._modelBound) {
+            if (type === readModelType) {
+                return new ProjectionId(id);
+            }
+        }
+
+        for (const [id, type] of this._declarative) {
+            const metadata = getProjectionMetadata(type);
+            if (metadata?.readModelType === readModelType) {
+                return new ProjectionId(id);
+            }
+        }
+
+        throw new Error(
+            `No projection found for read model '${readModelType.name}'. Make sure discover() has run and the ` +
+            'read model is model-bound, or its declarative projection() decorator specifies an explicit readModelType.');
+    }
+
+    /**
+     * Resolves the event sequence identifier a discovered projection reads from, without requiring
+     * its full definition to have been built.
+     * @param projectionId - The projection identifier to resolve for.
+     * @returns The resolved event sequence identifier.
+     */
+    private resolveEventSequenceIdFor(projectionId: string): string {
+        const modelBoundType = this._modelBound.get(projectionId);
+        if (modelBoundType) {
+            return getEventSequenceMetadata(modelBoundType) ?? EventSequenceId.eventLog.value;
+        }
+
+        const declarativeType = this._declarative.get(projectionId);
+        if (declarativeType) {
+            return getProjectionMetadata(declarativeType)?.eventSequenceId ?? EventSequenceId.eventLog.value;
+        }
+
+        return EventSequenceId.eventLog.value;
     }
 
     private async registerWithRetry(projection: unknown, identifier: string, maxAttempts = 5): Promise<void> {
@@ -344,14 +507,25 @@ export class Projections implements IProjections {
                 childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList);
             }
 
-            if (isNested(prototype, property)) {
+            const propertyIsNested = isNested(prototype, property);
+            if (propertyIsNested) {
                 nestedByProperty[property] = buildNestedEntry(type, property);
+            }
+
+            // A scalar (non-nested, non-children-collection) root property clears back to no value
+            // every time the given event is observed. A nested single-object property's clearWith is
+            // handled by buildNestedEntry instead, which clears the whole nested object.
+            if (childrenFromList.length === 0 && !propertyIsNested) {
+                for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
+                    const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
+                    entry.Value.Properties[property] = '$null';
+                }
             }
         }
 
         const allProperties: Record<string, string> = {};
         for (const property of properties) {
-            const fromEvery = getFromEveryMetadata(prototype, property);
+            const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
                     ? fromEvery.contextProperty
@@ -379,7 +553,8 @@ export class Projections implements IProjections {
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
             LastUpdated: { Value: '' },
             Tags: [],
-            AutoMap: AutoMap.Enabled,
+            AutoMap: isNoAutoMap(type) ? AutoMap.Disabled : AutoMap.Enabled,
+            NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
             Nested: nestedByProperty
         };
         definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
@@ -392,7 +567,7 @@ export class Projections implements IProjections {
         if (readModelMetadata && hasFromEventMetadata(type)) {
             return {
                 id: new ProjectionId(readModelMetadata.id.value),
-                eventSequenceId: undefined,
+                eventSequenceId: getEventSequenceMetadata(type),
                 readModelIdentifier: readModelMetadata.id.value
             };
         }

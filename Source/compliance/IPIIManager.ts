@@ -14,4 +14,16 @@ export interface IPIIManager {
      * this operation cannot be undone.
      */
     deleteEncryptionKey(identifier: string): Promise<void>;
+
+    /**
+     * Authorizes a new encryption key for a PII encryption key identifier whose key was previously
+     * erased, so a later lawful lifecycle can protect their data again.
+     * @param identifier - The identifier of the encryption key to authorize a new key for.
+     * @remarks
+     * Erasing an identifier removes the key that exists now; it does not ban the identifier
+     * forever. This creates no key - it lets the next PII value written for the identifier
+     * provision a fresh, independent one, which can decrypt nothing written before the erasure.
+     * The erased key itself never comes back, whatever else happens.
+     */
+    allowNewEncryptionKeyFor(identifier: string): Promise<void>;
 }

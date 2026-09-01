@@ -7,5 +7,6 @@ export type { FailedPartition } from './FailedPartition';
 export type { FailedPartitionAttempt } from './FailedPartitionAttempt';
 export type { IFailedPartitions } from './IFailedPartitions';
 export { FailedPartitions } from './FailedPartitions';
+export { toObserverRunningState } from './toObserverRunningState';
 export type { ICanBeNotifiedWhenReplay } from './ICanBeNotifiedWhenReplay';
 export type { ICanBeNotifiedWhenPartitionReplayed } from './ICanBeNotifiedWhenPartitionReplayed';

@@ -3,4 +3,4 @@
 
 export { JsonSchemaGenerator } from './JsonSchemaGenerator';
 export { jsonSchemaProperty, getTrackedJsonSchemaProperties } from './jsonSchemaProperty';
-export type { JsonSchema } from './JsonSchema';
+export type { ComplianceSchemaMetadata, JsonSchema } from './JsonSchema';

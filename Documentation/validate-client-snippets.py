@@ -50,6 +50,11 @@ BODY_SNIPPETS = {
     "read-models/watching-read-models/filtering": """
         const threshold = 1000;
     """,
+    "projections/projection-declaration-language/adhoc-querying/basic": "",
+    "projections/projection-declaration-language/adhoc-querying/inferred-vs-explicit": "",
+    "projections/projection-declaration-language/adhoc-querying/type-mismatch": "",
+    "projections/projection-declaration-language/adhoc-querying/custom-sequence": "",
+    "projections/projection-declaration-language/adhoc-querying/error-handling": "",
     "contributing/clients/typescript-grpc-package/event-stores-definition": "",
     "contributing/clients/typescript-grpc-package/namespaces-definition": "",
     "contributing/clients/typescript-grpc-package/request-messages": "",

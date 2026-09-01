@@ -6,10 +6,47 @@ import type { Constructor } from '@cratis/fundamentals';
 import type { IClientArtifactsProvider } from '../artifacts';
 import type { ChronicleConnection } from '../connection';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
+import { eventType, getEventTypeFor } from '../events/eventTypeDecorator';
+import type { EventContext } from '../events/EventContext';
+import { filterEventsByTag } from '../events/filterEventsByTagDecorator';
+import { tag } from '../events/tagDecorator';
 import { reducer } from './reducer';
 import { Reducers } from './Reducers';
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+class ReducersSomeEventHappened {
+    constructor(readonly value: string = '') {}
+}
+eventType('d2b2b2b2-2222-4a3c-9d3f-6f2f4a3c9d3f')(ReducersSomeEventHappened);
+
+class SomeTaggedReducerState {
+    count = 0;
+}
+
+class SomeTaggedReducer {
+    reducersSomeEventHappened(): SomeTaggedReducerState {
+        return { count: 1 };
+    }
+}
+reducer('some-tagged-reducer', undefined, SomeTaggedReducerState)(SomeTaggedReducer);
+tag('Analytics', 'Reporting')(SomeTaggedReducer);
+filterEventsByTag('vip')(SomeTaggedReducer);
+filterEventsByTag('priority')(SomeTaggedReducer);
+
+const receivedContexts: EventContext[] = [];
+
+class CapturingReducerState {
+    count = 0;
+}
+
+class CapturingReducer {
+    reducersSomeEventHappened(_event: ReducersSomeEventHappened, current: CapturingReducerState | undefined, context: EventContext): CapturingReducerState {
+        receivedContexts.push(context);
+        return { count: (current?.count ?? 0) + 1 };
+    }
+}
+reducer('capturing-reducer', undefined, CapturingReducerState)(CapturingReducer);
 
 /**
  * A minimal client artifacts provider exposing only the reducer types under test —
@@ -82,6 +119,49 @@ describe('Reducers', () => {
             expect(registrationMessages).toHaveLength(1);
             const message = registrationMessages[0] as { Content: { Value0: { Reducer: { IsActive: boolean } } } };
             expect(message.Content.Value0.Reducer.IsActive).toBe(false);
+        });
+    });
+
+    describe('when registering a reducer that is tagged and filters by tag', () => {
+        type TaggedRegistration = {
+            Content: { Value0: { Reducer: { Tags: string[]; Filters: { FilterTags: string[] } } } };
+        };
+
+        const register = async () => {
+            const { connection, registrationMessages } = createConnection();
+            const reducers = new Reducers(createArtifacts([SomeTaggedReducer]), connection, 'my-event-store', 'my-namespace', new ConnectionLifecycle(), 'default-sink');
+
+            await reducers.register();
+            await flush();
+
+            return (registrationMessages[0] as TaggedRegistration).Content.Value0.Reducer;
+        };
+
+        it('should carry the tags the reducer is labeled with', async () => {
+            expect((await register()).Tags).toEqual(['Analytics', 'Reporting']);
+        });
+
+        it('should carry every tag it filters events by', async () => {
+            expect((await register()).Filters.FilterTags).toEqual(['vip', 'priority']);
+        });
+    });
+
+    describe('when registering a reducer that is neither tagged nor filtered', () => {
+        class SomeUntaggedReducer {}
+        reducer('some-untagged-reducer')(SomeUntaggedReducer);
+
+        it('should send empty tag lists rather than omitting them', async () => {
+            const { connection, registrationMessages } = createConnection();
+            const reducers = new Reducers(createArtifacts([SomeUntaggedReducer]), connection, 'my-event-store', 'my-namespace', new ConnectionLifecycle(), 'default-sink');
+
+            await reducers.register();
+            await flush();
+
+            const message = registrationMessages[0] as {
+                Content: { Value0: { Reducer: { Tags: string[]; Filters: { FilterTags: string[] } } } };
+            };
+            expect(message.Content.Value0.Reducer.Tags).toEqual([]);
+            expect(message.Content.Value0.Reducer.Filters.FilterTags).toEqual([]);
         });
     });
 });
