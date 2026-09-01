@@ -2,9 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { ConceptAs, Guid } from '@cratis/fundamentals';
-import { JsonSchema } from './JsonSchema';
+import { ConceptAs, Constructor, Fields, Guid } from '@cratis/fundamentals';
+import { ComplianceSchemaMetadata, JsonSchema } from './JsonSchema';
 import { TypeIntrospector } from '../types';
+import { ComplianceMetadata } from '../compliance/ComplianceMetadata';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver';
 
 /**
@@ -48,12 +49,17 @@ export class JsonSchemaGenerator {
         const prototype = target.prototype;
 
         for (const [memberName, memberType] of membersToUse.entries()) {
-            const propertySchema = this.mapRuntimeTypeToSchema(memberType);
+            const propertySchema = this.mapRuntimeTypeToSchema(memberType, target, memberName);
             // Only include properties whose type was resolved. An empty schema ({}) means
             // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
             if (Object.keys(propertySchema).length > 0) {
-                // Add compliance metadata to property schema if present (both property and type-level)
-                this.addComplianceMetadata(propertySchema, prototype, memberName, memberType);
+                // An array of concept elements resolves and applies its own item-level compliance
+                // inside mapRuntimeTypeToSchema - the general property/type/declaring-class walk
+                // below is skipped for it, mirroring the C# generator's enumerable-of-concept branch.
+                if (!this.isConceptArrayMember(target, memberName, memberType)) {
+                    const metadata = this.collectComplianceMetadata(prototype, memberName, memberType);
+                    this.addComplianceMetadataToSchema(propertySchema, metadata);
+                }
                 schemaProperties[memberName] = propertySchema;
             }
         }
@@ -72,7 +78,7 @@ export class JsonSchemaGenerator {
         };
     }
 
-    private static mapRuntimeTypeToSchema(runtimeType: Function | undefined): JsonSchema {
+    private static mapRuntimeTypeToSchema(runtimeType: Function | undefined, declaringType?: Function, propertyName?: string): JsonSchema {
         const knownTypeFormat = this.getKnownTypeFormat(runtimeType);
         if (knownTypeFormat) {
             return knownTypeFormat;
@@ -91,7 +97,7 @@ export class JsonSchemaGenerator {
         }
 
         if (runtimeType === Array) {
-            return { type: 'array', items: { type: 'object' } };
+            return this.mapArrayTypeToSchema(declaringType, propertyName);
         }
 
         if (!runtimeType) {
@@ -113,6 +119,63 @@ export class JsonSchemaGenerator {
         }
 
         return { type: 'object' };
+    }
+
+    /**
+     * Maps an array-typed member to a schema, resolving the element type from a
+     * `@field(Array, { genericArguments: [ItemType] })` declaration when present.
+     * @param declaringType - The class constructor that declares the array property.
+     * @param propertyName - The array property name.
+     * @returns The array schema, with the element's own compliance metadata carried onto `items` when the element is a PII concept.
+     */
+    private static mapArrayTypeToSchema(declaringType: Function | undefined, propertyName: string | undefined): JsonSchema {
+        const elementType = this.getArrayElementType(declaringType, propertyName);
+
+        // An array whose element is a ConceptAs<T> loses its classification the moment it is put in
+        // a list unless the element concept's own compliance metadata is carried onto the item schema -
+        // a value that would be encrypted as a scalar would otherwise be persisted in the clear as a
+        // list element. Mirrors the C# generator's explicit enumerable-of-concept branch.
+        if (elementType && this.isConceptAs(elementType)) {
+            const itemSchema = this.mapRuntimeTypeToSchema(elementType);
+            const metadata = ComplianceMetadataResolver.getMetadataForType(elementType);
+            this.addComplianceMetadataToSchema(itemSchema, metadata);
+            return { type: 'array', items: itemSchema };
+        }
+
+        return { type: 'array', items: { type: 'object' } };
+    }
+
+    /**
+     * Resolves the element type of an array property from its `@field(Array, { genericArguments: [...] })`
+     * declaration. TypeScript erases generic type arguments at runtime, so without an explicit
+     * `@field` declaration the element type cannot be recovered.
+     * @param declaringType - The class constructor that declares the array property.
+     * @param propertyName - The array property name.
+     * @returns The element type constructor, or undefined when it cannot be resolved.
+     */
+    private static getArrayElementType(declaringType: Function | undefined, propertyName: string | undefined): Function | undefined {
+        if (!declaringType || !propertyName) {
+            return undefined;
+        }
+
+        const field = Fields.getFieldsForType(declaringType as Constructor).find(candidate => candidate.name === propertyName);
+        return field?.genericArguments?.[0];
+    }
+
+    /**
+     * Checks whether a member is an array whose element type is a ConceptAs<T>.
+     * @param declaringType - The class constructor that declares the property.
+     * @param propertyName - The property name.
+     * @param runtimeType - The member's reflected runtime type.
+     * @returns True when the member is an array of concept elements; false otherwise.
+     */
+    private static isConceptArrayMember(declaringType: Function, propertyName: string, runtimeType: Function | undefined): boolean {
+        if (runtimeType !== Array) {
+            return false;
+        }
+
+        const elementType = this.getArrayElementType(declaringType, propertyName);
+        return elementType !== undefined && this.isConceptAs(elementType);
     }
 
     private static isConceptAs(runtimeType: Function): boolean {
@@ -150,35 +213,90 @@ export class JsonSchemaGenerator {
     }
 
     /**
-     * Adds compliance metadata to a property schema if the property has compliance decorators.
-     * Also checks if the property's type itself is marked as PII (e.g., ConceptAs types).
-     * @param schema - The property schema to add compliance metadata to.
-     * @param target - The class prototype.
+     * Collects compliance metadata for a property from every source C# resolves PII from: the
+     * property itself, its declaring class, and its own type (the concept case).
+     * @param target - The class prototype the property is declared on.
      * @param propertyKey - The property name.
+     * @param propertyType - The property's runtime type, when resolved.
+     * @returns The collected compliance metadata, in property → declaring-class → type order.
      */
-    private static addComplianceMetadata(schema: JsonSchema, target: object, propertyKey: string, propertyType?: Function): void {
-        const complianceArray: Array<{ metadataType: string; details: string }> = [];
+    private static collectComplianceMetadata(target: object, propertyKey: string, propertyType?: Function): ComplianceMetadata[] {
+        const metadata: ComplianceMetadata[] = [];
 
-        // Check for property-level compliance decorators
+        // Property-level compliance decorator.
         if (ComplianceMetadataResolver.hasMetadataFor(target, propertyKey)) {
-            const propertyMetadata = ComplianceMetadataResolver.getMetadataFor(target, propertyKey);
-            complianceArray.push(...propertyMetadata.map(metadata => ({
-                metadataType: metadata.metadataType.value.toString(),
-                details: metadata.details
-            })));
+            metadata.push(...ComplianceMetadataResolver.getMetadataFor(target, propertyKey));
         }
 
-        // Check for type-level compliance decorators (e.g., @pii on ConceptAs)
+        // Declaring class-level compliance decorator - a class-level @pii() marks every one of
+        // its own properties, the same way C#'s PIIMetadataProvider checks property.DeclaringType.
+        const declaringClass = (target as { constructor?: Function }).constructor;
+        if (declaringClass) {
+            metadata.push(...ComplianceMetadataResolver.getMetadataForType(declaringClass));
+        }
+
+        // Type-level compliance decorator on the property's own type (e.g., @pii on a ConceptAs).
         if (propertyType) {
-            const typeMetadata = ComplianceMetadataResolver.getMetadataForType(propertyType);
-            complianceArray.push(...typeMetadata.map(metadata => ({
-                metadataType: metadata.metadataType.value.toString(),
-                details: metadata.details
-            })));
+            metadata.push(...ComplianceMetadataResolver.getMetadataForType(propertyType));
         }
 
-        if (complianceArray.length > 0) {
-            (schema as Record<string, unknown>).compliance = complianceArray;
+        return metadata;
+    }
+
+    /**
+     * Adds compliance metadata to a schema node, descending into an object's properties so that
+     * the metadata always lands on the leaves that actually hold a value.
+     * @param schema - The schema node to add to.
+     * @param metadata - The compliance metadata to add.
+     * @remarks
+     * A compliance marker can be declared on something that is not a single value: a `@pii()` on a
+     * composite value-object type, or on a property whose type is such an object. Compliance is
+     * applied per value, so leaving the marker on the container would make Chronicle hand the whole
+     * JSON object to the value handler and store one opaque ciphertext string where the schema still
+     * says "object". Releasing that gives back a string, not an object, and the read model then
+     * fails to materialize. Pushing the metadata down to every leaf keeps encryption symmetric with
+     * the release walk, keeps each value independently encrypted, and preserves the document shape.
+     *
+     * An array-typed node is deliberately left as a container: coarse compliance on a whole
+     * collection is an established, separately handled behavior (the collection is blob-encrypted
+     * and its shape restored on release).
+     */
+    private static addComplianceMetadataToSchema(schema: JsonSchema, metadata: ComplianceMetadata[]): void {
+        if (metadata.length === 0) {
+            return;
         }
+
+        if (schema.properties && Object.keys(schema.properties).length > 0) {
+            for (const propertySchema of Object.values(schema.properties)) {
+                this.addComplianceMetadataToSchema(propertySchema, metadata);
+            }
+            return;
+        }
+
+        const compliance = schema.compliance ?? [];
+        for (const item of metadata) {
+            const metadataType = item.metadataType.value.toString();
+            if (!this.hasComplianceMetadataOfType(compliance, metadataType)) {
+                compliance.push({ metadataType, details: item.details });
+            }
+        }
+
+        if (compliance.length > 0) {
+            schema.compliance = compliance;
+        }
+    }
+
+    /**
+     * Checks whether a compliance array already carries metadata of a given type.
+     * @param compliance - The compliance array to check.
+     * @param metadataType - The metadata type to look for.
+     * @returns True when the metadata type is already present, false if not.
+     * @remarks
+     * A leaf can be reached by more than one marker — for example a `@pii()` concept inside a value
+     * object whose type is itself marked `@pii()`. Recording the same metadata type twice adds
+     * nothing and makes the generated schema noisier to read and to diff.
+     */
+    private static hasComplianceMetadataOfType(compliance: ComplianceSchemaMetadata[], metadataType: string): boolean {
+        return compliance.some(item => item.metadataType === metadataType);
     }
 }
