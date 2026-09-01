@@ -4,6 +4,7 @@
 export { ComplianceMetadataType } from './ComplianceMetadataType';
 export type { ComplianceMetadata } from './ComplianceMetadata';
 export { pii, getPIIMetadata, hasPIIMetadata, getTypePIIMetadata, isPII } from './pii';
+export { subject, hasSubjectMetadata, getSubjectPropertyName } from './subject';
 export { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId';
 export { ComplianceMetadataResolver } from './ComplianceMetadataResolver';
 export type { IPIIManager } from './IPIIManager';
