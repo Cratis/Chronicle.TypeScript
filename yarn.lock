@@ -33,7 +33,7 @@ __metadata:
     "@opentelemetry/sdk-metrics": "npm:^2.11.0"
     "@opentelemetry/sdk-node": "npm:^0.222.0"
     "@opentelemetry/semantic-conventions": "npm:^1.43.0"
-    "@types/node": "npm:^26.4.0"
+    "@types/node": "npm:^26.4.1"
     reflect-metadata: "npm:^0.2.2"
     tsx: "npm:^4.23.13"
     typescript: "npm:^6.0.3"
@@ -57,10 +57,10 @@ __metadata:
   dependencies:
     "@bufbuild/protobuf": "npm:^2.14.1"
     "@cratis/chronicle.contracts": "npm:17.0.0"
-    "@cratis/fundamentals": "npm:7.18.2"
+    "@cratis/fundamentals": "npm:7.18.3"
     "@grpc/grpc-js": "npm:^1.14.4"
     "@opentelemetry/api": "npm:^1.9.1"
-    "@types/node": "npm:^26.4.0"
+    "@types/node": "npm:^26.4.1"
     nice-grpc: "npm:^2.1.17"
     nice-grpc-common: "npm:^2.0.4"
     reflect-metadata: "npm:^0.2.2"
@@ -72,10 +72,10 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/fundamentals@npm:7.18.2":
-  version: 7.18.2
-  resolution: "@cratis/fundamentals@npm:7.18.2"
-  checksum: 10c0/c82953465833438da5cdf8fd11ef51cf9c378816216c72651a75795cedc2ebf01cdc62231bf2d46bb02f730591d8441f519456ba09307a025800094c37f43149
+"@cratis/fundamentals@npm:7.18.3":
+  version: 7.18.3
+  resolution: "@cratis/fundamentals@npm:7.18.3"
+  checksum: 10c0/142616297ab9c4cbc2e7d5111ae51f9bf381378e85fca8775a755a46b98eaf278c04c315cfaf27140526d881e3c91e602dec222eb7b723fda9136e85732e6867
   languageName: node
   linkType: hard
 
@@ -1719,12 +1719,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^26.4.0":
-  version: 26.4.0
-  resolution: "@types/node@npm:26.4.0"
+"@types/node@npm:^26.4.1":
+  version: 26.4.1
+  resolution: "@types/node@npm:26.4.1"
   dependencies:
     undici-types: "npm:~8.3.0"
-  checksum: 10c0/e6fc94ea3b58fb8040b38c465dec1c53c1fd9d2c092c81f699d28799726baf59f12e1600318e79e8e6f985bb919dab6ae820180b942b8e38c51acaad63e8aada
+  checksum: 10c0/29568336db8bc67740744782492af0e81ab1f88d86eaa07e38cf0a4c8bae7250a7b4b85c80ac1014fc98b2bc6d4bcac872b2c494ee0671b3880eada7c1fdbc94
   languageName: node
   linkType: hard
 
