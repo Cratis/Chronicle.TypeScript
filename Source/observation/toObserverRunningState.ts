@@ -17,7 +17,7 @@ export function toObserverRunningState(state: ContractObserverRunningState): Obs
             return ObserverRunningState.Suspended;
         case ContractObserverRunningState.Replaying:
             return ObserverRunningState.Replaying;
-        case ContractObserverRunningState.Disconnected:
+        case ContractObserverRunningState.OBSERVER_RUNNING_STATE_Disconnected:
             return ObserverRunningState.Disconnected;
         case ContractObserverRunningState.Quarantined:
             return ObserverRunningState.Quarantined;

@@ -15,6 +15,7 @@ import type {
     ObserversClient,
     ProjectionsClient,
     ReactorsClient,
+    ReadModelExplorerClient,
     ReadModelsClient,
     RecommendationsClient,
     ReducersClient,
@@ -43,6 +44,7 @@ export interface ChronicleServices {
     reducers: ReducersClient;
     projections: ProjectionsClient;
     readModels: ReadModelsClient;
+    readModelExplorer: ReadModelExplorerClient;
     materializedReadModels: MaterializedReadModelsClient;
     jobs: JobsClient;
     webhooks: WebhooksClient;

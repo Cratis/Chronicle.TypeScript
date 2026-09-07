@@ -27,12 +27,12 @@ function createEventSequence(
     const eventSequences = {
         redact: vi.fn().mockResolvedValue({}),
         redactForEventSource: vi.fn().mockResolvedValue({}),
-        getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [] }),
-        getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [] }),
-        getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value }),
-        completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 3n, Error: 0 }),
-        appendMany: vi.fn().mockResolvedValue({ SequenceNumbers: [], ConstraintViolations: [], Errors: [] }),
-        append: vi.fn().mockResolvedValue({ SequenceNumber: 0n, ConstraintViolations: [], Errors: [] }),
+        forEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Data: [] }),
+        fromSequenceNumber: vi.fn().mockResolvedValue({ Data: [] }),
+        tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: EventSequenceNumber.unset.value } }),
+        completeStream: vi.fn().mockResolvedValue({ Response: { IsSuccess: true, SequenceNumber: 3n, Error: 0 } }),
+        appendManyForEventSources: vi.fn().mockResolvedValue({ Response: { SequenceNumbers: [], ConstraintViolations: [], Errors: [] } }),
+        append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 0n, ConstraintViolations: [], Errors: [] } }),
         ...overrides
     };
     const observers = {
@@ -53,11 +53,11 @@ function createEventSequence(
         eventSequence,
         redact: eventSequences.redact,
         redactForEventSource: eventSequences.redactForEventSource,
-        getForEventSourceIdAndEventTypes: eventSequences.getForEventSourceIdAndEventTypes,
-        getEventsFromEventSequenceNumber: eventSequences.getEventsFromEventSequenceNumber,
-        getTailSequenceNumber: eventSequences.getTailSequenceNumber,
+        forEventSourceIdAndEventTypes: eventSequences.forEventSourceIdAndEventTypes,
+        fromSequenceNumber: eventSequences.fromSequenceNumber,
+        tailSequenceNumber: eventSequences.tailSequenceNumber,
         completeStream: eventSequences.completeStream,
-        appendMany: eventSequences.appendMany,
+        appendManyForEventSources: eventSequences.appendManyForEventSources,
         append: eventSequences.append,
         waitForCompletion: observers.waitForCompletion
     };
@@ -144,24 +144,24 @@ describe('EventSequence', () => {
             expect(redactForEventSource).toHaveBeenCalledTimes(1);
             const request = redactForEventSource.mock.calls[0][0];
             expect(request.EventTypes).toEqual([
-                { Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false },
-                { Id: 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g', Generation: 1, Tombstone: false }
+                'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f',
+                'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g'
             ]);
         });
     });
 
     describe('when getting events for an event source and event types', () => {
-        const { eventSequence, getForEventSourceIdAndEventTypes } = createEventSequence({
-            getForEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Events: [wireAppendedEvent()] })
+        const { eventSequence, forEventSourceIdAndEventTypes } = createEventSequence({
+            forEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Data: [wireAppendedEvent()] })
         });
 
         it('should call the RPC with the resolved event type filter and map the response', async () => {
             const result = await eventSequence.getForEventSourceIdAndEventTypes('some-event-source', [SomethingHappened]);
 
-            expect(getForEventSourceIdAndEventTypes).toHaveBeenCalledTimes(1);
-            const request = getForEventSourceIdAndEventTypes.mock.calls[0][0];
+            expect(forEventSourceIdAndEventTypes).toHaveBeenCalledTimes(1);
+            const request = forEventSourceIdAndEventTypes.mock.calls[0][0];
             expect(request.EventSourceId).toEqual('some-event-source');
-            expect(request.EventTypes).toEqual([{ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false }]);
+            expect(request.EventTypeIds).toEqual('a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f');
 
             expect(result).toHaveLength(1);
             expect(result[0].context.sequenceNumber).toEqual(7n);
@@ -173,18 +173,18 @@ describe('EventSequence', () => {
     });
 
     describe('when getting events from a sequence number', () => {
-        const { eventSequence, getEventsFromEventSequenceNumber } = createEventSequence({
-            getEventsFromEventSequenceNumber: vi.fn().mockResolvedValue({ Events: [wireAppendedEvent()] })
+        const { eventSequence, fromSequenceNumber } = createEventSequence({
+            fromSequenceNumber: vi.fn().mockResolvedValue({ Data: [wireAppendedEvent()] })
         });
 
         it('should call the RPC starting from the given sequence number and map the response', async () => {
             const result = await eventSequence.getFromSequenceNumber(new EventSequenceNumber(7n), 'some-event-source', [SomethingHappened]);
 
-            expect(getEventsFromEventSequenceNumber).toHaveBeenCalledTimes(1);
-            const request = getEventsFromEventSequenceNumber.mock.calls[0][0];
+            expect(fromSequenceNumber).toHaveBeenCalledTimes(1);
+            const request = fromSequenceNumber.mock.calls[0][0];
             expect(request.FromEventSequenceNumber).toEqual(7n);
             expect(request.EventSourceId).toEqual('some-event-source');
-            expect(request.EventTypes).toEqual([{ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false }]);
+            expect(request.EventTypeIds).toEqual('a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f');
 
             expect(result).toHaveLength(1);
             expect(result[0].content).toEqual({ value: 'hello' });
@@ -192,21 +192,21 @@ describe('EventSequence', () => {
     });
 
     describe('when getting the next sequence number and the sequence is empty', () => {
-        const { eventSequence, getTailSequenceNumber } = createEventSequence({
-            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: EventSequenceNumber.unset.value })
+        const { eventSequence, tailSequenceNumber } = createEventSequence({
+            tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: EventSequenceNumber.unset.value } })
         });
 
         it('should return the first sequence number', async () => {
             const result = await eventSequence.getNextSequenceNumber();
 
-            expect(getTailSequenceNumber).toHaveBeenCalledTimes(1);
+            expect(tailSequenceNumber).toHaveBeenCalledTimes(1);
             expect(result.value).toEqual(EventSequenceNumber.first.value);
         });
     });
 
     describe('when getting the next sequence number and events already exist', () => {
         const { eventSequence } = createEventSequence({
-            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: 41n })
+            tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: 41n } })
         });
 
         it('should return one past the tail sequence number', async () => {
@@ -221,23 +221,23 @@ describe('EventSequence', () => {
             async somethingHappened(): Promise<void> {}
         }
 
-        const { eventSequence, getTailSequenceNumber } = createEventSequence({
-            getTailSequenceNumber: vi.fn().mockResolvedValue({ SequenceNumber: 5n })
+        const { eventSequence, tailSequenceNumber } = createEventSequence({
+            tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: 5n } })
         });
 
         it('should filter the tail sequence number lookup to the event types the observer handles', async () => {
             await eventSequence.getTailSequenceNumberForObserver(SomeReactor);
 
-            expect(getTailSequenceNumber).toHaveBeenCalledTimes(1);
-            const request = getTailSequenceNumber.mock.calls[0][0];
-            expect(request.EventTypes).toContainEqual({ Id: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f', Generation: 1, Tombstone: false });
-            expect(request.EventTypes).not.toContainEqual({ Id: 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g', Generation: 1, Tombstone: false });
+            expect(tailSequenceNumber).toHaveBeenCalledTimes(1);
+            const request = tailSequenceNumber.mock.calls[0][0];
+            expect(request.EventTypeIds).toContain('a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f');
+            expect(request.EventTypeIds).not.toContain('b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g');
         });
     });
 
     describe('when completing a non-default stream successfully', () => {
         const { eventSequence, completeStream } = createEventSequence({
-            completeStream: vi.fn().mockResolvedValue({ IsSuccess: true, SequenceNumber: 9n, Error: 0 })
+            completeStream: vi.fn().mockResolvedValue({ Response: { IsSuccess: true, SequenceNumber: 9n, Error: 0 } })
         });
 
         it('should call the RPC and return the tail sequence number', async () => {
@@ -257,7 +257,7 @@ describe('EventSequence', () => {
 
     describe('when completing the default stream', () => {
         const { eventSequence } = createEventSequence({
-            completeStream: vi.fn().mockResolvedValue({ IsSuccess: false, SequenceNumber: 0n, Error: 1 })
+            completeStream: vi.fn().mockResolvedValue({ Response: { IsSuccess: false, SequenceNumber: 0n, Error: 1 } })
         });
 
         it('should return the DefaultStreamCannotBeCompleted error', async () => {
@@ -272,7 +272,7 @@ describe('EventSequence', () => {
 
     describe('when completing an already-completed stream', () => {
         const { eventSequence } = createEventSequence({
-            completeStream: vi.fn().mockResolvedValue({ IsSuccess: false, SequenceNumber: 0n, Error: 0 })
+            completeStream: vi.fn().mockResolvedValue({ Response: { IsSuccess: false, SequenceNumber: 0n, Error: 0 } })
         });
 
         it('should return the AlreadyCompleted error', async () => {
@@ -286,7 +286,7 @@ describe('EventSequence', () => {
     });
 
     describe('when appending many events for distinct event sources with a shared concurrency scope option', () => {
-        const { eventSequence, appendMany } = createEventSequence();
+        const { eventSequence, appendManyForEventSources } = createEventSequence();
 
         it('should apply the same concurrency scope to every distinct event source id', async () => {
             await eventSequence.appendMany(
@@ -296,15 +296,16 @@ describe('EventSequence', () => {
                 ],
                 { concurrencyScope: { sequenceNumber: 5n } });
 
-            expect(appendMany).toHaveBeenCalledTimes(1);
-            const request = appendMany.mock.calls[0][0];
-            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
-            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(5n);
+            expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
+            const request = appendManyForEventSources.mock.calls[0][0];
+            const scopeFor = (eventSourceId: string) => request.ConcurrencyScopes.find((s: { EventSourceId: string }) => s.EventSourceId === eventSourceId).Scope;
+            expect(scopeFor('source-1').SequenceNumber).toEqual(5n);
+            expect(scopeFor('source-2').SequenceNumber).toEqual(5n);
         });
     });
 
     describe('when appending many events for distinct event sources with a per-event-source-id concurrency scope map', () => {
-        const { eventSequence, appendMany } = createEventSequence();
+        const { eventSequence, appendManyForEventSources } = createEventSequence();
 
         it('should apply the distinct concurrency scope for each event source id', async () => {
             await eventSequence.appendMany(
@@ -319,15 +320,16 @@ describe('EventSequence', () => {
                     }
                 });
 
-            expect(appendMany).toHaveBeenCalledTimes(1);
-            const request = appendMany.mock.calls[0][0];
-            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
-            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(9n);
+            expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
+            const request = appendManyForEventSources.mock.calls[0][0];
+            const scopeFor = (eventSourceId: string) => request.ConcurrencyScopes.find((s: { EventSourceId: string }) => s.EventSourceId === eventSourceId).Scope;
+            expect(scopeFor('source-1').SequenceNumber).toEqual(5n);
+            expect(scopeFor('source-2').SequenceNumber).toEqual(9n);
         });
     });
 
     describe('when appending many events with a per-event-source-id map that only covers some sources', () => {
-        const { eventSequence, appendMany } = createEventSequence();
+        const { eventSequence, appendManyForEventSources } = createEventSequence();
 
         it('should fall back to the shared concurrency scope for sources without a map entry', async () => {
             await eventSequence.appendMany(
@@ -342,15 +344,16 @@ describe('EventSequence', () => {
                     }
                 });
 
-            expect(appendMany).toHaveBeenCalledTimes(1);
-            const request = appendMany.mock.calls[0][0];
-            expect(request.ConcurrencyScopes['source-1'].SequenceNumber).toEqual(5n);
-            expect(request.ConcurrencyScopes['source-2'].SequenceNumber).toEqual(1n);
+            expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
+            const request = appendManyForEventSources.mock.calls[0][0];
+            const scopeFor = (eventSourceId: string) => request.ConcurrencyScopes.find((s: { EventSourceId: string }) => s.EventSourceId === eventSourceId).Scope;
+            expect(scopeFor('source-1').SequenceNumber).toEqual(5n);
+            expect(scopeFor('source-2').SequenceNumber).toEqual(1n);
         });
     });
 
     describe('when an EventForEventSourceId specifies its own stream targeting', () => {
-        const { eventSequence, appendMany } = createEventSequence();
+        const { eventSequence, appendManyForEventSources } = createEventSequence();
 
         it('should use the wrapper\'s own event stream type, id, source type, and subject', async () => {
             await eventSequence.appendMany([
@@ -364,8 +367,8 @@ describe('EventSequence', () => {
                 }
             ]);
 
-            expect(appendMany).toHaveBeenCalledTimes(1);
-            const request = appendMany.mock.calls[0][0];
+            expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
+            const request = appendManyForEventSources.mock.calls[0][0];
             const [event] = request.Events;
             expect(event.EventStreamType).toEqual('custom-stream-type');
             expect(event.EventStreamId).toEqual('custom-stream-id');
@@ -375,15 +378,15 @@ describe('EventSequence', () => {
     });
 
     describe('when an EventForEventSourceId does not specify stream targeting', () => {
-        const { eventSequence, appendMany } = createEventSequence();
+        const { eventSequence, appendManyForEventSources } = createEventSequence();
 
         it('should default to the default stream type, the event source id as stream id, and the event source id as subject', async () => {
             await eventSequence.appendMany([
                 { eventSourceId: 'source-1', event: new SomethingHappened('a') }
             ]);
 
-            expect(appendMany).toHaveBeenCalledTimes(1);
-            const request = appendMany.mock.calls[0][0];
+            expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
+            const request = appendManyForEventSources.mock.calls[0][0];
             const [event] = request.Events;
             expect(event.EventStreamType).toEqual('Default');
             expect(event.EventStreamId).toEqual('source-1');
@@ -394,7 +397,7 @@ describe('EventSequence', () => {
 
     describe('when subscribing to appendOperations and appending a single event', () => {
         const { eventSequence } = createEventSequence({
-            append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] })
+            append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 42n, ConstraintViolations: [], Errors: [] } })
         });
 
         it('should publish the appended event and its result to the subscriber', async () => {
@@ -416,7 +419,7 @@ describe('EventSequence', () => {
 
     describe('when subscribing to appendOperations and appending many events', () => {
         const { eventSequence } = createEventSequence({
-            appendMany: vi.fn().mockResolvedValue({ SequenceNumbers: [10n, 11n], ConstraintViolations: [], Errors: [] })
+            appendManyForEventSources: vi.fn().mockResolvedValue({ Response: { SequenceNumbers: [10n, 11n], ConstraintViolations: [], Errors: [] } })
         });
 
         it('should publish the full batch to the subscriber', async () => {
@@ -439,7 +442,7 @@ describe('EventSequence', () => {
 
     describe('when two subscribers are iterating appendOperations at the same time', () => {
         const { eventSequence } = createEventSequence({
-            append: vi.fn().mockResolvedValue({ SequenceNumber: 1n, ConstraintViolations: [], Errors: [] })
+            append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 1n, ConstraintViolations: [], Errors: [] } })
         });
 
         it('should multicast the same append to every subscriber', async () => {
@@ -457,7 +460,7 @@ describe('EventSequence', () => {
 
     describe('when nobody is subscribed to appendOperations', () => {
         const { eventSequence } = createEventSequence({
-            append: vi.fn().mockResolvedValue({ SequenceNumber: 1n, ConstraintViolations: [], Errors: [] })
+            append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 1n, ConstraintViolations: [], Errors: [] } })
         });
 
         it('should still complete the append normally', async () => {
@@ -470,7 +473,7 @@ describe('EventSequence', () => {
 
     describe('when waiting for completion after a successful append', () => {
         const { eventSequence, waitForCompletion } = createEventSequence(
-            { append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] }) },
+            { append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 42n, ConstraintViolations: [], Errors: [] } }) },
             { waitForCompletion: vi.fn().mockResolvedValue({ IsSuccess: true, FailedPartitions: [] }) });
 
         it('should call the WaitForCompletion RPC with the appended tail sequence number', async () => {
@@ -498,7 +501,7 @@ describe('EventSequence', () => {
 
     describe('when waiting for completion and observers report a failed partition', () => {
         const { eventSequence } = createEventSequence(
-            { append: vi.fn().mockResolvedValue({ SequenceNumber: 42n, ConstraintViolations: [], Errors: [] }) },
+            { append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 42n, ConstraintViolations: [], Errors: [] } }) },
             {
                 waitForCompletion: vi.fn().mockResolvedValue({
                     IsSuccess: false,
@@ -525,9 +528,11 @@ describe('EventSequence', () => {
     describe('when waiting for completion after an append that itself failed', () => {
         const { eventSequence, waitForCompletion } = createEventSequence({
             append: vi.fn().mockResolvedValue({
-                SequenceNumber: 0n,
-                ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: {} }],
-                Errors: []
+                Response: {
+                    SequenceNumber: 0n,
+                    ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: {} }],
+                    Errors: []
+                }
             })
         });
 
@@ -544,10 +549,12 @@ describe('EventSequence', () => {
     describe('when a single append fails with a concurrency violation', () => {
         const { eventSequence } = createEventSequence({
             append: vi.fn().mockResolvedValue({
-                SequenceNumber: 18446744073709551615n,
-                ConstraintViolations: [],
-                Errors: [],
-                ConcurrencyViolation: { EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }
+                Response: {
+                    SequenceNumber: 18446744073709551615n,
+                    ConstraintViolations: [],
+                    Errors: [],
+                    ConcurrencyViolation: { EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }
+                }
             })
         });
 
@@ -565,11 +572,13 @@ describe('EventSequence', () => {
 
     describe('when appendMany fails with a concurrency violation', () => {
         const { eventSequence } = createEventSequence({
-            appendMany: vi.fn().mockResolvedValue({
-                SequenceNumbers: [18446744073709551615n],
-                ConstraintViolations: [],
-                Errors: [],
-                ConcurrencyViolations: [{ EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }]
+            appendManyForEventSources: vi.fn().mockResolvedValue({
+                Response: {
+                    SequenceNumbers: [18446744073709551615n],
+                    ConstraintViolations: [],
+                    Errors: [],
+                    ConcurrencyViolations: [{ EventSourceId: 'some-event-source', ExpectedSequenceNumber: 1n, ActualSequenceNumber: 2n }]
+                }
             })
         });
 

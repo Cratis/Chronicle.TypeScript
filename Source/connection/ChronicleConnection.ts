@@ -17,6 +17,7 @@ import {
     ObserversDefinition,
     ProjectionsDefinition,
     ReactorsDefinition,
+    ReadModelExplorerDefinition,
     ReadModelsDefinition,
     RecommendationsDefinition,
     ReducersDefinition,
@@ -184,6 +185,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.readModels;
     }
 
+    get readModelExplorer() {
+        return this._services.readModelExplorer;
+    }
+
     get materializedReadModels() {
         return this._services.materializedReadModels;
     }
@@ -286,6 +291,7 @@ export class ChronicleConnection implements ChronicleServices {
             reducers: factory.create(ReducersDefinition, this._channel),
             projections: factory.create(ProjectionsDefinition, this._channel),
             readModels: factory.create(ReadModelsDefinition, this._channel),
+            readModelExplorer: factory.create(ReadModelExplorerDefinition, this._channel),
             materializedReadModels: factory.create(MaterializedReadModelsDefinition, this._channel),
             jobs: factory.create(JobsDefinition, this._channel),
             webhooks: factory.create(WebhooksDefinition, this._channel),

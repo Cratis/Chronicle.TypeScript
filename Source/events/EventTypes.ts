@@ -4,6 +4,7 @@
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
+import { ensureCommandSuccess } from '../connection/callResults';
 import { EventTypeId } from './EventTypeId';
 import { IEventTypes } from './IEventTypes';
 import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
@@ -163,11 +164,11 @@ export class EventTypes implements IEventTypes {
             return;
         }
 
-        await this._connection.eventTypes.register({
+        ensureCommandSuccess('register event types', await this._connection.eventTypes.registerEventTypes({
             EventStore: this._eventStore,
             Types: registrations,
             DisableValidation: false
-        });
+        }));
     }
 
     /** @inheritdoc */

@@ -33,6 +33,13 @@ export interface QueryResultLike<TData> extends CallResultLike {
 }
 
 /**
+ * Structural shape shared by every Chronicle command result envelope that carries a response payload.
+ */
+export interface CommandResultLike<TResponse> extends CallResultLike {
+    Response: TResponse | undefined;
+}
+
+/**
  * Error thrown when a Chronicle command or query did not succeed.
  */
 export class ChronicleCallFailed extends Error {
@@ -79,6 +86,22 @@ export function ensureCommandSuccess(operation: string, result: CallResultLike):
     if (!isCallSuccess(result)) {
         throw new ChronicleCallFailed(operation, result);
     }
+}
+
+/**
+ * Ensures a Chronicle command executed successfully, returning its response or throwing when it did not.
+ * @param operation - The operation the result belongs to, used for error reporting.
+ * @param result - The command result envelope returned by the kernel.
+ * @returns The response produced by the command.
+ */
+export function ensureCommandResponse<TResponse>(operation: string, result: CommandResultLike<TResponse>): TResponse {
+    if (!isCallSuccess(result)) {
+        throw new ChronicleCallFailed(operation, result);
+    }
+
+    // A successful command result always carries its response; the wire type marks it optional
+    // only because protobuf gives every singular message field a technically-absent state.
+    return result.Response!;
 }
 
 /**
