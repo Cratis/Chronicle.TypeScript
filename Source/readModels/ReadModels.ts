@@ -13,6 +13,7 @@ import { Guid, JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { toContractsGuid } from '../connection/Guid';
 import { ChronicleConnection } from '../connection';
+import { ensureQuerySuccess } from '../connection/callResults';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { getProjectionMetadata } from '../projections/declarative/projection';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent';
@@ -115,16 +116,17 @@ export class ReadModels implements IReadModels {
     /** @inheritdoc */
     async getSnapshotsById<TReadModel>(readModelType: Constructor<TReadModel>, key: string): Promise<ReadModelSnapshot<TReadModel>[]> {
         const readModel = this.resolveReadModel(readModelType);
-        const response = await this._connection.readModels.getSnapshotsByKey({
+        const response = ensureQuerySuccess('get read model snapshots', await this._connection.readModelExplorer.allSnapshotsForReadModel({
             EventStore: this._eventStore,
             Namespace: this._namespace,
-            ReadModelIdentifier: readModel.identifier,
+            ReadModel: readModel.identifier,
             EventSequenceId: readModel.eventSequenceId,
-            ReadModelKey: key
-        });
+            ReadModelKey: key,
+            Grouping: ''
+        }));
 
-        const snapshots: ReadModelSnapshot<TReadModel>[] = response.Snapshots.map(snapshot => ({
-            readModel: this.deserializeReadModel(readModelType, snapshot.ReadModel),
+        const snapshots: ReadModelSnapshot<TReadModel>[] = response.map(snapshot => ({
+            readModel: this.deserializeReadModel(readModelType, snapshot.Instance),
             events: (snapshot.Events ?? []) as AppendedEvent[],
             occurred: snapshot.Occurred?.Value ? new Date(snapshot.Occurred.Value) : undefined,
             correlationId: snapshot.CorrelationId

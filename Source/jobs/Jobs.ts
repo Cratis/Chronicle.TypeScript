@@ -4,7 +4,7 @@
 import type { JobSummaryResponse, JobStepSummaryResponse } from '@cratis/chronicle.contracts';
 import { Guid } from '@cratis/fundamentals';
 import { ChronicleConnection } from '../connection';
-import { ensureCommandSuccess, ensureQuerySuccess, firstQueryResult } from '../connection/callResults';
+import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
 import { fromContractsGuid, toContractsGuid } from '../connection/Guid';
 import { IJobs } from './IJobs';
 import { JobId } from './JobId';
@@ -49,10 +49,10 @@ export class Jobs implements IJobs {
 
     /** @inheritdoc */
     async getJobs(): Promise<JobSummaryResponse[]> {
-        const response = await firstQueryResult('get jobs', this._connection.jobs.allJobs({
+        const response = await this._connection.jobs.allJobs({
             EventStore: this._eventStore,
             Namespace: this._namespace
-        }));
+        });
 
         return ensureQuerySuccess('get jobs', response);
     }

@@ -4,6 +4,7 @@
 import { diag } from '@opentelemetry/api';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
+import { ensureCommandSuccess } from '../connection/callResults';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import { getTagsFor } from '../events/tagDecorator';
@@ -94,7 +95,7 @@ export class EventSeeding implements IEventSeeding {
             }))
         };
 
-        await this._connection.eventSeeding.seed(request);
+        ensureCommandSuccess('seed events', await this._connection.eventSeeding.seedEvents(request));
         this._entries.length = 0;
     }
 

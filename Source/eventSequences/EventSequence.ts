@@ -3,7 +3,7 @@
 
 import { ChronicleConnection } from '../connection';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { AppendedEvent as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
+import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
 import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import type { AppendedEvent } from '../events/AppendedEvent';
@@ -40,6 +40,7 @@ import { identityProvider, Identity } from '../identity';
 import { causationManager, CausationType } from '../auditing';
 import { correlationIdManager } from '../correlation';
 import { fromContractsGuid, toContractsGuid } from '../connection/Guid';
+import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
 import type { ConcurrencyScope } from './ConcurrencyScope';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
 
@@ -67,7 +68,7 @@ export class EventSequence implements IEventSequence {
         const correlationId = options?.correlationId === undefined
             ? Guid.as(correlationIdManager.current.value)
             : Guid.as(options.correlationId);
-        const content = JsonSerializer.serialize(event);
+        const content = JSON.parse(JsonSerializer.serialize(event));
 
         // Merge static tags declared on the event type with tags supplied at append time.
         const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
@@ -119,12 +120,13 @@ export class EventSequence implements IEventSequence {
                     Subject: eventSourceId
                 });
 
+                const appendResponse = ensureCommandResponse('append event', response);
                 const duration = Date.now() - startTime;
                 const result = this.mapAppendResponse(
-                    response.SequenceNumber,
-                    response.ConstraintViolations ?? [],
-                    response.Errors ?? [],
-                    response.ConcurrencyViolation
+                    appendResponse.SequenceNumber,
+                    appendResponse.ConstraintViolations ?? [],
+                    appendResponse.Errors ?? [],
+                    appendResponse.ConcurrencyViolation
                 );
                 span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value.toString());
                 span.setStatus({ code: SpanStatusCode.OK });
@@ -247,13 +249,7 @@ export class EventSequence implements IEventSequence {
                     Generation: eventType.generation.value,
                     Tombstone: eventType.tombstone
                 },
-                Content: JsonSerializer.serialize(event),
-                Causation: batchCausationChain.map(c => ({
-                    Occurred: { Value: c.occurred.toISOString() },
-                    Type: c.type.name,
-                    Properties: { ...c.properties }
-                })),
-                CausedBy: toContractsCausedBy(identity),
+                Content: JSON.parse(JsonSerializer.serialize(event)),
                 Tags: tags,
                 Occurred: undefined,
                 Subject: subject ?? eventSourceId
@@ -279,7 +275,7 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.events_count', eventsForEventSourceIds.length);
             const startTime = Date.now();
             try {
-                const response = await this._connection.eventSequences.appendMany({
+                const response = await this._connection.eventSequences.appendManyForEventSources({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
@@ -291,21 +287,23 @@ export class EventSequence implements IEventSequence {
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity),
-                    ConcurrencyScopes: {
-                        ...Object.fromEntries(distinctEventSourceIds.map(eventSourceId => [eventSourceId, resolveConcurrencyScope(eventSourceId)]))
-                    }
+                    ConcurrencyScopes: distinctEventSourceIds.map(eventSourceId => ({
+                        EventSourceId: eventSourceId,
+                        Scope: resolveConcurrencyScope(eventSourceId)
+                    }))
                 });
 
+                const appendManyResponse = ensureCommandResponse('append many events', response);
                 const duration = Date.now() - startTime;
                 // Mirrors the C# client: every per-event AppendResult in a batch carries all
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
-                const firstConcurrencyViolation = (response.ConcurrencyViolations ?? [])[0];
-                const result = (response.SequenceNumbers ?? []).map((sequenceNumber: bigint, index: number) =>
+                const firstConcurrencyViolation = (appendManyResponse.ConcurrencyViolations ?? [])[0];
+                const result = (appendManyResponse.SequenceNumbers ?? []).map((sequenceNumber: bigint, index: number) =>
                     this.mapAppendResponse(
                         sequenceNumber,
-                        response.ConstraintViolations ?? [],
-                        (response.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index),
+                        appendManyResponse.ConstraintViolations ?? [],
+                        (appendManyResponse.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index),
                         firstConcurrencyViolation
                     )
                 );
@@ -398,18 +396,19 @@ export class EventSequence implements IEventSequence {
                 span.setAttribute('chronicle.event_source_id', eventSourceId);
             }
             try {
-                const response = await this._connection.eventSequences.getTailSequenceNumber({
+                const response = await this._connection.eventSequences.tailSequenceNumber({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId ?? '',
-                    EventTypes: this.toContractEventTypes(filterEventTypes ?? []),
+                    EventTypeIds: this.joinEventTypeIds(filterEventTypes ?? []),
                     EventSourceType: eventSourceType ?? 'Default',
                     EventStreamId: eventStreamId ?? '',
                     EventStreamType: eventStreamType ?? 'Default'
                 });
 
-                const result = new EventSequenceNumber(response.SequenceNumber ?? 0n);
+                const data = ensureQuerySuccess('get tail sequence number', response);
+                const result = new EventSequenceNumber(data?.SequenceNumber ?? 0n);
                 span.setAttribute('chronicle.sequence_number', result.value.toString());
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
@@ -444,7 +443,7 @@ export class EventSequence implements IEventSequence {
                     EventSourceId: eventSourceId
                 });
 
-                const result = response.HasEvents ?? false;
+                const result = ensureQuerySuccess('has events for event source', response)?.HasEvents ?? false;
                 span.setAttribute('chronicle.has_events', result);
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
@@ -464,7 +463,8 @@ export class EventSequence implements IEventSequence {
         eventTypes: Constructor[],
         eventStreamType?: string,
         eventStreamId?: string,
-        eventSourceType?: string
+        // Kept for IEventSequence signature compatibility; the wire no longer carries an event source type for this query.
+        _eventSourceType?: string
     ): Promise<AppendedEvent[]> {
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_for_event_source_id_and_event_types', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
@@ -472,18 +472,17 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.event_source_id', eventSourceId);
             try {
-                const response = await this._connection.eventSequences.getForEventSourceIdAndEventTypes({
+                const response = await this._connection.eventSequences.forEventSourceIdAndEventTypes({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
-                    EventSourceType: eventSourceType ?? 'Default',
                     EventSourceId: eventSourceId,
                     EventStreamType: eventStreamType ?? 'Default',
                     EventStreamId: eventStreamId ?? '',
-                    EventTypes: this.toContractEventTypes(eventTypes)
+                    EventTypeIds: this.joinEventTypeIds(eventTypes)
                 });
 
-                const result = (response.Events ?? []).map(event => this.toClientAppendedEvent(event));
+                const result = ensureQuerySuccess('get events for event source id and event types', response).map(event => this.toClientAppendedEvent(event));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
@@ -508,17 +507,16 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
             try {
-                const response = await this._connection.eventSequences.getEventsFromEventSequenceNumber({
+                const response = await this._connection.eventSequences.fromSequenceNumber({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     FromEventSequenceNumber: sequenceNumber.value,
-                    ToEventSequenceNumber: 0n,
                     EventSourceId: eventSourceId ?? '',
-                    EventTypes: this.toContractEventTypes(filterEventTypes ?? [])
+                    EventTypeIds: this.joinEventTypeIds(filterEventTypes ?? [])
                 });
 
-                const result = (response.Events ?? []).map(event => this.toClientAppendedEvent(event));
+                const result = ensureQuerySuccess('get events from sequence number', response).map(event => this.toClientAppendedEvent(event));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
@@ -536,7 +534,6 @@ export class EventSequence implements IEventSequence {
         causationManager.add(CausationType.redact, { sequenceNumber: sequenceNumber.value.toString() });
         const causationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
-        const correlationId = Guid.as(correlationIdManager.current.value);
 
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
@@ -544,20 +541,19 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
             try {
-                await this._connection.eventSequences.redact({
+                ensureCommandSuccess('redact event', await this._connection.eventSequences.redact({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     SequenceNumber: sequenceNumber.value,
                     Reason: reason,
-                    CorrelationId: toContractsGuid(correlationId),
                     Causation: causationChain.map(c => ({
                         Occurred: { Value: c.occurred.toISOString() },
                         Type: c.type.name,
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity)
-                });
+                }));
                 span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
@@ -574,15 +570,7 @@ export class EventSequence implements IEventSequence {
         causationManager.add(CausationType.redactForEventSource, { eventSourceId });
         const causationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
-        const correlationId = Guid.as(correlationIdManager.current.value);
-        const wireEventTypes = (eventTypes ?? []).map(constructor => {
-            const eventType = getEventTypeFor(constructor as unknown as Function);
-            return {
-                Id: eventType.id.value,
-                Generation: eventType.generation.value,
-                Tombstone: eventType.tombstone
-            };
-        });
+        const wireEventTypeIds = (eventTypes ?? []).map(constructor => getEventTypeFor(constructor as unknown as Function).id.value);
 
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact_for_event_source', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
@@ -590,21 +578,20 @@ export class EventSequence implements IEventSequence {
             span.setAttribute('chronicle.event_sequence_id', this.id.value);
             span.setAttribute('chronicle.event_source_id', eventSourceId);
             try {
-                await this._connection.eventSequences.redactForEventSource({
+                ensureCommandSuccess('redact event source', await this._connection.eventSequences.redactForEventSource({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId,
                     Reason: reason,
-                    EventTypes: wireEventTypes,
-                    CorrelationId: toContractsGuid(correlationId),
+                    EventTypes: wireEventTypeIds,
                     Causation: causationChain.map(c => ({
                         Occurred: { Value: c.occurred.toISOString() },
                         Type: c.type.name,
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity)
-                });
+                }));
                 span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {
                 span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
@@ -649,9 +636,10 @@ export class EventSequence implements IEventSequence {
                     EventStreamId: eventStreamId
                 });
 
-                const result: CompleteStreamResult = response.IsSuccess
-                    ? { isSuccess: true, sequenceNumber: new EventSequenceNumber(response.SequenceNumber ?? 0n) }
-                    : { isSuccess: false, error: this.toClientCompleteStreamError(response.Error) };
+                const completeStreamResponse = ensureCommandResponse('complete stream', response);
+                const result: CompleteStreamResult = completeStreamResponse.IsSuccess
+                    ? { isSuccess: true, sequenceNumber: new EventSequenceNumber(completeStreamResponse.SequenceNumber ?? 0n) }
+                    : { isSuccess: false, error: this.toClientCompleteStreamError(completeStreamResponse.Error) };
 
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
@@ -671,15 +659,8 @@ export class EventSequence implements IEventSequence {
         return error === 1 ? CompleteStreamError.DefaultStreamCannotBeCompleted : CompleteStreamError.AlreadyCompleted;
     }
 
-    private toContractEventTypes(eventTypes: Constructor[]) {
-        return eventTypes.map(constructor => {
-            const eventType = getEventTypeFor(constructor as unknown as Function);
-            return {
-                Id: eventType.id.value,
-                Generation: eventType.generation.value,
-                Tombstone: eventType.tombstone
-            };
-        });
+    private joinEventTypeIds(eventTypes: Constructor[]): string {
+        return eventTypes.map(constructor => getEventTypeFor(constructor as unknown as Function).id.value).join(',');
     }
 
     private toClientAppendedEvent(wireEvent: ContractsAppendedEvent): AppendedEvent {

@@ -1,10 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ObserverOwner, type WebhookDefinition } from '@cratis/chronicle.contracts';
+import { type WebhookDefinition } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts';
 import { ChronicleConnection } from '../connection';
+import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
 import { IEventTypes } from '../events/IEventTypes';
 import { IWebhook } from './IWebhook';
@@ -59,11 +60,10 @@ export class Webhooks implements IWebhooks {
             return;
         }
 
-        await this._connection.webhooks.add({
+        ensureCommandSuccess('register discovered webhooks', await this._connection.webhooks.addWebhooks({
             EventStore: this._eventStore,
-            Owner: ObserverOwner.Client,
             Webhooks: [...this._discovered.values()]
-        });
+        }));
     }
 
     /** @inheritdoc */
@@ -79,26 +79,40 @@ export class Webhooks implements IWebhooks {
             configure
         );
 
-        await this._connection.webhooks.add({
+        ensureCommandSuccess('register webhook', await this._connection.webhooks.addWebhooks({
             EventStore: this._eventStore,
-            Owner: ObserverOwner.Client,
             Webhooks: [definition]
-        });
+        }));
     }
 
     /** @inheritdoc */
     async getWebhooks(): Promise<WebhookDefinition[]> {
         const response = await this._connection.webhooks.getWebhooks({ EventStore: this._eventStore });
-        return response.items ?? [];
+        const details = ensureQuerySuccess('get webhooks', response) ?? [];
+
+        // The kernel does not return authorization details on read-back, so the reconstructed target
+        // always carries no authorization, mirroring the C# client's WebhookTarget mapping.
+        return details.map(webhook => ({
+            EventSequenceId: webhook.EventSequenceId,
+            Identifier: webhook.Identifier,
+            EventTypes: webhook.EventTypes,
+            Target: {
+                Url: webhook.Url,
+                Authorization: undefined,
+                Headers: webhook.Headers
+            },
+            IsReplayable: webhook.IsReplayable,
+            IsActive: webhook.IsActive
+        }));
     }
 
     /** @inheritdoc */
     async remove(webhookId: WebhookId | string): Promise<void> {
         const id = typeof webhookId === 'string' ? webhookId : webhookId.value;
-        await this._connection.webhooks.remove({
+        ensureCommandSuccess('remove webhook', await this._connection.webhooks.removeWebhooks({
             EventStore: this._eventStore,
             Webhooks: [id]
-        });
+        }));
     }
 
     private buildDefinition(
