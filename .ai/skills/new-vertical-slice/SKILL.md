@@ -1,9 +1,11 @@
 ---
 name: new-vertical-slice
-description: Use this skill when asked to implement a new feature, command, query, slice, or screen in a Cratis-based project. Guides the full end-to-end workflow: C# backend → specs → dotnet build → React frontend → quality gates.
+description: >
+  Implement an application vertical slice with focused backend, behavior-spec,
+  and applicable frontend checks.
 ---
 
-Implement a complete vertical slice following this EXACT order. Never skip steps or work on multiple slices in parallel.
+Use this recipe only for the application profile. Read [the owning project rules](../../rules/general.md) first; framework/library contributions use their framework guidance instead. Keep one writer/build per checkout, follow backend dependencies before frontend work, and apply only steps relevant to the changed behavior.
 
 ## Step 1 — Identify the slice type
 
@@ -15,11 +17,11 @@ Choose **one** of:
 
 ## Step 2 — Determine the namespace root
 
-Read `global.json` and existing `.cs` files in `Features/` to find the namespace root (e.g. `Studio`, `Library`). Never hard-code it.
+Inspect the affected project and existing `.cs` files under its actual application source root to determine the namespace and layout. Do not invent a top-level `Features/` wrapper or hard-code the namespace.
 
 ## Step 3 — Create the C# slice file
 
-Place ALL backend artifacts in a single file: `Features/<Feature>/<Slice>.cs`
+Follow the local slice convention, normally `<AppSourceRoot>/<Feature>/<Slice>/<Slice>.cs`, with an optional module above the feature. Keep the behavior together; split only when the owning rules justify it.
 
 File creation order within the slice:
 1. Concept types (if new strongly-typed IDs are needed — see `add-concept` skill)
@@ -39,11 +41,11 @@ File creation order within the slice:
 
 ## Step 4 — Build
 
-Run `dotnet build`. Fix ALL errors and warnings before proceeding. This generates TypeScript proxies.
+Run the owning project's affected Debug build to regenerate required TypeScript proxies. Fix in-scope errors and warnings; report unrelated or unavailable gates as blockers rather than repeatedly rebuilding the whole repository.
 
-## Step 5 — Write specs (State Change slices only)
+## Step 5 — Write applicable behavior specs
 
-For each command, write specs covering:
+Cover the changed behavior for every slice type: commands and rejection paths, State View projection/reducer behavior, and Automation/Translation reactions as applicable. For each changed command, cover:
 - Happy path — command succeeds, correct event appended
 - Each validation failure (one spec per rule)
 - Each business rule violation (one spec per DCB condition in `Handle()` that inspects a read model)
@@ -51,11 +53,11 @@ For each command, write specs covering:
 
 See `write-specs` skill for the complete spec structure.
 
-Run `dotnet test`. Fix all failures before proceeding.
+Run the affected project's relevant specs. Rerun after an in-scope fix; stop and report an unavailable or unrelated failure instead of changing unrelated code to obtain a green result.
 
 ## Step 6 — Implement React component(s)
 
-Place `.tsx` files in `Features/<Feature>/<Slice>/`.
+Place applicable `.tsx` files beside the owning slice under `<AppSourceRoot>/<Feature>/<Slice>/` (with an optional module above the feature).
 
 - Import the auto-generated command/query proxy from the same folder
 - Use `CommandDialog` from `@cratis/components/CommandDialog` for command dialogs
@@ -83,11 +85,11 @@ const [result, , setPage] = MyQuery.useWithPaging(pageSize);
 
 ## Step 7 — Update the composition page
 
-Open `Features/<Feature>/<Feature>.tsx` and add the new component. If a new page is introduced, also update the router and navigation.
+Update the actual feature composition page under the application's source root. If a new page is introduced, also update the router and navigation; do not create an otherwise unused `Features/` hierarchy.
 
 ## Step 8 — Quality gates
 
-All must pass before the slice is considered done:
+Use the authoritative checks for the affected lanes; the commands below are examples, not an unconditional repository-wide matrix. Require relevant checks to pass and disclose any blocked or unrun checks:
 - `dotnet build` — zero errors/warnings
 - `dotnet test` — zero failures
 - `yarn lint` — zero errors

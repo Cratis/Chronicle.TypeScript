@@ -1,4 +1,3 @@
-````instructions
 ---
 applyTo: "**/*.cs"
 ---
@@ -46,5 +45,3 @@ builder.Host.UseOrleans(siloBuilder =>
             sp.GetRequiredService<IMongoCollection<MyState>>()));
 });
 ```
-
-````

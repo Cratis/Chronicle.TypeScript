@@ -1,4 +1,3 @@
-````instructions
 ---
 applyTo: "**/*.tsx"
 ---
@@ -196,5 +195,3 @@ Use `buttons={null}` for dialogs that contain their own internal actions (e.g. a
 | `resizable` | `boolean` | Default `false` |
 
 PrimeReact-specific props (`style`, `contentStyle`, `modal`, `dismissableMask`, `draggable`, `footer`, `onHide`) are **not** available — do not use them.
-
-````

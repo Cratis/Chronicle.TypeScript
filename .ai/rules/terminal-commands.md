@@ -1,4 +1,5 @@
 ---
+applyTo: '**/*'
 ---
 
 # RTK (Rust Token Killer) - Token-Optimized Commands

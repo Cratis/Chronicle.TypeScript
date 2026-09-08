@@ -1,3 +1,7 @@
+---
+description: 'Implement a requested feature as a vertical slice with focused changes and behavior tests.'
+---
+
 # New Feature Prompt
 
 Implement the requested feature as a vertical slice with minimal, focused changes.

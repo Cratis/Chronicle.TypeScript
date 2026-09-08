@@ -23,7 +23,8 @@ applyTo: "**/*"
 ├── copilot-instructions.md      ← symlink → ../.ai/rules/general.md
 ├── instructions/
 │   └── <name>.instructions.md   ← symlinks → ../../.ai/rules/<name>.md
-├── agents/                      ← symlink → ../.ai/agents
+├── agents/
+│   └── <name>.agent.md          ← per-file symlink → ../../.ai/agents/<name>.md
 ├── prompts/                     ← symlink → ../.ai/prompts
 ├── skills/                      ← symlink → ../.ai/skills
 └── hooks/                       ← symlink → ../.ai/hooks
@@ -38,7 +39,7 @@ applyTo: "**/*"
 └── hooks/                       ← symlink → ../.ai/hooks
 ```
 
-Note: `agents/`, `prompts/`, `skills/`, and `hooks/` are **folder-level** symlinks — adding, renaming, or removing files inside `.ai/` is immediately visible to both tools. Only `rules/` uses individual per-file symlinks (because GitHub Copilot requires the `.instructions.md` suffix, which requires renaming at the symlink level).
+Note: `prompts/`, `skills/`, `hooks/`, and Claude's `agents/` are **folder-level** symlinks. Copilot's `.github/agents/` is a real directory with individual `<name>.agent.md` symlinks to `../../.ai/agents/<name>.md`, because Copilot requires the `.agent.md` suffix. Rule adapters also use per-file symlinks to provide Copilot's `.instructions.md` suffix.
 
 ## Rule file format
 
@@ -86,7 +87,7 @@ Edit the canonical file in `.ai/rules/<name>.md`. **Do not touch anything in `.g
 
 ## Updating agents, prompts, skills, or hooks
 
-Add, edit, or remove files directly inside the relevant `.ai/` subfolder (`agents/`, `prompts/`, `skills/`, `hooks/`). The folder-level symlinks in `.github/` and `.claude/` pick up the changes automatically — no further steps needed. **Never create or edit these files inside `.github/` or `.claude/` directly.**
+Add, edit, or remove canonical files inside the relevant `.ai/` subfolder (`agents/`, `prompts/`, `skills/`, `hooks/`). Folder-level adapters pick up canonical changes automatically. For a new or renamed agent, also create or update `.github/agents/<name>.agent.md` as a per-file symlink to `../../.ai/agents/<name>.md`; remove its adapter when removing the canonical agent. Claude's `.claude/agents` remains a folder symlink. **Edit canonical content, never author copies inside the adapter folders.**
 
 ## Renaming a rule
 
@@ -112,18 +113,27 @@ Symlink targets use **relative paths** from the symlink's location to the canoni
 | Symlink location | Target prefix |
 |---|---|
 | `.github/instructions/` | `../../.ai/rules/` |
+| `.github/agents/<name>.agent.md` | `../../.ai/agents/<name>.md` |
 | `.claude/rules/` | `../../.ai/rules/` |
 | `.github/copilot-instructions.md` | `../.ai/rules/` |
 | `.claude/CLAUDE.md` | `../.ai/rules/` |
 
-## Propagation and symlinks
+## Distribution and local adapters
 
-The cross-repository propagation workflow reads `.github/instructions/` and `.github/copilot-instructions.md` via the GitHub API. Because the GitHub API returns symlink blob content verbatim (the raw target path string), a naïve script would push path strings instead of actual rule content to target repositories.
+Cross-repository broadcast, all-to-all propagation, and reverse synchronization
+are retired. Do not run legacy propagation or turn a consuming repository into a
+hub. Shared public-safe behavior is authored and reviewed in `Cratis/AI`, generated
+into `Cratis/AI.Distribution`, and consumed only at an immutable reviewed version
+after release gates pass. Propose sanitized reusable improvements upstream for
+review; never reverse-sync private trees or local facts.
 
-The propagation script in this repository handles this correctly: when it encounters a symlink (Git mode `120000`) in the source tree, it resolves the target path and substitutes the real file's SHA before propagating. This means **symlinks work as expected** — target repositories receive the actual instruction content, not path strings.
-
-Both `.claude/` and `.github/instructions/` therefore use symlinks consistently. There is no need to maintain real file copies anywhere.
+These legacy repository-local rules remain locally maintained during canary;
+this is not permission to patch generated immutable distribution bytes or copy
+whole AI trees. Preserve private/project overlays, local skills, and minimal
+host bootstraps. Keep legacy adapters and actual workflows in place until an
+approved replacement passes canary and reviewed retirement gates. Update shared
+packages via approved exact-version pins; roll back by version.
 
 ## Shared workflows
 
-Workflow files intended to be synced to other repositories live in `.ai/workflows/`. They follow the same symlink pattern — the propagate workflow copies `.ai/workflows/` content to target repositories.
+Existing `.ai/workflows/` files are legacy local compatibility assets, not a broadcast source. Do not invoke propagation or remove actual workflows in a rule edit. Shared workflow updates require reviewed immutable references and consuming-repository review.
