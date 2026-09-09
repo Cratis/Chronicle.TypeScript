@@ -14,7 +14,7 @@
         "publish-version": "node ./publish-version.js"
     },
     "dependencies": {
-        "@cratis/chronicle.contracts": "17.0.4",
+        "@cratis/chronicle.contracts": "18.0.0",
         "glob": "^13.0.6"
     }
 }
