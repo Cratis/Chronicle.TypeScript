@@ -159,7 +159,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@bufbuild/protobuf": "^2.14.1",
+        "@bufbuild/protobuf": "^2.15.0",
         "@cratis/chronicle.contracts": "18.1.6",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
