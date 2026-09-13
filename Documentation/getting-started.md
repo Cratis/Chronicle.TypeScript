@@ -49,7 +49,7 @@ client.dispose();
 
 Chronicle connection strings use the `chronicle://` scheme:
 
-```
+```text
 chronicle://localhost:35000
 chronicle://username:password@chronicle.example.com:35000
 ```
