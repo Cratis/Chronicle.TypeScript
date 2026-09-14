@@ -39,6 +39,36 @@ export class FromEveryBuilder<TReadModel> implements IFromEveryBuilder<TReadMode
     }
 
     /** @inheritdoc */
+    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        const property = handler.property;
+        this.entry.properties[`${property}.$eventContext.${contextPropertyName}`] = '$count';
+        return this;
+    }
+
+    /** @inheritdoc */
+    increment(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        const property = handler.property;
+        this.entry.properties[`${property}.$eventContext.${contextPropertyName}`] = '$increment';
+        return this;
+    }
+
+    /** @inheritdoc */
+    decrement(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel> {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        readModelPropertyAccessor(proxy as TReadModel);
+        const property = handler.property;
+        this.entry.properties[`${property}.$eventContext.${contextPropertyName}`] = '$decrement';
+        return this;
+    }
+
+    /** @inheritdoc */
     excludeChildProjections(): IFromEveryBuilder<TReadModel> {
         this.entry.includeChildren = false;
         return this;
