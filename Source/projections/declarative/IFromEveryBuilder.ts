@@ -17,6 +17,31 @@ export interface IFromEveryBuilder<TReadModel> {
     set(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>>;
 
     /**
+     * Counts every projected event into a dictionary property, using a dynamic key resolved from an event context property.
+     * The dictionary value at the resolved key is incremented by one for each matching event.
+     * @param readModelPropertyAccessor - Accessor for the read model dictionary property (Record<string, number>).
+     * @param contextPropertyName - The event context property name used as the dictionary key (e.g., 'eventType').
+     * @returns This builder for fluent chaining.
+     */
+    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel>;
+
+    /**
+     * Increments a dictionary property by one for every projected event, using a dynamic key resolved from an event context property.
+     * @param readModelPropertyAccessor - Accessor for the read model dictionary property (Record<string, number>).
+     * @param contextPropertyName - The event context property name used as the dictionary key (e.g., 'eventType').
+     * @returns This builder for fluent chaining.
+     */
+    increment(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel>;
+
+    /**
+     * Decrements a dictionary property by one for every projected event, using a dynamic key resolved from an event context property.
+     * @param readModelPropertyAccessor - Accessor for the read model dictionary property (Record<string, number>).
+     * @param contextPropertyName - The event context property name used as the dictionary key (e.g., 'eventType').
+     * @returns This builder for fluent chaining.
+     */
+    decrement(readModelPropertyAccessor: PropertyAccessor<TReadModel>, contextPropertyName: string): IFromEveryBuilder<TReadModel>;
+
+    /**
      * Excludes child projections from the fromEvery definition.
      * @returns This builder for fluent chaining.
      */
