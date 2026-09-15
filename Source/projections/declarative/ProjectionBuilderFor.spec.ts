@@ -27,6 +27,9 @@ class Inventory {
     total!: number;
     removedTotal!: number;
     thingsHappenedCount!: number;
+    countsByEventType!: Record<string, number>;
+    incrementsByEventType!: Record<string, number>;
+    decrementsByEventType!: Record<string, number>;
 }
 
 interface FromRecord {
@@ -37,6 +40,11 @@ interface FromRecord {
 interface JoinRecord {
     Key: { Id: string };
     Value: { Properties: Record<string, string> };
+}
+
+interface AllDefinition {
+    Properties: Record<string, string>;
+    IncludeChildren: boolean;
 }
 
 describe('ProjectionBuilderFor', () => {
@@ -110,6 +118,56 @@ describe('ProjectionBuilderFor', () => {
             const entry = definition.Join.find(candidate => candidate.Key.Id === 'ThingHappened')!;
 
             expect(entry.Value.Properties.thingsHappenedCount).toBe('$count');
+        });
+    });
+
+    describe('when using count with event context property on fromEvery', () => {
+        it('should produce a $count expression with dictionary key from event context', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.fromEvery(fromEvery => fromEvery.count(model => model.countsByEventType, 'eventType'));
+
+            const definition = builder.build('inventory', 'Inventory') as unknown as { All: AllDefinition };
+
+            expect(definition.All.Properties['countsByEventType.$eventContext.eventType']).toBe('$count');
+        });
+    });
+
+    describe('when using increment with event context property on fromEvery', () => {
+        it('should produce a $increment expression with dictionary key from event context', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.fromEvery(fromEvery => fromEvery.increment(model => model.incrementsByEventType, 'eventType'));
+
+            const definition = builder.build('inventory', 'Inventory') as unknown as { All: AllDefinition };
+
+            expect(definition.All.Properties['incrementsByEventType.$eventContext.eventType']).toBe('$increment');
+        });
+    });
+
+    describe('when using decrement with event context property on fromEvery', () => {
+        it('should produce a $decrement expression with dictionary key from event context', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.fromEvery(fromEvery => fromEvery.decrement(model => model.decrementsByEventType, 'eventType'));
+
+            const definition = builder.build('inventory', 'Inventory') as unknown as { All: AllDefinition };
+
+            expect(definition.All.Properties['decrementsByEventType.$eventContext.eventType']).toBe('$decrement');
+        });
+    });
+
+    describe('when using multiple fromEvery operations', () => {
+        it('should produce all operations in the All.Properties definition', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.fromEvery(fromEvery => {
+                fromEvery.count(model => model.countsByEventType, 'eventType');
+                fromEvery.increment(model => model.incrementsByEventType, 'correlationId');
+                fromEvery.set(model => model.id).toEventSourceId();
+            });
+
+            const definition = builder.build('inventory', 'Inventory') as unknown as { All: AllDefinition };
+
+            expect(definition.All.Properties['countsByEventType.$eventContext.eventType']).toBe('$count');
+            expect(definition.All.Properties['incrementsByEventType.$eventContext.correlationId']).toBe('$increment');
+            expect(definition.All.Properties.id).toBe('$eventSourceId');
         });
     });
 });
