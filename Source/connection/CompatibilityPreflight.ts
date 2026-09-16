@@ -15,9 +15,18 @@ export class CompatibilityPreflight {
 
     constructor(private readonly _connections: ConnectionServiceClient, private readonly _timeout: number) {}
 
-    /** Shares one verdict per channel. A rejected or unavailable check never permits a write. */
+    /** Shares in-flight checks and caches success for this channel; failed checks can be retried. */
     verify(): Promise<void> {
-        return this._verification ??= this.check();
+        if (!this._verification) {
+            const verification = this.check().catch(error => {
+                if (this._verification === verification) {
+                    this._verification = undefined;
+                }
+                throw error;
+            });
+            this._verification = verification;
+        }
+        return this._verification;
     }
 
     /** Gates even direct service calls that did not first call connect(). */
@@ -30,14 +39,18 @@ export class CompatibilityPreflight {
     }
 
     private async check(): Promise<void> {
+        if (!chronicleDescriptorSet?.length) {
+            throw new Error('The installed Chronicle contracts have no descriptor set; compatibility cannot be verified.');
+        }
         const response = await this._connections.checkCompatibility({
             ClientType: 'TypeScript',
             ClientVersion: clientVersion,
             ProtocolVersion: protocolVersion,
             DescriptorSet: Buffer.from(chronicleDescriptorSet)
         }, { signal: AbortSignal.timeout(this._timeout) });
-        if (!response.IsCompatible) {
-            throw new Error(`Chronicle server ${response.ServerVersion} is incompatible with contracts ${protocolVersion}: ${response.Incompatibilities.join('; ')}`);
+        if (response?.IsCompatible !== true || !Array.isArray(response.Incompatibilities) || response.Incompatibilities.length !== 0) {
+            const reasons = response?.Incompatibilities?.join('; ') || 'missing, negative, or inconsistent compatibility verdict';
+            throw new Error(`Chronicle server ${response?.ServerVersion ?? 'unknown'} is incompatible with contracts ${protocolVersion}: ${reasons}`);
         }
     }
 }

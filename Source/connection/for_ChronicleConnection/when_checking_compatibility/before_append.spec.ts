@@ -61,6 +61,23 @@ describe('when checking server compatibility before append', () => {
         results[0].status.should.equal('rejected');
         append.mock.calls.should.have.lengthOf(0);
     });
+    it('should retry a transient failed check before allowing a later write', async () => {
+        check.mockRejectedValueOnce(new ServerError(Status.UNAVAILABLE, 'temporarily unavailable'));
+        await connection.resetChannel();
+        const failed = await Promise.allSettled([connection.eventSequences.append({})]);
+        failed[0].status.should.equal('rejected');
+        append.mock.calls.should.have.lengthOf(0);
+        await connection.eventSequences.append({});
+        check.mock.calls.should.have.lengthOf(2);
+        append.mock.calls.should.have.lengthOf(1);
+    });
+    it('should reject a contradictory compatibility verdict', async () => {
+        check.mockResolvedValue({ IsCompatible: true, Incompatibilities: ['missing field'], ServerVersion: 'server' });
+        await connection.resetChannel();
+        const failed = await Promise.allSettled([connection.eventSequences.append({})]);
+        failed[0].status.should.equal('rejected');
+        append.mock.calls.should.have.lengthOf(0);
+    });
     it('should recheck after reconnect and refuse a newly incompatible channel', async () => {
         await connection.connect();
         compatible = false;
