@@ -166,7 +166,7 @@ describe('EventSequence', () => {
             expect(result).toHaveLength(1);
             expect(result[0].context.sequenceNumber).toEqual(7n);
             expect(result[0].context.eventSourceId).toEqual('some-event-source');
-            expect(result[0].context.causation).toEqual([{ type: 'SomeCausation', properties: { key: 'value' } }]);
+            expect(result[0].context.causation).toEqual([{ type: 'SomeCausation', occurred: new Date('2024-01-15T12:30:00Z'), properties: { key: 'value' } }]);
             expect(result[0].eventType.id.value).toEqual('a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f');
             expect(result[0].content).toEqual({ value: 'hello' });
         });
@@ -388,9 +388,9 @@ describe('EventSequence', () => {
             expect(appendManyForEventSources).toHaveBeenCalledTimes(1);
             const request = appendManyForEventSources.mock.calls[0][0];
             const [event] = request.Events;
-            expect(event.EventStreamType).toEqual('Default');
-            expect(event.EventStreamId).toEqual('source-1');
-            expect(event.EventSourceType).toEqual('Default');
+            expect(event.EventStreamType).toBeUndefined();
+            expect(event.EventStreamId).toBeUndefined();
+            expect(event.EventSourceType).toBeUndefined();
             expect(event.Subject).toEqual('source-1');
         });
     });

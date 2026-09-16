@@ -34,6 +34,7 @@ import { ExternalServicesDefinition } from '../externalServices/ExternalServices
 import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver';
 import { ChronicleServices } from './ChronicleServices';
+import { CompatibilityPreflight } from './CompatibilityPreflight';
 import { formatServerAddress } from './formatServerAddress';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
 import { createLoadBalancerStrategy } from './LoadBalancerStrategyFactory';
@@ -91,6 +92,7 @@ export class ChronicleConnection implements ChronicleServices {
     private _channel!: Channel;
     private _services!: ChronicleServices;
     private _connections!: ConnectionServiceClient;
+    private _compatibility!: CompatibilityPreflight;
     private readonly _connectionString: ChronicleConnectionString;
     private readonly _tokenProvider: ITokenProvider;
     private readonly _addressResolver: ChronicleServerAddressResolver;
@@ -225,6 +227,7 @@ export class ChronicleConnection implements ChronicleServices {
         await this._clientsReady;
         const deadline = new Date(Date.now() + (this._options.connectTimeout ?? 10_000));
         await waitForChannelReady(this._channel, deadline);
+        await this._compatibility.verify();
         this._isConnected = true;
     }
 
@@ -276,12 +279,15 @@ export class ChronicleConnection implements ChronicleServices {
         this._channel = createChannel(serverAddress, credentials, channelOptions);
 
         const factory = createClientFactory().use(this.createAuthMiddleware());
+        this._connections = factory.create(ConnectionServiceDefinition, this._channel);
+        this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000);
+        const eventSequenceFactory = factory.use(this._compatibility.middleware());
         this._services = {
             eventStores: factory.create(EventStoresDefinition, this._channel),
             namespaces: factory.create(NamespacesDefinition, this._channel),
             recommendations: factory.create(RecommendationsDefinition, this._channel),
             identities: factory.create(IdentitiesDefinition, this._channel),
-            eventSequences: factory.create(EventSequencesDefinition, this._channel),
+            eventSequences: eventSequenceFactory.create(EventSequencesDefinition, this._channel),
             eventTypes: factory.create(EventTypesDefinition, this._channel),
             constraints: factory.create(ConstraintsDefinition, this._channel),
             observers: factory.create(ObserversDefinition, this._channel),
@@ -300,7 +306,6 @@ export class ChronicleConnection implements ChronicleServices {
             compliance: factory.create(ComplianceDefinition as any, this._channel) as any,
             externalServices: factory.create(ExternalServicesDefinition, this._channel)
         };
-        this._connections = factory.create(ConnectionServiceDefinition, this._channel);
     }
 
     private createTokenProvider(): ITokenProvider {

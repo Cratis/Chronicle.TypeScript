@@ -5,6 +5,9 @@
  * Represents a single entry in the causation chain of an event.
  */
 export interface CausationEntry {
+    /** The occurrence time of the causing operation, when supplied by the kernel. */
+    readonly occurred?: Date;
+
     /** The type identifier of the causing operation. */
     readonly type: string;
 

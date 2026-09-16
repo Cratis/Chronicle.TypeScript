@@ -18,6 +18,9 @@ The event log is Chronicle's primary event sequence and is documented in the sha
 
 ## TypeScript client notes
 
+- Unspecified append routes are now resolved by the kernel, not by the client. This is a **major migration** for existing streams; follow [Preserve existing append routes](./migrate-append-routing.md) before upgrading.
+- `AppendOptions` accepts `sourceType`, `streamType`, `streamId`, `subject`, and `occurred`. Rich batch entries override shared metadata; concurrency scopes remain independent.
+
 - `eventLog.redact(sequenceNumber, reason)` and `eventLog.redactForEventSource(eventSourceId, reason, eventTypes?)` permanently rewrite an event's (or an entire event source's) content — a destructive GDPR/compliance erasure, never a field-level mask.
 - `eventLog.getForEventSourceIdAndEventTypes(eventSourceId, eventTypes, ...)` and `eventLog.getFromSequenceNumber(sequenceNumber, eventSourceId?, eventTypes?)` read appended events back, filtered by event source and/or event type.
 - `eventLog.getNextSequenceNumber()` returns the sequence number the next append will receive (`EventSequenceNumber.first` when the sequence is empty).

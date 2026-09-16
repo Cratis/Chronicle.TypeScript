@@ -98,6 +98,8 @@ describe('appendReactorSideEffects', () => {
                 event: new SomethingHappened('a'),
                 eventStreamType: 'other-stream-type',
                 eventStreamId: 'other-stream-id',
+                eventSourceType: 'other-source-type',
+                occurred: new Date('2025-01-01T00:00:00Z'),
                 subject: 'other-subject'
             };
 

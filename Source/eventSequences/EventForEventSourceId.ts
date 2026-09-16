@@ -13,16 +13,19 @@ export interface EventForEventSourceId {
     /** The event payload to append. */
     readonly event: object;
 
-    /** Optional event stream type to append to. Defaults to the default stream type. */
+    /** Optional stream type. Overrides AppendOptions.streamType; the kernel resolves an omitted or empty route. */
     readonly eventStreamType?: string;
 
-    /** Optional event stream identifier to append to. Defaults to the event source id. */
+    /** Optional stream identifier. Overrides AppendOptions.streamId; the kernel resolves an omitted or empty route. */
     readonly eventStreamId?: string;
 
-    /** Optional event source type to append to. Defaults to the default source type. */
+    /** Optional source type. Overrides AppendOptions.sourceType; the kernel resolves an omitted or empty route. */
     readonly eventSourceType?: string;
 
-    /** Optional subject identifying the target the event is about. Defaults to the event source id. */
+    /** Optional occurrence time. Overrides the shared occurrence time. */
+    readonly occurred?: Date;
+
+    /** Optional subject. Overrides AppendOptions.subject; otherwise falls back to the event source identifier. */
     readonly subject?: string;
 
     /**
