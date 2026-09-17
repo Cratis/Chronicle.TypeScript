@@ -465,8 +465,7 @@ export class EventSequence implements IEventSequence {
         eventTypes: Constructor[],
         eventStreamType?: string,
         eventStreamId?: string,
-        // Kept for IEventSequence signature compatibility; the wire no longer carries an event source type for this query.
-        _eventSourceType?: string
+        eventSourceType?: string
     ): Promise<AppendedEvent[]> {
         return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_for_event_source_id_and_event_types', async span => {
             span.setAttribute('chronicle.event_store', this._eventStoreName);
@@ -479,10 +478,11 @@ export class EventSequence implements IEventSequence {
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId,
-                    // An unspecified stream type must not narrow the read; a 'Default' stream type would
+                    // An unspecified dimension must not narrow the read; a 'Default' stream type would
                     // hide every event the kernel routed for an append that carried no explicit route.
                     EventStreamType: eventStreamType ?? '',
                     EventStreamId: eventStreamId ?? '',
+                    EventSourceType: eventSourceType ?? '',
                     EventTypeIds: this.joinEventTypeIds(eventTypes)
                 });
 

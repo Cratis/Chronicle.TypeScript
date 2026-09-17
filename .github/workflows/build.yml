@@ -57,3 +57,10 @@ jobs:
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
           yarn ci
+
+      # The specifications existed but nothing ran them: there was no test step here, and vitest could
+      # not start at all because its required vite peer was absent, so every spec in this repository was
+      # decorative. A specification that never runs is indistinguishable from one that passes.
+      - name: Test JS/TS
+        working-directory: ./Source
+        run: yarn test
