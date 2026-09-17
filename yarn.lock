@@ -40,25 +40,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:18.4.1":
-  version: 18.4.1
-  resolution: "@cratis/chronicle.contracts@npm:18.4.1"
+"@cratis/chronicle.contracts@npm:19.0.1":
+  version: 19.0.1
+  resolution: "@cratis/chronicle.contracts@npm:19.0.1"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.14.0"
     "@grpc/grpc-js": "npm:^1.14.4"
     nice-grpc: "npm:^2.1.17"
-  checksum: 10c0/90ed571658d535bb2d4e5afcbf76e8149bf73b80aba4372b2bb7f9b896cff7a7f89b37e11f7dbd730bcb5b96cf2295a4df4d956b8e474c0e22a1ba57f3abbc7c
-  languageName: node
-  linkType: hard
-
-"@cratis/chronicle.contracts@npm:18.5.0":
-  version: 18.5.0
-  resolution: "@cratis/chronicle.contracts@npm:18.5.0"
-  dependencies:
-    "@bufbuild/protobuf": "npm:^2.14.0"
-    "@grpc/grpc-js": "npm:^1.14.4"
-    nice-grpc: "npm:^2.1.17"
-  checksum: 10c0/2b5babcab0105ae2e97a66e96330aea718068e1485319bbf891870828b839f13da6e947941e3a92f62127c169d451f4104acf1516fd485f7fc40cba6699deb3e
+  checksum: 10c0/cb0921fd9a52561075e7a3d9f541a05e4343736f3c05dfbcaff9c811e13c8fff40ee9f59a7630df1f8e74f3494f73ae3452b077be0f4497357afa322e2936f29
   languageName: node
   linkType: hard
 
@@ -67,7 +56,7 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.15.0"
-    "@cratis/chronicle.contracts": "npm:18.5.0"
+    "@cratis/chronicle.contracts": "npm:19.0.1"
     "@cratis/fundamentals": "npm:7.19.2"
     "@grpc/grpc-js": "npm:^1.14.4"
     "@opentelemetry/api": "npm:^1.9.1"
@@ -1842,7 +1831,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:18.4.1"
+    "@cratis/chronicle.contracts": "npm:19.0.1"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft
