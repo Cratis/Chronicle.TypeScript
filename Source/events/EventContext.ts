@@ -4,6 +4,7 @@
 import { EventType } from './EventType';
 import { CausationEntry } from './CausationEntry';
 import { Tag } from './Tag';
+import type { Identity } from '../identity/Identity';
 
 /**
  * Represents contextual information about an appended event.
@@ -14,6 +15,33 @@ export interface EventContext {
 
     /** The unique identifier of the event source. */
     readonly eventSourceId: string;
+
+    /** The event store, when included by the kernel. */
+    readonly eventStore?: string;
+
+    /** The namespace, when included by the kernel. */
+    readonly namespace?: string;
+
+    /** The source type returned by the kernel. */
+    readonly eventSourceType?: string;
+
+    /** The stream type returned by the kernel. */
+    readonly eventStreamType?: string;
+
+    /** The stream identifier returned by the kernel. */
+    readonly eventStreamId?: string;
+
+    /** The compliance subject returned by the kernel. */
+    readonly subject?: string;
+
+    /** The persisted event hash. */
+    readonly hash?: string;
+
+    /** The identity responsible for the event. */
+    readonly causedBy?: Identity;
+
+    /** The observation state carried by the delivery. */
+    readonly observationState?: number;
 
     /** The type of the event. */
     readonly eventType: EventType;

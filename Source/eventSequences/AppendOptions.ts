@@ -12,7 +12,22 @@ export interface AppendOptions {
     /** Optional correlation identifier for tracking the append operation. */
     correlationId?: string | Guid;
 
-    /** Optional explicit sequence number to use for the event. */
+    /** Optional source type. When omitted or empty, the kernel selects the route. */
+    sourceType?: string;
+
+    /** Optional stream type. When omitted or empty, the kernel selects the route. */
+    streamType?: string;
+
+    /** Optional stream identifier. When omitted or empty, the kernel selects the route. */
+    streamId?: string;
+
+    /** Optional compliance subject. Defaults to the event source identifier. */
+    subject?: string;
+
+    /** Optional occurrence time. When omitted, the kernel supplies the timestamp. */
+    occurred?: Date;
+
+    /** Reserved legacy option; does not override the append method's event source identifier. */
     eventSourceId?: string;
 
     /** Optional concurrency scope to use for append operations. */

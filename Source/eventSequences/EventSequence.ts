@@ -7,9 +7,7 @@ import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/ch
 import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator';
 import type { AppendedEvent } from '../events/AppendedEvent';
-import { EventType } from '../events/EventType';
-import { EventTypeId } from '../events/EventTypeId';
-import { EventTypeGeneration } from '../events/EventTypeGeneration';
+import { toClientEventContext } from '../events/toClientEventContext';
 import { Tag } from '../events/Tag';
 import { getTagsFor } from '../events/tagDecorator';
 import { mergeTags } from '../events/mergeTags';
@@ -39,7 +37,7 @@ import { ChronicleMetrics } from '../Metrics';
 import { identityProvider, Identity } from '../identity';
 import { causationManager, CausationType } from '../auditing';
 import { correlationIdManager } from '../correlation';
-import { fromContractsGuid, toContractsGuid } from '../connection/Guid';
+import { toContractsGuid } from '../connection/Guid';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
 import type { ConcurrencyScope } from './ConcurrencyScope';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
@@ -68,7 +66,7 @@ export class EventSequence implements IEventSequence {
         const correlationId = options?.correlationId === undefined
             ? Guid.as(correlationIdManager.current.value)
             : Guid.as(options.correlationId);
-        const content = JSON.parse(JsonSerializer.serialize(event));
+        const content = JsonSerializer.serialize(event);
 
         // Merge static tags declared on the event type with tags supplied at append time.
         const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
@@ -98,10 +96,10 @@ export class EventSequence implements IEventSequence {
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     CorrelationId: toContractsGuid(correlationId),
-                    EventSourceType: 'Default',
+                    EventSourceType: options?.sourceType,
                     EventSourceId: eventSourceId,
-                    EventStreamType: 'Default',
-                    EventStreamId: eventSourceId,
+                    EventStreamType: options?.streamType,
+                    EventStreamId: options?.streamId,
                     EventType: {
                         Id: eventType.id.value,
                         Generation: eventType.generation.value,
@@ -116,8 +114,8 @@ export class EventSequence implements IEventSequence {
                     CausedBy: toContractsCausedBy(identity),
                     ConcurrencyScope: this.toContractConcurrencyScope(options?.concurrencyScope),
                     Tags: tags,
-                    Occurred: undefined,
-                    Subject: eventSourceId
+                    Occurred: options?.occurred === undefined ? undefined : { Value: options.occurred.toISOString() },
+                    Subject: options?.subject ?? eventSourceId
                 });
 
                 const appendResponse = ensureCommandResponse('append event', response);
@@ -232,27 +230,28 @@ export class EventSequence implements IEventSequence {
         const resolveConcurrencyScope = (eventSourceId: string) =>
             this.toContractConcurrencyScope(concurrencyScopesByEventSourceId?.[eventSourceId] ?? defaultConcurrencyScope);
 
-        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, tags: instanceTags }) => {
+        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, occurred, tags: instanceTags }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
 
             // Merge static tags declared on the event type, tags carried by this specific
             // EventForEventSourceId entry, and tags supplied at call time for the whole batch.
             const tags = mergeTags(getTagsFor(event.constructor as Function), instanceTags, appendOptions?.tags);
+            const occurrenceTime = occurred ?? appendOptions?.occurred;
 
             return {
-                EventSourceType: eventSourceType ?? 'Default',
+                EventSourceType: eventSourceType ?? appendOptions?.sourceType,
                 EventSourceId: eventSourceId,
-                EventStreamType: eventStreamType ?? 'Default',
-                EventStreamId: eventStreamId ?? eventSourceId,
+                EventStreamType: eventStreamType ?? appendOptions?.streamType,
+                EventStreamId: eventStreamId ?? appendOptions?.streamId,
                 EventType: {
                     Id: eventType.id.value,
                     Generation: eventType.generation.value,
                     Tombstone: eventType.tombstone
                 },
-                Content: JSON.parse(JsonSerializer.serialize(event)),
+                Content: JsonSerializer.serialize(event),
                 Tags: tags,
-                Occurred: undefined,
-                Subject: subject ?? eventSourceId
+                Occurred: occurrenceTime === undefined ? undefined : { Value: occurrenceTime.toISOString() },
+                Subject: subject ?? appendOptions?.subject ?? eventSourceId
             };
         });
 
@@ -402,9 +401,12 @@ export class EventSequence implements IEventSequence {
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId ?? '',
                     EventTypeIds: this.joinEventTypeIds(filterEventTypes ?? []),
-                    EventSourceType: eventSourceType ?? 'Default',
+                    // An unspecified route dimension must not narrow the read: appends without explicit
+                    // routes are resolved by the kernel, so a 'Default' stream type would report the tail
+                    // of the legacy stream instead of the sequence the next append continues.
+                    EventSourceType: eventSourceType ?? '',
                     EventStreamId: eventStreamId ?? '',
-                    EventStreamType: eventStreamType ?? 'Default'
+                    EventStreamType: eventStreamType ?? ''
                 });
 
                 const data = ensureQuerySuccess('get tail sequence number', response);
@@ -477,7 +479,9 @@ export class EventSequence implements IEventSequence {
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId,
-                    EventStreamType: eventStreamType ?? 'Default',
+                    // An unspecified stream type must not narrow the read; a 'Default' stream type would
+                    // hide every event the kernel routed for an append that carried no explicit route.
+                    EventStreamType: eventStreamType ?? '',
                     EventStreamId: eventStreamId ?? '',
                     EventTypeIds: this.joinEventTypeIds(eventTypes)
                 });
@@ -664,27 +668,10 @@ export class EventSequence implements IEventSequence {
     }
 
     private toClientAppendedEvent(wireEvent: ContractsAppendedEvent): AppendedEvent {
-        const context = wireEvent.Context!;
-        const eventType = new EventType(
-            new EventTypeId(context.EventType?.Id ?? ''),
-            new EventTypeGeneration(context.EventType?.Generation ?? EventTypeGeneration.firstValue),
-            context.EventType?.Tombstone ?? false
-        );
-
+        const context = toClientEventContext(wireEvent.Context!);
         return {
-            context: {
-                sequenceNumber: context.SequenceNumber,
-                eventSourceId: context.EventSourceId,
-                eventType,
-                occurred: new Date(context.Occurred?.Value ?? ''),
-                correlationId: fromContractsGuid(context.CorrelationId).toString(),
-                causation: (context.Causation ?? []).map(c => ({
-                    type: c.Type,
-                    properties: { ...c.Properties }
-                })),
-                tags: (context.Tags ?? []).map(value => new Tag(value))
-            },
-            eventType,
+            context,
+            eventType: context.eventType,
             content: JSON.parse(wireEvent.Content) as Record<string, unknown>
         };
     }

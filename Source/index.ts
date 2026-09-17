@@ -25,6 +25,7 @@ import * as eventStoreSubscriptions from './eventStoreSubscriptions';
 import * as compliance from './compliance';
 
 export { ChronicleClient } from './ChronicleClient';
+export { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer';
 export type { IChronicleClient } from './IChronicleClient';
 export { ChronicleOptions } from './ChronicleOptions';
 export { EventStore } from './EventStore';

@@ -10,10 +10,7 @@ import { ChronicleConnection } from '../connection';
 import { toContractsGuid } from '../connection/Guid';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator';
-import { EventContext } from '../events/EventContext';
-import { EventTypeId } from '../events/EventTypeId';
-import { EventTypeGeneration } from '../events/EventTypeGeneration';
-import { Tag } from '../events/Tag';
+import { toClientEventContext } from '../events/toClientEventContext';
 import { getTagsFor } from '../events/tagDecorator';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator';
 import { EventSequenceId } from '../eventSequences/EventSequenceId';
@@ -315,6 +312,7 @@ export class Reducers implements IReducers {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         ReadModel: readModelName,
+                        Hash: '',
                         IsActive: isActive,
                         Tags: getTagsFor(reducerType).map(t => t.value),
                         Filters: {
@@ -375,19 +373,7 @@ export class Reducers implements IReducers {
                         }
 
                         const content = JSON.parse(event.Content) as Record<string, unknown>;
-                        const context: EventContext = {
-                            sequenceNumber: event.Context!.SequenceNumber,
-                            eventSourceId: event.Context!.EventSourceId,
-                            eventType: {
-                                id: new EventTypeId(event.Context!.EventType!.Id),
-                                generation: new EventTypeGeneration(event.Context!.EventType!.Generation),
-                                tombstone: event.Context!.EventType!.Tombstone
-                            },
-                            occurred: new Date(event.Context!.Occurred?.Value ?? ''),
-                            correlationId: event.Context?.CorrelationId ? `${event.Context.CorrelationId.lo}-${event.Context.CorrelationId.hi}` : '',
-                            causation: [],
-                            tags: (event.Context!.Tags ?? []).map(value => new Tag(value))
-                        };
+                        const context = toClientEventContext(event.Context!);
 
                         this._logger.info('Invoking reducer handler', {
                             reducerId: id,

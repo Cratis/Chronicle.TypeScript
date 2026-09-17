@@ -12,14 +12,12 @@ export interface CallValidationResult {
 /**
  * Structural shape shared by every Chronicle command and query result envelope.
  *
- * The envelopes also carry an `IsAuthorized` boolean, but it is deliberately not part of
- * this shape: the kernel declares it with a protobuf-net default of `true`, which means
- * the field is omitted from the wire whenever it is true. A proto3 client decodes that
- * absence as `false`, so the boolean always reads as `false` and carries no signal.
- * Authorization failures are reported through `AuthorizationFailureReason` and gRPC
- * status codes instead.
+ * Kernels from 18.4.1 transmit authorization verdicts explicitly, including true values.
+ * Older kernels omitted true values; the connection compatibility check must reject those kernels
+ * before operations rather than ignoring an authorization failure.
  */
 export interface CallResultLike {
+    IsAuthorized?: boolean;
     ValidationResults: CallValidationResult[];
     ExceptionMessages: string[];
     AuthorizationFailureReason?: string;
@@ -72,7 +70,7 @@ export class ChronicleCallFailed extends Error {
  * @returns True when the call succeeded, false otherwise.
  */
 export function isCallSuccess(result: CallResultLike): boolean {
-    return !result.AuthorizationFailureReason &&
+    return result.IsAuthorized !== false && !result.AuthorizationFailureReason &&
         (result.ValidationResults ?? []).length === 0 &&
         (result.ExceptionMessages ?? []).length === 0;
 }
