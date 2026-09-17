@@ -401,9 +401,12 @@ export class EventSequence implements IEventSequence {
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId ?? '',
                     EventTypeIds: this.joinEventTypeIds(filterEventTypes ?? []),
-                    EventSourceType: eventSourceType ?? 'Default',
+                    // An unspecified route dimension must not narrow the read: appends without explicit
+                    // routes are resolved by the kernel, so a 'Default' stream type would report the tail
+                    // of the legacy stream instead of the sequence the next append continues.
+                    EventSourceType: eventSourceType ?? '',
                     EventStreamId: eventStreamId ?? '',
-                    EventStreamType: eventStreamType ?? 'Default'
+                    EventStreamType: eventStreamType ?? ''
                 });
 
                 const data = ensureQuerySuccess('get tail sequence number', response);
@@ -476,7 +479,9 @@ export class EventSequence implements IEventSequence {
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     EventSourceId: eventSourceId,
-                    EventStreamType: eventStreamType ?? 'Default',
+                    // An unspecified stream type must not narrow the read; a 'Default' stream type would
+                    // hide every event the kernel routed for an append that carried no explicit route.
+                    EventStreamType: eventStreamType ?? '',
                     EventStreamId: eventStreamId ?? '',
                     EventTypeIds: this.joinEventTypeIds(eventTypes)
                 });

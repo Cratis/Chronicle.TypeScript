@@ -23,6 +23,7 @@ The event log is Chronicle's primary event sequence and is documented in the sha
 
 - `eventLog.redact(sequenceNumber, reason)` and `eventLog.redactForEventSource(eventSourceId, reason, eventTypes?)` permanently rewrite an event's (or an entire event source's) content — a destructive GDPR/compliance erasure, never a field-level mask.
 - `eventLog.getForEventSourceIdAndEventTypes(eventSourceId, eventTypes, ...)` and `eventLog.getFromSequenceNumber(sequenceNumber, eventSourceId?, eventTypes?)` read appended events back, filtered by event source and/or event type.
+- Route arguments on `getForEventSourceIdAndEventTypes` and `getTailSequenceNumber` no longer default to the legacy `Default` route — an omitted dimension does not narrow the read, so it also returns the events the kernel routed for an append with no route options. Pass the dimensions explicitly to scope a read to one stream; see [Preserve existing append routes](./migrate-append-routing.md).
 - `eventLog.getNextSequenceNumber()` returns the sequence number the next append will receive (`EventSequenceNumber.first` when the sequence is empty).
 - `eventLog.completeStream(eventStreamType, eventStreamId)` permanently closes a non-default stream; further appends to it are rejected with a `StreamClosed` constraint violation.
 - `eventLog.appendOperations` is a hot, multicast `AsyncIterable` of every append this event log instance makes, together with its result.

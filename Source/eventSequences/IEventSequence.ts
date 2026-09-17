@@ -74,6 +74,11 @@ export interface IEventSequence {
      * @param eventStreamId - Optional event stream identifier to filter by.
      * @param filterEventTypes - Optional collection of event type constructors to filter by.
      * @returns The tail sequence number.
+     * @remarks
+     * An omitted dimension does not narrow the read - it is not the legacy `Default` route. The kernel
+     * resolves an append that carried no route to source type `Default`, stream type `All`, and stream
+     * identifier `Default`, so narrowing to `Default` would hide those events. Pass every dimension
+     * explicitly to scope the read to a single stream.
      */
     getTailSequenceNumber(
         eventSourceId?: string,
@@ -102,10 +107,15 @@ export interface IEventSequence {
      * Gets all events for a specific event source, optionally filtered to specific event types.
      * @param eventSourceId - The event source identifier to get events for.
      * @param eventTypes - Collection of event type constructors to filter by.
-     * @param eventStreamType - Optional event stream type. Defaults to the default stream type.
-     * @param eventStreamId - Optional event stream identifier. Defaults to the default stream.
-     * @param eventSourceType - Optional event source type. Defaults to the default source type.
+     * @param eventStreamType - Optional event stream type to narrow to. Omitted does not narrow.
+     * @param eventStreamId - Optional event stream identifier to narrow to. Omitted does not narrow.
+     * @param eventSourceType - Accepted for signature compatibility; this query carries no event source
+     * type on the wire, so it never narrows the read.
      * @returns A collection of appended events.
+     * @remarks
+     * An omitted stream dimension does not narrow the read - it is not the legacy `Default` route. The
+     * kernel resolves an append that carried no route to stream type `All` and stream identifier
+     * `Default`, so narrowing to `Default` would hide those events.
      */
     getForEventSourceIdAndEventTypes(
         eventSourceId: string,

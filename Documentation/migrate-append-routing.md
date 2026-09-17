@@ -58,6 +58,27 @@ Subject policy is unchanged: entry subject, then shared subject, then the event 
 
 Leave `concurrencyScope` and `concurrencyScopes` configured for the consistency boundary your application requires. Route options do not create or alter a concurrency scope. Per-source scopes still override the shared scope independently of the append route.
 
+## Route-scoped reads
+
+Reads that take route arguments no longer default to the legacy `Default` source and stream type. This is part of the same breaking change, and skipping it makes the new appends unreadable.
+
+The kernel resolves an append that carries no route to source type `Default`, stream type `All`, and stream identifier `Default`. A read that narrowed to stream type `Default` therefore matched none of those events, and returned an empty collection or an unset tail rather than an error. `getTailSequenceNumber()`, `getNextSequenceNumber()`, `getTailSequenceNumberForObserver()`, and `getForEventSourceIdAndEventTypes()` now leave an unsupplied dimension unnarrowed, so one read sees both the events the kernel routed and the events written to an explicit legacy stream. The kernel treats an empty dimension as "do not narrow" on every one of these queries.
+
+Pass the dimensions explicitly when you want a single stream:
+
+```typescript
+async function readExistingOrder(log: IEventLog, orderId: string) {
+    const legacyTail = await log.getTailSequenceNumber(undefined, 'Default', 'Default', orderId);
+    const legacyEvents = await log.getForEventSourceIdAndEventTypes(orderId, [LegacyOrderNoteRecorded], 'Default', orderId);
+
+    return { legacyTail, legacyEvents };
+}
+```
+
+Against kernel 18.4.1 an unnarrowed tail read reports the tail of the whole sequence; a legacy-scoped read reports only that stream, and reports `EventSequenceNumber.unset` when that stream holds no events. `getNextSequenceNumber()` already maps `unset` to `EventSequenceNumber.first`; compare against `EventSequenceNumber.unset` yourself when you read a scoped tail directly. The event source type argument `getForEventSourceIdAndEventTypes()` accepts is not part of that query on the wire and never narrowed the read; narrow on the event source type with `getTailSequenceNumber()` instead. `getFromSequenceNumber()` and `hasEventsFor()` carry no route dimensions at all and are unchanged.
+
+If your application stores a checkpoint taken with an earlier client, re-read it against the dimensions you intend: an unnarrowed tail is at least as high as the legacy-scoped tail it replaces.
+
 ## Verify the selected stream
 
 Read the appended events and verify `context.eventSourceType`, `context.eventStreamType`, `context.eventStreamId`, and `context.subject`. Reads, reactors, and reducers preserve the kernel's metadata, including occurrence time, correlation identifier, causation, tags, identity, hash, and observation state. The added context properties are optional so existing consumer-created contexts remain valid.
