@@ -26,7 +26,7 @@ import {
     type ConnectionServiceClient
 } from '@cratis/chronicle.contracts';
 import { ComplianceDefinition } from '../compliance/ComplianceContracts';
-import { createChannel, createClientFactory, waitForChannelReady } from 'nice-grpc';
+import { createChannel, createClientFactory } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts';
@@ -225,8 +225,7 @@ export class ChronicleConnection implements ChronicleServices {
 
     async connect(): Promise<void> {
         await this._clientsReady;
-        const deadline = new Date(Date.now() + (this._options.connectTimeout ?? 10_000));
-        await waitForChannelReady(this._channel, deadline);
+        // The bounded compatibility RPC establishes transport readiness and contract support together.
         await this._compatibility.verify();
         this._isConnected = true;
     }

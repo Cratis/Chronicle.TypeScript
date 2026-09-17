@@ -6,6 +6,7 @@ import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions';
 import { ChronicleConnection } from './connection';
+import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer';
 import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
 import { KernelKeepAlive } from './connection/KernelKeepAlive';
@@ -50,6 +51,7 @@ export class ChronicleClient implements IChronicleClient {
     private _isDisposed = false;
     private _keepAliveAbortController?: AbortController;
     private _healthCheckInFlight = false;
+    private _connectionFailure?: Error;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
@@ -219,14 +221,10 @@ export class ChronicleClient implements IChronicleClient {
             try {
                 // Resolve (DNS SRV, when applicable) and select (load balancer strategy) a
                 // server address and rebuild the gRPC channel from scratch on every attempt,
-                // including the first — not just once at startup — so membership and load
-                // changes are always picked up. This also guarantees a fresh IDLE channel: a
-                // failed probe can leave a channel in TRANSIENT_FAILURE, which gRPC won't
-                // recover from without a new channel. The contracts connect() is bypassed
-                // here — it uses watchConnectivityState and rejects as soon as the state
-                // changes to CONNECTING (not READY), making it unreliable for initial
-                // connection establishment.
+                // including the first — so membership and load changes are picked up. Verify
+                // the new channel's descriptor before registration or append can produce effects.
                 await this._connection.resetChannel();
+                await this._connection.connect();
 
                 this._logger.debug('Connecting to Chronicle kernel', { attempt: attempt + 1 });
 
@@ -245,6 +243,10 @@ export class ChronicleClient implements IChronicleClient {
 
 
             } catch (error) {
+                if (error instanceof IncompatibleChronicleServer) {
+                    this.failConnection(error);
+                    throw error;
+                }
                 attempt++;
                 const delayMs = await this.backOff(attempt, 'Connection attempt failed, retrying', error);
                 this._logger.verbose('Backed off before next connection attempt', { attempt, delayMs });
@@ -258,6 +260,11 @@ export class ChronicleClient implements IChronicleClient {
         if (this._isDisposed) {
             throw new Error('ChronicleClient is disposed. Create a new client instance before making calls.');
         }
+
+        if (this._connectionFailure) throw this._connectionFailure;
+
+        // Callers arriving during recovery must share its verdict, not create a competing channel.
+        if (this._reconnectOperation) await this._reconnectOperation;
 
         if (this._lifecycle.isConnected) {
             return;
@@ -273,6 +280,8 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private async reconnect(reason: string, error: unknown): Promise<void> {
+        if (this._connectionFailure) throw this._connectionFailure;
+
         if (!this._reconnectOperation) {
             this._reconnectOperation = (async () => {
                 this._logger.warn('Reconnecting to Chronicle kernel', {
@@ -292,6 +301,7 @@ export class ChronicleClient implements IChronicleClient {
                 while (!this._isDisposed) {
                     try {
                         await this._connection.resetChannel();
+                        await this._connection.connect();
                         await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
                         this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
                         await this.startKernelKeepAlive();
@@ -302,6 +312,10 @@ export class ChronicleClient implements IChronicleClient {
                         });
                         return;
                     } catch (reconnectError) {
+                        if (reconnectError instanceof IncompatibleChronicleServer) {
+                            this.failConnection(reconnectError);
+                            throw reconnectError;
+                        }
                         attempt++;
                         await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
                     }
@@ -347,6 +361,7 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private shouldReconnect(error: unknown): boolean {
+        if (error instanceof IncompatibleChronicleServer) return false;
         const code = Number((error as { code?: number })?.code ?? -1);
         const details = String((error as { details?: string })?.details ?? '');
         const message = this.toErrorMessage(error);
@@ -380,7 +395,7 @@ export class ChronicleClient implements IChronicleClient {
 
     private startConnectionWatchdog(): void {
         this._watchdogHandle = setInterval(() => {
-            void this.runHealthCheck();
+            void this.runHealthCheck().catch(error => this.backgroundConnectionFailed('watchdog-health-check', error));
         }, ChronicleClient._healthCheckIntervalMs);
 
         this._watchdogHandle.unref?.();
@@ -418,7 +433,7 @@ export class ChronicleClient implements IChronicleClient {
                 return;
             }
 
-            void this.reconnect(reason, error);
+            void this.reconnect(reason, error).catch(failure => this.backgroundConnectionFailed(reason, failure));
         });
 
         await keepAlive.start(
@@ -438,6 +453,24 @@ export class ChronicleClient implements IChronicleClient {
 
         this._logger.info('Client registered with kernel keep-alive mechanism', {
             connectionId: this._lifecycle.connectionId
+        });
+    }
+
+    private failConnection(error: Error): void {
+        this._connectionFailure = error;
+        this._keepAliveAbortController?.abort();
+        this._connection.disconnect();
+        if (this._watchdogHandle) {
+            clearInterval(this._watchdogHandle);
+            this._watchdogHandle = undefined;
+        }
+    }
+
+    private backgroundConnectionFailed(reason: string, error: unknown): void {
+        this.failConnection(error instanceof Error ? error : new Error(String(error)));
+        this._logger.error('Background connection recovery failed; create a new client after correcting the server', {
+            reason,
+            error: this.toErrorMessage(error)
         });
     }
 

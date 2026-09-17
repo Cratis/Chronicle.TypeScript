@@ -312,6 +312,7 @@ export class Reducers implements IReducers {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         ReadModel: readModelName,
+                        Hash: '',
                         IsActive: isActive,
                         Tags: getTagsFor(reducerType).map(t => t.value),
                         Filters: {

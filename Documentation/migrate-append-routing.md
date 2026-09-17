@@ -7,9 +7,11 @@ The move to kernel-owned append routing is a **major change** for the TypeScript
 
 ## Before upgrading
 
-Use this guide when you must continue an existing stream rather than select the new kernel defaults. Upgrade the kernel and client together after the receipt-capable contracts release is available. Do not deploy the intermediate client changes against an older kernel: descriptor compatibility alone cannot certify a semantic routing change.
+Use this guide when you must continue an existing stream rather than select the kernel defaults. Upgrade every kernel node before upgrading the client: the client checks its installed contract descriptor against the server and refuses an incompatible one before an append is sent.
 
-The client checks its installed contracts descriptor before connection succeeds and before event-sequence operations, including direct append calls. An incompatible server or an unavailable compatibility endpoint prevents writes. It checks again for each replacement channel.
+The client checks its installed contracts descriptor before connection succeeds and before event-sequence operations, including direct append calls. An incompatible server or an unavailable compatibility endpoint prevents writes. A server without the compatibility RPC is rejected as incompatible rather than retried indefinitely. Transient failures can be retried; an incompatible verdict is retained until the channel is replaced. It checks again for each replacement channel.
+
+If a replacement server is incompatible during background recovery, the client stays disconnected and logs the terminal failure. Current and later client operations reject with `IncompatibleChronicleServer`; they do not retry writes. Correct the server deployment, then create a new client instance.
 
 ## Make existing routes explicit
 
@@ -59,5 +61,3 @@ Leave `concurrencyScope` and `concurrencyScopes` configured for the consistency 
 ## Verify the selected stream
 
 Read the appended events and verify `context.eventSourceType`, `context.eventStreamType`, `context.eventStreamId`, and `context.subject`. Reads, reactors, and reducers preserve the kernel's metadata, including occurrence time, correlation identifier, causation, tags, identity, hash, and observation state. The added context properties are optional so existing consumer-created contexts remain valid.
-
-Do not use local `appendOperations` metadata as proof of the persisted route until the receipt-backed notification update is installed. That update must use kernel receipts, not reconstruct successful metadata from request options.

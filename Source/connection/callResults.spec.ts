@@ -23,6 +23,12 @@ describe('callResults', () => {
         });
     });
 
+    describe('when the server explicitly denies authorization without a message', () => {
+        it('should report failure', () => {
+            expect(isCallSuccess({ ...successfulResult, IsAuthorized: false })).toBe(false);
+        });
+    });
+
     describe('when checking a result with validation results', () => {
         it('should report failure', () => {
             expect(isCallSuccess({ ...successfulResult, ValidationResults: [{ Message: 'invalid', Members: [] }] })).toBe(false);
