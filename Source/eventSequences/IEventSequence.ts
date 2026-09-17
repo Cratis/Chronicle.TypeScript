@@ -109,13 +109,12 @@ export interface IEventSequence {
      * @param eventTypes - Collection of event type constructors to filter by.
      * @param eventStreamType - Optional event stream type to narrow to. Omitted does not narrow.
      * @param eventStreamId - Optional event stream identifier to narrow to. Omitted does not narrow.
-     * @param eventSourceType - Accepted for signature compatibility; this query carries no event source
-     * type on the wire, so it never narrows the read.
+     * @param eventSourceType - Optional event source type to filter by.
      * @returns A collection of appended events.
      * @remarks
-     * An omitted stream dimension does not narrow the read - it is not the legacy `Default` route. The
-     * kernel resolves an append that carried no route to stream type `All` and stream identifier
-     * `Default`, so narrowing to `Default` would hide those events.
+     * An omitted dimension does not narrow the read - it is not the legacy `Default` route. The kernel
+     * resolves an append that carried no route to source type `Default`, stream type `All` and stream
+     * identifier `Default`, so narrowing to `Default` would hide those events.
      */
     getForEventSourceIdAndEventTypes(
         eventSourceId: string,

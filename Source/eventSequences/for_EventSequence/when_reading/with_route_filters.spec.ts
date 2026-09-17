@@ -70,14 +70,14 @@ describe('when reading the tail sequence number for an observer', () => {
 });
 
 describe('when reading events for an event source without an explicit stream type', () => {
-    let request: { EventStreamType: string; EventStreamId: string };
+    let request: { EventStreamType: string; EventStreamId: string; EventSourceType: string };
     beforeEach(async () => {
         const { sequence, forEventSourceIdAndEventTypes } = createSequence();
         await sequence.getForEventSourceIdAndEventTypes('source', [RouteReadRecorded]);
         request = forEventSourceIdAndEventTypes.mock.calls[0][0];
     });
     it('should not hide events the kernel routed for an unrouted append', () => {
-        [request.EventStreamType, request.EventStreamId].should.deep.equal(['', '']);
+        [request.EventStreamType, request.EventStreamId, request.EventSourceType].should.deep.equal(['', '', '']);
     });
 });
 
@@ -90,5 +90,35 @@ describe('when reading events for an event source with an explicit stream type',
     });
     it('should send the supplied stream scope unchanged', () => {
         [request.EventStreamType, request.EventStreamId].should.deep.equal(['Default', 'source']);
+    });
+});
+
+// The event source type was accepted and dropped before it reached the request, so a caller narrowing by
+// it silently got every source type back. The specification above exercised this call with a stream scope
+// and never asserted on the source type, which is what kept the drop invisible. See Cratis/Chronicle#4049.
+describe('when reading events for an event source narrowed to an event source type', () => {
+    let request: { EventSourceType: string; EventStreamType: string; EventStreamId: string };
+    beforeEach(async () => {
+        const { sequence, forEventSourceIdAndEventTypes } = createSequence();
+        await sequence.getForEventSourceIdAndEventTypes('source', [RouteReadRecorded], undefined, undefined, 'Order');
+        request = forEventSourceIdAndEventTypes.mock.calls[0][0];
+    });
+    it('should send the event source type', () => {
+        request.EventSourceType.should.equal('Order');
+    });
+    it('should leave the stream dimensions unnarrowed', () => {
+        [request.EventStreamType, request.EventStreamId].should.deep.equal(['', '']);
+    });
+});
+
+describe('when reading events for an event source narrowed to every dimension', () => {
+    let request: { EventSourceType: string; EventStreamType: string; EventStreamId: string };
+    beforeEach(async () => {
+        const { sequence, forEventSourceIdAndEventTypes } = createSequence();
+        await sequence.getForEventSourceIdAndEventTypes('source', [RouteReadRecorded], 'Default', 'source', 'Order');
+        request = forEventSourceIdAndEventTypes.mock.calls[0][0];
+    });
+    it('should send every supplied dimension unchanged', () => {
+        [request.EventSourceType, request.EventStreamType, request.EventStreamId].should.deep.equal(['Order', 'Default', 'source']);
     });
 });
