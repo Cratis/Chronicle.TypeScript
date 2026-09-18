@@ -7,5 +7,7 @@ export { Projections } from './Projections';
 export type { ProjectionState } from './ProjectionState';
 export type { ProjectionQueryResult } from './ProjectionQueryResult';
 export { UnableToQueryProjection } from './UnableToQueryProjection';
+export { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent';
+export { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant';
 export * from './declarative';
 export * from './modelBound';

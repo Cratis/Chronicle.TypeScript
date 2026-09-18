@@ -69,7 +69,7 @@ async function receiveContext(kind: string): Promise<EventContext> {
     const connection = { reactors: { observe }, reducers: { observe }, readModels: { registerMany: async () => ({}) } } as unknown as ChronicleConnection;
     const artifacts = {
         eventTypes: [CanonicalMetadataRecorded], reactors: [CapturingReactor], reducers: [CapturingReducer],
-        readModels: [], seeders: [], constraints: [], projections: [], webhooks: [], eventTypeMigrations: []
+        readModels: [], seeders: [], constraints: [], projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: []
     } as IClientArtifactsProvider;
     const runtime = kind === 'reactor'
         ? new Reactors(artifacts, connection, 'store', 'tenant', lifecycle, {} as IEventLog)

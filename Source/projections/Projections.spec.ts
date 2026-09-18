@@ -82,7 +82,8 @@ function createProjections(readModels: (new (...args: unknown[]) => unknown)[]) 
         constraints: [],
         projections: [],
         webhooks: [],
-        eventTypeMigrations: []
+        eventTypeMigrations: [],
+        globalForHandlers: []
     };
 
     const projections = new Projections('test-store', 'test-namespace', connection, clientArtifacts, 'test-sink');

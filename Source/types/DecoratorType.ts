@@ -30,5 +30,8 @@ export enum DecoratorType {
     Webhook = 'webhook',
 
     /** Event type migration artifacts discovered through the eventTypeMigration decorator. */
-    EventTypeMigration = 'eventTypeMigration'
+    EventTypeMigration = 'eventTypeMigration',
+
+    /** Global read model variant handler artifacts discovered through the globalFor decorator. */
+    GlobalForHandler = 'globalForHandler'
 }

@@ -82,7 +82,8 @@ async function createDiscoveredProjections() {
         constraints: [],
         projections: [DeclarativeSummaryProjection] as unknown as IClientArtifactsProvider['projections'],
         webhooks: [],
-        eventTypeMigrations: []
+        eventTypeMigrations: [],
+        globalForHandlers: []
     };
 
     const projections = new Projections('test-store', 'test-namespace', connection, clientArtifacts, 'test-sink');

@@ -34,5 +34,6 @@ class StructuralDepsMyArtifactsProvider implements IClientArtifactsProvider {
     readonly projections: Constructor[] = [StructuralDepsBorrowedBooksProjection];
     readonly webhooks: Constructor[] = [];
     readonly eventTypeMigrations: Constructor[] = [];
+    readonly globalForHandlers: Constructor[] = [];
 }
 ```
