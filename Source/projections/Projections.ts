@@ -50,7 +50,11 @@ import { isNotRewindable } from './modelBound/notRewindable';
 import { isPassive } from './modelBound/passive';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin';
+import { getVariantOfMetadata } from './modelBound/variantOf';
+import { getEntersOnMetadata } from './modelBound/entersOn';
+import { getGlobalForMetadata } from './modelBound/globalFor';
 import { UnableToQueryProjection } from './UnableToQueryProjection';
+import { BuiltProjection, crossWireGroups, mergeGlobalHandlers, reclassify, VariantDeclaration } from './VariantReclassifier';
 
 interface ResolvedModelBoundMetadata {
     id: ProjectionId;
@@ -132,10 +136,20 @@ export class Projections implements IProjections {
 
         this._logger.info('Registering projections', { declarativeCount: this._declarative.size, modelBoundCount: this._modelBound.size });
 
-        const projections = [
+        const builtProjections: BuiltProjection[] = [
             ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
             ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
         ];
+
+        // Cross-wiring can only run once every variant in this registration call is known, so it
+        // runs here rather than as each definition is built - and LastUpdated is computed only
+        // afterward, so a RemovedWith entry it adds is reflected in the hash sent to the kernel.
+        crossWireGroups(builtProjections);
+        for (const built of builtProjections) {
+            built.definition.LastUpdated = { Value: this.computeStableLastUpdated(built.definition) };
+        }
+
+        const projections = builtProjections.map(built => built.definition);
 
         if (projections.length === 0) {
             this._logger.info('No projections to register');
@@ -380,7 +394,7 @@ export class Projections implements IProjections {
         return '{}';
     }
 
-    private buildDeclarativeDefinition(type: Constructor): any {
+    private buildDeclarativeDefinition(type: Constructor): BuiltProjection {
         const metadata = getProjectionMetadata(type);
         if (!metadata) {
             throw new Error(`Type '${type.name}' is missing declarative projection metadata.`);
@@ -405,8 +419,21 @@ export class Projections implements IProjections {
             }
         }
 
-        definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
-        return definition;
+        let variant: VariantDeclaration | undefined;
+        const variantDeclaration = builder.getVariantDeclaration();
+        if (variantDeclaration) {
+            const reclassified = reclassify(
+                type.name,
+                definition.From as any,
+                definition.Join as any,
+                variantDeclaration.enteringEventTypes,
+                variantDeclaration.key);
+            definition.From = reclassified.from;
+            definition.Join = reclassified.join;
+            variant = variantDeclaration;
+        }
+
+        return { typeName: type.name, definition, variant };
     }
 
     private inferReadModelIdentifier(mappedProperties: string[]): string | undefined {
@@ -429,7 +456,7 @@ export class Projections implements IProjections {
         return matchingReadModels[0].metadata!.id.value;
     }
 
-    private buildModelBoundDefinition(type: Constructor): any {
+    private buildModelBoundDefinition(type: Constructor): BuiltProjection {
         const metadata = this.resolveModelBoundMetadata(type);
         if (!metadata) {
             throw new Error(`Type '${type.name}' is missing model-bound projection metadata.`);
@@ -533,6 +560,39 @@ export class Projections implements IProjections {
             }
         }
 
+        let from = Array.from(fromByEventType.values());
+        let join = Array.from(joinByEventType.values());
+        let variant: VariantDeclaration | undefined;
+
+        const variantMetadata = getVariantOfMetadata(type);
+        if (variantMetadata) {
+            const entersOnList = getEntersOnMetadata(type);
+            const enteringEventTypes = entersOnList.map(entersOn => {
+                const contractType = toContractEventType(entersOn.eventType);
+                if (entersOn.key) {
+                    const entry = ensureFromEntry(fromByEventType, entersOn.eventType);
+                    entry.Value.Key = entersOn.key;
+                }
+                return contractType;
+            });
+            from = Array.from(fromByEventType.values());
+
+            const globalHandlers = new Map<string, FromRecord[]>();
+            for (const handlerType of this._clientArtifacts.globalForHandlers) {
+                const globalForMetadata = getGlobalForMetadata(handlerType);
+                if (globalForMetadata?.identity === variantMetadata.identity) {
+                    globalHandlers.set(handlerType.name, this.buildFromRecordsForType(handlerType));
+                }
+            }
+
+            const memberNames = new Set(getReadModelMetadata(type)?.members.keys() ?? properties);
+            const merged = mergeGlobalHandlers(type.name, memberNames, from, globalHandlers);
+            const reclassified = reclassify(type.name, merged, join, enteringEventTypes, variantMetadata.key);
+            from = reclassified.from;
+            join = reclassified.join;
+            variant = { identity: variantMetadata.identity, key: variantMetadata.key, enteringEventTypes };
+        }
+
         const definition: Record<string, unknown> = {
             EventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
             Identifier: metadata.id.value,
@@ -540,8 +600,8 @@ export class Projections implements IProjections {
             IsActive: !isPassive(type),
             IsRewindable: !isNotRewindable(type),
             InitialModelState: '{}',
-            From: Array.from(fromByEventType.values()),
-            Join: Array.from(joinByEventType.values()),
+            From: from,
+            Join: join,
             Children: childrenByProperty,
             FromEvery: [],
             All: {
@@ -557,8 +617,37 @@ export class Projections implements IProjections {
             NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
             Nested: nestedByProperty
         };
-        definition.LastUpdated = { Value: this.computeStableLastUpdated(definition) };
-        return definition;
+        return { typeName: type.name, definition, variant };
+    }
+
+    /**
+     * Builds the raw From records for an arbitrary type using the same property-mapping rules as
+     * a model-bound read model - used to fold a globalFor shared handler's mappings into every
+     * variant of its identity.
+     * @param type - The type to build From records for.
+     * @returns The built From records.
+     */
+    private buildFromRecordsForType(type: Constructor): FromRecord[] {
+        const fromByEventType = new Map<string, FromRecord>();
+        const fromEvents = getFromEventMetadata(type);
+        for (const fromEvent of fromEvents) {
+            const eventType = toContractEventType(fromEvent.eventType);
+            fromByEventType.set(getEventTypeMapKey(eventType), {
+                Key: eventType,
+                Value: {
+                    Properties: {},
+                    Key: fromEvent.constantKey ?? fromEvent.key ?? '$eventSourceId',
+                    ParentKey: fromEvent.parentKey ?? ''
+                }
+            });
+        }
+
+        const prototype = type.prototype;
+        for (const property of TypeIntrospector.getTrackedProperties(type)) {
+            applyPropertyMappings(prototype, property, fromByEventType);
+        }
+
+        return Array.from(fromByEventType.values());
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {

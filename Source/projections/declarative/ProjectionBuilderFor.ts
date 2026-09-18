@@ -9,7 +9,7 @@ import { IChildrenBuilder } from './IChildrenBuilder';
 import { INestedBuilder } from './INestedBuilder';
 import { IProjectionBuilderFor } from './IProjectionBuilderFor';
 import { NestedBuilder } from './NestedBuilder';
-import { ProjectionBuilderCore } from './ProjectionBuilderCore';
+import { ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore';
 
 /**
  * Concrete implementation of {@link IProjectionBuilderFor} that accumulates projection
@@ -21,6 +21,9 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
     private _containerName: string | undefined;
     private _rewindable: boolean = true;
     private _active: boolean = true;
+    private _variantIdentity: Function | undefined;
+    private _variantKey: string | undefined;
+    private readonly _enteringEventTypes: ContractEventType[] = [];
 
     constructor() {
         super();
@@ -49,6 +52,42 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
     passive(): this {
         this._active = false;
         return this;
+    }
+
+    /** @inheritdoc */
+    variantOf(identity: Function, keyAccessor: PropertyAccessor<TReadModel>): this {
+        const handler = new PropertyPathResolverProxyHandler();
+        const proxy = new Proxy({}, handler);
+        keyAccessor(proxy as TReadModel);
+
+        this._variantIdentity = identity;
+        this._variantKey = handler.property;
+        return this;
+    }
+
+    /** @inheritdoc */
+    entersOn(eventType: Function, key?: string): this {
+        const contractType = this.toContractEventType(eventType);
+        this._enteringEventTypes.push(contractType);
+        if (key) {
+            const fromEntry = this._from.find(record => record.Key.Id === contractType.Id && record.Key.Generation === contractType.Generation);
+            if (fromEntry) {
+                fromEntry.Value.Key = key;
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Gets the variant declaration this builder accumulated, if any.
+     * @returns The variant declaration, or undefined when this projection is not a variant.
+     */
+    getVariantDeclaration(): { identity: Function; key: string; enteringEventTypes: ContractEventType[] } | undefined {
+        if (!this._variantIdentity || !this._variantKey) {
+            return undefined;
+        }
+
+        return { identity: this._variantIdentity, key: this._variantKey, enteringEventTypes: this._enteringEventTypes };
     }
 
     /** @inheritdoc */

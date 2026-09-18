@@ -62,4 +62,9 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     get eventTypeMigrations(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.EventTypeMigration);
     }
+
+    /** @inheritdoc */
+    get globalForHandlers(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.GlobalForHandler);
+    }
 }

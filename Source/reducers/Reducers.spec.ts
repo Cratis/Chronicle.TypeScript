@@ -62,7 +62,8 @@ function createArtifacts(reducers: Constructor[]): IClientArtifactsProvider {
         constraints: [],
         projections: [],
         webhooks: [],
-        eventTypeMigrations: []
+        eventTypeMigrations: [],
+        globalForHandlers: []
     };
 }
 

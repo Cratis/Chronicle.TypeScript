@@ -33,4 +33,7 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered event type migration constructors. */
     readonly eventTypeMigrations: Constructor[];
+
+    /** Gets discovered global read model variant handler constructors. */
+    readonly globalForHandlers: Constructor[];
 }

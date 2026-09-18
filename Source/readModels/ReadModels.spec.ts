@@ -33,7 +33,8 @@ function createReadModels(readModelType: Constructor, releaseResponse: Record<st
         constraints: [],
         projections: [],
         webhooks: [],
-        eventTypeMigrations: []
+        eventTypeMigrations: [],
+        globalForHandlers: []
     } as IClientArtifactsProvider;
 
     const readModels = new ReadModels('test-store', 'test-namespace', connection, clientArtifacts, 'default-sink');
