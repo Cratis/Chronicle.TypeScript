@@ -24,7 +24,10 @@ export interface UniqueConstraintCapture {
     name?: string;
     eventDefinitions: UniqueConstraintEventEntry[];
     ignoreCasing: boolean;
+    /** The most recently specified removal event type (retained for legacy capture consumers). */
     removedWithEventTypeId?: string;
+    /** Distinct removal event types in registration order. */
+    removedWithEventTypeIds?: string[];
     message?: string;
 }
 
@@ -66,8 +69,13 @@ export class UniqueConstraintBuilder implements IUniqueConstraintBuilder {
 
     /** @inheritdoc */
     removedWith(eventType: Function): IUniqueConstraintBuilder {
-        const et = getEventTypeFor(eventType);
-        this._capture.removedWithEventTypeId = et.id.value;
+        const eventTypeId = getEventTypeFor(eventType).id.value;
+        const removalEventTypeIds = this._capture.removedWithEventTypeIds ??=
+            this._capture.removedWithEventTypeId ? [this._capture.removedWithEventTypeId] : [];
+        if (!removalEventTypeIds.includes(eventTypeId)) {
+            removalEventTypeIds.push(eventTypeId);
+        }
+        this._capture.removedWithEventTypeId = eventTypeId;
         return this;
     }
 

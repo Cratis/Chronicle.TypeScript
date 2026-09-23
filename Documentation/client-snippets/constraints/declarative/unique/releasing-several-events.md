@@ -21,6 +21,7 @@ class ConstraintsUniqueSeveralInvitationExpired {
 @constraint()
 class ConstraintsUniqueSeveralInvitedAddress implements IConstraint {
     define(builder: IConstraintBuilder): void {
+        // Each removedWith() adds a release event; all distinct types are retained.
         builder.unique(unique =>
             unique
                 .on(ConstraintsUniqueSeveralInvitationSent, e => e.emailAddress)
