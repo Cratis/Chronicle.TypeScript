@@ -3,10 +3,13 @@
 
 import 'reflect-metadata';
 import { ConceptAs, Constructor, Fields, Guid } from '@cratis/fundamentals';
-import { ComplianceSchemaMetadata, JsonSchema } from './JsonSchema';
+import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema';
 import { TypeIntrospector } from '../types';
 import { ComplianceMetadata } from '../compliance/ComplianceMetadata';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver';
+import { SecurityMetadata } from '../confidentiality/SecurityMetadata';
+import { SecurityMetadataResolver } from '../confidentiality/SecurityMetadataResolver';
+import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported';
 
 /**
  * Generates JSON schemas for class constructors using reflection metadata.
@@ -54,11 +57,15 @@ export class JsonSchemaGenerator {
             // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
             if (Object.keys(propertySchema).length > 0) {
                 // An array of concept elements resolves and applies its own item-level compliance
-                // inside mapRuntimeTypeToSchema - the general property/type/declaring-class walk
-                // below is skipped for it, mirroring the C# generator's enumerable-of-concept branch.
+                // and security metadata inside mapRuntimeTypeToSchema - the general
+                // property/type/declaring-class walk below is skipped for it, mirroring the C#
+                // generator's enumerable-of-concept branch.
                 if (!this.isConceptArrayMember(target, memberName, memberType)) {
-                    const metadata = this.collectComplianceMetadata(prototype, memberName, memberType);
-                    this.addComplianceMetadataToSchema(propertySchema, metadata);
+                    const complianceMetadata = this.collectComplianceMetadata(prototype, memberName, memberType);
+                    const securityMetadata = this.collectSecurityMetadata(prototype, memberName, memberType);
+                    this.throwIfBothCompliantAndSecure(memberName, complianceMetadata, securityMetadata);
+                    this.addComplianceMetadataToSchema(propertySchema, complianceMetadata);
+                    this.addSecurityMetadataToSchema(propertySchema, securityMetadata);
                 }
                 schemaProperties[memberName] = propertySchema;
             }
@@ -132,13 +139,16 @@ export class JsonSchemaGenerator {
         const elementType = this.getArrayElementType(declaringType, propertyName);
 
         // An array whose element is a ConceptAs<T> loses its classification the moment it is put in
-        // a list unless the element concept's own compliance metadata is carried onto the item schema -
-        // a value that would be encrypted as a scalar would otherwise be persisted in the clear as a
-        // list element. Mirrors the C# generator's explicit enumerable-of-concept branch.
+        // a list unless the element concept's own compliance/security metadata is carried onto the
+        // item schema - a value that would be encrypted as a scalar would otherwise be persisted in
+        // the clear as a list element. Mirrors the C# generator's explicit enumerable-of-concept branch.
         if (elementType && this.isConceptAs(elementType)) {
             const itemSchema = this.mapRuntimeTypeToSchema(elementType);
-            const metadata = ComplianceMetadataResolver.getMetadataForType(elementType);
-            this.addComplianceMetadataToSchema(itemSchema, metadata);
+            const complianceMetadata = ComplianceMetadataResolver.getMetadataForType(elementType);
+            const securityMetadata = SecurityMetadataResolver.getMetadataForType(elementType);
+            this.throwIfBothCompliantAndSecure(elementType.name, complianceMetadata, securityMetadata);
+            this.addComplianceMetadataToSchema(itemSchema, complianceMetadata);
+            this.addSecurityMetadataToSchema(itemSchema, securityMetadata);
             return { type: 'array', items: itemSchema };
         }
 
@@ -298,5 +308,100 @@ export class JsonSchemaGenerator {
      */
     private static hasComplianceMetadataOfType(compliance: ComplianceSchemaMetadata[], metadataType: string): boolean {
         return compliance.some(item => item.metadataType === metadataType);
+    }
+
+    /**
+     * Collects security metadata for a property from every source compliance metadata is resolved
+     * from: the property itself, its declaring class, and its own type (the concept case). This is
+     * the security counterpart to {@link collectComplianceMetadata} - a deliberately separate walk
+     * rather than a shared one, over a completely separate `@encrypted()` decorator vocabulary.
+     * @param target - The class prototype the property is declared on.
+     * @param propertyKey - The property name.
+     * @param propertyType - The property's runtime type, when resolved.
+     * @returns The collected security metadata, in property → declaring-class → type order.
+     */
+    private static collectSecurityMetadata(target: object, propertyKey: string, propertyType?: Function): SecurityMetadata[] {
+        const metadata: SecurityMetadata[] = [];
+
+        // Property-level security decorator.
+        if (SecurityMetadataResolver.hasMetadataFor(target, propertyKey)) {
+            metadata.push(...SecurityMetadataResolver.getMetadataFor(target, propertyKey));
+        }
+
+        // Declaring class-level security decorator - a class-level @encrypted() marks every one of
+        // its own properties, the same way a class-level @pii() does for compliance.
+        const declaringClass = (target as { constructor?: Function }).constructor;
+        if (declaringClass) {
+            metadata.push(...SecurityMetadataResolver.getMetadataForType(declaringClass));
+        }
+
+        // Type-level security decorator on the property's own type (e.g., @encrypted on a ConceptAs).
+        if (propertyType) {
+            metadata.push(...SecurityMetadataResolver.getMetadataForType(propertyType));
+        }
+
+        return metadata;
+    }
+
+    /**
+     * Adds security metadata to a schema node, descending into an object's properties so that the
+     * metadata always lands on the leaves that actually hold a value. This is the security
+     * counterpart to {@link addComplianceMetadataToSchema} - see its remarks for why metadata is
+     * pushed to leaves and why an array is left as a container.
+     * @param schema - The schema node to add to.
+     * @param metadata - The security metadata to add.
+     */
+    private static addSecurityMetadataToSchema(schema: JsonSchema, metadata: SecurityMetadata[]): void {
+        if (metadata.length === 0) {
+            return;
+        }
+
+        if (schema.properties && Object.keys(schema.properties).length > 0) {
+            for (const propertySchema of Object.values(schema.properties)) {
+                this.addSecurityMetadataToSchema(propertySchema, metadata);
+            }
+            return;
+        }
+
+        const security = schema.security ?? [];
+        for (const item of metadata) {
+            const metadataType = item.metadataType.value.toString();
+            if (!this.hasSecurityMetadataOfType(security, metadataType)) {
+                security.push({ metadataType, details: item.details });
+            }
+        }
+
+        if (security.length > 0) {
+            schema.security = security;
+        }
+    }
+
+    /**
+     * Checks whether a security array already carries metadata of a given type.
+     * @param security - The security array to check.
+     * @param metadataType - The metadata type to look for.
+     * @returns True when the metadata type is already present, false if not.
+     */
+    private static hasSecurityMetadataOfType(security: SecuritySchemaMetadata[], metadataType: string): boolean {
+        return security.some(item => item.metadataType === metadataType);
+    }
+
+    /**
+     * Rejects a property or type that resolved both compliance and security metadata.
+     * @param name - The property or type name, used in the thrown error.
+     * @param complianceMetadata - The compliance metadata collected for the property/type.
+     * @param securityMetadata - The security metadata collected for the property/type.
+     * @remarks
+     * This is not merely redundant - it corrupts the value. The kernel applies every matching
+     * handler for a property in sequence, so a value marked both ways is encrypted first under the
+     * PII key and then again under the Encrypted key; releasing it decrypts with the wrong key
+     * against ciphertext, which fails loudly rather than returning a wrong value. Checked here, at
+     * schema-generation time, the same point C#'s `EncryptedMetadataProvider.ThrowIfAlsoPII` checks
+     * it - this client has no compile-time analyzer, so this runtime check is the only backstop.
+     */
+    private static throwIfBothCompliantAndSecure(name: string, complianceMetadata: ComplianceMetadata[], securityMetadata: SecurityMetadata[]): void {
+        if (complianceMetadata.length > 0 && securityMetadata.length > 0) {
+            throw new PIIAndEncryptedCombinedNotSupported(name);
+        }
     }
 }

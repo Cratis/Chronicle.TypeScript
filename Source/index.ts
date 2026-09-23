@@ -23,6 +23,7 @@ import * as correlation from './correlation';
 import * as transactions from './transactions';
 import * as eventStoreSubscriptions from './eventStoreSubscriptions';
 import * as compliance from './compliance';
+import * as confidentiality from './confidentiality';
 
 export { ChronicleClient } from './ChronicleClient';
 export { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer';
@@ -58,6 +59,7 @@ export * from './correlation';
 export * from './transactions';
 export * from './eventStoreSubscriptions';
 export * from './compliance';
+export * from './confidentiality';
 
 export {
     events,
@@ -82,4 +84,5 @@ export {
     transactions,
     eventStoreSubscriptions,
     compliance,
+    confidentiality,
 };

@@ -40,14 +40,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:19.0.1":
-  version: 19.0.1
-  resolution: "@cratis/chronicle.contracts@npm:19.0.1"
+"@cratis/chronicle.contracts@npm:19.4.0":
+  version: 19.4.0
+  resolution: "@cratis/chronicle.contracts@npm:19.4.0"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.14.0"
     "@grpc/grpc-js": "npm:^1.14.4"
     nice-grpc: "npm:^2.1.17"
-  checksum: 10c0/cb0921fd9a52561075e7a3d9f541a05e4343736f3c05dfbcaff9c811e13c8fff40ee9f59a7630df1f8e74f3494f73ae3452b077be0f4497357afa322e2936f29
+  checksum: 10c0/bf44625f1329f029ffdec697c3350fc6326c3cff372310ee02a037264c27ab632dffa29fd86ef50e9afb3f953e4577ceb2817c6c43b997f1cfdc50c50de6d505
   languageName: node
   linkType: hard
 
@@ -56,7 +56,7 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.15.0"
-    "@cratis/chronicle.contracts": "npm:19.0.1"
+    "@cratis/chronicle.contracts": "npm:19.4.0"
     "@cratis/fundamentals": "npm:7.19.2"
     "@grpc/grpc-js": "npm:^1.14.4"
     "@opentelemetry/api": "npm:^1.9.1"
@@ -1831,7 +1831,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:19.0.1"
+    "@cratis/chronicle.contracts": "npm:19.4.0"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft
