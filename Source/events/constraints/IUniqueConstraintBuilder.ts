@@ -31,7 +31,8 @@ export interface IUniqueConstraintBuilder {
     ignoreCasing(): IUniqueConstraintBuilder;
 
     /**
-     * Specifies the event type that removes this unique constraint (e.g. a deletion event).
+     * Adds an event type that removes this unique property constraint (e.g. a deletion event).
+     * Repeated calls retain distinct event types in registration order.
      * @param eventType - The event constructor that removes the constraint.
      * @returns This builder for fluent chaining.
      */

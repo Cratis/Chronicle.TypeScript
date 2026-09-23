@@ -57,10 +57,15 @@ export class Constraints implements IConstraints {
 
             if (capture.uniqueConstraint) {
                 const uc = capture.uniqueConstraint;
+                const removalEventTypeIds = uc.removedWithEventTypeIds ?? [];
+                const legacyEventTypeId = uc.removedWithEventTypeId;
                 return {
                     Name: capture.name,
                     Type: ConstraintType.Unique,
-                    RemovedWith: uc.removedWithEventTypeId ? [uc.removedWithEventTypeId] : [],
+                    RemovedWith: [...new Set([
+                        ...(legacyEventTypeId && !removalEventTypeIds.includes(legacyEventTypeId) ? [legacyEventTypeId] : []),
+                        ...removalEventTypeIds
+                    ])],
                     Definition: {
                         Value0: {
                             EventDefinitions: uc.eventDefinitions.map(ed => ({
