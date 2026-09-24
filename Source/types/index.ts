@@ -4,3 +4,5 @@
 export { DecoratorType } from './DecoratorType.js';
 export { TypeDiscoverer } from './TypeDiscoverer.js';
 export { TypeIntrospector } from './TypeIntrospector.js';
+export type { ChronicleClassDecorator } from './standardDecoratorMetadata.js';
+export type { ChroniclePropertyDecorator, ChronicleClassOrPropertyDecorator } from './propertyDecoratorMetadata.js';

@@ -35,7 +35,7 @@ import 'reflect-metadata';
 
 ## Decorator mode and schema types
 
-Use TypeScript 5.2 or newer with standard decorators (leave `experimentalDecorators` and `emitDecoratorMetadata` unset). Existing projects with `experimentalDecorators: true` continue to use the legacy decorators. For standard-mode event types and read models, declare member types explicitly with `@field` from `@cratis/fundamentals`; TypeScript does not emit `design:type` metadata in this mode. Set array element types with `@field(Array, { genericArguments: [ItemType] })`. Concept classes can declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` to identify their serialized value without legacy metadata.
+Use TypeScript 5.2 or newer with standard decorators (leave `experimentalDecorators` and `emitDecoratorMetadata` unset). Existing projects with `experimentalDecorators: true` continue to use the legacy decorators. The published decorator typings reference TypeScript 5 standard context types; projects on older TypeScript versions may need `skipLibCheck` or an upgrade. For standard-mode event types and read models, declare member types explicitly with `@field` from `@cratis/fundamentals`; TypeScript does not emit `design:type` metadata in this mode. Set array element types with `@field(Array, { genericArguments: [ItemType] })`. Concept classes can declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` to identify their serialized value without legacy metadata.
 
 ```typescript
 import 'reflect-metadata';
