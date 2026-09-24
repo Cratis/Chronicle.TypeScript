@@ -1,17 +1,16 @@
 ```typescript
-import { count, eventType, fromEvent, Guid, readModel } from '@cratis/chronicle';
+import { count, eventType, fromEvent, Guid } from '@cratis/chronicle';
 
 @eventType()
-class MbConstantKeyUserRegistered {
+export class MbConstantKeyUserRegistered {
 }
 
 @eventType()
-class MbConstantKeyOrderPlacedGlobal {
+export class MbConstantKeyOrderPlacedGlobal {
 }
 
-@readModel()
 @fromEvent(MbConstantKeyUserRegistered)
-class MbConstantKeyUserDashboard {
+export class MbConstantKeyUserDashboard {
     id: Guid = Guid.empty;
     name = '';
 

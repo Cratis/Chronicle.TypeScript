@@ -2,15 +2,14 @@
 import { eventType } from '@cratis/chronicle';
 
 @eventType()
-class MbCountersOrderPlaced {
+export class MbCountersOrderPlaced {
 }
 
 @eventType()
-class MbCountersOrderCancelled {
+export class MbCountersOrderCancelled {
 }
 
-@readModel()
-class MbCountersEventMetrics {
+export class MbCountersEventMetrics {
     id: Guid = Guid.empty;
 
     @count(MbCountersOrderPlaced)

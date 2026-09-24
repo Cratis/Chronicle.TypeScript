@@ -1,23 +1,23 @@
 ```typescript
-import { entersOn, eventType, fromEvent, globalFor, readModel, setFrom, variantOf } from '@cratis/chronicle';
+import { entersOn, eventType, fromEvent, globalFor, setFrom, variantOf } from '@cratis/chronicle';
 
 @eventType()
-class MbVariantFullIssueCreated {
+export class MbVariantFullIssueCreated {
     title = '';
 }
 
 @eventType()
-class MbVariantFullPullRequestCreated {
+export class MbVariantFullPullRequestCreated {
     pullRequestUrl = '';
 }
 
 @eventType()
-class MbVariantFullBuildCompleted {
+export class MbVariantFullBuildCompleted {
     buildStatus = '';
 }
 
 @eventType()
-class MbVariantFullTitleChanged {
+export class MbVariantFullTitleChanged {
     title = '';
 }
 
@@ -25,14 +25,13 @@ class MbVariantFullTitleChanged {
  * Anchors the logical identity shared by MbVariantFullBacklogItem and MbVariantFullPullRequestItem.
  * Deliberately not a read model itself.
  */
-class MbVariantFullWorkItem {}
+export class MbVariantFullWorkItem {}
 
 /** The variant an entity is in before a pull request exists for it. */
 @variantOf(MbVariantFullWorkItem, 'id')
 @entersOn(MbVariantFullIssueCreated)
 @fromEvent(MbVariantFullIssueCreated)
-@readModel()
-class MbVariantFullBacklogItem {
+export class MbVariantFullBacklogItem {
     id = '';
     title = '';
 }
@@ -46,8 +45,7 @@ class MbVariantFullBacklogItem {
 @entersOn(MbVariantFullPullRequestCreated)
 @fromEvent(MbVariantFullPullRequestCreated)
 @fromEvent(MbVariantFullBuildCompleted)
-@readModel()
-class MbVariantFullPullRequestItem {
+export class MbVariantFullPullRequestItem {
     id = '';
     title = '';
 
@@ -60,7 +58,7 @@ class MbVariantFullPullRequestItem {
 
 /** Declares a mapping every variant of MbVariantFullWorkItem shares. */
 @globalFor(MbVariantFullWorkItem)
-class MbVariantFullSharedHandlers {
+export class MbVariantFullSharedHandlers {
     @setFrom(MbVariantFullTitleChanged, 'title')
     title = '';
 }

@@ -1,24 +1,23 @@
 ```typescript
-import { childrenFrom, eventType, Guid, join, readModel } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, join } from '@cratis/chronicle';
 
 @eventType()
-class MbJoinsSourcesLineItemAdded {
+export class MbJoinsSourcesLineItemAdded {
     productId: Guid = Guid.empty;
 }
 
 @eventType()
-class MbJoinsSourcesProductCatalogUpdated {
+export class MbJoinsSourcesProductCatalogUpdated {
     name = '';
     description = '';
 }
 
 @eventType()
-class MbJoinsSourcesPricingUpdated {
+export class MbJoinsSourcesPricingUpdated {
     currentPrice = 0;
 }
 
-@readModel()
-class MbJoinsSourcesOrder {
+export class MbJoinsSourcesOrder {
     id: Guid = Guid.empty;
 
     @childrenFrom(MbJoinsSourcesLineItemAdded, 'productId')
@@ -26,7 +25,7 @@ class MbJoinsSourcesOrder {
 }
 
 // Keyed by product id, so both joins below resolve implicitly through the child's own key.
-class MbJoinsSourcesOrderLine {
+export class MbJoinsSourcesOrderLine {
     id: Guid = Guid.empty;
 
     @join(MbJoinsSourcesProductCatalogUpdated, undefined, 'name')

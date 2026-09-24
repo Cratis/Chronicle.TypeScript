@@ -1,17 +1,16 @@
 ```typescript title="Clear a scalar member"
-import { clearWith, eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbClearingProjectNoted {
+export class MbClearingProjectNoted {
     note = '';
 }
 
 @eventType()
-class MbClearingProjectNoteCleared {}
+export class MbClearingProjectNoteCleared {}
 
-@readModel()
 @fromEvent(MbClearingProjectNoted)
-class MbClearingProjectNotes {
+export class MbClearingProjectNotes {
     @setFrom(MbClearingProjectNoted, 'note')
     @clearWith(MbClearingProjectNoteCleared)
     note: string | undefined = undefined;

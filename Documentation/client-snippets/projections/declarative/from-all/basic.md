@@ -1,25 +1,24 @@
 ```typescript title="Declarative FromAll"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class UserCreatedDeclarativeAll {
+export class UserCreatedDeclarativeAll {
     constructor(readonly name: string, readonly email: string) {}
 }
 
 @eventType()
-class UserEmailChangedDeclarativeAll {
+export class UserEmailChangedDeclarativeAll {
     constructor(readonly email: string) {}
 }
 
-@readModel()
-class UserProfileDeclarativeAll {
+export class UserProfileDeclarativeAll {
     name = '';
     email = '';
     lastUpdated = new Date();
 }
 
 @projection('', UserProfileDeclarativeAll)
-class UserProfileDeclarativeAllProjection implements IProjectionFor<UserProfileDeclarativeAll> {
+export class UserProfileDeclarativeAllProjection implements IProjectionFor<UserProfileDeclarativeAll> {
     define(builder: IProjectionBuilderFor<UserProfileDeclarativeAll>): void {
         builder
             .from(UserCreatedDeclarativeAll)

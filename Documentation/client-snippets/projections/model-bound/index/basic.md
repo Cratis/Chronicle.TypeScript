@@ -1,15 +1,14 @@
 ```typescript
-import { eventType, fromEvent, Guid, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, Guid, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbIndexAccountOpened {
+export class MbIndexAccountOpened {
     name = '';
     initialBalance = 0;
 }
 
-@readModel()
 @fromEvent(MbIndexAccountOpened)
-class MbIndexAccountInfo {
+export class MbIndexAccountInfo {
     id: Guid = Guid.empty;
     name = '';
 

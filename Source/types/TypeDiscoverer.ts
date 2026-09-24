@@ -4,9 +4,22 @@
 import path from 'path';
 import { DecoratorType } from './DecoratorType.js';
 import { Constructor } from '@cratis/fundamentals';
+import { TypeIntrospector } from './TypeIntrospector.js';
+import { hasPropertyMetadata } from './propertyDecoratorMetadata.js';
 
 type GlobFunction = (pattern: string | string[]) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
+
+const modelBoundPropertyKeys = [
+    'setFrom', 'setFromContext', 'setValue', 'addFrom', 'subtractFrom',
+    'increment', 'decrement', 'count', 'childrenFrom', 'join', 'fromEvery', 'fromAll'
+].map(name => `chronicle:projection:${name}`);
+
+/** Identifies models whose event mappings live on their properties rather than on @fromEvent. */
+export function hasModelBoundProperties(type: Function): boolean {
+    return TypeIntrospector.getTrackedProperties(type).some(property =>
+        modelBoundPropertyKeys.some(key => hasPropertyMetadata(key, type.prototype, property)));
+}
 
 /**
  * Encapsulates discovery and registry operations for decorator-based artifacts.
@@ -38,7 +51,15 @@ export class TypeDiscoverer {
         const patterns = Array.isArray(pattern) ? pattern : [pattern];
         const files = await this._glob(patterns);
         for (const file of files) {
-            await this._importFile(path.resolve(file));
+            const module = await this._importFile(path.resolve(file));
+            if (module && typeof module === 'object') {
+                for (const type of Object.values(module)) {
+                    if (typeof type !== 'function' || !type.prototype) continue;
+                    if (hasModelBoundProperties(type)) {
+                        this.register(DecoratorType.ReadModel, type as Constructor);
+                    }
+                }
+            }
         }
     }
 
@@ -51,7 +72,22 @@ export class TypeDiscoverer {
     register(decoratorType: DecoratorType, type: Constructor, name?: string): void {
         const discoveredName = name ?? type.name;
         const typesForDecorator = TypeDiscoverer._registeredTypes.get(decoratorType) ?? new Map<string, Constructor>();
-        typesForDecorator.set(discoveredName, type);
+        if (decoratorType === DecoratorType.ReadModel) {
+            const previous = Array.from(typesForDecorator).find(([, registered]) => registered === type);
+            if (previous && previous[0] !== discoveredName) {
+                // A named @readModel overrides the type-name alias registered by an observer.
+                if (previous[0] !== type.name) return;
+                typesForDecorator.delete(previous[0]);
+            }
+        }
+        let key = discoveredName;
+        if (decoratorType === DecoratorType.ReadModel && typesForDecorator.has(key) && typesForDecorator.get(key) !== type &&
+            !(type.prototype instanceof typesForDecorator.get(key)!)) {
+            let suffix = 2;
+            while (typesForDecorator.has(`${discoveredName}#${suffix}`)) suffix++;
+            key = `${discoveredName}#${suffix}`;
+        }
+        typesForDecorator.set(key, type);
         TypeDiscoverer._registeredTypes.set(decoratorType, typesForDecorator);
     }
 

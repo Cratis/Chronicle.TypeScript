@@ -1,15 +1,14 @@
 ```typescript
-import { eventType, Guid, notRewindable, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, Guid, notRewindable, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbNotRewindableAuditEvent {
+export class MbNotRewindableAuditEvent {
     message = '';
     occurredAt = new Date();
 }
 
-@readModel()
 @notRewindable
-class MbNotRewindableAuditLog {
+export class MbNotRewindableAuditLog {
     id: Guid = Guid.empty;
 
     @setFrom(MbNotRewindableAuditEvent, 'message')

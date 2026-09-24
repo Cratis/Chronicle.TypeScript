@@ -1,19 +1,18 @@
 ```typescript title="Map event source id with FromAll"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AccountOpenedDeclarativeAll {
+export class AccountOpenedDeclarativeAll {
     constructor(readonly ownerName: string) {}
 }
 
-@readModel()
-class AccountSummaryDeclarativeAll {
+export class AccountSummaryDeclarativeAll {
     accountId = '';
     ownerName = '';
 }
 
 @projection('', AccountSummaryDeclarativeAll)
-class AccountSummaryDeclarativeAllProjection implements IProjectionFor<AccountSummaryDeclarativeAll> {
+export class AccountSummaryDeclarativeAllProjection implements IProjectionFor<AccountSummaryDeclarativeAll> {
     define(builder: IProjectionBuilderFor<AccountSummaryDeclarativeAll>): void {
         builder
             .from(AccountOpenedDeclarativeAll)

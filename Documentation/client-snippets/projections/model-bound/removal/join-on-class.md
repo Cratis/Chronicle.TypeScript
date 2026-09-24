@@ -1,23 +1,22 @@
 ```typescript
-import { eventType, Guid, join, readModel, removedWithJoin, setFrom } from '@cratis/chronicle';
+import { eventType, Guid, join, removedWithJoin, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbRemovalJoinClassEmployeeHired {
+export class MbRemovalJoinClassEmployeeHired {
     name = '';
 }
 
 @eventType()
-class MbRemovalJoinClassCompanyRegistered {
+export class MbRemovalJoinClassCompanyRegistered {
     name = '';
 }
 
 @eventType()
-class MbRemovalJoinClassCompanyDissolved {
+export class MbRemovalJoinClassCompanyDissolved {
 }
 
-@readModel()
 @removedWithJoin(MbRemovalJoinClassCompanyDissolved)
-class MbRemovalJoinClassEmployee {
+export class MbRemovalJoinClassEmployee {
     id: Guid = Guid.empty;
 
     @setFrom(MbRemovalJoinClassEmployeeHired, 'name')

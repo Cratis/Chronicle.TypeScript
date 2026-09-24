@@ -1,24 +1,23 @@
 ```typescript title="Declarative projection with every-event metadata"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class InventoryRegisteredDeclarativeForEvery {
+export class InventoryRegisteredDeclarativeForEvery {
     constructor(readonly productName: string) {}
 }
 
 @eventType()
-class InventoryAdjustedDeclarativeForEvery {
+export class InventoryAdjustedDeclarativeForEvery {
     constructor(readonly quantity: number) {}
 }
 
-@readModel()
-class InventoryStatusDeclarativeFromEvery {
+export class InventoryStatusDeclarativeFromEvery {
     productName = '';
     lastUpdated = new Date();
 }
 
 @projection('', InventoryStatusDeclarativeFromEvery)
-class InventoryStatusDeclarativeProjection implements IProjectionFor<InventoryStatusDeclarativeFromEvery> {
+export class InventoryStatusDeclarativeProjection implements IProjectionFor<InventoryStatusDeclarativeFromEvery> {
     define(builder: IProjectionBuilderFor<InventoryStatusDeclarativeFromEvery>): void {
         builder
             .from(InventoryRegisteredDeclarativeForEvery)

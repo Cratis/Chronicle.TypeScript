@@ -1,8 +1,8 @@
 ```typescript title="Convention-based mapping"
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ConventionUserRegistered {
+export class ConventionUserRegistered {
     constructor(
         readonly name: string,
         readonly email: string,
@@ -10,9 +10,8 @@ class ConventionUserRegistered {
     ) {}
 }
 
-@readModel()
 @fromEvent(ConventionUserRegistered)
-class ConventionUser {
+export class ConventionUser {
     name = '';
     email = '';
     registeredAt = new Date();

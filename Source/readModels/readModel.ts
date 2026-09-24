@@ -30,6 +30,9 @@ export interface ReadModelMetadata {
  * TypeScript decorator that marks a class as a read model and captures reflection metadata.
  * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
  * @returns A class decorator.
+ * @deprecated Read models are discovered from @projection(..., ReadModelType),
+ * @reducer(..., ReadModelType), or @fromEvent on the model. For a custom identifier,
+ * declare `static readonly readModelId = 'custom-id'` on the model instead.
  */
 export function readModel(id: string = ''): ChronicleClassDecorator {
     return (target: object, context?: ClassDecoratorContext) => {
@@ -82,4 +85,15 @@ export function getReadModelMetadata(target: Function): ReadModelMetadata | unde
  */
 export function isReadModel(target: Function): boolean {
     return Reflect.hasMetadata(READ_MODEL_METADATA_KEY, target);
+}
+
+/** Resolves the compatible identifier of a decorated or inferred read model. */
+export function getReadModelId(target: Function): string {
+    const decorated = getReadModelMetadata(target);
+    if (decorated) return decorated.id.value;
+    const explicit = (target as unknown as { readModelId?: unknown }).readModelId;
+    if (explicit !== undefined && (typeof explicit !== 'string' || !explicit.trim())) {
+        throw new TypeError(`Read model '${target.name}' must have a non-empty string readModelId.`);
+    }
+    return explicit as string | undefined ?? target.name;
 }

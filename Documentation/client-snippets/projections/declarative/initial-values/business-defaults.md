@@ -1,5 +1,5 @@
 ```typescript title="Business defaults"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 enum InitialValuesOrderStatus {
     Draft = 'Draft',
@@ -7,12 +7,11 @@ enum InitialValuesOrderStatus {
 }
 
 @eventType()
-class InitialValuesOrderSubmitted {
+export class InitialValuesOrderSubmitted {
     constructor(readonly customerName: string, readonly totalAmount: number) {}
 }
 
-@readModel()
-class InitialValuesOrderSummary {
+export class InitialValuesOrderSummary {
     customerName = '';
     status = InitialValuesOrderStatus.Draft;
     totalAmount = 0;
@@ -21,7 +20,7 @@ class InitialValuesOrderSummary {
 }
 
 @projection('', InitialValuesOrderSummary)
-class InitialValuesOrderSummaryProjection implements IProjectionFor<InitialValuesOrderSummary> {
+export class InitialValuesOrderSummaryProjection implements IProjectionFor<InitialValuesOrderSummary> {
     define(builder: IProjectionBuilderFor<InitialValuesOrderSummary>): void {
         builder
             .withInitialValues(() => new InitialValuesOrderSummary())

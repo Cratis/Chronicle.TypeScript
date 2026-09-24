@@ -18,6 +18,8 @@ import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
 import { getReadModelMetadata } from '../readModels/index.js';
+import { getReadModelId } from '../readModels/readModel.js';
+import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 
 /** Expression used to partition reducer observations by event source ID. */
@@ -151,6 +153,7 @@ export class Reducers implements IReducers {
             await this.discover();
         }
 
+        assertUniqueReadModelIds(this._clientArtifacts.readModels);
         await this.registerReadModels();
 
         this._logger.info('Registering reducers', { count: this._reducers.size });
@@ -188,6 +191,12 @@ export class Reducers implements IReducers {
             };
         });
 
+        const identifiers = new Set<string>();
+        for (const definition of readModels) {
+            const identifier = definition.Type.Identifier;
+            if (identifiers.has(identifier)) throw new Error(`Read model id '${identifier}' has multiple reducers.`);
+            identifiers.add(identifier);
+        }
         this._logger.info('Registering read models for reducers', { count: readModels.length });
         await this._connection.readModels.registerMany({
             EventStore: this._eventStoreName,
@@ -281,7 +290,7 @@ export class Reducers implements IReducers {
     private getReducerReadModelIdentifier(reducerType: Constructor): string {
         const metadata = getReducerMetadata(reducerType);
         if (metadata?.readModel) {
-            return getReadModelMetadata(metadata.readModel)?.id.value ?? metadata.readModel.name;
+            return getReadModelId(metadata.readModel);
         }
 
         return (reducerType as Function).name;

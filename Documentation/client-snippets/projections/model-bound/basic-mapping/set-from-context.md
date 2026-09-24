@@ -1,14 +1,13 @@
 ```typescript title="Map event context"
-import { eventType, fromEvent, readModel, setFrom, setFromContext } from '@cratis/chronicle';
+import { eventType, fromEvent, setFrom, setFromContext } from '@cratis/chronicle';
 
 @eventType()
-class OrderPlacedForAudit {
+export class OrderPlacedForAudit {
     constructor(readonly customerName: string) {}
 }
 
-@readModel()
 @fromEvent(OrderPlacedForAudit)
-class AuditedOrder {
+export class AuditedOrder {
     @setFrom(OrderPlacedForAudit, 'customerName')
     customerName = '';
 

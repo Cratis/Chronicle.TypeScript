@@ -1,8 +1,8 @@
 ```typescript
-import { childrenFrom, decrement, eventType, Guid, increment, readModel, setFrom } from '@cratis/chronicle';
+import { childrenFrom, decrement, eventType, Guid, increment, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbChildrenCountersItemAddedToCart {
+export class MbChildrenCountersItemAddedToCart {
     itemId: Guid = Guid.empty;
     productName = '';
     price = 0;
@@ -10,17 +10,16 @@ class MbChildrenCountersItemAddedToCart {
 }
 
 @eventType()
-class MbChildrenCountersQuantityIncreased {
+export class MbChildrenCountersQuantityIncreased {
     itemId: Guid = Guid.empty;
 }
 
 @eventType()
-class MbChildrenCountersQuantityDecreased {
+export class MbChildrenCountersQuantityDecreased {
     itemId: Guid = Guid.empty;
 }
 
-@readModel()
-class MbChildrenCountersShoppingCart {
+export class MbChildrenCountersShoppingCart {
     id: Guid = Guid.empty;
 
     @childrenFrom(MbChildrenCountersItemAddedToCart, 'itemId')
@@ -28,7 +27,7 @@ class MbChildrenCountersShoppingCart {
 }
 
 // Child type with its own projection decorators
-class MbChildrenCountersCartItem {
+export class MbChildrenCountersCartItem {
     id: Guid = Guid.empty;
 
     @setFrom(MbChildrenCountersItemAddedToCart, 'productName')

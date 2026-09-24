@@ -89,6 +89,24 @@ function createConnection() {
 }
 
 describe('Reducers', () => {
+    describe('when a reducer produces a model without @readModel', () => {
+        class NamedState {
+            static readonly readModelId = 'existing-state-id';
+            count = 0;
+        }
+        class NamedReducer {}
+        reducer('named-reducer', undefined, NamedState)(NamedReducer);
+
+        it('should register the model under its explicit identifier with a schema from its type', async () => {
+            const { connection } = createConnection();
+            const registerMany = vi.spyOn(connection.readModels, 'registerMany');
+            const reducers = new Reducers(createArtifacts([NamedReducer]), connection, 'store', 'Default', new ConnectionLifecycle(), 'sink');
+            await reducers.register();
+            const definition = registerMany.mock.calls[0][0].ReadModels[0];
+            expect(definition.Type.Identifier).toBe('existing-state-id');
+            expect(JSON.parse(definition.Schema).properties.count.type).toBe('number');
+        });
+    });
     describe('when registering an active reducer (the default)', () => {
         class SomeReducer {}
         reducer('some-active-reducer')(SomeReducer);

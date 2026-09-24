@@ -1,32 +1,31 @@
 ```typescript title="Complete balance projection"
-import { addFrom, eventType, fromEvent, readModel, setFrom, subtractFrom } from '@cratis/chronicle';
+import { addFrom, eventType, fromEvent, setFrom, subtractFrom } from '@cratis/chronicle';
 
 @eventType()
-class BankAccountOpened {
+export class BankAccountOpened {
     constructor(readonly accountName: string, readonly initialBalance: number) {}
 }
 
 @eventType()
-class BankAccountRenamed {
+export class BankAccountRenamed {
     constructor(readonly newName: string) {}
 }
 
 @eventType()
-class FundsDeposited {
+export class FundsDeposited {
     constructor(readonly amount: number) {}
 }
 
 @eventType()
-class FundsWithdrawn {
+export class FundsWithdrawn {
     constructor(readonly amount: number) {}
 }
 
-@readModel()
 @fromEvent(BankAccountOpened)
 @fromEvent(BankAccountRenamed)
 @fromEvent(FundsDeposited)
 @fromEvent(FundsWithdrawn)
-class BankAccount {
+export class BankAccount {
     @setFrom(BankAccountOpened, 'accountName')
     @setFrom(BankAccountRenamed, 'newName')
     name = '';

@@ -1,19 +1,18 @@
 ```typescript title="Exclude child projection events"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class OrderCreatedDeclarativeEveryExclude {
+export class OrderCreatedDeclarativeEveryExclude {
     constructor(readonly orderNumber: string) {}
 }
 
-@readModel()
-class OrderAuditDeclarativeEveryExclude {
+export class OrderAuditDeclarativeEveryExclude {
     orderNumber = '';
     lastUpdated = new Date();
 }
 
 @projection('', OrderAuditDeclarativeEveryExclude)
-class OrderAuditDeclarativeEveryExcludeProjection implements IProjectionFor<OrderAuditDeclarativeEveryExclude> {
+export class OrderAuditDeclarativeEveryExcludeProjection implements IProjectionFor<OrderAuditDeclarativeEveryExclude> {
     define(builder: IProjectionBuilderFor<OrderAuditDeclarativeEveryExclude>): void {
         builder
             .from(OrderCreatedDeclarativeEveryExclude)

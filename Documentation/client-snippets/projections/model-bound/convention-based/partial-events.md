@@ -1,13 +1,13 @@
 ```typescript title="Partial event shapes"
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ConventionPartialUserRegistered {
+export class ConventionPartialUserRegistered {
     constructor(readonly email: string) {}
 }
 
 @eventType()
-class ConventionPartialUserCompleted {
+export class ConventionPartialUserCompleted {
     constructor(
         readonly firstName: string,
         readonly lastName: string,
@@ -15,10 +15,9 @@ class ConventionPartialUserCompleted {
     ) {}
 }
 
-@readModel()
 @fromEvent(ConventionPartialUserRegistered)
 @fromEvent(ConventionPartialUserCompleted)
-class ConventionPartialUser {
+export class ConventionPartialUser {
     email = '';
     firstName = '';
     lastName = '';

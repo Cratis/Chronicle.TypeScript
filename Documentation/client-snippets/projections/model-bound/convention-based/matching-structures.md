@@ -1,20 +1,20 @@
 ```typescript title="Matching nested structures and collections"
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
-class ConventionAddress {
+export class ConventionAddress {
     street = '';
     city = '';
     postalCode = '';
 }
 
-class ConventionLineItem {
+export class ConventionLineItem {
     productName = '';
     unitPrice = 0;
     quantity = 0;
 }
 
 @eventType()
-class ConventionCustomerRegistered {
+export class ConventionCustomerRegistered {
     constructor(
         readonly firstName: string,
         readonly lastName: string,
@@ -24,7 +24,7 @@ class ConventionCustomerRegistered {
 }
 
 @eventType()
-class ConventionOrderCreated {
+export class ConventionOrderCreated {
     constructor(
         readonly customerEmail: string,
         readonly items: ConventionLineItem[],
@@ -32,18 +32,16 @@ class ConventionOrderCreated {
     ) {}
 }
 
-@readModel()
 @fromEvent(ConventionCustomerRegistered)
-class ConventionCustomer {
+export class ConventionCustomer {
     firstName = '';
     lastName = '';
     billingAddress = new ConventionAddress();
     shippingAddress = new ConventionAddress();
 }
 
-@readModel()
 @fromEvent(ConventionOrderCreated)
-class ConventionOrder {
+export class ConventionOrder {
     customerEmail = '';
     items: ConventionLineItem[] = [];
     tags: string[] = [];

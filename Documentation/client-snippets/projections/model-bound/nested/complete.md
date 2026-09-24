@@ -1,13 +1,13 @@
 ```typescript
-import { clearWith, eventType, fromEvent, Guid, nested, readModel, setFrom } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, Guid, nested, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class SliceCreatedForNestedComplete {
+export class SliceCreatedForNestedComplete {
     constructor(readonly name: string) {}
 }
 
 @eventType()
-class CommandSetForNestedComplete {
+export class CommandSetForNestedComplete {
     constructor(
         readonly commandId: Guid,
         readonly name: string,
@@ -18,12 +18,12 @@ class CommandSetForNestedComplete {
 }
 
 @eventType()
-class CommandRenamedForNestedComplete {
+export class CommandRenamedForNestedComplete {
     constructor(readonly commandId: Guid, readonly name: string) {}
 }
 
 @eventType()
-class CommandDefinitionUpdatedForNestedComplete {
+export class CommandDefinitionUpdatedForNestedComplete {
     constructor(
         readonly commandId: Guid,
         readonly schema: string,
@@ -33,14 +33,14 @@ class CommandDefinitionUpdatedForNestedComplete {
 }
 
 @eventType()
-class CommandClearedForNestedComplete {
+export class CommandClearedForNestedComplete {
 }
 
 @fromEvent(CommandSetForNestedComplete)
 @fromEvent(CommandRenamedForNestedComplete)
 @fromEvent(CommandDefinitionUpdatedForNestedComplete)
 @clearWith(CommandClearedForNestedComplete)
-class CommandItemNestedComplete {
+export class CommandItemNestedComplete {
     @setFrom(CommandSetForNestedComplete, 'commandId')
     id: Guid = Guid.empty;
 
@@ -61,9 +61,8 @@ class CommandItemNestedComplete {
     stateSchema = '';
 }
 
-@readModel()
 @fromEvent(SliceCreatedForNestedComplete)
-class SliceNestedComplete {
+export class SliceNestedComplete {
     id: Guid = Guid.empty;
     name = '';
 

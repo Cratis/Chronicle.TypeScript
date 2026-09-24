@@ -1,19 +1,18 @@
 ```typescript
-import { eventType, Guid, join, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, Guid, join, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbJoinsOrderPlaced {
+export class MbJoinsOrderPlaced {
     customerId: Guid = Guid.empty;
     amount = 0;
 }
 
 @eventType()
-class MbJoinsCustomerCreated {
+export class MbJoinsCustomerCreated {
     name = '';
 }
 
-@readModel()
-class MbJoinsOrderSummary {
+export class MbJoinsOrderSummary {
     id: Guid = Guid.empty;
 
     @setFrom(MbJoinsOrderPlaced, 'amount')

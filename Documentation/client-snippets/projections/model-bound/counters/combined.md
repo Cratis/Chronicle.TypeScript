@@ -2,21 +2,20 @@
 import { eventType } from '@cratis/chronicle';
 
 @eventType()
-class MbCountersItemCreated {
+export class MbCountersItemCreated {
     name = '';
     initialQuantity = 0;
 }
 
 @eventType()
-class MbCountersItemRestocked {
+export class MbCountersItemRestocked {
 }
 
 @eventType()
-class MbCountersItemSold {
+export class MbCountersItemSold {
 }
 
-@readModel()
-class MbCountersInventoryItem {
+export class MbCountersInventoryItem {
     id: Guid = Guid.empty;
 
     @setFrom(MbCountersItemCreated, 'name')

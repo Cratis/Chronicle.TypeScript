@@ -1,12 +1,11 @@
 ```typescript
-import { eventType, Guid, increment, readModel } from '@cratis/chronicle';
+import { eventType, Guid, increment } from '@cratis/chronicle';
 
 @eventType()
-class MbCountersUserLoggedIn {
+export class MbCountersUserLoggedIn {
 }
 
-@readModel()
-class MbCountersUserStatistics {
+export class MbCountersUserStatistics {
     id: Guid = Guid.empty;
 
     @increment(MbCountersUserLoggedIn)

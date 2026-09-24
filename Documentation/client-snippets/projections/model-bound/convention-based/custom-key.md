@@ -1,8 +1,8 @@
 ```typescript title="Custom key"
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ConventionUserRegisteredWithKey {
+export class ConventionUserRegisteredWithKey {
     constructor(
         readonly userId: string,
         readonly name: string,
@@ -10,9 +10,8 @@ class ConventionUserRegisteredWithKey {
     ) {}
 }
 
-@readModel()
 @fromEvent(ConventionUserRegisteredWithKey, { key: 'userId' })
-class ConventionUserById {
+export class ConventionUserById {
     name = '';
     email = '';
 }

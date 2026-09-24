@@ -1,20 +1,19 @@
 ```typescript title="Multiple fromEvery declarations"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class UserChangedDeclarativeEveryMultiple {
+export class UserChangedDeclarativeEveryMultiple {
     constructor(readonly name: string) {}
 }
 
-@readModel()
-class UserAuditDeclarativeEveryMultiple {
+export class UserAuditDeclarativeEveryMultiple {
     name = '';
     lastUpdated = new Date();
     modifiedBy = '';
 }
 
 @projection('', UserAuditDeclarativeEveryMultiple)
-class UserAuditDeclarativeEveryMultipleProjection implements IProjectionFor<UserAuditDeclarativeEveryMultiple> {
+export class UserAuditDeclarativeEveryMultipleProjection implements IProjectionFor<UserAuditDeclarativeEveryMultiple> {
     define(builder: IProjectionBuilderFor<UserAuditDeclarativeEveryMultiple>): void {
         builder
             .from(UserChangedDeclarativeEveryMultiple)

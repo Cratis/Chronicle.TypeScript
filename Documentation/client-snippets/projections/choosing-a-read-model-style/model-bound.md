@@ -1,8 +1,7 @@
 ```typescript
-import { readModel, setFrom, setValue } from '@cratis/chronicle';
+import { setFrom, setValue } from '@cratis/chronicle';
 
-@readModel()
-class ChoosingStyleBookStatusModelBound {
+export class ChoosingStyleBookStatusModelBound {
     id = '';
 
     @setFrom(ChoosingStyleBookRegistered, 'title')

@@ -1,14 +1,14 @@
 ```typescript
-import { childrenFrom, eventType, Guid, readModel, removedWith, setFrom } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, removedWith, setFrom } from '@cratis/chronicle';
 
 // Events
 @eventType()
-class MbChildrenFullOrderCreated {
+export class MbChildrenFullOrderCreated {
     customerName = '';
 }
 
 @eventType()
-class MbChildrenFullLineItemAdded {
+export class MbChildrenFullLineItemAdded {
     itemId: Guid = Guid.empty;
     productName = '';
     initialQuantity = 0;
@@ -16,19 +16,18 @@ class MbChildrenFullLineItemAdded {
 }
 
 @eventType()
-class MbChildrenFullQuantityAdjusted {
+export class MbChildrenFullQuantityAdjusted {
     itemId: Guid = Guid.empty;
     newQuantity = 0;
 }
 
 @eventType()
-class MbChildrenFullLineItemRemoved {
+export class MbChildrenFullLineItemRemoved {
     itemId: Guid = Guid.empty;
 }
 
 // Read Models
-@readModel()
-class MbChildrenFullOrder {
+export class MbChildrenFullOrder {
     id: Guid = Guid.empty;
 
     @setFrom(MbChildrenFullOrderCreated, 'customerName')
@@ -39,7 +38,7 @@ class MbChildrenFullOrder {
     lines: MbChildrenFullOrderLine[] = [];
 }
 
-class MbChildrenFullOrderLine {
+export class MbChildrenFullOrderLine {
     id: Guid = Guid.empty;
 
     @setFrom(MbChildrenFullLineItemAdded, 'productName')

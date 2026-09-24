@@ -1,21 +1,20 @@
 ```typescript
-import { count, eventType, fromEvent, Guid, readModel, setFrom } from '@cratis/chronicle';
+import { count, eventType, fromEvent, Guid, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class AggOnlyArrangementSet {
+export class AggOnlyArrangementSet {
     constructor(readonly location: string) {}
 }
 
 @eventType()
-class AggOnlyCandidateSubmitted {
+export class AggOnlyCandidateSubmitted {
     constructor(readonly name: string, readonly location: string) {}
 }
 
 // AggOnlyCandidateSubmitted is subscribed only to be counted, so its identically named
 // location is not auto-mapped over the value sourced from AggOnlyArrangementSet.
-@readModel()
 @fromEvent(AggOnlyArrangementSet)
-class AggOnlyAssignmentSummary {
+export class AggOnlyAssignmentSummary {
     id: Guid = Guid.empty;
 
     @setFrom(AggOnlyArrangementSet, 'location')

@@ -1,22 +1,21 @@
 ```typescript
-import { childrenFrom, eventType, fromEvent, Guid, readModel } from '@cratis/chronicle';
+import { childrenFrom, eventType, fromEvent, Guid } from '@cratis/chronicle';
 
 @eventType()
-class MbChildrenChildFromEventConfigurationAdded {
+export class MbChildrenChildFromEventConfigurationAdded {
     dashboardId: Guid = Guid.empty;
     configurationId: Guid = Guid.empty;
     name = '';
 }
 
 @eventType()
-class MbChildrenChildFromEventConfigurationRenamed {
+export class MbChildrenChildFromEventConfigurationRenamed {
     dashboardId: Guid = Guid.empty;
     id: Guid = Guid.empty;
     name = '';
 }
 
-@readModel()
-class MbChildrenChildFromEventDashboard {
+export class MbChildrenChildFromEventDashboard {
     id: Guid = Guid.empty;
     name = '';
 
@@ -25,7 +24,7 @@ class MbChildrenChildFromEventDashboard {
 }
 
 @fromEvent(MbChildrenChildFromEventConfigurationRenamed, { parentKey: 'dashboardId' })
-class MbChildrenChildFromEventConfiguration {
+export class MbChildrenChildFromEventConfiguration {
     id: Guid = Guid.empty;
     name = '';
 }

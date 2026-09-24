@@ -1,14 +1,13 @@
 ```typescript title="Convention-based set mapping"
-import { eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class UserRegisteredForProfile {
+export class UserRegisteredForProfile {
     constructor(readonly name: string, readonly email: string) {}
 }
 
-@readModel()
 @fromEvent(UserRegisteredForProfile)
-class UserProfile {
+export class UserProfile {
     @setFrom(UserRegisteredForProfile)
     name = '';
 

@@ -1,8 +1,8 @@
 ```typescript title="Convention-based fromAll property"
-import { eventType, fromAll, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromAll, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ProductRenamedFromAllConvention {
+export class ProductRenamedFromAllConvention {
     constructor(
         readonly name: string,
         readonly version: number
@@ -10,17 +10,16 @@ class ProductRenamedFromAllConvention {
 }
 
 @eventType()
-class ProductPriceChangedFromAllConvention {
+export class ProductPriceChangedFromAllConvention {
     constructor(
         readonly price: number,
         readonly version: number
     ) {}
 }
 
-@readModel()
 @fromEvent(ProductRenamedFromAllConvention)
 @fromEvent(ProductPriceChangedFromAllConvention)
-class ProductVersionFromAllConvention {
+export class ProductVersionFromAllConvention {
     name = '';
     price = 0;
 

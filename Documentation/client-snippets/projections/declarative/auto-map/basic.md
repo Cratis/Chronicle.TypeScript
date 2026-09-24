@@ -1,24 +1,23 @@
 ```typescript title="AutoMap by convention"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AutoMapUserCreated {
+export class AutoMapUserCreated {
     constructor(readonly name: string, readonly email: string) {}
 }
 
 @eventType()
-class AutoMapUserRenamed {
+export class AutoMapUserRenamed {
     constructor(readonly name: string) {}
 }
 
-@readModel()
-class AutoMapUser {
+export class AutoMapUser {
     name = '';
     email = '';
 }
 
 @projection('', AutoMapUser)
-class AutoMapUserProjection implements IProjectionFor<AutoMapUser> {
+export class AutoMapUserProjection implements IProjectionFor<AutoMapUser> {
     define(builder: IProjectionBuilderFor<AutoMapUser>): void {
         builder
             .from(AutoMapUserCreated)

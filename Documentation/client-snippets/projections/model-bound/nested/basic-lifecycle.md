@@ -1,25 +1,24 @@
 ```typescript
-import { clearWith, eventType, fromEvent, Guid, nested, readModel } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, Guid, nested } from '@cratis/chronicle';
 
 @eventType()
-class CommandSetForNestedBasic {
+export class CommandSetForNestedBasic {
     constructor(readonly name: string, readonly schema: string) {}
 }
 
 @eventType()
-class CommandClearedForNestedBasic {
+export class CommandClearedForNestedBasic {
 }
 
 @fromEvent(CommandSetForNestedBasic)
 @clearWith(CommandClearedForNestedBasic)
-class CommandItemNestedBasic {
+export class CommandItemNestedBasic {
     name = '';
     schema = '';
 }
 
-@readModel()
 @fromEvent(CommandSetForNestedBasic)
-class SliceWithNestedCommandBasic {
+export class SliceWithNestedCommandBasic {
     id: Guid = Guid.empty;
     name = '';
 

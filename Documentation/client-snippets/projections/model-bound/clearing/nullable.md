@@ -1,8 +1,8 @@
 ```typescript title="A member has to be able to hold no value"
-import { clearWith, eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbClearingShiftPlanned {
+export class MbClearingShiftPlanned {
     constructor(
         readonly assignee: string,
         readonly hours: number
@@ -10,11 +10,10 @@ class MbClearingShiftPlanned {
 }
 
 @eventType()
-class MbClearingShiftReleased {}
+export class MbClearingShiftReleased {}
 
-@readModel()
 @fromEvent(MbClearingShiftPlanned)
-class MbClearingShift {
+export class MbClearingShift {
     // Optional, so "nobody is assigned" is a state the member can actually hold.
     @setFrom(MbClearingShiftPlanned, 'assignee')
     @clearWith(MbClearingShiftReleased)

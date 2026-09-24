@@ -1,15 +1,14 @@
 ```typescript
-import { eventLog, eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventLog, eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbEventSeqLocalEvent {
+export class MbEventSeqLocalEvent {
     data = '';
 }
 
-@readModel()
 @fromEvent(MbEventSeqLocalEvent)
 @eventLog
-class MbEventSeqLocalSnapshot {
+export class MbEventSeqLocalSnapshot {
     @setFrom(MbEventSeqLocalEvent, 'data')
     data = '';
 }

@@ -1,5 +1,5 @@
 ```typescript title="Read a shared event property from every event"
-import { eventType, fromEvent, fromEvery, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
 
 enum OrderStateFromEvery {
     New = 'New',
@@ -8,19 +8,18 @@ enum OrderStateFromEvery {
 }
 
 @eventType()
-class OrderConfirmedForEvery {
+export class OrderConfirmedForEvery {
     constructor(readonly status: OrderStateFromEvery) {}
 }
 
 @eventType()
-class OrderShippedForEvery {
+export class OrderShippedForEvery {
     constructor(readonly status: OrderStateFromEvery) {}
 }
 
-@readModel()
 @fromEvent(OrderConfirmedForEvery)
 @fromEvent(OrderShippedForEvery)
-class OrderStatusFromEvery {
+export class OrderStatusFromEvery {
     @fromEvery('status')
     currentStatus = OrderStateFromEvery.New;
 }

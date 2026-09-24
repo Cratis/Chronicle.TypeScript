@@ -2,15 +2,14 @@
 import { eventType } from '@cratis/chronicle';
 
 @eventType()
-class MbCountersUserConnected {
+export class MbCountersUserConnected {
 }
 
 @eventType()
-class MbCountersUserDisconnected {
+export class MbCountersUserDisconnected {
 }
 
-@readModel()
-class MbCountersServerStatistics {
+export class MbCountersServerStatistics {
     id: Guid = Guid.empty;
 
     @increment(MbCountersUserConnected)

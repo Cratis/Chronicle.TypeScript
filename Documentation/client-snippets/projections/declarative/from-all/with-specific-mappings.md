@@ -1,25 +1,24 @@
 ```typescript title="Combine FromAll with event-specific mappings"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class OrderCreatedDeclarativeAll {
+export class OrderCreatedDeclarativeAll {
     constructor(readonly orderNumber: string) {}
 }
 
 @eventType()
-class OrderShippedDeclarativeAll {
+export class OrderShippedDeclarativeAll {
     constructor(readonly trackingNumber: string) {}
 }
 
-@readModel()
-class OrderDeclarativeAll {
+export class OrderDeclarativeAll {
     orderNumber = '';
     status = '';
     lastModified = new Date();
 }
 
 @projection('', OrderDeclarativeAll)
-class OrderDeclarativeAllProjection implements IProjectionFor<OrderDeclarativeAll> {
+export class OrderDeclarativeAllProjection implements IProjectionFor<OrderDeclarativeAll> {
     define(builder: IProjectionBuilderFor<OrderDeclarativeAll>): void {
         builder
             .fromEvery(_ => _

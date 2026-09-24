@@ -18,7 +18,11 @@ import { FailedPartition } from '../observation/FailedPartition.js';
 import { FailedPartitions } from '../observation/FailedPartitions.js';
 import { toObserverRunningState } from '../observation/toObserverRunningState.js';
 import { getReadModelMetadata } from '../readModels/index.js';
+import { getReadModelId } from '../readModels/readModel.js';
+import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
+import { JsonSchemaGenerator } from '../schemas/index.js';
 import { TypeIntrospector } from '../types/index.js';
+import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { IProjections } from './IProjections.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
@@ -109,7 +113,7 @@ export class Projections implements IProjections {
         }
 
         for (const type of readModelTypes) {
-            if (!hasFromEventMetadata(type)) {
+            if (!hasFromEventMetadata(type) && !hasModelBoundProperties(type)) {
                 continue;
             }
 
@@ -136,6 +140,10 @@ export class Projections implements IProjections {
 
         this._logger.info('Registering projections', { declarativeCount: this._declarative.size, modelBoundCount: this._modelBound.size });
 
+        const inferred = this._clientArtifacts.projections
+            .map(type => getProjectionMetadata(type)?.readModelType)
+            .filter((type): type is Constructor => type !== undefined);
+        assertUniqueReadModelIds([...this._clientArtifacts.readModels, ...inferred]);
         const builtProjections: BuiltProjection[] = [
             ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
             ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
@@ -349,7 +357,14 @@ export class Projections implements IProjections {
 
         for (const projection of projections) {
             const readModelIdentifier = projection.ReadModel;
-            if (!readModelIdentifier || byReadModel.has(readModelIdentifier)) {
+            if (!readModelIdentifier) {
+                continue;
+            }
+            const existing = byReadModel.get(readModelIdentifier);
+            if (existing) {
+                if (existing.ObserverIdentifier !== projection.Identifier) {
+                    throw new Error(`Read model id '${readModelIdentifier}' has multiple projections.`);
+                }
                 continue;
             }
 
@@ -380,14 +395,16 @@ export class Projections implements IProjections {
     }
 
     private getReadModelSchema(readModelIdentifier: string): string {
-        for (const type of this._clientArtifacts.readModels) {
+        const types = [
+            ...this._clientArtifacts.readModels,
+            ...this._clientArtifacts.projections
+                .map(projectionType => getProjectionMetadata(projectionType)?.readModelType)
+                .filter((type): type is Constructor => type !== undefined)
+        ];
+        for (const type of types) {
             const metadata = getReadModelMetadata(type);
-            if (!metadata) {
-                continue;
-            }
-
-            if (metadata.id.value === readModelIdentifier || type.name === readModelIdentifier) {
-                return JSON.stringify(metadata.schema);
+            if (getReadModelId(type) === readModelIdentifier) {
+                return JSON.stringify(metadata?.schema ?? JsonSchemaGenerator.generate(type));
             }
         }
 
@@ -409,8 +426,7 @@ export class Projections implements IProjections {
         if (explicitReadModelIdentifier === type.name) {
             // Use explicit readModelType from decorator if provided
             if (metadata.readModelType) {
-                const rm = getReadModelMetadata(metadata.readModelType);
-                definition.ReadModel = rm?.id.value ?? (metadata.readModelType as Function).name;
+                definition.ReadModel = getReadModelId(metadata.readModelType);
             } else {
                 const inferredReadModelIdentifier = this.inferReadModelIdentifier(builder.getMappedReadModelProperties());
                 if (inferredReadModelIdentifier) {
@@ -651,13 +667,12 @@ export class Projections implements IProjections {
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {
-        const readModelMetadata = getReadModelMetadata(type);
-
-        if (readModelMetadata && hasFromEventMetadata(type)) {
+        if (hasFromEventMetadata(type) || hasModelBoundProperties(type)) {
+            const identifier = getReadModelId(type);
             return {
-                id: new ProjectionId(readModelMetadata.id.value),
+                id: new ProjectionId(identifier),
                 eventSequenceId: getEventSequenceMetadata(type),
-                readModelIdentifier: readModelMetadata.id.value
+                readModelIdentifier: identifier
             };
         }
 

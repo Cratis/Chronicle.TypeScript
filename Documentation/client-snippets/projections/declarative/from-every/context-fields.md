@@ -1,20 +1,19 @@
 ```typescript title="Map multiple context fields"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AccountTouchedDeclarativeEvery {
+export class AccountTouchedDeclarativeEvery {
     constructor(readonly reason: string) {}
 }
 
-@readModel()
-class AccountAuditDeclarativeEvery {
+export class AccountAuditDeclarativeEvery {
     lastUpdated = new Date();
     lastEventSequence = 0n;
     lastCorrelationId = '';
 }
 
 @projection('', AccountAuditDeclarativeEvery)
-class AccountAuditDeclarativeEveryProjection implements IProjectionFor<AccountAuditDeclarativeEvery> {
+export class AccountAuditDeclarativeEveryProjection implements IProjectionFor<AccountAuditDeclarativeEvery> {
     define(builder: IProjectionBuilderFor<AccountAuditDeclarativeEvery>): void {
         builder
             .from(AccountTouchedDeclarativeEvery)
