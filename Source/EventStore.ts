@@ -30,6 +30,7 @@ import { EventSeeding } from './seeding/EventSeeding.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
 import { ChronicleTracer } from './Tracing.js';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider.js';
+import { validateArtifactSchemas } from './artifacts/validateArtifactSchemas.js';
 import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
 import { UnitOfWorkManager } from './transactions/UnitOfWorkManager.js';
 import { IJobs } from './jobs/IJobs.js';
@@ -124,6 +125,8 @@ export class EventStore implements IEventStore {
             this.webhooks.discover(),
             this.seeding.discover()
         ]);
+
+        validateArtifactSchemas(DefaultClientArtifactsProvider.default);
 
         this._logger.debug('Registering discovered artifacts', {
             eventStore: this.name.value,
