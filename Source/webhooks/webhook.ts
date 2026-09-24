@@ -3,9 +3,9 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { DecoratorType, TypeDiscoverer } from '../types';
-import { WebhookId } from './WebhookId';
-import { WebhookTargetUrl } from './WebhookTargetUrl';
+import { DecoratorType, TypeDiscoverer } from '../types/index.js';
+import { WebhookId } from './WebhookId.js';
+import { WebhookTargetUrl } from './WebhookTargetUrl.js';
 
 /** Metadata key used to store webhook information on a class. */
 const WEBHOOK_METADATA_KEY = 'chronicle:webhook';

@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
 
 /**
  * Formats a {@link ChronicleServerAddress} as a `host:port` string, wrapping IPv6 host

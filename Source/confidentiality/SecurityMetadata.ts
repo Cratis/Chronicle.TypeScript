@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { SecurityMetadataType } from './SecurityMetadataType';
+import type { SecurityMetadataType } from './SecurityMetadataType.js';
 
 /**
  * Represents metadata related to security.

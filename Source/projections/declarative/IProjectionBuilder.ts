@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { IChildrenBuilder } from './IChildrenBuilder';
-import { IFromBuilder } from './IFromBuilder';
-import { IFromEveryBuilder } from './IFromEveryBuilder';
-import { IJoinBuilder } from './IJoinBuilder';
-import { INestedBuilder } from './INestedBuilder';
-import { IRemovedWithBuilder } from './IRemovedWithBuilder';
-import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder';
+import { IChildrenBuilder } from './IChildrenBuilder.js';
+import { IFromBuilder } from './IFromBuilder.js';
+import { IFromEveryBuilder } from './IFromEveryBuilder.js';
+import { IJoinBuilder } from './IJoinBuilder.js';
+import { INestedBuilder } from './INestedBuilder.js';
+import { IRemovedWithBuilder } from './IRemovedWithBuilder.js';
+import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder.js';
 
 /**
  * Defines the core builder interface for configuring a projection.

@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventTypeId } from './EventTypeId';
-import { EventTypeGeneration } from './EventTypeGeneration';
+import { EventTypeId } from './EventTypeId.js';
+import { EventTypeGeneration } from './EventTypeGeneration.js';
 
 /**
  * Represents the type of an event.

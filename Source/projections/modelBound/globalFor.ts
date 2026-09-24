@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { DecoratorType, TypeDiscoverer } from '../../types';
+import { DecoratorType, TypeDiscoverer } from '../../types/index.js';
 
 /** Metadata stored by the globalFor class decorator. */
 export interface GlobalForMetadata {

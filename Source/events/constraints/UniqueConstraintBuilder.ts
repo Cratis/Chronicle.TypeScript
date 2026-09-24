@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor, PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { getEventTypeFor } from '../eventTypeDecorator';
-import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder';
+import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder.js';
 
 /** Resolves a property path string from a {@link PropertyAccessor}. */
 function resolvePropertyPath<T>(accessor: PropertyAccessor<T>): string {

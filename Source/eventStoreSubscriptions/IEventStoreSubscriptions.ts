@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventStoreName } from '../EventStoreName';
-import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition';
-import { EventStoreSubscriptionId } from './EventStoreSubscriptionId';
-import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder';
+import { EventStoreName } from '../EventStoreName.js';
+import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition.js';
+import { EventStoreSubscriptionId } from './EventStoreSubscriptionId.js';
+import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder.js';
 
 /**
  * Defines the API for managing event store subscriptions.

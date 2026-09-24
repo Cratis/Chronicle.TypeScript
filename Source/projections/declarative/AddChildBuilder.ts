@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { IAddChildBuilder } from './IAddChildBuilder';
+import { IAddChildBuilder } from './IAddChildBuilder.js';
 
 /**
  * A single `.addChild()` accumulation captured on a from/join builder, later merged into the

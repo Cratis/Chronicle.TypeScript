@@ -4,17 +4,17 @@
 import 'reflect-metadata';
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { eventType } from '../events/eventTypeDecorator';
-import { readModel } from '../readModels/readModel';
-import { clearWith } from './modelBound/clearWith';
-import { eventLog, eventSequence } from './modelBound/eventSequence';
-import { fromAll } from './modelBound/fromAll';
-import { fromEvent } from './modelBound/fromEvent';
-import { noAutoMap } from './modelBound/noAutoMap';
-import { setFrom } from './modelBound/setFrom';
-import { Projections } from './Projections';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { readModel } from '../readModels/readModel.js';
+import { clearWith } from './modelBound/clearWith.js';
+import { eventLog, eventSequence } from './modelBound/eventSequence.js';
+import { fromAll } from './modelBound/fromAll.js';
+import { fromEvent } from './modelBound/fromEvent.js';
+import { noAutoMap } from './modelBound/noAutoMap.js';
+import { setFrom } from './modelBound/setFrom.js';
+import { Projections } from './Projections.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

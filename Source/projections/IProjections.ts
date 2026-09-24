@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { FailedPartition } from '../observation/FailedPartition';
-import { JobId } from '../jobs/JobId';
-import { ProjectionId } from './ProjectionId';
-import { ProjectionQueryResult } from './ProjectionQueryResult';
-import { ProjectionState } from './ProjectionState';
+import { FailedPartition } from '../observation/FailedPartition.js';
+import { JobId } from '../jobs/JobId.js';
+import { ProjectionId } from './ProjectionId.js';
+import { ProjectionQueryResult } from './ProjectionQueryResult.js';
+import { ProjectionState } from './ProjectionState.js';
 
 /**
  * Defines a system to work with projections, including discovery, registration and operating

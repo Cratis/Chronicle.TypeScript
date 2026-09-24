@@ -1,11 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-export { Identity } from './Identity';
-export type { IIdentityProvider } from './IIdentityProvider';
-export { IdentityProvider } from './IdentityProvider';
+export { Identity } from './Identity.js';
+export type { IIdentityProvider } from './IIdentityProvider.js';
+export { IdentityProvider } from './IdentityProvider.js';
 
-import { IdentityProvider } from './IdentityProvider';
+import { IdentityProvider } from './IdentityProvider.js';
 
 /**
  * The default singleton {@link IdentityProvider} for the process.

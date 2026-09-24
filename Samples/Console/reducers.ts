@@ -3,7 +3,7 @@
 
 import { diag } from '@opentelemetry/api';
 import { readModel, reducer } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved } from './events.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/EmployeeStateReducer' });
 

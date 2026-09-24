@@ -161,7 +161,8 @@
         "compile": "tsc -b",
         "build": "tsc -b",
         "clean": "rm -rf dist",
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:native": "node ./scripts/check-native-esm.mjs"
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.15.0",

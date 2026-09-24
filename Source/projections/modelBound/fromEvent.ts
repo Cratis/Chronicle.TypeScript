@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { FromEventMetadata } from './FromEventMetadata';
-import { FromEventOptions } from './FromEventOptions';
+import { FromEventMetadata } from './FromEventMetadata.js';
+import { FromEventOptions } from './FromEventOptions.js';
 
 const METADATA_KEY = 'chronicle:projection:fromEvent';
 

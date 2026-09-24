@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { hasEventType } from '../events/eventTypeDecorator';
-import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId';
-import type { IEventLog } from '../eventSequences/IEventLog';
+import { hasEventType } from '../events/eventTypeDecorator.js';
+import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
+import type { IEventLog } from '../eventSequences/IEventLog.js';
 
 /**
  * Represents the outcome of appending a reactor handler's returned side-effect events.

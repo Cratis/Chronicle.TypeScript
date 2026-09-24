@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { IProjectionBuilder } from './IProjectionBuilder';
+import { IProjectionBuilder } from './IProjectionBuilder.js';
 
 /**
  * Defines the builder for a children collection sub-projection.

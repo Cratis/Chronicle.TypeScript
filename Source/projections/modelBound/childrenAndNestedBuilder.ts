@@ -4,22 +4,22 @@
 import 'reflect-metadata';
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { Constructor, Fields } from '@cratis/fundamentals';
-import { TypeIntrospector } from '../../types';
-import { getEventTypeFor } from '../../events/eventTypeDecorator';
-import { getAddFromMetadata } from './addFrom';
-import { ChildrenFromMetadata, getChildrenFromMetadata } from './childrenFrom';
-import { getClearWithClassMetadata, getClearWithPropertyMetadata } from './clearWith';
-import { getCountMetadata } from './count';
-import { getDecrementMetadata } from './decrement';
-import { getFromEventMetadata } from './fromEvent';
-import { getIncrementMetadata } from './increment';
-import { isNested } from './nested';
-import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith';
-import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin';
-import { getSetFromMetadata } from './setFrom';
-import { getSetFromContextMetadata } from './setFromContext';
-import { getSetValueMetadata } from './setValue';
-import { getSubtractFromMetadata } from './subtractFrom';
+import { TypeIntrospector } from '../../types/index.js';
+import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
+import { getAddFromMetadata } from './addFrom.js';
+import { ChildrenFromMetadata, getChildrenFromMetadata } from './childrenFrom.js';
+import { getClearWithClassMetadata, getClearWithPropertyMetadata } from './clearWith.js';
+import { getCountMetadata } from './count.js';
+import { getDecrementMetadata } from './decrement.js';
+import { getFromEventMetadata } from './fromEvent.js';
+import { getIncrementMetadata } from './increment.js';
+import { isNested } from './nested.js';
+import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith.js';
+import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin.js';
+import { getSetFromMetadata } from './setFrom.js';
+import { getSetFromContextMetadata } from './setFromContext.js';
+import { getSetValueMetadata } from './setValue.js';
+import { getSubtractFromMetadata } from './subtractFrom.js';
 
 /** The contract-level event type identifier shape used across projection definitions. */
 export type ContractEventType = { Id: string; Generation: number; Tombstone: boolean };

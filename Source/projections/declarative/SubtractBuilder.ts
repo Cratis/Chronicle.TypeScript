@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { ISubtractBuilder } from './ISubtractBuilder';
+import { ISubtractBuilder } from './ISubtractBuilder.js';
 
 /**
  * Concrete implementation of {@link ISubtractBuilder} that records a subtract expression

@@ -1,14 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { fromContractsGuid } from '../connection/Guid';
-import { Identity } from '../identity/Identity';
-import type { EventContext } from './EventContext';
-import { EventType } from './EventType';
-import { EventTypeGeneration } from './EventTypeGeneration';
-import { EventTypeId } from './EventTypeId';
-import { Tag } from './Tag';
-import type { WireEventContext } from './WireEventContext';
+import { fromContractsGuid } from '../connection/Guid.js';
+import { Identity } from '../identity/Identity.js';
+import type { EventContext } from './EventContext.js';
+import { EventType } from './EventType.js';
+import { EventTypeGeneration } from './EventTypeGeneration.js';
+import { EventTypeId } from './EventTypeId.js';
+import { Tag } from './Tag.js';
+import type { WireEventContext } from './WireEventContext.js';
 
 /** Converts kernel metadata identically for reads, reactors, and reducers. */
 export function toClientEventContext(context: WireEventContext): EventContext {

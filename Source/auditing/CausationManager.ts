@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { AsyncLocalStorage } from 'async_hooks';
-import { Causation } from './Causation';
-import { CausationType } from './CausationType';
-import { ICausationManager } from './ICausationManager';
+import { Causation } from './Causation.js';
+import { CausationType } from './CausationType.js';
+import { ICausationManager } from './ICausationManager.js';
 
 /**
  * Implements {@link ICausationManager} using {@link AsyncLocalStorage} to scope the causation chain to the active async call context.

@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import type { IMaterializedReadModels } from './IMaterializedReadModels';
-import type { ReadModelChangeset } from './ReadModelChangeset';
-import type { ReadModelSnapshot } from './ReadModelSnapshot';
+import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
+import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
 /**
  * Defines a system that works with read models in the event store.

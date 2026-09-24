@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { ChronicleCallFailed, ensureCommandSuccess, ensureQuerySuccess, firstQueryResult, isCallSuccess } from './callResults';
+import { ChronicleCallFailed, ensureCommandSuccess, ensureQuerySuccess, firstQueryResult, isCallSuccess } from './callResults.js';
 
 const successfulResult = {
     ValidationResults: [],

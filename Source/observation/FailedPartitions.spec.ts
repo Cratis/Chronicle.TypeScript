@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import type { ChronicleConnection } from '../connection';
-import { FailedPartitions } from './FailedPartitions';
+import type { ChronicleConnection } from '../connection/index.js';
+import { FailedPartitions } from './FailedPartitions.js';
 
 function wireFailedPartition() {
     return {

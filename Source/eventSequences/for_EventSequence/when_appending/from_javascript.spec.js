@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { beforeEach, chai, describe, it } from 'vitest';
-import { EventSequence, EventSequenceId, eventType } from '../../../index';
+import { EventSequence, EventSequenceId, eventType } from '../../../index.js';
 
 chai.should();
 

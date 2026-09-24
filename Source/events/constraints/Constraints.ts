@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ConstraintType } from '@cratis/chronicle.contracts';
-import { IClientArtifactsProvider } from '../../artifacts';
-import { ChronicleConnection } from '../../connection';
-import { ConstraintId } from './ConstraintId';
-import { IConstraint } from './IConstraint';
-import { IConstraints } from './IConstraints';
-import { ConstraintBuilder, ConstraintCapture } from './ConstraintBuilder';
-import { getConstraintMetadata } from './constraint';
+import { IClientArtifactsProvider } from '../../artifacts/index.js';
+import { ChronicleConnection } from '../../connection/index.js';
+import { ConstraintId } from './ConstraintId.js';
+import { IConstraint } from './IConstraint.js';
+import { IConstraints } from './IConstraints.js';
+import { ConstraintBuilder, ConstraintCapture } from './ConstraintBuilder.js';
+import { getConstraintMetadata } from './constraint.js';
 
 /**
  * Manages discovery and registration of constraints with the Chronicle Kernel.

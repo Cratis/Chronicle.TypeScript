@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { subject } from '../compliance/subject';
-import { ReadModelSubjectResolver } from './ReadModelSubjectResolver';
+import { subject } from '../compliance/subject.js';
+import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

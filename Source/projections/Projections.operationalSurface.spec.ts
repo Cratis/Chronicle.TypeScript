@@ -3,18 +3,18 @@
 
 import 'reflect-metadata';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { ObserverRunningState } from '../observation/ObserverRunningState';
-import { eventType } from '../events/eventTypeDecorator';
-import { readModel } from '../readModels/readModel';
-import { eventSequence } from './modelBound/eventSequence';
-import { fromEvent } from './modelBound/fromEvent';
-import { projection } from './declarative/projection';
-import type { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor';
-import type { IProjectionFor } from './declarative/IProjectionFor';
-import { Projections } from './Projections';
-import { UnableToQueryProjection } from './UnableToQueryProjection';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { ObserverRunningState } from '../observation/ObserverRunningState.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { readModel } from '../readModels/readModel.js';
+import { eventSequence } from './modelBound/eventSequence.js';
+import { fromEvent } from './modelBound/fromEvent.js';
+import { projection } from './declarative/projection.js';
+import type { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
+import type { IProjectionFor } from './declarative/IProjectionFor.js';
+import { Projections } from './Projections.js';
+import { UnableToQueryProjection } from './UnableToQueryProjection.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

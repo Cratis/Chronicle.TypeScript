@@ -4,7 +4,7 @@
 import { createRequire } from 'node:module';
 import { chronicleDescriptorSet, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
 import { ClientError, Status, type ClientMiddleware } from 'nice-grpc-common';
-import { IncompatibleChronicleServer } from './IncompatibleChronicleServer';
+import { IncompatibleChronicleServer } from './IncompatibleChronicleServer.js';
 
 const require = createRequire(import.meta.url);
 const clientVersion = (require('@cratis/chronicle/package.json') as { version: string }).version;

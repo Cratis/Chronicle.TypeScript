@@ -3,13 +3,13 @@
 
 import 'reflect-metadata';
 import { ConceptAs, Constructor, Fields, Guid } from '@cratis/fundamentals';
-import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema';
-import { TypeIntrospector } from '../types';
-import { ComplianceMetadata } from '../compliance/ComplianceMetadata';
-import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver';
-import { SecurityMetadata } from '../confidentiality/SecurityMetadata';
-import { SecurityMetadataResolver } from '../confidentiality/SecurityMetadataResolver';
-import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported';
+import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema.js';
+import { TypeIntrospector } from '../types/index.js';
+import { ComplianceMetadata } from '../compliance/ComplianceMetadata.js';
+import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver.js';
+import { SecurityMetadata } from '../confidentiality/SecurityMetadata.js';
+import { SecurityMetadataResolver } from '../confidentiality/SecurityMetadataResolver.js';
+import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported.js';
 
 /**
  * Generates JSON schemas for class constructors using reflection metadata.

@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventStoreNamespaceName } from '../EventStoreNamespaceName';
-import { IEventSeedingScopeBuilder } from './IEventSeedingScopeBuilder';
+import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
+import { IEventSeedingScopeBuilder } from './IEventSeedingScopeBuilder.js';
 
 /**
  * Defines a builder for seeding events in the event store.

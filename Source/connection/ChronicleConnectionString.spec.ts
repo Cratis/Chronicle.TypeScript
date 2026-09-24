@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import { AuthenticationMode, ChronicleConnectionString, ChronicleConnectionStringBuilder } from './ChronicleConnectionString';
-import { LoadBalancerMode } from './LoadBalancerMode';
+import { AuthenticationMode, ChronicleConnectionString, ChronicleConnectionStringBuilder } from './ChronicleConnectionString.js';
+import { LoadBalancerMode } from './LoadBalancerMode.js';
 
 describe('ChronicleConnectionStringBuilder', () => {
     describe('when parsing a single host', () => {
@@ -180,7 +180,7 @@ describe('ChronicleConnectionString', () => {
             const createInsecure = vi.fn();
             vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
 
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString');
+            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
             const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000');
             const credentials = connectionString.createCredentials();
 
@@ -197,7 +197,7 @@ describe('ChronicleConnectionString', () => {
             const createInsecure = vi.fn();
             vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
 
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString');
+            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
             const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000/?skipTlsValidation=false');
             const credentials = connectionString.createCredentials();
 
@@ -214,7 +214,7 @@ describe('ChronicleConnectionString', () => {
             const createInsecure = vi.fn().mockReturnValue('plaintext-credentials');
             vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
 
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString');
+            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
             const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000/?disableTls=true');
             const credentials = connectionString.createCredentials();
 

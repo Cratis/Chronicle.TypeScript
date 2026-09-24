@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { IAllSetBuilder } from './IAllSetBuilder';
+import { IAllSetBuilder } from './IAllSetBuilder.js';
 
 /**
  * Defines the builder for configuring property mappings that apply to every projected event.

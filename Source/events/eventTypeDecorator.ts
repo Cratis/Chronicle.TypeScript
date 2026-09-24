@@ -3,11 +3,11 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { EventType } from './EventType';
-import { EventTypeId } from './EventTypeId';
-import { EventTypeGeneration } from './EventTypeGeneration';
-import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types';
-import { JsonSchema, JsonSchemaGenerator } from '../schemas';
+import { EventType } from './EventType.js';
+import { EventTypeId } from './EventTypeId.js';
+import { EventTypeGeneration } from './EventTypeGeneration.js';
+import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
+import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';

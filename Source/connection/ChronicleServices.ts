@@ -22,9 +22,9 @@ import type {
     ServerClient,
     WebhooksClient
 } from '@cratis/chronicle.contracts';
-import type { ComplianceClient } from '../compliance/ComplianceContracts';
-import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts';
-import type { ExternalServicesClient } from '../externalServices/ExternalServicesContracts';
+import type { ComplianceClient } from '../compliance/ComplianceContracts.js';
+import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts.js';
+import type { ExternalServicesClient } from '../externalServices/ExternalServicesContracts.js';
 
 /**
  * Represents all Chronicle gRPC services.

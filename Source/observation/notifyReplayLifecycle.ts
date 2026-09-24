@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ReplayState } from '@cratis/chronicle.contracts';
-import { ICanBeNotifiedWhenPartitionReplayed } from './ICanBeNotifiedWhenPartitionReplayed';
-import { ICanBeNotifiedWhenReplay } from './ICanBeNotifiedWhenReplay';
+import { ICanBeNotifiedWhenPartitionReplayed } from './ICanBeNotifiedWhenPartitionReplayed.js';
+import { ICanBeNotifiedWhenReplay } from './ICanBeNotifiedWhenReplay.js';
 
 function hasReplayLifecycleHooks(instance: unknown): instance is ICanBeNotifiedWhenReplay {
     if (typeof instance !== 'object' || instance === null) {

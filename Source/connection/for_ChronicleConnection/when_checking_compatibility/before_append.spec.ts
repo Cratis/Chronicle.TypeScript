@@ -5,10 +5,10 @@ import { createRequire } from 'node:module';
 import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { createServer, ServerError, Status, type CallContext, type ServiceImplementation } from 'nice-grpc';
 import { chronicleDescriptorSet, ConnectionServiceDefinition, EventSequencesDefinition, type CompatibilityRequest } from '@cratis/chronicle.contracts';
-import { ChronicleConnection } from '../../ChronicleConnection';
-import { ChronicleClient } from '../../../ChronicleClient';
-import { ChronicleOptions } from '../../../ChronicleOptions';
-import { IncompatibleChronicleServer } from '../../IncompatibleChronicleServer';
+import { ChronicleConnection } from '../../ChronicleConnection.js';
+import { ChronicleClient } from '../../../ChronicleClient.js';
+import { ChronicleOptions } from '../../../ChronicleOptions.js';
+import { IncompatibleChronicleServer } from '../../IncompatibleChronicleServer.js';
 
 chai.should();
 const installedContractsVersion = (createRequire(import.meta.url)('@cratis/chronicle.contracts/package.json') as { version: string }).version;

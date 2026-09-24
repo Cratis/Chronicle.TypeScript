@@ -3,11 +3,11 @@
 
 import { AsyncLocalStorage } from 'async_hooks';
 import { Guid } from '@cratis/fundamentals';
-import { IEventStore } from '../IEventStore';
-import { IUnitOfWork } from './IUnitOfWork';
-import { IUnitOfWorkManager } from './IUnitOfWorkManager';
-import { NoUnitOfWorkHasBeenStarted } from './NoUnitOfWorkHasBeenStarted';
-import { UnitOfWork } from './UnitOfWork';
+import { IEventStore } from '../IEventStore.js';
+import { IUnitOfWork } from './IUnitOfWork.js';
+import { IUnitOfWorkManager } from './IUnitOfWorkManager.js';
+import { NoUnitOfWorkHasBeenStarted } from './NoUnitOfWorkHasBeenStarted.js';
+import { UnitOfWork } from './UnitOfWork.js';
 
 /**
  * Implements {@link IUnitOfWorkManager} using {@link AsyncLocalStorage} for async-context scoping.

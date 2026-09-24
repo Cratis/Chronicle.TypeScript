@@ -18,6 +18,13 @@ yarn add @cratis/chronicle reflect-metadata
 
 > **Note:** `reflect-metadata` is required for TypeScript decorators to work at runtime. Import it once at the entry point of your application.
 
+The package and its exported subpaths load directly in Node.js ESM without a bundler. After installing, you can check both entry points:
+
+```bash
+node --input-type=module -e "import { ChronicleClient } from '@cratis/chronicle'; import { EventSequenceId } from '@cratis/chronicle/eventSequences'; console.log(typeof ChronicleClient, EventSequenceId.eventLog.value)"
+# function event-log
+```
+
 ## Setup
 
 Import `reflect-metadata` at the top of your application entry point:

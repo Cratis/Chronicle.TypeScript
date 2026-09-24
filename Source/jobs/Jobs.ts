@@ -3,11 +3,11 @@
 
 import type { JobSummaryResponse, JobStepSummaryResponse } from '@cratis/chronicle.contracts';
 import { Guid } from '@cratis/fundamentals';
-import { ChronicleConnection } from '../connection';
-import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
-import { fromContractsGuid, toContractsGuid } from '../connection/Guid';
-import { IJobs } from './IJobs';
-import { JobId } from './JobId';
+import { ChronicleConnection } from '../connection/index.js';
+import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
+import { fromContractsGuid, toContractsGuid } from '../connection/Guid.js';
+import { IJobs } from './IJobs.js';
+import { JobId } from './JobId.js';
 
 /**
  * Implements {@link IJobs}.

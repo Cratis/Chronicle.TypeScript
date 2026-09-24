@@ -4,12 +4,12 @@
 import 'reflect-metadata';
 import type { Constructor } from '@cratis/fundamentals';
 import { describe, expect, it, vi } from 'vitest';
-import type { IClientArtifactsProvider } from '../artifacts';
-import type { ChronicleConnection } from '../connection';
-import { subject } from '../compliance/subject';
-import { fromEvent } from '../projections/modelBound/fromEvent';
-import { readModel } from './readModel';
-import { ReadModels } from './ReadModels';
+import type { IClientArtifactsProvider } from '../artifacts/index.js';
+import type { ChronicleConnection } from '../connection/index.js';
+import { subject } from '../compliance/subject.js';
+import { fromEvent } from '../projections/modelBound/fromEvent.js';
+import { readModel } from './readModel.js';
+import { ReadModels } from './ReadModels.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

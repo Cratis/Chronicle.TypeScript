@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { TypeIntrospector } from '../../types';
+import { TypeIntrospector } from '../../types/index.js';
 
 const CLASS_METADATA_KEY = 'chronicle:projection:noAutoMap:class';
 const PROPERTY_METADATA_KEY = 'chronicle:projection:noAutoMap:property';

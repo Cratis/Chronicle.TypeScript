@@ -4,23 +4,23 @@
 // Telemetry MUST be imported first so the OpenTelemetry SDK is fully
 // initialized before any instrumented code runs.
 
-import './telemetry';
+import './telemetry.js';
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { ChronicleClient, ChronicleOptions, IEventStore, Identity, identityProvider, causationManager, CausationType } from '@cratis/chronicle';
 
-import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events';
-import { EmployeeState } from './reducers';
-import { Person, employees, emailFor } from './employees';
-import { registerCustomerWithPii, showCustomerReadModel } from './compliance';
-import { registerCustomersApi } from './externalServices';
-import { redactLastEmailChange, eraseEmployee } from './redaction';
-import { viewAuditLog } from './reactors';
+import { EmployeePromoted, EmployeeMoved, EmployeeEmailSet } from './events.js';
+import { EmployeeState } from './reducers.js';
+import { Person, employees, emailFor } from './employees.js';
+import { registerCustomerWithPii, showCustomerReadModel } from './compliance.js';
+import { registerCustomersApi } from './externalServices.js';
+import { redactLastEmailChange, eraseEmployee } from './redaction.js';
+import { viewAuditLog } from './reactors.js';
 
 // Side-effect imports so the @constraint and @seeder decorators run and are
 // discovered and registered with the event store on connect.
-import './constraints';
-import './seeding';
+import './constraints.js';
+import './seeding.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console' });
 

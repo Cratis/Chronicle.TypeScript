@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { fetchOAuthAccessToken, type OAuthTokenResponse } from './fetchOAuthAccessToken';
+import { fetchOAuthAccessToken, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
 
 // Refresh once the token has less than this long left before it expires.
 const TOKEN_REFRESH_MARGIN_MS = 60_000;

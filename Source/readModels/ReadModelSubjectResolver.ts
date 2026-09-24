@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import { getSubjectPropertyName } from '../compliance/subject';
+import { getSubjectPropertyName } from '../compliance/subject.js';
 
 /**
  * Resolves the compliance subject - the natural person a read model's Personal Identifiable

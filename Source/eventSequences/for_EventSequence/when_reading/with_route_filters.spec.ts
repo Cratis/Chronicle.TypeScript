@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
-import { EventSequence, EventSequenceId } from '../../index';
-import { eventType } from '../../../events';
-import type { ChronicleConnection } from '../../../connection';
-import type { IUnitOfWorkManager } from '../../../transactions';
+import { EventSequence, EventSequenceId } from '../../index.js';
+import { eventType } from '../../../events/index.js';
+import type { ChronicleConnection } from '../../../connection/index.js';
+import type { IUnitOfWorkManager } from '../../../transactions/index.js';
 
 chai.should();
 

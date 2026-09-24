@@ -3,7 +3,7 @@
 
 import { diag } from '@opentelemetry/api';
 import { reactor, EventContext, EventForEventSourceId, IEventStore } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved, PromotionRecorded } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved, PromotionRecorded } from './events.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/HrNotificationReactor' });
 

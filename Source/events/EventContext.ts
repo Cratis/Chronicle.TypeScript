@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventType } from './EventType';
-import { CausationEntry } from './CausationEntry';
-import { Tag } from './Tag';
-import type { Identity } from '../identity/Identity';
+import { EventType } from './EventType.js';
+import { CausationEntry } from './CausationEntry.js';
+import { Tag } from './Tag.js';
+import type { Identity } from '../identity/Identity.js';
 
 /**
  * Represents contextual information about an appended event.

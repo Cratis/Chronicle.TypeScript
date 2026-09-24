@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ChronicleConnectionString, ChronicleServerAddress } from './ChronicleConnectionString';
-import { ChronicleSrvResolver } from './ChronicleSrvResolver';
+import type { ChronicleConnectionString, ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { ChronicleSrvResolver } from './ChronicleSrvResolver.js';
 
 /**
  * Resolves the effective list of Chronicle server addresses for a connection string.

@@ -4,12 +4,12 @@
 import 'reflect-metadata';
 import { ConceptAs, field } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
-import { pii } from '../compliance/pii';
-import { encrypted } from '../confidentiality/encrypted';
-import { EncryptionScope } from '../confidentiality/EncryptionScope';
-import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported';
-import { getReadModelMetadata, readModel } from '../readModels/readModel';
-import { JsonSchema } from './JsonSchema';
+import { pii } from '../compliance/pii.js';
+import { encrypted } from '../confidentiality/encrypted.js';
+import { EncryptionScope } from '../confidentiality/EncryptionScope.js';
+import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported.js';
+import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { JsonSchema } from './JsonSchema.js';
 
 // See JsonSchemaGenerator.spec.ts for why decorators are applied as plain function calls here
 // rather than `@decorator` syntax, and why order matters.

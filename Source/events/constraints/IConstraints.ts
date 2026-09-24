@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ConstraintId } from './ConstraintId';
+import { ConstraintId } from './ConstraintId.js';
 
 /**
  * Defines a system to work with constraints, including discovery and registration with the Kernel.

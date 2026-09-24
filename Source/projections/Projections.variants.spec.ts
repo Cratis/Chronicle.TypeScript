@@ -3,18 +3,18 @@
 
 import 'reflect-metadata';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { eventType } from '../events/eventTypeDecorator';
-import { readModel } from '../readModels/readModel';
-import { entersOn } from './modelBound/entersOn';
-import { fromEvent } from './modelBound/fromEvent';
-import { globalFor } from './modelBound/globalFor';
-import { setFrom } from './modelBound/setFrom';
-import { variantOf } from './modelBound/variantOf';
-import { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant';
-import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent';
-import { Projections } from './Projections';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { readModel } from '../readModels/readModel.js';
+import { entersOn } from './modelBound/entersOn.js';
+import { fromEvent } from './modelBound/fromEvent.js';
+import { globalFor } from './modelBound/globalFor.js';
+import { setFrom } from './modelBound/setFrom.js';
+import { variantOf } from './modelBound/variantOf.js';
+import { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant.js';
+import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent.js';
+import { Projections } from './Projections.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

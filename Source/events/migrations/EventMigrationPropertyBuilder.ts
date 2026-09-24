@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IEventMigrationPropertyBuilder } from './IEventMigrationPropertyBuilder';
+import { IEventMigrationPropertyBuilder } from './IEventMigrationPropertyBuilder.js';
 
 const SPLIT_EXPRESSION = '$split';
 const COMBINE_EXPRESSION = '$combine';

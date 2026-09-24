@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { eventType } from '../../events/eventTypeDecorator';
-import { ProjectionBuilderFor } from './ProjectionBuilderFor';
+import { eventType } from '../../events/eventTypeDecorator.js';
+import { ProjectionBuilderFor } from './ProjectionBuilderFor.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

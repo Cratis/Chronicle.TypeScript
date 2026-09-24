@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { ReducerId } from './ReducerId';
-import { DecoratorType, TypeDiscoverer } from '../types';
+import { ReducerId } from './ReducerId.js';
+import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 
 /** Metadata key used to store reducer information on a class. */
 const REDUCER_METADATA_KEY = 'chronicle:reducer';

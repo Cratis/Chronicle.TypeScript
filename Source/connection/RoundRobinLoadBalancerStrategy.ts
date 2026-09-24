@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
-import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
 
 /**
  * Cycles through candidates in order, starting from a random offset chosen once per

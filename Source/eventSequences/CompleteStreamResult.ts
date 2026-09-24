@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { CompleteStreamError } from './CompleteStreamError';
-import { EventSequenceNumber } from './EventSequenceNumber';
+import { CompleteStreamError } from './CompleteStreamError.js';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
 
 /**
  * Represents the outcome of completing a stream on an {@link IEventSequence}: either the tail

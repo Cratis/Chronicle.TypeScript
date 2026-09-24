@@ -3,7 +3,7 @@
 
 import { Guid } from '@cratis/fundamentals';
 import type { JobSummaryResponse, JobStepSummaryResponse } from '@cratis/chronicle.contracts';
-import { JobId } from './JobId';
+import { JobId } from './JobId.js';
 
 /**
  * Defines the API for working with jobs in Chronicle.

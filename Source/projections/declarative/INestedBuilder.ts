@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IProjectionBuilder } from './IProjectionBuilder';
+import { IProjectionBuilder } from './IProjectionBuilder.js';
 
 /**
  * Defines the builder for a nested single-object sub-projection.

@@ -4,16 +4,16 @@
 import 'reflect-metadata';
 import { field } from '@cratis/fundamentals';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { eventType } from '../events/eventTypeDecorator';
-import { readModel } from '../readModels/readModel';
-import { childrenFrom } from './modelBound/childrenFrom';
-import { clearWith } from './modelBound/clearWith';
-import { fromEvent } from './modelBound/fromEvent';
-import { nested } from './modelBound/nested';
-import { setFrom } from './modelBound/setFrom';
-import { Projections } from './Projections';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { readModel } from '../readModels/readModel.js';
+import { childrenFrom } from './modelBound/childrenFrom.js';
+import { clearWith } from './modelBound/clearWith.js';
+import { fromEvent } from './modelBound/fromEvent.js';
+import { nested } from './modelBound/nested.js';
+import { setFrom } from './modelBound/setFrom.js';
+import { Projections } from './Projections.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { Tag } from './Tag';
-import { mergeTags } from './mergeTags';
+import { Tag } from './Tag.js';
+import { mergeTags } from './mergeTags.js';
 
 describe('mergeTags', () => {
     describe('when merging a single source of strings', () => {

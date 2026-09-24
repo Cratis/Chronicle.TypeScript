@@ -3,9 +3,9 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { ReadModelId } from './ReadModelId';
-import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types';
-import { JsonSchema, JsonSchemaGenerator } from '../schemas';
+import { ReadModelId } from './ReadModelId.js';
+import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
+import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
 
 /** Metadata key used to store read model information on a class. */
 const READ_MODEL_METADATA_KEY = 'chronicle:readModel';

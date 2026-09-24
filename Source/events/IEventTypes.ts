@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { EventTypeId } from './EventTypeId';
+import { EventTypeId } from './EventTypeId.js';
 
 /**
  * Defines a system to work with event types, including discovery and registration with the Kernel.

@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ICanSeedEvents, IEventSeedingBuilder, seeder } from '@cratis/chronicle';
-import { EmployeeAddressSet, EmployeeEmailSet, EmployeeHired } from './events';
-import { emailFor, employees } from './employees';
+import { EmployeeAddressSet, EmployeeEmailSet, EmployeeHired } from './events.js';
+import { emailFor, employees } from './employees.js';
 
 interface Address {
     readonly street: string;

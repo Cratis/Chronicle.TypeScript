@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events.js';
 
 /** Read model shape for the declarative employee list projection artifact. */
 @readModel()

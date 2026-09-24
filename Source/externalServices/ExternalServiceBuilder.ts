@@ -6,8 +6,8 @@ import {
     ExternalServiceEndpoint,
     ExternalServiceEndpointType,
     OneOfBasicAuthorizationBearerTokenAuthorizationOAuthAuthorization
-} from './ExternalServicesContracts';
-import { IExternalServiceBuilder } from './IExternalServiceBuilder';
+} from './ExternalServicesContracts.js';
+import { IExternalServiceBuilder } from './IExternalServiceBuilder.js';
 
 /**
  * Implements {@link IExternalServiceBuilder}.

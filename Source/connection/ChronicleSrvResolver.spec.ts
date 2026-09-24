@@ -3,8 +3,8 @@
 
 import type { SrvRecord } from 'dns';
 import { describe, expect, it, vi } from 'vitest';
-import { ChronicleSrvResolutionError } from './ChronicleSrvResolutionError';
-import { ChronicleSrvResolver } from './ChronicleSrvResolver';
+import { ChronicleSrvResolutionError } from './ChronicleSrvResolutionError.js';
+import { ChronicleSrvResolver } from './ChronicleSrvResolver.js';
 
 function createFakeResolver(records: SrvRecord[]) {
     const setServers = vi.fn();

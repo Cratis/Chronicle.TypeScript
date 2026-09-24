@@ -25,20 +25,20 @@ import {
     WebhooksDefinition,
     type ConnectionServiceClient
 } from '@cratis/chronicle.contracts';
-import { ComplianceDefinition } from '../compliance/ComplianceContracts';
+import { ComplianceDefinition } from '../compliance/ComplianceContracts.js';
 import { createChannel, createClientFactory } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
-import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts';
-import { ExternalServicesDefinition } from '../externalServices/ExternalServicesContracts';
-import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString';
-import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver';
-import { ChronicleServices } from './ChronicleServices';
-import { CompatibilityPreflight } from './CompatibilityPreflight';
-import { formatServerAddress } from './formatServerAddress';
-import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
-import { createLoadBalancerStrategy } from './LoadBalancerStrategyFactory';
-import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider';
+import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts.js';
+import { ExternalServicesDefinition } from '../externalServices/ExternalServicesContracts.js';
+import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString.js';
+import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
+import { ChronicleServices } from './ChronicleServices.js';
+import { CompatibilityPreflight } from './CompatibilityPreflight.js';
+import { formatServerAddress } from './formatServerAddress.js';
+import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
+import { createLoadBalancerStrategy } from './LoadBalancerStrategyFactory.js';
+import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider.js';
 
 /**
  * Configuration options for Chronicle connection.

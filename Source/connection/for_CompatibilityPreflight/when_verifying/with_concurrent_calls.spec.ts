@@ -3,7 +3,7 @@
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { CompatibilityResponse, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
-import { CompatibilityPreflight } from '../../CompatibilityPreflight';
+import { CompatibilityPreflight } from '../../CompatibilityPreflight.js';
 
 chai.should();
 

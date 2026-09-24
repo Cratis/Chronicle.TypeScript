@@ -3,12 +3,12 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { Guid } from '@cratis/fundamentals';
-import type { AppendResult } from '../eventSequences/AppendResult';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
-import type { IEventSequence } from '../eventSequences/IEventSequence';
-import type { IEventStore } from '../IEventStore';
-import { UnitOfWork } from './UnitOfWork';
+import type { AppendResult } from '../eventSequences/AppendResult.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import type { IEventSequence } from '../eventSequences/IEventSequence.js';
+import type { IEventStore } from '../IEventStore.js';
+import { UnitOfWork } from './UnitOfWork.js';
 
 function createAppendResult(overrides: Partial<AppendResult> = {}): AppendResult {
     return {

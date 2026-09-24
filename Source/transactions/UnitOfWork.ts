@@ -2,14 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import { AppendError } from '../eventSequences/AppendError';
-import { AppendResult } from '../eventSequences/AppendResult';
-import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation';
-import { ConstraintViolation } from '../eventSequences/ConstraintViolation';
-import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { IEventStore } from '../IEventStore';
-import { IUnitOfWork } from './IUnitOfWork';
+import { AppendError } from '../eventSequences/AppendError.js';
+import { AppendResult } from '../eventSequences/AppendResult.js';
+import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation.js';
+import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
+import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { IEventStore } from '../IEventStore.js';
+import { IUnitOfWork } from './IUnitOfWork.js';
 
 interface EventForEventSourceIdWithSequenceNumber {
     readonly sequenceNumber: number;

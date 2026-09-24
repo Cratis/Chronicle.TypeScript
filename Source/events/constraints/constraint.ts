@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { ConstraintId } from './ConstraintId';
-import { DecoratorType, TypeDiscoverer } from '../../types';
+import { ConstraintId } from './ConstraintId.js';
+import { DecoratorType, TypeDiscoverer } from '../../types/index.js';
 
 /** Metadata key used to store constraint information on a class. */
 const CONSTRAINT_METADATA_KEY = 'chronicle:constraint';

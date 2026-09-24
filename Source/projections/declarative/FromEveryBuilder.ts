@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { IAllSetBuilder } from './IAllSetBuilder';
-import { IFromEveryBuilder } from './IFromEveryBuilder';
-import { AllSetBuilder } from './AllSetBuilder';
+import { IAllSetBuilder } from './IAllSetBuilder.js';
+import { IFromEveryBuilder } from './IFromEveryBuilder.js';
+import { AllSetBuilder } from './AllSetBuilder.js';
 
 /**
  * Accumulated mapping entry for fromEvery.

@@ -1,11 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { AppendError } from './AppendError';
-import { ConcurrencyViolation } from './ConcurrencyViolation';
-import { ConstraintViolation } from './ConstraintViolation';
-import { EventSequenceNumber } from './EventSequenceNumber';
-import { WaitForCompletionResult } from './WaitForCompletionResult';
+import { AppendError } from './AppendError.js';
+import { ConcurrencyViolation } from './ConcurrencyViolation.js';
+import { ConstraintViolation } from './ConstraintViolation.js';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
+import { WaitForCompletionResult } from './WaitForCompletionResult.js';
 
 /**
  * Represents the result of appending a single event to an event sequence.

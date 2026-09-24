@@ -3,10 +3,10 @@
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { AppendRequest, AppendManyForEventSourcesRequest } from '@cratis/chronicle.contracts';
-import { EventSequence, EventSequenceId, EventSequenceNumber } from '../../index';
-import { eventType } from '../../../events';
-import type { ChronicleConnection } from '../../../connection';
-import type { IUnitOfWorkManager } from '../../../transactions';
+import { EventSequence, EventSequenceId, EventSequenceNumber } from '../../index.js';
+import { eventType } from '../../../events/index.js';
+import type { ChronicleConnection } from '../../../connection/index.js';
+import type { IUnitOfWorkManager } from '../../../transactions/index.js';
 
 const should = chai.should();
 class MetadataRecorded { constructor(readonly value = 'payload') {} }

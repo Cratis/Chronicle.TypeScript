@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ObserverRunningState as ContractObserverRunningState } from '@cratis/chronicle.contracts';
-import { ObserverRunningState } from './ObserverRunningState';
+import { ObserverRunningState } from './ObserverRunningState.js';
 
 /**
  * Converts a wire {@link ContractObserverRunningState} into the client {@link ObserverRunningState}.

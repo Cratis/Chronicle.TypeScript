@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { OAuthTokenResponse } from './fetchOAuthAccessToken';
-import { OAuthTokenProvider } from './TokenProvider';
+import type { OAuthTokenResponse } from './fetchOAuthAccessToken.js';
+import { OAuthTokenProvider } from './TokenProvider.js';
 
 // Long enough to stay outside the 60s refresh margin for the whole spec.
 const longLifetime = 3600;

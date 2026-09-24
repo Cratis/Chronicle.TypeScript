@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
-import { LeastConnectionsLoadBalancerStrategy } from './LeastConnectionsLoadBalancerStrategy';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { LeastConnectionsLoadBalancerStrategy } from './LeastConnectionsLoadBalancerStrategy.js';
 
 function textResponse(body: string, ok = true): Response {
     return { ok, text: () => Promise.resolve(body) } as Response;

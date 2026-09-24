@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventContext } from './EventContext';
-import { EventType } from './EventType';
+import { EventContext } from './EventContext.js';
+import { EventType } from './EventType.js';
 
 /**
  * Represents an event that has been appended to an event sequence.

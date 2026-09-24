@@ -7,22 +7,22 @@ import {
     ProjectionOwner
 } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { toContractsGuid } from '../connection/Guid';
-import { WellKnownSinks } from '../sinks';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
-import { JobId } from '../jobs/JobId';
-import { FailedPartition } from '../observation/FailedPartition';
-import { FailedPartitions } from '../observation/FailedPartitions';
-import { toObserverRunningState } from '../observation/toObserverRunningState';
-import { getReadModelMetadata } from '../readModels';
-import { TypeIntrospector } from '../types';
-import { IProjections } from './IProjections';
-import { getProjectionMetadata } from './declarative/projection';
-import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor';
-import type { IProjectionFor } from './declarative/IProjectionFor';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { toContractsGuid } from '../connection/Guid.js';
+import { WellKnownSinks } from '../sinks/index.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import { JobId } from '../jobs/JobId.js';
+import { FailedPartition } from '../observation/FailedPartition.js';
+import { FailedPartitions } from '../observation/FailedPartitions.js';
+import { toObserverRunningState } from '../observation/toObserverRunningState.js';
+import { getReadModelMetadata } from '../readModels/index.js';
+import { TypeIntrospector } from '../types/index.js';
+import { IProjections } from './IProjections.js';
+import { getProjectionMetadata } from './declarative/projection.js';
+import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
+import type { IProjectionFor } from './declarative/IProjectionFor.js';
 import {
     applyPropertyMappings,
     buildChildrenEntry,
@@ -33,28 +33,28 @@ import {
     FromRecord,
     getEventTypeMapKey,
     toContractEventType
-} from './modelBound/childrenAndNestedBuilder';
-import { getChildrenFromMetadata } from './modelBound/childrenFrom';
-import { getClearWithPropertyMetadata } from './modelBound/clearWith';
-import { getEventSequenceMetadata } from './modelBound/eventSequence';
-import { getFromAllMetadata } from './modelBound/fromAll';
-import { getFromEveryMetadata } from './modelBound/fromEvery';
-import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent';
-import { getJoinMetadata } from './modelBound/join';
-import { isNoAutoMap, isPropertyNoAutoMap } from './modelBound/noAutoMap';
-import { ProjectionId } from './ProjectionId';
-import { ProjectionQueryResult } from './ProjectionQueryResult';
-import { ProjectionState } from './ProjectionState';
-import { isNested } from './modelBound/nested';
-import { isNotRewindable } from './modelBound/notRewindable';
-import { isPassive } from './modelBound/passive';
-import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith';
-import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin';
-import { getVariantOfMetadata } from './modelBound/variantOf';
-import { getEntersOnMetadata } from './modelBound/entersOn';
-import { getGlobalForMetadata } from './modelBound/globalFor';
-import { UnableToQueryProjection } from './UnableToQueryProjection';
-import { BuiltProjection, crossWireGroups, mergeGlobalHandlers, reclassify, VariantDeclaration } from './VariantReclassifier';
+} from './modelBound/childrenAndNestedBuilder.js';
+import { getChildrenFromMetadata } from './modelBound/childrenFrom.js';
+import { getClearWithPropertyMetadata } from './modelBound/clearWith.js';
+import { getEventSequenceMetadata } from './modelBound/eventSequence.js';
+import { getFromAllMetadata } from './modelBound/fromAll.js';
+import { getFromEveryMetadata } from './modelBound/fromEvery.js';
+import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent.js';
+import { getJoinMetadata } from './modelBound/join.js';
+import { isNoAutoMap, isPropertyNoAutoMap } from './modelBound/noAutoMap.js';
+import { ProjectionId } from './ProjectionId.js';
+import { ProjectionQueryResult } from './ProjectionQueryResult.js';
+import { ProjectionState } from './ProjectionState.js';
+import { isNested } from './modelBound/nested.js';
+import { isNotRewindable } from './modelBound/notRewindable.js';
+import { isPassive } from './modelBound/passive.js';
+import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith.js';
+import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin.js';
+import { getVariantOfMetadata } from './modelBound/variantOf.js';
+import { getEntersOnMetadata } from './modelBound/entersOn.js';
+import { getGlobalForMetadata } from './modelBound/globalFor.js';
+import { UnableToQueryProjection } from './UnableToQueryProjection.js';
+import { BuiltProjection, crossWireGroups, mergeGlobalHandlers, reclassify, VariantDeclaration } from './VariantReclassifier.js';
 
 interface ResolvedModelBoundMetadata {
     id: ProjectionId;
