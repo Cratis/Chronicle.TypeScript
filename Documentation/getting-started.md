@@ -35,7 +35,7 @@ import 'reflect-metadata';
 
 ## Decorator mode and schema types
 
-Use TypeScript 5.2 or newer with standard decorators (leave `experimentalDecorators` and `emitDecoratorMetadata` unset). Existing projects with `experimentalDecorators: true` continue to use the legacy decorators. For standard-mode event types and read models, declare member types explicitly with `@field` from `@cratis/fundamentals`; TypeScript does not emit `design:type` metadata in this mode. Set array element types with `@field(Array, { genericArguments: [ItemType] })`. Concept classes can declare `static readonly valueType = String` or `Number` to identify their serialized primitive without legacy metadata.
+Use TypeScript 5.2 or newer with standard decorators (leave `experimentalDecorators` and `emitDecoratorMetadata` unset). Existing projects with `experimentalDecorators: true` continue to use the legacy decorators. For standard-mode event types and read models, declare member types explicitly with `@field` from `@cratis/fundamentals`; TypeScript does not emit `design:type` metadata in this mode. Set array element types with `@field(Array, { genericArguments: [ItemType] })`. Concept classes can declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` to identify their serialized value without legacy metadata.
 
 ```typescript
 import 'reflect-metadata';
@@ -55,7 +55,7 @@ console.log(getEventTypeJsonSchemaFor(StockCounted).properties?.quantity.type);
 // number
 ```
 
-Chronicle rejects an unresolved standard-mode member type instead of silently registering an incomplete schema.
+An event type or read model with no members is valid. An unresolved member type or an array without `genericArguments` fails when its schema is first read, or during connection before any artifacts are registered with the Kernel. The remaining constructor-property examples in the legacy-mode client snippets use `experimentalDecorators: true` and do not represent standard-mode schema declarations. For standard mode, use `@field` on each typed member as shown above. Chronicle supports standard public instance fields, not standard accessors or getters, for property decorators.
 
 ## Connecting to Chronicle
 
