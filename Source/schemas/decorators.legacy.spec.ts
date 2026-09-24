@@ -5,7 +5,7 @@ import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
 import { eventType, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
-import { standardSchema } from './decorators.standard.spec.js';
+import { expectedProperties } from './decorators.expected.fixture.js';
 import { getProjectionMetadata, projection } from '../projections/declarative/projection.js';
 import { getReducerMetadata, reducer } from '../reducers/reducer.js';
 import { getReactorMetadata, reactor } from '../reactors/reactor.js';
@@ -53,8 +53,8 @@ describe('legacy decorator syntax', () => {
     it('registers the same schemas as standard decorators', () => {
         expect(getEventTypeMetadata(LegacyEvent)?.eventType.id.value).toBe('legacy-fixture');
         expect(getReadModelMetadata(LegacyModel)?.schema.properties?.count.type).toBe('number');
-        expect(getEventTypeMetadata(LegacyEvent)?.schema.properties).toEqual(standardSchema.properties);
-        expect(getEventTypeMetadata(LegacyEvent)?.schema.required).toEqual(standardSchema.required);
+        expect(getEventTypeMetadata(LegacyEvent)?.schema.properties).toEqual(expectedProperties);
+        expect(getEventTypeMetadata(LegacyEvent)?.schema.required).toEqual(Object.keys(expectedProperties));
         expect(getProjectionMetadata(LegacyProjection)?.id.value).toBe('legacy-projection');
         expect(getReducerMetadata(LegacyReducer)?.id.value).toBe('legacy-reducer');
         expect(getReactorMetadata(LegacyReactor)?.id.value).toBe('legacy-reactor');

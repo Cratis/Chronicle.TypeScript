@@ -14,6 +14,7 @@ import { pii } from '../compliance/pii.js';
 import { subject, getSubjectPropertyName } from '../compliance/subject.js';
 import { encrypted } from '../confidentiality/encrypted.js';
 import { JsonSchemaGenerator } from './JsonSchemaGenerator.js';
+import { expectedProperties } from './decorators.expected.fixture.js';
 
 class Code extends ConceptAs<string> {
     static readonly valueType = String;
@@ -25,6 +26,22 @@ class Quantity extends ConceptAs<number> {
 
 class Address {
     @field(String) city!: string;
+}
+
+function replaceClass<T extends new (...args: never[]) => object>(value: T, _context: ClassDecoratorContext<T>): T {
+    return class extends (value as new () => object) {} as T;
+}
+
+@replaceClass
+@eventType('replaced-event')
+class ReplacedEvent {
+    @field(String) value!: string;
+}
+
+@replaceClass
+@readModel('replaced-model')
+class ReplacedModel {
+    @field(Number) amount!: number;
 }
 
 @eventType('standard-fixture')
@@ -134,7 +151,7 @@ class StandardReducer {}
 @reactor('standard-reactor')
 class StandardReactor {}
 
-export const standardSchema = getEventTypeMetadata(StandardEvent)!.schema;
+const standardSchema = getEventTypeMetadata(StandardEvent)!.schema;
 
 // No instance is constructed: @field's standard metadata must be available after class evaluation.
 describe('standard decorator syntax', () => {
@@ -145,17 +162,15 @@ describe('standard decorator syntax', () => {
         expect(getSubjectPropertyName(StandardModel)).toBe('ownerId');
         expect(getReadModelMetadata(StandardModel)?.schema.properties?.contact.compliance).toEqual([{ metadataType: 'PII', details: 'personal' }]);
         expect(getReadModelMetadata(StandardModel)?.schema.properties?.secret.security).toEqual([{ metadataType: 'EncryptedSubject', details: '' }]);
-        expect(standardSchema.properties).toMatchObject({
-            name: { type: 'string' },
-            age: { type: 'number' },
-            active: { type: 'boolean' },
-            id: { type: 'string', format: 'guid' },
-            occurred: { type: 'string', format: 'date-time' },
-            codes: { type: 'array', items: { type: 'string' } },
-            address: { type: 'object', properties: { city: { type: 'string' } } },
-            code: { type: 'string' },
-            quantity: { type: 'number' }
-        });
+        expect(standardSchema.properties).toEqual(expectedProperties);
+        expect(standardSchema.required).toEqual(Object.keys(expectedProperties));
+    });
+
+    it('resolves schemas on an outer decorator replacement class', () => {
+        expect(getEventTypeMetadata(ReplacedEvent)!.schema.properties?.value.type).toBe('string');
+        expect(getReadModelMetadata(ReplacedModel)!.schema.properties?.amount.type).toBe('number');
+        expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.EventType, 'replaced-event')).toBe(ReplacedEvent);
+        expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.ReadModel, 'replaced-model')).toBe(ReplacedModel);
     });
 
     it('keeps inherited property metadata copy-on-write', () => {

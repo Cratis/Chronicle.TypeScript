@@ -6,7 +6,8 @@ import { Constructor } from '@cratis/fundamentals';
 import { ReadModelId } from './ReadModelId.js';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
 import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
-import { ChronicleClassDecorator, requireCompletedStandardMetadata } from '../types/standardDecoratorMetadata.js';
+import { ChronicleClassDecorator } from '../types/standardDecoratorMetadata.js';
+import { createDeferredSchema } from '../schemas/createDeferredSchema.js';
 
 /** Metadata key used to store read model information on a class. */
 const READ_MODEL_METADATA_KEY = 'chronicle:readModel';
@@ -32,18 +33,10 @@ export interface ReadModelMetadata {
  */
 export function readModel(id: string = ''): ChronicleClassDecorator {
     return (target: object, context?: ClassDecoratorContext) => {
-        const constructor = target as Function;
+        let constructor = target as Function;
         const readModelId = new ReadModelId(id || constructor.name);
         const members = context?.kind === 'class' ? undefined : TypeIntrospector.getMembers(constructor);
-        let resolved: { members: ReadonlyMap<string, Function | undefined>; schema: JsonSchema } | undefined;
-        const resolve = () => {
-            requireCompletedStandardMetadata(constructor);
-            if (!resolved) {
-                const members = TypeIntrospector.getMembers(constructor);
-                resolved = { members, schema: JsonSchemaGenerator.generate(constructor, members, true) };
-            }
-            return resolved;
-        };
+        const resolve = createDeferredSchema(() => constructor);
         const metadata: ReadModelMetadata = context?.kind === 'class' ? {
             id: readModelId,
             get members() {
@@ -63,6 +56,13 @@ export function readModel(id: string = ''): ChronicleClassDecorator {
             constructor as Constructor,
             readModelId.value
         );
+        context?.addInitializer(function () {
+            if (this !== constructor) {
+                constructor = this;
+                Reflect.defineMetadata(READ_MODEL_METADATA_KEY, metadata, constructor);
+                TypeDiscoverer.default.register(DecoratorType.ReadModel, constructor as Constructor, readModelId.value);
+            }
+        });
     };
 }
 

@@ -8,7 +8,8 @@ import { EventTypeId } from './EventTypeId.js';
 import { EventTypeGeneration } from './EventTypeGeneration.js';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
 import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
-import { ChronicleClassDecorator, requireCompletedStandardMetadata } from '../types/standardDecoratorMetadata.js';
+import { ChronicleClassDecorator } from '../types/standardDecoratorMetadata.js';
+import { createDeferredSchema } from '../schemas/createDeferredSchema.js';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
@@ -88,19 +89,11 @@ export function eventType(
     }
 
     return (target: object, context?: ClassDecoratorContext) => {
-        const constructor = target as Function;
+        let constructor = target as Function;
         const eventTypeId = new EventTypeId(id || constructor.name);
         const eventTypeInstance = new EventType(eventTypeId, new EventTypeGeneration(generation), isTombstone);
         const members = context?.kind === 'class' ? undefined : TypeIntrospector.getMembers(constructor);
-        let resolved: { members: ReadonlyMap<string, Function | undefined>; schema: JsonSchema } | undefined;
-        const resolve = () => {
-            requireCompletedStandardMetadata(constructor);
-            if (!resolved) {
-                const members = TypeIntrospector.getMembers(constructor);
-                resolved = { members, schema: JsonSchemaGenerator.generate(constructor, members, true) };
-            }
-            return resolved;
-        };
+        const resolve = createDeferredSchema(() => constructor);
         const metadata: EventTypeMetadata = context?.kind === 'class' ? {
             eventType: eventTypeInstance,
             get members() {
@@ -120,6 +113,13 @@ export function eventType(
             constructor as Constructor,
             eventTypeId.value
         );
+        context?.addInitializer(function () {
+            if (this !== constructor) {
+                constructor = this;
+                Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, metadata, constructor);
+                TypeDiscoverer.default.register(DecoratorType.EventType, constructor as Constructor, eventTypeId.value);
+            }
+        });
     };
 }
 
