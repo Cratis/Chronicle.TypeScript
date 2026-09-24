@@ -67,10 +67,11 @@ export class TypeIntrospector {
         for (const property of propertyNames) {
             let runtimeType = fieldTypes.get(property);
             if (!runtimeType || runtimeType === Object) {
-                runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+                const reflected = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+                if (reflected && reflected !== Object) runtimeType = reflected;
             }
             if (!runtimeType || runtimeType === Object) {
-                runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]);
+                runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]) ?? runtimeType;
             }
 
             members.set(property, runtimeType);

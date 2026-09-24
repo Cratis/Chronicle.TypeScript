@@ -120,8 +120,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
 
     describe('when an array element is a ConceptAs<T> marked @encrypted()', () => {
         class Token extends ConceptAs<string> {
-            static readonly valueType = String;
-
             constructor(value: string) {
                 super(value);
             }

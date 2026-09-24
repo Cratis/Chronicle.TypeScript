@@ -13,6 +13,7 @@ import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 import { pii } from '../compliance/pii.js';
 import { subject, getSubjectPropertyName } from '../compliance/subject.js';
 import { encrypted } from '../confidentiality/encrypted.js';
+import { JsonSchemaGenerator } from './JsonSchemaGenerator.js';
 
 class Code extends ConceptAs<string> {
     static readonly valueType = String;
@@ -69,12 +70,23 @@ class ChildMapping extends ParentMapping {
 @eventType('empty-schema')
 class MissingMembers {}
 
+@readModel('empty-model')
+class EmptyModel {}
+
 @eventType('missing-field')
 class MissingField {
     constructor(readonly value: string) {}
 }
 
 class UnspecifiedQuantity extends ConceptAs<number> {}
+
+class ConceptGuid extends ConceptAs<Guid> {
+    static readonly valueType = Guid;
+}
+
+class ConceptDate extends ConceptAs<Date> {
+    static readonly valueType = Date;
+}
 
 @eventType('untyped-concept')
 class UntypedConceptEvent {
@@ -94,6 +106,23 @@ class ForeignGuid {
 class ForeignTypes {
     @field(ForeignConcept) amount!: ForeignConcept;
     @field(ForeignGuid) id!: ForeignGuid;
+    @field(Object) data!: object;
+    @field(ConceptGuid) conceptId!: ConceptGuid;
+    @field(ConceptDate) conceptDate!: ConceptDate;
+    @field(Array, { genericArguments: [String] }) names!: string[];
+    @field(Array, { genericArguments: [Number] }) numbers!: number[];
+    @field(Array, { genericArguments: [Boolean] }) flags!: boolean[];
+    @field(Array, { genericArguments: [Guid] }) guids!: Guid[];
+    @field(Array, { genericArguments: [Address] }) addresses!: Address[];
+}
+
+class UndecoratedModel {
+    @field(Array) items!: string[];
+}
+
+@eventType('untyped-array')
+class UntypedArray {
+    @field(Array) items!: string[];
 }
 
 @projection('standard-projection', StandardModel)
@@ -160,18 +189,32 @@ describe('standard decorator syntax', () => {
     });
 
     it('rejects missing member metadata instead of registering an empty schema', () => {
-        expect(() => getEventTypeMetadata(MissingMembers)!.schema).toThrow(/Cannot determine the members of MissingMembers/);
+        expect(getEventTypeMetadata(MissingMembers)!.schema.properties).toEqual({});
+        expect(getReadModelMetadata(EmptyModel)!.schema.properties).toEqual({});
         expect(() => getEventTypeMetadata(MissingField)!.schema).toThrow(/Cannot determine the type of MissingField.value/);
     });
 
     it('rejects a concept without a declared primitive in standard mode', () => {
-        expect(() => getEventTypeMetadata(UntypedConceptEvent)!.schema).toThrow(/Cannot determine the primitive type of concept UnspecifiedQuantity/);
+        expect(() => getEventTypeMetadata(UntypedConceptEvent)!.schema).toThrow(/Cannot determine the value type of concept UnspecifiedQuantity/);
     });
 
     it('recognizes Fundamentals types from another package copy by their type key', () => {
         expect(getEventTypeMetadata(ForeignTypes)!.schema.properties).toMatchObject({
             amount: { type: 'number' },
-            id: { type: 'string', format: 'guid' }
+            id: { type: 'string', format: 'guid' },
+            data: { type: 'object' },
+            conceptId: { type: 'string', format: 'guid' },
+            conceptDate: { type: 'string', format: 'date-time' },
+            names: { type: 'array', items: { type: 'string' } },
+            numbers: { type: 'array', items: { type: 'number' } },
+            flags: { type: 'array', items: { type: 'boolean' } },
+            guids: { type: 'array', items: { type: 'string', format: 'guid' } },
+            addresses: { type: 'array', items: { type: 'object', properties: { city: { type: 'string' } } } }
         });
+    });
+
+    it('rejects untyped arrays in standard mode', () => {
+        expect(() => getEventTypeMetadata(UntypedArray)!.schema).toThrow(/Cannot determine the element type of UntypedArray.items/);
+        expect(() => JsonSchemaGenerator.generate(UndecoratedModel)).toThrow(/Cannot determine the element type of UndecoratedModel.items/);
     });
 });

@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { conceptAsTypeKey, Constructor, Fields, Guid, typeKeyOf } from '@cratis/fundamentals';
 import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema.js';
 import { TypeIntrospector } from '../types/index.js';
+import { hasOwnStandardMetadata } from '../types/standardDecoratorMetadata.js';
 import { ComplianceMetadata } from '../compliance/ComplianceMetadata.js';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver.js';
 import { SecurityMetadata } from '../confidentiality/SecurityMetadata.js';
@@ -14,6 +15,11 @@ import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEn
 /**
  * Generates JSON schemas for class constructors using reflection metadata.
  */
+export interface JsonSchemaGenerationOptions {
+    /** Reject members and array elements without runtime types. Defaults to true for standard-decorated classes. */
+    readonly requireResolvedTypes?: boolean;
+}
+
 export class JsonSchemaGenerator {
     private static readonly _knownTypeFormats = new Map<Function, { type: JsonSchema['type']; format: string }>([
         [Guid, { type: 'string', format: 'guid' }],
@@ -44,14 +50,12 @@ export class JsonSchemaGenerator {
      * Generates a JSON schema for a class constructor.
      * @param target - The class constructor to generate schema for.
      * @param members - Optional pre-introspected members for reuse.
-     * @param requireResolvedTypes - Reject unresolved members instead of retaining the legacy empty-schema fallback.
+     * @param options - Schema resolution options. A boolean remains supported for existing callers.
      * @returns The generated JSON schema.
      */
-    static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>, requireResolvedTypes = false): JsonSchema {
+    static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>, options?: JsonSchemaGenerationOptions | boolean): JsonSchema {
+        const requireResolvedTypes = typeof options === 'boolean' ? options : options?.requireResolvedTypes ?? hasOwnStandardMetadata(target);
         const membersToUse = members ?? TypeIntrospector.getMembers(target);
-        if (requireResolvedTypes && membersToUse.size === 0) {
-            throw new TypeError(`Cannot determine the members of ${target.name}; declare @field with each member's runtime type.`);
-        }
         const schemaProperties: Record<string, JsonSchema> = {};
         const prototype = target.prototype;
 
@@ -124,10 +128,11 @@ export class JsonSchemaGenerator {
             const fieldType = Fields.getFieldsForType(concept as Constructor).find(field => field.name === 'value')?.type;
             const valueType = fieldType ?? concept.valueType ?? Reflect.getMetadata('design:type', runtimeType.prototype, 'value') as Function | undefined;
             if (!valueType && !requireResolvedTypes) return { type: 'string' }; // Legacy schema compatibility.
-            if (valueType !== String && valueType !== Number && valueType !== Boolean) {
-                throw new TypeError(`Cannot determine the primitive type of concept ${runtimeType.name}; declare static readonly valueType = String or Number.`);
+            const valueSchema = this.mapRuntimeTypeToSchema(valueType, undefined, undefined, requireResolvedTypes);
+            if (!valueType || !valueSchema.type || (requireResolvedTypes && valueSchema.type === 'object')) {
+                throw new TypeError(`Cannot determine the value type of concept ${runtimeType.name}; declare static readonly valueType = String, Number, Boolean, Guid, or Date.`);
             }
-            return this.mapRuntimeTypeToSchema(valueType);
+            return valueSchema;
         }
 
         if (runtimeType !== Object) {
@@ -161,7 +166,15 @@ export class JsonSchemaGenerator {
             return { type: 'array', items: itemSchema };
         }
 
-        return { type: 'array', items: { type: 'object' } };
+        if (!elementType) {
+            if (requireResolvedTypes) {
+                throw new TypeError(`Cannot determine the element type of ${declaringType?.name}.${propertyName}; declare @field(Array, { genericArguments: [ItemType] }).`);
+            }
+            return { type: 'array', items: { type: 'object' } };
+        }
+
+        if (!requireResolvedTypes) return { type: 'array', items: { type: 'object' } }; // Legacy schema compatibility.
+        return { type: 'array', items: this.mapRuntimeTypeToSchema(elementType, undefined, undefined, true) };
     }
 
     /**

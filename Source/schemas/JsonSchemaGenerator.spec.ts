@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { ConceptAs, field } from '@cratis/fundamentals';
+import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
 import { pii } from '../compliance/pii.js';
 import { eventType, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator.js';
@@ -29,6 +29,22 @@ describe('JsonSchemaGenerator', () => {
         }
         readModel()(LegacyModel);
         expect(schemaFor(LegacyModel).properties?.code.type).toBe('string');
+    });
+
+    it('preserves Guid and Date-backed legacy concepts with design:type', () => {
+        class LegacyId extends ConceptAs<Guid> {}
+        class LegacyTime extends ConceptAs<Date> {}
+        Reflect.defineMetadata('design:type', Guid, LegacyId.prototype, 'value');
+        Reflect.defineMetadata('design:type', Date, LegacyTime.prototype, 'value');
+        class LegacyEvent {
+            id = new LegacyId(Guid.empty);
+            occurred = new LegacyTime(new Date());
+        }
+        eventType()(LegacyEvent);
+        expect(getEventTypeJsonSchemaFor(LegacyEvent).properties).toMatchObject({
+            id: { type: 'string', format: 'guid' },
+            occurred: { type: 'string', format: 'date-time' }
+        });
     });
 
     describe('when a class is marked @pii() at the class level', () => {
@@ -156,8 +172,6 @@ describe('JsonSchemaGenerator', () => {
 
     describe('when an array element is a ConceptAs<T> marked @pii()', () => {
         class RequirementCode extends ConceptAs<string> {
-            static readonly valueType = String;
-
             constructor(value: string) {
                 super(value);
             }
