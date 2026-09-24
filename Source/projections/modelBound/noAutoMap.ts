@@ -18,7 +18,7 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:noAutoMap:property';
  * @param target - The class constructor, or the class prototype when used on a property.
  * @param propertyKey - The property name, when used as a property decorator.
  */
-export const noAutoMap = decorateClassOrProperty((target: object, propertyKey?: string | symbol): void => {
+const decorateNoAutoMap = decorateClassOrProperty((target: object, propertyKey?: string | symbol): void => {
     if (propertyKey !== undefined) {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
@@ -27,6 +27,14 @@ export const noAutoMap = decorateClassOrProperty((target: object, propertyKey?: 
         Reflect.defineMetadata(CLASS_METADATA_KEY, true, target as Function);
     }
 });
+
+export function noAutoMap(target: Function): void;
+export function noAutoMap(target: object, propertyKey: string | symbol): void;
+export function noAutoMap(value: Function, context: ClassDecoratorContext): void;
+export function noAutoMap(value: undefined, context: ClassFieldDecoratorContext): void;
+export function noAutoMap(target: object | undefined, propertyKeyOrContext?: string | symbol | ClassDecoratorContext | ClassFieldDecoratorContext): void {
+    decorateNoAutoMap(target as Function, propertyKeyOrContext as ClassDecoratorContext);
+}
 
 /**
  * Checks whether the given class has AutoMap disabled entirely.
