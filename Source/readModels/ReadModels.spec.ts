@@ -66,6 +66,14 @@ describe('ReadModels', () => {
             expect(getInstanceByKey).toHaveBeenCalledWith(expect.objectContaining({ ReadModelKey: 'missing', SessionId: 'session-1' }));
             expect(release).not.toHaveBeenCalled();
         });
+
+        it('should return null when the kernel responds with literal JSON null', async () => {
+            const { readModels, getInstanceByKey, release } = createReadModels(MissingModel);
+            getInstanceByKey.mockResolvedValue({ ReadModel: 'null' });
+            const instance = await readModels.findInstanceById(MissingModel, 'missing');
+            expect(instance).toBeNull();
+            expect(release).not.toHaveBeenCalled();
+        });
     });
 
     describe('when a read model instance exists for a key', () => {
