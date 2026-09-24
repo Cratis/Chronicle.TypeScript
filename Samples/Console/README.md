@@ -9,7 +9,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`), including the model-bound `@count` arithmetic decorator on `EmployeeDetails.promotionCount`
 4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`, `getForEventSourceIdAndEventTypes`) and logs available namespaces
 5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
-6. Queries a reducer-backed read model through `eventStore.readModels.getInstanceById(...)`
+6. Queries a reducer-backed read model through `eventStore.readModels.findInstanceById(...)`
 7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
 8. Registers two discoverable `@constraint` artifacts: `UniqueEmployeeHire` (a unique-event-type constraint, enforced by the Kernel via a query) and `UniqueEmployeeEmail` (a `unique` constraint backed by an index collection that rejects duplicate email addresses)
 9. Demonstrates compliance features with the `@pii` decorator for protecting Personally Identifiable Information

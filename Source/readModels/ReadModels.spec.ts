@@ -51,10 +51,19 @@ describe('ReadModels', () => {
         fromEvent(SomeEvent)(MissingModel);
         readModel('MissingModel')(MissingModel);
 
-        it('should return null rather than a prototype-only phantom instance', async () => {
+        it('should retain the legacy prototype-only instance for getInstanceById', async () => {
             const { readModels, release } = createReadModels(MissingModel);
             const instance = await readModels.getInstanceById(MissingModel, 'missing');
+            expect(instance).toBeInstanceOf(MissingModel);
+            expect(Object.keys(instance)).toEqual([]);
+            expect(release).not.toHaveBeenCalled();
+        });
+
+        it('should return null from findInstanceById without releasing PII', async () => {
+            const { readModels, release, getInstanceByKey } = createReadModels(MissingModel);
+            const instance = await readModels.findInstanceById(MissingModel, 'missing', 'session-1');
             expect(instance).toBeNull();
+            expect(getInstanceByKey).toHaveBeenCalledWith(expect.objectContaining({ ReadModelKey: 'missing', SessionId: 'session-1' }));
             expect(release).not.toHaveBeenCalled();
         });
     });
@@ -68,9 +77,37 @@ describe('ReadModels', () => {
         it('should deserialize the model', async () => {
             const { readModels, getInstanceByKey } = createReadModels(ExistingModel);
             getInstanceByKey.mockResolvedValue({ ReadModel: '{"id":"found"}' });
-            const instance = await readModels.getInstanceById(ExistingModel, 'found');
+            const instance = await readModels.findInstanceById(ExistingModel, 'found');
             expect(instance).toBeInstanceOf(ExistingModel);
             expect(instance?.id).toBe('found');
+            const legacyInstance = await readModels.getInstanceById(ExistingModel, 'found');
+            expect(legacyInstance).toBeInstanceOf(ExistingModel);
+            expect(legacyInstance.id).toBe('found');
+        });
+    });
+
+    describe('when reading a compliance-bearing reducer', () => {
+        class PrivateModel { id = ''; ssn = ''; }
+        field(String)(PrivateModel.prototype, 'id');
+        field(String)(PrivateModel.prototype, 'ssn');
+        pii()(PrivateModel.prototype, 'ssn');
+        readModel('PrivateInstanceModel')(PrivateModel);
+        class PrivateReducer {}
+        reducer('PrivateInstanceReducer', undefined, PrivateModel)(PrivateReducer);
+
+        it('should reject both read methods when compliance release fails', async () => {
+            const release = vi.fn().mockResolvedValue({ HasError: true, Error: 'denied' });
+            const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"id":"a","ssn":"ciphertext"}' });
+            const connection = {
+                readModels: { getInstanceByKey },
+                compliance: { release }
+            } as unknown as ChronicleConnection;
+            const provider = { reducers: [PrivateReducer], projections: [], readModels: [] } as unknown as IClientArtifactsProvider;
+            const readModels = new ReadModels('store', 'tenant', connection, provider, 'sink');
+
+            await expect(readModels.getInstanceById(PrivateModel, 'a')).rejects.toThrow('Failed to release PII: denied');
+            await expect(readModels.findInstanceById(PrivateModel, 'a')).rejects.toThrow('Failed to release PII: denied');
+            expect(release).toHaveBeenCalledTimes(2);
         });
     });
 

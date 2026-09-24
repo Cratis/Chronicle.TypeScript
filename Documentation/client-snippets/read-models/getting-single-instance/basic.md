@@ -1,5 +1,7 @@
 ```typescript
-const account = await store.readModels.getInstanceById(AccountInfo, accountId);
+const account = await store.readModels.findInstanceById(AccountInfo, accountId);
 
-console.log(`${account.name}: ${account.balance}`);
+if (account !== null) {
+    console.log(`${account.name}: ${account.balance}`);
+}
 ```

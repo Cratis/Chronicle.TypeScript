@@ -11,8 +11,8 @@ class ScenariosQueryBook {
 class ScenariosQueryBookService {
     constructor(private readonly store: IEventStore) {}
 
-    async getBook(bookId: string): Promise<ScenariosQueryBook> {
-        return this.store.readModels.getInstanceById(ScenariosQueryBook, bookId);
+    async getBook(bookId: string): Promise<ScenariosQueryBook | null> {
+        return this.store.readModels.findInstanceById(ScenariosQueryBook, bookId);
     }
 }
 ```

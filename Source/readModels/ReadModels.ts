@@ -72,8 +72,32 @@ export class ReadModels implements IReadModels {
         });
     }
 
+    /**
+     * @inheritdoc
+     * @deprecated Use {@link findInstanceById} to distinguish an absent instance from a stored one.
+     */
+    async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel> {
+        const readModel = this.resolveReadModel(readModelType);
+        const response = await this._connection.readModels.getInstanceByKey({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ReadModelIdentifier: readModel.identifier,
+            EventSequenceId: readModel.eventSequenceId,
+            ReadModelKey: key,
+            SessionId: sessionId ?? ''
+        });
+
+        const instance = this.deserializeReadModel(readModelType, response.ReadModel);
+
+        if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
+            return this.release(readModelType, instance);
+        }
+
+        return instance;
+    }
+
     /** @inheritdoc */
-    async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel | null> {
+    async findInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel | null> {
         const readModel = this.resolveReadModel(readModelType);
         const response = await this._connection.readModels.getInstanceByKey({
             EventStore: this._eventStore,

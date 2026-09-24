@@ -375,7 +375,7 @@ const formatField = (label: string, value: unknown, isPii: boolean): string => {
 
 /**
  * Reads the {@link Customer} read model for the {@link sampleCustomer} back via
- * {@link IReadModels.getInstanceById} and prints it in a human-friendly layout.
+ * {@link IReadModels.findInstanceById} and prints it in a human-friendly layout.
  *
  * PII properties are encrypted at rest, so the values printed for the [PII]
  * fields are the encrypted representations — exactly what is stored. Decrypting
@@ -384,7 +384,7 @@ const formatField = (label: string, value: unknown, isPii: boolean): string => {
  * @param store - The event store to read from.
  */
 export async function showCustomerReadModel(store: IEventStore): Promise<void> {
-    const customer = await store.readModels.getInstanceById(Customer, sampleCustomer.id);
+    const customer = await store.readModels.findInstanceById(Customer, sampleCustomer.id);
 
     if (!customer) {
         console.log(`[pii] No Customer read model found for ${sampleCustomer.id}. Append the PII events first.`);

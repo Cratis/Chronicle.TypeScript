@@ -11,8 +11,8 @@ class DesigningReadModelsCustomerDetail {
 class DesigningReadModelsCustomerDetailService {
     constructor(private readonly store: IEventStore) {}
 
-    getDetail(customerId: string): Promise<DesigningReadModelsCustomerDetail> {
-        return this.store.readModels.getInstanceById(DesigningReadModelsCustomerDetail, customerId);
+    getDetail(customerId: string): Promise<DesigningReadModelsCustomerDetail | null> {
+        return this.store.readModels.findInstanceById(DesigningReadModelsCustomerDetail, customerId);
     }
 }
 ```
