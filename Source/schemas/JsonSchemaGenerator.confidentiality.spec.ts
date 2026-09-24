@@ -77,6 +77,8 @@ describe('JsonSchemaGenerator - security metadata', () => {
 
     describe('when a property is typed as a ConceptAs<T> marked @encrypted()', () => {
         class ApiKey extends ConceptAs<string> {
+            static readonly valueType = String;
+
             constructor(value: string) {
                 super(value);
             }

@@ -7,6 +7,7 @@ import { SecurityMetadataType } from './SecurityMetadataType.js';
 import { EncryptionScope } from './EncryptionScope.js';
 import { EncryptedNotSupportedOnEventSourceId } from './EncryptedNotSupportedOnEventSourceId.js';
 import { TypeIntrospector } from '../types/index.js';
+import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata, hasPropertyMetadata } from '../types/propertyDecoratorMetadata.js';
 
 /** The property name this client uses everywhere for the event source identifier. */
 const EVENT_SOURCE_ID_PROPERTY = 'eventSourceId';
@@ -69,8 +70,8 @@ function metadataTypeFor(scope: EncryptionScope): SecurityMetadataType {
  * }
  * ```
  */
-export function encrypted(scope: EncryptionScope = EncryptionScope.Subject, details?: string): PropertyDecorator & ClassDecorator {
-    return (target: object | Function, propertyKey?: string | symbol) => {
+export function encrypted(scope: EncryptionScope = EncryptionScope.Subject, details?: string): ChronicleClassOrPropertyDecorator {
+    return decorateClassOrProperty((target: object | Function, propertyKey?: string | symbol) => {
         // Class decorator usage (for types like ConceptAs)
         if (typeof target === 'function' && propertyKey === undefined) {
             const metadata: SecurityMetadata = {
@@ -91,7 +92,7 @@ export function encrypted(scope: EncryptionScope = EncryptionScope.Subject, deta
             // look up the key that protects everything else. Mirrors @pii()'s
             // PIINotSupportedOnEventSourceId guard, for the same reason.
             if (key === EVENT_SOURCE_ID_PROPERTY) {
-                throw new EncryptedNotSupportedOnEventSourceId(declaringType.name);
+                throw new EncryptedNotSupportedOnEventSourceId(declaringType.name || 'the decorated class');
             }
 
             TypeIntrospector.trackProperty(declaringType, key);
@@ -101,7 +102,7 @@ export function encrypted(scope: EncryptionScope = EncryptionScope.Subject, deta
             };
             Reflect.defineMetadata(ENCRYPTED_PROPERTY_METADATA_KEY, metadata, target, key);
         }
-    };
+    });
 }
 
 /**
@@ -111,7 +112,7 @@ export function encrypted(scope: EncryptionScope = EncryptionScope.Subject, deta
  * @returns The security metadata, or undefined if not decorated with @encrypted.
  */
 export function getEncryptedMetadata(target: object, propertyKey: string): SecurityMetadata | undefined {
-    return Reflect.getMetadata(ENCRYPTED_PROPERTY_METADATA_KEY, target, propertyKey);
+    return getPropertyMetadata<SecurityMetadata>(ENCRYPTED_PROPERTY_METADATA_KEY, target, propertyKey);
 }
 
 /**
@@ -121,7 +122,7 @@ export function getEncryptedMetadata(target: object, propertyKey: string): Secur
  * @returns True if the property has @encrypted decorator; false otherwise.
  */
 export function hasEncryptedMetadata(target: object, propertyKey: string): boolean {
-    return Reflect.hasMetadata(ENCRYPTED_PROPERTY_METADATA_KEY, target, propertyKey);
+    return hasPropertyMetadata(ENCRYPTED_PROPERTY_METADATA_KEY, target, propertyKey);
 }
 
 /**

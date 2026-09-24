@@ -13,10 +13,10 @@ docker run -p 35000:35000 cratis/chronicle:latest-development
 ## Installation
 
 ```bash
-yarn add @cratis/chronicle reflect-metadata
+yarn add @cratis/chronicle @cratis/fundamentals reflect-metadata
 ```
 
-> **Note:** `reflect-metadata` is required for TypeScript decorators to work at runtime. Import it once at the entry point of your application.
+> **Note:** Chronicle uses `reflect-metadata` to store decorator metadata. Import it once at the entry point of your application. The client initializes `Symbol.metadata` where the runtime does not provide it.
 
 The package and its exported subpaths load directly in Node.js ESM without a bundler. After installing, you can check both entry points:
 
@@ -32,6 +32,30 @@ Import `reflect-metadata` at the top of your application entry point:
 ```typescript
 import 'reflect-metadata';
 ```
+
+## Decorator mode and schema types
+
+Use TypeScript 5.2 or newer with standard decorators (leave `experimentalDecorators` and `emitDecoratorMetadata` unset). Existing projects with `experimentalDecorators: true` continue to use the legacy decorators. The published decorator typings reference TypeScript 5 standard context types; projects on older TypeScript versions may need `skipLibCheck` or an upgrade. For standard-mode event types and read models, declare member types explicitly with `@field` from `@cratis/fundamentals`; TypeScript does not emit `design:type` metadata in this mode. Set array element types with `@field(Array, { genericArguments: [ItemType] })`. Concept classes can declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` to identify their serialized value without legacy metadata.
+
+```typescript
+import 'reflect-metadata';
+import { field, ConceptAs } from '@cratis/fundamentals';
+import { eventType, getEventTypeJsonSchemaFor } from '@cratis/chronicle/events';
+
+class Quantity extends ConceptAs<number> {
+    static readonly valueType = Number;
+}
+
+@eventType('stock-counted')
+class StockCounted {
+    @field(Quantity) quantity!: Quantity;
+}
+
+console.log(getEventTypeJsonSchemaFor(StockCounted).properties?.quantity.type);
+// number
+```
+
+An event type or read model with no members is valid. An unresolved member type or an array without `genericArguments` fails when its schema is first read, or during connection before any artifacts are registered with the Kernel. The remaining constructor-property examples in the legacy-mode client snippets use `experimentalDecorators: true` and do not represent standard-mode schema declarations. For standard mode, use `@field` on each typed member as shown above. Chronicle supports standard public instance fields, not standard accessors or getters, for property decorators.
 
 ## Connecting to Chronicle
 

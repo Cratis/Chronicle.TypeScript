@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import type { EventContext } from '../../events/index.js';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the setFromContext property decorator. */
 export interface SetFromContextMetadata {
@@ -22,13 +23,13 @@ const METADATA_KEY = 'chronicle:projection:setFromContext';
  * @param contextPropertyOrAccessor - Optional event context property name or property accessor. Defaults to the property name.
  * @returns A property decorator.
  */
-export function setFromContext(eventType: Function, contextPropertyName?: string): PropertyDecorator;
-export function setFromContext(eventType: Function, contextPropertyAccessor?: PropertyAccessor<EventContext>): PropertyDecorator;
+export function setFromContext(eventType: Function, contextPropertyName?: string): ChroniclePropertyDecorator;
+export function setFromContext(eventType: Function, contextPropertyAccessor?: PropertyAccessor<EventContext>): ChroniclePropertyDecorator;
 export function setFromContext(
     eventType: Function,
     contextPropertyOrAccessor?: string | PropertyAccessor<EventContext>
-): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SetFromContextMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
@@ -45,7 +46,7 @@ export function setFromContext(
 
         const metadata: SetFromContextMetadata = { eventType, contextPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -55,5 +56,5 @@ export function setFromContext(
  * @returns An array of setFromContext metadata entries.
  */
 export function getSetFromContextMetadata(target: object, propertyKey: string): SetFromContextMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<SetFromContextMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the setValue property decorator. */
 export interface SetValueMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:setValue';
  * @param value - The constant value to assign.
  * @returns A property decorator.
  */
-export function setValue(eventType: Function, value: unknown): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function setValue(eventType: Function, value: unknown): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SetValueMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: SetValueMetadata = { eventType, value };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function setValue(eventType: Function, value: unknown): PropertyDecorator
  * @returns An array of setValue metadata entries.
  */
 export function getSetValueMetadata(target: object, propertyKey: string): SetValueMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<SetValueMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

@@ -5,23 +5,31 @@ This page shows how to seed events using the Chronicle TypeScript client. Seedin
 ## Define events
 
 ```typescript
+import { field } from '@cratis/fundamentals';
 import { eventType } from '@cratis/chronicle';
 
 @eventType()
 class AccountOpened {
-    constructor(
-        readonly accountId: string,
-        readonly ownerName: string,
-        readonly initialBalance: number
-    ) {}
+    @field(String) accountId!: string;
+    @field(String) ownerName!: string;
+    @field(Number) initialBalance!: number;
+
+    constructor(accountId: string, ownerName: string, initialBalance: number) {
+        this.accountId = accountId;
+        this.ownerName = ownerName;
+        this.initialBalance = initialBalance;
+    }
 }
 
 @eventType()
 class FundsDeposited {
-    constructor(
-        readonly accountId: string,
-        readonly amount: number
-    ) {}
+    @field(String) accountId!: string;
+    @field(Number) amount!: number;
+
+    constructor(accountId: string, amount: number) {
+        this.accountId = accountId;
+        this.amount = amount;
+    }
 }
 ```
 

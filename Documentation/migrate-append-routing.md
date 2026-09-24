@@ -18,11 +18,16 @@ If a replacement server is incompatible during background recovery, the client s
 Pass all three legacy dimensions when appending to an existing stream. The event source argument still selects the source; the reserved `AppendOptions.eventSourceId` property does not override it.
 
 ```typescript
+import { field } from '@cratis/fundamentals';
 import { eventType, IEventLog } from '@cratis/chronicle';
 
 @eventType()
 class LegacyOrderNoteRecorded {
-    constructor(readonly note: string) {}
+    @field(String) note!: string;
+
+    constructor(note: string) {
+        this.note = note;
+    }
 }
 
 async function appendToExistingOrder(log: IEventLog, orderId: string, note: string) {

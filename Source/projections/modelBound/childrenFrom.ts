@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the childrenFrom property decorator. */
 export interface ChildrenFromMetadata {
@@ -31,14 +32,14 @@ export function childrenFrom(
     key?: string,
     identifiedBy?: string,
     parentKey?: string
-): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const propKey = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
         const existing: ChildrenFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, propKey) ?? [];
         const metadata: ChildrenFromMetadata = { eventType, key, identifiedBy, parentKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, propKey);
-    };
+    });
 }
 
 /**
@@ -48,5 +49,5 @@ export function childrenFrom(
  * @returns An array of childrenFrom metadata entries.
  */
 export function getChildrenFromMetadata(target: object, propertyKey: string): ChildrenFromMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<ChildrenFromMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

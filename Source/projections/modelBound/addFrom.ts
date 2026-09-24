@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the addFrom property decorator. */
 export interface AddFromMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:addFrom';
  * @param eventPropertyName - Optional event property name. Defaults to the property name.
  * @returns A property decorator.
  */
-export function addFrom(eventType: Function, eventPropertyName?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function addFrom(eventType: Function, eventPropertyName?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: AddFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: AddFromMetadata = { eventType, eventPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function addFrom(eventType: Function, eventPropertyName?: string): Proper
  * @returns An array of addFrom metadata entries.
  */
 export function getAddFromMetadata(target: object, propertyKey: string): AddFromMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<AddFromMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

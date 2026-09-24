@@ -54,11 +54,18 @@ See [Documentation/getting-started.md](./Documentation/getting-started.md) for i
 
 ```typescript
 import 'reflect-metadata';
+import { field } from '@cratis/fundamentals';
 import { ChronicleClient, ChronicleOptions, eventType } from '@cratis/chronicle';
 
 @eventType()
 class EmployeeHired {
-    constructor(readonly firstName: string, readonly lastName: string) {}
+    @field(String) firstName!: string;
+    @field(String) lastName!: string;
+
+    constructor(firstName: string, lastName: string) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
 const client = new ChronicleClient(ChronicleOptions.development());

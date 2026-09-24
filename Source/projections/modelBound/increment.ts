@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the increment property decorator. */
 export interface IncrementMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:increment';
  * @param constantKey - Optional constant key value.
  * @returns A property decorator.
  */
-export function increment(eventType: Function, constantKey?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function increment(eventType: Function, constantKey?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: IncrementMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: IncrementMetadata = { eventType, constantKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function increment(eventType: Function, constantKey?: string): PropertyDe
  * @returns An array of increment metadata entries.
  */
 export function getIncrementMetadata(target: object, propertyKey: string): IncrementMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<IncrementMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

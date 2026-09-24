@@ -6,6 +6,7 @@ import type { ComplianceMetadata } from './ComplianceMetadata.js';
 import { ComplianceMetadataType } from './ComplianceMetadataType.js';
 import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId.js';
 import { TypeIntrospector } from '../types/index.js';
+import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata, hasPropertyMetadata } from '../types/propertyDecoratorMetadata.js';
 
 /** The property name this client uses everywhere for the event source identifier. */
 const EVENT_SOURCE_ID_PROPERTY = 'eventSourceId';
@@ -55,8 +56,8 @@ const PII_TYPE_METADATA_KEY = 'chronicle:compliance:pii:type';
  * }
  * ```
  */
-export function pii(details?: string): PropertyDecorator & ClassDecorator {
-    return (target: object | Function, propertyKey?: string | symbol) => {
+export function pii(details?: string): ChronicleClassOrPropertyDecorator {
+    return decorateClassOrProperty((target: object | Function, propertyKey?: string | symbol) => {
         // Class decorator usage (for types like ConceptAs)
         if (typeof target === 'function' && propertyKey === undefined) {
             const metadata: ComplianceMetadata = {
@@ -78,7 +79,7 @@ export function pii(details?: string): PropertyDecorator & ClassDecorator {
             // PIINotSupportedOnEventSourceId guard, which throws for the same reason when
             // [PII] is applied to an EventSourceId/EventSourceId<T> type.
             if (key === EVENT_SOURCE_ID_PROPERTY) {
-                throw new PIINotSupportedOnEventSourceId(declaringType.name);
+                throw new PIINotSupportedOnEventSourceId(declaringType.name || 'the decorated class');
             }
 
             TypeIntrospector.trackProperty(declaringType, key);
@@ -88,7 +89,7 @@ export function pii(details?: string): PropertyDecorator & ClassDecorator {
             };
             Reflect.defineMetadata(PII_PROPERTY_METADATA_KEY, metadata, target, key);
         }
-    };
+    });
 }
 
 /**
@@ -98,7 +99,7 @@ export function pii(details?: string): PropertyDecorator & ClassDecorator {
  * @returns The compliance metadata, or undefined if not decorated with @pii.
  */
 export function getPIIMetadata(target: object, propertyKey: string): ComplianceMetadata | undefined {
-    return Reflect.getMetadata(PII_PROPERTY_METADATA_KEY, target, propertyKey);
+    return getPropertyMetadata<ComplianceMetadata>(PII_PROPERTY_METADATA_KEY, target, propertyKey);
 }
 
 /**
@@ -108,7 +109,7 @@ export function getPIIMetadata(target: object, propertyKey: string): ComplianceM
  * @returns True if the property has @pii decorator; false otherwise.
  */
 export function hasPIIMetadata(target: object, propertyKey: string): boolean {
-    return Reflect.hasMetadata(PII_PROPERTY_METADATA_KEY, target, propertyKey);
+    return hasPropertyMetadata(PII_PROPERTY_METADATA_KEY, target, propertyKey);
 }
 
 /**

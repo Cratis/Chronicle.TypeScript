@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { Constructor, Fields } from '@cratis/fundamentals';
+import { getStandardMetadata } from './standardDecoratorMetadata.js';
 
 /** Metadata key for tracked schema properties on a target type. */
 const TRACKED_PROPERTIES_METADATA_KEY = 'chronicle:typeIntrospection:properties';
@@ -31,7 +32,10 @@ export class TypeIntrospector {
      * @returns The tracked property names.
      */
     static getTrackedProperties(target: Function): string[] {
-        return Reflect.getMetadata(TRACKED_PROPERTIES_METADATA_KEY, target) ?? [];
+        const legacy = Reflect.getMetadata(TRACKED_PROPERTIES_METADATA_KEY, target) as string[] | undefined ?? [];
+        const metadata = getStandardMetadata(target);
+        const standard = metadata ? Reflect.getMetadata(TRACKED_PROPERTIES_METADATA_KEY, metadata) as string[] | undefined ?? [] : [];
+        return [...new Set([...legacy, ...standard])];
     }
 
     /**
@@ -63,10 +67,11 @@ export class TypeIntrospector {
         for (const property of propertyNames) {
             let runtimeType = fieldTypes.get(property);
             if (!runtimeType || runtimeType === Object) {
-                runtimeType = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+                const reflected = Reflect.getMetadata('design:type', target.prototype, property) as Function | undefined;
+                if (reflected && reflected !== Object) runtimeType = reflected;
             }
             if (!runtimeType || runtimeType === Object) {
-                runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]);
+                runtimeType = this.getRuntimeTypeFromValue(defaultValues[property]) ?? runtimeType;
             }
 
             members.set(property, runtimeType);

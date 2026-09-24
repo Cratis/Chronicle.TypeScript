@@ -4,6 +4,8 @@
 
 Use this section for TypeScript installation, connection setup, decorators, generated APIs, and runtime integration details. Shared Chronicle concepts and workflows live in the main Chronicle docs and use language tabs when code differs by client.
 
+The existing client snippets under `Documentation/client-snippets/` with `constructor(readonly …)` event properties are **legacy-decorator examples**, compiled with `experimentalDecorators: true`. For standard decorators, follow the [`@field` setup](./getting-started.md#decorator-mode-and-schema-types) instead. Chronicle resolves standard-mode schemas before Kernel registration and reports unresolved types together; directly reading a schema also surfaces an error.
+
 ## Shared Chronicle topics
 
 - [Get started](/chronicle/get-started/)

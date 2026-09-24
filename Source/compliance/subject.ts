@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getTypeOrFieldMetadata, hasPropertyMetadata } from '../types/propertyDecoratorMetadata.js';
 
 /** Metadata key for the subject decorator on a property. */
 const SUBJECT_PROPERTY_METADATA_KEY = 'chronicle:compliance:subject:property';
@@ -33,15 +34,15 @@ const SUBJECT_TYPE_METADATA_KEY = 'chronicle:compliance:subject:type';
  * }
  * ```
  */
-export function subject(): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function subject(): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         const declaringType = (target as { constructor: Function }).constructor;
 
         TypeIntrospector.trackProperty(declaringType, key);
         Reflect.defineMetadata(SUBJECT_PROPERTY_METADATA_KEY, true, target, key);
         Reflect.defineMetadata(SUBJECT_TYPE_METADATA_KEY, key, declaringType);
-    };
+    });
 }
 
 /**
@@ -51,7 +52,7 @@ export function subject(): PropertyDecorator {
  * @returns True if the property has the @subject decorator; false otherwise.
  */
 export function hasSubjectMetadata(target: object, propertyKey: string): boolean {
-    return Reflect.hasMetadata(SUBJECT_PROPERTY_METADATA_KEY, target, propertyKey);
+    return hasPropertyMetadata(SUBJECT_PROPERTY_METADATA_KEY, target, propertyKey);
 }
 
 /**
@@ -60,5 +61,5 @@ export function hasSubjectMetadata(target: object, propertyKey: string): boolean
  * @returns The decorated property name, or undefined when no property is decorated.
  */
 export function getSubjectPropertyName(type: Function): string | undefined {
-    return Reflect.getMetadata(SUBJECT_TYPE_METADATA_KEY, type);
+    return getTypeOrFieldMetadata<string>(SUBJECT_TYPE_METADATA_KEY, type);
 }

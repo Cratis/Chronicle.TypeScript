@@ -8,6 +8,8 @@ import { EventTypeId } from './EventTypeId.js';
 import { EventTypeGeneration } from './EventTypeGeneration.js';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
 import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
+import { ChronicleClassDecorator } from '../types/standardDecoratorMetadata.js';
+import { createDeferredSchema } from '../schemas/createDeferredSchema.js';
 
 /** Metadata key used to store event type information on a class. */
 const EVENT_TYPE_METADATA_KEY = 'chronicle:eventType';
@@ -51,18 +53,18 @@ export interface EventTypeMetadata {
  * }
  * ```
  */
-export function eventType(): ClassDecorator;
-export function eventType(id: string): ClassDecorator;
-export function eventType(id: string, generation: number): ClassDecorator;
-export function eventType(id: string, generation: number, tombstone: boolean): ClassDecorator;
-export function eventType(generation: number): ClassDecorator;
-export function eventType(generation: number, tombstone: boolean): ClassDecorator;
-export function eventType(tombstone: boolean): ClassDecorator;
+export function eventType(): ChronicleClassDecorator;
+export function eventType(id: string): ChronicleClassDecorator;
+export function eventType(id: string, generation: number): ChronicleClassDecorator;
+export function eventType(id: string, generation: number, tombstone: boolean): ChronicleClassDecorator;
+export function eventType(generation: number): ChronicleClassDecorator;
+export function eventType(generation: number, tombstone: boolean): ChronicleClassDecorator;
+export function eventType(tombstone: boolean): ChronicleClassDecorator;
 export function eventType(
     idOrGenerationOrTombstone?: string | number | boolean,
     generationOrTombstone?: number | boolean,
     tombstone: boolean = false
-): ClassDecorator {
+): ChronicleClassDecorator {
     let id = '';
     let generation = EventTypeGeneration.firstValue;
     let isTombstone = false;
@@ -86,14 +88,23 @@ export function eventType(
         isTombstone = idOrGenerationOrTombstone;
     }
 
-    return (target: object) => {
-        const constructor = target as Function;
+    return (target: object, context?: ClassDecoratorContext) => {
+        let constructor = target as Function;
         const eventTypeId = new EventTypeId(id || constructor.name);
         const eventTypeInstance = new EventType(eventTypeId, new EventTypeGeneration(generation), isTombstone);
-        const members = TypeIntrospector.getMembers(constructor);
-        const metadata: EventTypeMetadata = {
+        const members = context?.kind === 'class' ? undefined : TypeIntrospector.getMembers(constructor);
+        const resolve = createDeferredSchema(() => constructor);
+        const metadata: EventTypeMetadata = context?.kind === 'class' ? {
             eventType: eventTypeInstance,
-            members,
+            get members() {
+                return resolve().members;
+            },
+            get schema() {
+                return resolve().schema;
+            }
+        } : {
+            eventType: eventTypeInstance,
+            members: members!,
             schema: JsonSchemaGenerator.generate(constructor, members)
         };
         Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, metadata, target);
@@ -102,6 +113,13 @@ export function eventType(
             constructor as Constructor,
             eventTypeId.value
         );
+        context?.addInitializer(function () {
+            if (this !== constructor) {
+                constructor = this;
+                Reflect.defineMetadata(EVENT_TYPE_METADATA_KEY, metadata, constructor);
+                TypeDiscoverer.default.register(DecoratorType.EventType, constructor as Constructor, eventTypeId.value);
+            }
+        });
     };
 }
 

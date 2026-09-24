@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { decorateProperty, hasPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 const METADATA_KEY = 'chronicle:projection:nested';
 
@@ -12,10 +13,16 @@ const METADATA_KEY = 'chronicle:projection:nested';
  * @param target - The class prototype.
  * @param propertyKey - The property name.
  */
-export function nested(target: object, propertyKey: string | symbol): void {
+const decorateNested = decorateProperty((target: object, propertyKey: string | symbol): void => {
     const key = propertyKey.toString();
     TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
     Reflect.defineMetadata(METADATA_KEY, true, target, key);
+});
+
+export function nested(target: object, propertyKey: string | symbol): void;
+export function nested(value: undefined, context: ClassFieldDecoratorContext): void;
+export function nested(target: object | undefined, propertyKeyOrContext: string | symbol | ClassFieldDecoratorContext): void {
+    decorateNested(target as undefined, propertyKeyOrContext as ClassFieldDecoratorContext);
 }
 
 /**
@@ -25,5 +32,5 @@ export function nested(target: object, propertyKey: string | symbol): void {
  * @returns True if the property is marked as nested; false otherwise.
  */
 export function isNested(target: object, propertyKey: string): boolean {
-    return Reflect.hasMetadata(METADATA_KEY, target, propertyKey);
+    return hasPropertyMetadata(METADATA_KEY, target, propertyKey);
 }
