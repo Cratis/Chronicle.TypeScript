@@ -48,6 +48,7 @@ on:
       - "Source/**"
 
 permissions:
+  issues: write
   contents: write
 
 jobs:
