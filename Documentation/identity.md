@@ -56,6 +56,8 @@ const identity = identityProvider.getCurrent(); // returns the identity set abov
 identityProvider.clearCurrentIdentity();
 ```
 
+For concurrent or nested operations, prefer `identityProvider.run(identity, callback)`. It isolates the callback and its async children and restores the caller's identity when they finish. `setCurrentIdentity()` remains available for legacy entry points but does not restore a previous identity.
+
 ### Express middleware example
 
 ```typescript
@@ -65,9 +67,7 @@ import { identityProvider, Identity } from '@cratis/chronicle';
 app.use((req, res, next) => {
     const subject = req.auth?.sub ?? 'anonymous';
     const name    = req.auth?.name ?? '[Anonymous]';
-    identityProvider.setCurrentIdentity(new Identity(subject, name));
-    res.on('finish', () => identityProvider.clearCurrentIdentity());
-    next();
+    identityProvider.run(new Identity(subject, name), () => next());
 });
 ```
 

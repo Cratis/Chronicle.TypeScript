@@ -16,6 +16,11 @@ export class IdentityProvider implements IIdentityProvider {
         return this._storage.getStore() ?? Identity.system;
     }
 
+    /** Runs an async or synchronous operation as the given identity, restoring the caller's identity afterward. */
+    run<T>(identity: Identity, callback: () => T): T {
+        return this._storage.run(identity, callback);
+    }
+
     /** @inheritdoc */
     setCurrentIdentity(identity: Identity): void {
         this._storage.enterWith(identity);

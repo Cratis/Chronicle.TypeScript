@@ -18,6 +18,11 @@ export class CorrelationIdManager implements ICorrelationIdAccessor, ICorrelatio
         return this._storage.getStore() ?? CorrelationId.create();
     }
 
+    /** Runs an async or synchronous operation with a correlation id, restoring the caller afterward. */
+    run<T>(correlationId: CorrelationId, callback: () => T): T {
+        return this._storage.run(correlationId, callback);
+    }
+
     /** @inheritdoc */
     setCurrent(correlationId: CorrelationId): void {
         this._storage.enterWith(correlationId);

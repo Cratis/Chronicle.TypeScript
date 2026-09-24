@@ -8,8 +8,11 @@ export class EventSequenceNumber {
     /** Represents the first possible sequence number. */
     static readonly first = new EventSequenceNumber(0n);
 
-    /** Represents an unset sequence number. */
+    /** Represents an unset/unavailable sequence number; no expected revision was supplied. */
     static readonly unset = new EventSequenceNumber(18446744073709551615n);
+
+    /** Expects no event matching the scope. Encoded as ExpectsNoMatchingEvent, not as a wire sequence number. */
+    static readonly beforeFirst = new EventSequenceNumber(18446744073709551613n);
 
     constructor(readonly value: bigint) {}
 
