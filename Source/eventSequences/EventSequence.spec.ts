@@ -3,6 +3,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../connection/index.js';
+import { causationManager, CausationType } from '../auditing/index.js';
 import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
@@ -351,6 +352,64 @@ describe('EventSequence', () => {
             const scopeFor = (eventSourceId: string) => request.ConcurrencyScopes.find((s: { EventSourceId: string }) => s.EventSourceId === eventSourceId).Scope;
             expect(scopeFor('source-1').SequenceNumber).toEqual(5n);
             expect(scopeFor('source-2').SequenceNumber).toEqual(1n);
+        });
+    });
+
+    describe('when appending several batches in one command scope', () => {
+        it('should not carry the previous append link into the next append', async () => {
+            const { eventSequence, appendManyForEventSources } = createEventSequence();
+            await causationManager.run(new CausationType('Command'), {}, async () => {
+                const commandChain = causationManager.getCurrentChain().map(c => ({
+                    Occurred: { Value: c.occurred.toISOString() }, Type: c.type.name, Properties: { ...c.properties }
+                }));
+                await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }]);
+                await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }]);
+
+                // The test runner may have an ambient causation link; neither batch may add one to the next.
+                const [first, second] = appendManyForEventSources.mock.calls;
+                const expectedChain = [...commandChain, expect.objectContaining({
+                    Type: CausationType.appendManyEvents.name, Properties: { count: '1' }
+                })];
+                expect(first[0].Causation).toEqual(expectedChain);
+                expect(second[0].Causation).toEqual(expectedChain);
+            });
+        });
+    });
+
+    describe('when a batch has an independent concurrency label', () => {
+        it('should send both the event target and the independent scope', async () => {
+            const { eventSequence, appendManyForEventSources } = createEventSequence();
+            await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }], {
+                concurrencyScope: { sequenceNumber: 7n },
+                concurrencyScopes: { independent: { sequenceNumber: 3n, eventSourceId: true } }
+            });
+
+            const scopes = appendManyForEventSources.mock.calls[0][0].ConcurrencyScopes;
+            expect(scopes).toEqual(expect.arrayContaining([
+                expect.objectContaining({ EventSourceId: 'independent', Scope: expect.objectContaining({ SequenceNumber: 3n, EventSourceId: true }) }),
+                expect.objectContaining({ EventSourceId: 'target', Scope: expect.objectContaining({ SequenceNumber: 7n }) })
+            ]));
+        });
+    });
+
+    describe('when a batch expects no matching event', () => {
+        it('should send the dedicated flag and unavailable sequence number', async () => {
+            const { eventSequence, appendManyForEventSources } = createEventSequence();
+            await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }], {
+                concurrencyScopes: { independent: { sequenceNumber: EventSequenceNumber.beforeFirst.value, eventSourceId: true } }
+            });
+            const scope = appendManyForEventSources.mock.calls[0][0].ConcurrencyScopes[0].Scope;
+            expect(scope.ExpectsNoMatchingEvent).toBe(true);
+            expect(scope.SequenceNumber).toBe(EventSequenceNumber.unset.value);
+        });
+    });
+
+    describe('when a batch contains only concurrency scopes', () => {
+        it('should reject locally because the kernel requires an event', async () => {
+            const { eventSequence, appendManyForEventSources } = createEventSequence();
+            await expect(eventSequence.appendMany([], { concurrencyScopes: { independent: { sequenceNumber: 1n } } }))
+                .rejects.toThrow('Chronicle requires at least one event');
+            expect(appendManyForEventSources).not.toHaveBeenCalled();
         });
     });
 

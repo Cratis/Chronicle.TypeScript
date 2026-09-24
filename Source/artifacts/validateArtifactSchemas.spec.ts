@@ -44,6 +44,20 @@ describe('artifact schema preflight', () => {
         expect(register).not.toHaveBeenCalled();
     });
 
+    it('uses an explicit artifact catalog for store discovery and schema preflight', async () => {
+        const register = vi.fn();
+        const connection = new Proxy({}, {
+            get: () => new Proxy({}, { get: () => register })
+        }) as ChronicleConnection;
+        const lifecycle = { onDisconnected: vi.fn(), onConnected: vi.fn() } as unknown as ConnectionLifecycle;
+        const catalog = { ...artifacts, eventTypes: [GoodEvent], readModels: [] } as IClientArtifactsProvider;
+        const store = new EventStore(new EventStoreName('Test'), EventStoreNamespaceName.default, connection, lifecycle, 'sink', catalog);
+
+        await store.eventTypes.discover();
+        expect(store.eventTypes.all).toEqual([GoodEvent]);
+        validateArtifactSchemas(catalog);
+    });
+
     it('collects all schema failures before registration', () => {
         try {
             validateArtifactSchemas(artifacts);

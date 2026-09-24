@@ -20,14 +20,23 @@ export class CausationManager implements ICausationManager {
 
     /** @inheritdoc */
     getCurrentChain(): ReadonlyArray<Causation> {
-        const chain = this._getOrInitChain();
-        return chain;
+        return this._storage.getStore() ?? [this._root];
     }
 
     /** @inheritdoc */
     add(type: CausationType, properties: Record<string, string>): void {
-        const chain = this._getOrInitChain();
-        chain.push(new Causation(new Date(), type, properties));
+        this._storage.enterWith([...this.getCurrentChain(), new Causation(new Date(), type, properties)]);
+    }
+
+    /** Runs an async or synchronous operation with an isolated, restored causation chain. */
+    run<T>(callback: () => T): T;
+    run<T>(type: CausationType, properties: Record<string, string>, callback: () => T): T;
+    run<T>(typeOrCallback: CausationType | (() => T), properties?: Record<string, string>, callback?: () => T): T {
+        const chain = [...this.getCurrentChain()];
+        if (typeof typeOrCallback !== 'function') {
+            chain.push(new Causation(new Date(), typeOrCallback, properties!));
+        }
+        return this._storage.run(chain, typeof typeOrCallback === 'function' ? typeOrCallback as () => T : callback!);
     }
 
     /**
@@ -36,16 +45,5 @@ export class CausationManager implements ICausationManager {
      */
     defineRoot(properties: Record<string, string>): void {
         this._root = new Causation(new Date(), CausationType.root, properties);
-    }
-
-    private _getOrInitChain(): Causation[] {
-        let chain = this._storage.getStore();
-        if (chain === undefined) {
-            chain = [this._root];
-            this._storage.enterWith(chain);
-        } else if (chain.length === 0) {
-            chain.push(this._root);
-        }
-        return chain;
     }
 }

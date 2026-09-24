@@ -72,7 +72,10 @@ export class ReadModels implements IReadModels {
         });
     }
 
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     * @deprecated Use {@link findInstanceById} to distinguish an absent instance from a stored one.
+     */
     async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel> {
         const readModel = this.resolveReadModel(readModelType);
         const response = await this._connection.readModels.getInstanceByKey({
@@ -84,6 +87,30 @@ export class ReadModels implements IReadModels {
             SessionId: sessionId ?? ''
         });
 
+        const instance = this.deserializeReadModel(readModelType, response.ReadModel);
+
+        if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
+            return this.release(readModelType, instance);
+        }
+
+        return instance;
+    }
+
+    /** @inheritdoc */
+    async findInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel | null> {
+        const readModel = this.resolveReadModel(readModelType);
+        const response = await this._connection.readModels.getInstanceByKey({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ReadModelIdentifier: readModel.identifier,
+            EventSequenceId: readModel.eventSequenceId,
+            ReadModelKey: key,
+            SessionId: sessionId ?? ''
+        });
+
+        if (!response.ReadModel) {
+            return null;
+        }
         const instance = this.deserializeReadModel(readModelType, response.ReadModel);
 
         if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
@@ -149,10 +176,13 @@ export class ReadModels implements IReadModels {
             ReadModelIdentifier: readModel.identifier,
             EventSequenceId: readModel.eventSequenceId
         })) {
+            const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
+            const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
+                this.schemaHasComplianceMetadata(readModel.schema);
             yield {
                 namespace: changeset.Namespace,
                 key: changeset.ModelKey,
-                readModel: this.deserializeReadModel(readModelType, changeset.ReadModel),
+                readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
                 removed: changeset.Removed
             };
         }

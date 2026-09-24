@@ -9,8 +9,8 @@ class PassiveReducersHistoricalBalanceService {
     constructor(private readonly store: IEventStore) {}
 
     // Passive reducer computes state on-demand from historical events
-    getBalanceAtDate(accountId: string): Promise<PassiveReducersAccountBalance> {
-        return this.store.readModels.getInstanceById(PassiveReducersAccountBalance, accountId);
+    getBalanceAtDate(accountId: string): Promise<PassiveReducersAccountBalance | null> {
+        return this.store.readModels.findInstanceById(PassiveReducersAccountBalance, accountId);
     }
 }
 ```

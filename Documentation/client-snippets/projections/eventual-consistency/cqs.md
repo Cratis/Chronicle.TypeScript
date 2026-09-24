@@ -24,8 +24,8 @@ class EcCqsBookCommandHandler {
 class EcCqsBookQueryHandler {
     constructor(private readonly store: IEventStore) {}
 
-    getBook(bookId: string): Promise<EcCqsBook> {
-        return this.store.readModels.getInstanceById(EcCqsBook, bookId);
+    getBook(bookId: string): Promise<EcCqsBook | null> {
+        return this.store.readModels.findInstanceById(EcCqsBook, bookId);
     }
 }
 ```

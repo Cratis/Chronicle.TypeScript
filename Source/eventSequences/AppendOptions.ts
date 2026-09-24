@@ -42,10 +42,9 @@ export interface AppendOptions {
     tags?: ReadonlyArray<string | Tag>;
 
     /**
-     * Optional per-event-source-id concurrency scopes, keyed by event source id.
-     * Only meaningful for the `appendMany(events: EventForEventSourceId[], options?)` overload, which
-     * can target multiple distinct event sources in a single batch. When an event source id has no
-     * entry here, it falls back to {@link concurrencyScope}.
+     * Optional labeled concurrency scopes, keyed by event source id. Labels need not be append targets.
+     * Any target without an explicit scope falls back to {@link concurrencyScope}.
+     * The kernel requires at least one event in a batch, so scope-only batches are not supported.
      */
     concurrencyScopes?: Record<string, ConcurrencyScope>;
 }

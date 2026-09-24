@@ -65,6 +65,8 @@ app.use((req, res, next) => {
 });
 ```
 
+For concurrent or nested work, use `correlationIdManager.run(id, callback)` to restore the caller's correlation ID after the callback and its async children complete. The existing `setCurrent()` and `clear()` APIs remain available but do not restore a parent scope.
+
 ## Interface segregation
 
 `CorrelationIdManager` implements two separate interfaces, following the same pattern as the .NET client:

@@ -23,12 +23,12 @@ class EcBookService {
     }
 
     // Problematic — expecting immediate consistency
-    async createBookAndReturn(title: string, author: string): Promise<EcBookInventory> {
+    async createBookAndReturn(title: string, author: string): Promise<EcBookInventory | null> {
         const bookId = Guid.create().toString();
         await this.store.eventLog.append(bookId, new EcBookCreated(title, author));
 
-        // The projection may not have run yet — this can return a stale or default instance
-        return this.store.readModels.getInstanceById(EcBookInventory, bookId);
+        // The projection may not have run yet — this can return null
+        return this.store.readModels.findInstanceById(EcBookInventory, bookId);
     }
 }
 ```

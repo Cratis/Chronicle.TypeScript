@@ -77,22 +77,33 @@ describe('MaterializedReadModels', () => {
         pii()(Anonymous.prototype, 'ssn');
         readModel('AnonymousMaterialized')(Anonymous);
 
-        it('should not call release, unchanged from today', async () => {
+        it('should fail closed without a subject', async () => {
             const json = JSON.stringify({ ssn: '000-00-0000' });
             const { readModels, release } = createMaterializedReadModels([json]);
 
-            await readModels.getInstances(Anonymous);
-
+            await expect(readModels.getInstances(Anonymous)).rejects.toThrow(/subject/);
             expect(release).not.toHaveBeenCalled();
         });
 
-        it('should return the instance unreleased', async () => {
+        it('should not return the unreleased instance', async () => {
             const json = JSON.stringify({ ssn: '000-00-0000' });
             const { readModels } = createMaterializedReadModels([json]);
 
-            const [instance] = await readModels.getInstances(Anonymous);
+            await expect(readModels.getInstances(Anonymous)).rejects.toThrow(/subject/);
+        });
+    });
 
-            expect(instance.ssn).toBe('000-00-0000');
+    describe('when the compliance service rejects release', () => {
+        class PrivateCustomer { id = ''; ssn = ''; }
+        field(String)(PrivateCustomer.prototype, 'id');
+        field(String)(PrivateCustomer.prototype, 'ssn');
+        pii()(PrivateCustomer.prototype, 'ssn');
+        readModel('PrivateCustomer')(PrivateCustomer);
+
+        it('should reject instead of returning encrypted content', async () => {
+            const { readModels } = createMaterializedReadModels(
+                ['{"id":"a","ssn":"ciphertext"}'], { HasError: true, Error: 'denied' });
+            await expect(readModels.getInstances(PrivateCustomer)).rejects.toThrow('Failed to release PII: denied');
         });
     });
 });

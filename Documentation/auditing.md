@@ -90,10 +90,11 @@ causationManager.defineRoot({
 import { causationManager, CausationType } from '@cratis/chronicle';
 
 async function handleCommand(commandName: string, handler: () => Promise<void>) {
-    causationManager.add(new CausationType(`MyApp.Command.${commandName}`), {});
-    await handler();
+    await causationManager.run(new CausationType(`MyApp.Command.${commandName}`), {}, handler);
 }
 ```
+
+`run(type, properties, callback)` restores the parent chain even when the callback awaits or throws. `run(callback)` isolates the existing chain without adding a link. Prefer these for concurrent or nested operations; `add()` changes the ambient chain of the current context and remains for legacy callers. Each append adds its own link only to that append's outgoing chain, so sibling appends do not inherit one another's links.
 
 ## How causation flows into events
 

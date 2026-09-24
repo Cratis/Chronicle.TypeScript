@@ -13,6 +13,7 @@ export type { CausationEntry } from './CausationEntry.js';
 export type { AppendedEvent } from './AppendedEvent.js';
 export type { IEventTypes } from './IEventTypes.js';
 export { EventTypes } from './EventTypes.js';
+export { isRegisteredEvent } from './isRegisteredEvent.js';
 export { Tag } from './Tag.js';
 export { tag, tags, getTagsFor } from './tagDecorator.js';
 export { filterEventsByTag, getFilterTagsFor } from './filterEventsByTagDecorator.js';

@@ -71,8 +71,8 @@ export class EventSequence implements IEventSequence {
         // Merge static tags declared on the event type with tags supplied at append time.
         const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
 
-        causationManager.add(CausationType.appendEvent, { eventType: eventType.id.value });
-        const causationChain = causationManager.getCurrentChain();
+        const causationChain = causationManager.run(CausationType.appendEvent, { eventType: eventType.id.value },
+            () => causationManager.getCurrentChain());
         const identity = identityProvider.getCurrent();
 
         const metricAttributes = {
@@ -212,23 +212,26 @@ export class EventSequence implements IEventSequence {
         const appendOptions = typeof eventSourceIdOrEvents === 'string'
             ? options
             : eventsOrOptions as AppendOptions | undefined;
+        if (eventsForEventSourceIds.length === 0 && Object.keys(appendOptions?.concurrencyScopes ?? {}).length > 0) {
+            throw new Error('Chronicle requires at least one event to validate concurrency scopes.');
+        }
 
         const correlationId = appendOptions?.correlationId === undefined
             ? Guid.as(correlationIdManager.current.value)
             : Guid.as(appendOptions.correlationId);
 
-        causationManager.add(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) });
-        const batchCausationChain = causationManager.getCurrentChain();
+        const batchCausationChain = causationManager.run(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) },
+            () => causationManager.getCurrentChain());
         const identity = identityProvider.getCurrent();
 
-        // Each distinct event source id in the batch gets its own concurrency scope: an explicit
-        // entry in options.concurrencyScopes wins, falling back to the shared options.concurrencyScope
-        // when no per-source entry is given — mirroring C#'s AppendMany(IEnumerable<EventForEventSourceId>, ...)
-        // overload, which takes an IDictionary<EventSourceId, ConcurrencyScope> rather than one shared scope.
-        const concurrencyScopesByEventSourceId = appendOptions?.concurrencyScopes;
-        const defaultConcurrencyScope = appendOptions?.concurrencyScope;
-        const resolveConcurrencyScope = (eventSourceId: string) =>
-            this.toContractConcurrencyScope(concurrencyScopesByEventSourceId?.[eventSourceId] ?? defaultConcurrencyScope);
+        // Explicit labels may narrow a different event source than any target in this batch.
+        // Preserve them and supply the shared fallback only for targets without an explicit scope.
+        const concurrencyScopes = new Map<string, ConcurrencyScope | undefined>(Object.entries(appendOptions?.concurrencyScopes ?? {}));
+        for (const { eventSourceId } of eventsForEventSourceIds) {
+            if (!concurrencyScopes.has(eventSourceId)) {
+                concurrencyScopes.set(eventSourceId, appendOptions?.concurrencyScope);
+            }
+        }
 
         const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, occurred, tags: instanceTags }) => {
             const eventType = getEventTypeFor(event.constructor as Function);
@@ -286,9 +289,9 @@ export class EventSequence implements IEventSequence {
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity),
-                    ConcurrencyScopes: distinctEventSourceIds.map(eventSourceId => ({
+                    ConcurrencyScopes: [...concurrencyScopes].map(([eventSourceId, scope]) => ({
                         EventSourceId: eventSourceId,
-                        Scope: resolveConcurrencyScope(eventSourceId)
+                        Scope: this.toContractConcurrencyScope(scope)
                     }))
                 });
 
@@ -752,7 +755,10 @@ export class EventSequence implements IEventSequence {
 
     private toContractConcurrencyScope(scope?: ConcurrencyScope) {
         return {
-            SequenceNumber: scope?.sequenceNumber ?? EventSequenceNumber.unset.value,
+            SequenceNumber: scope?.sequenceNumber === EventSequenceNumber.beforeFirst.value
+                ? EventSequenceNumber.unset.value
+                : scope?.sequenceNumber ?? EventSequenceNumber.unset.value,
+            ExpectsNoMatchingEvent: scope?.sequenceNumber === EventSequenceNumber.beforeFirst.value,
             EventSourceId: scope?.eventSourceId ?? false,
             EventStreamType: scope?.eventStreamType ?? '',
             EventStreamId: scope?.eventStreamId ?? '',
