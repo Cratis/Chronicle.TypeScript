@@ -16,8 +16,9 @@ import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReactors } from './IReactors.js';
-import { appendReactorSideEffects } from './ReactorSideEffects.js';
+import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
+import type { ReactorResultHandler } from './ReactorResultHandler.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -118,7 +119,8 @@ export class Reactors implements IReactors {
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
         lifecycle: ConnectionLifecycle,
-        private readonly _eventLog: IEventLog
+        private readonly _eventLog: IEventLog,
+        private readonly _resultHandler?: ReactorResultHandler
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -303,15 +305,8 @@ export class Reactors implements IReactors {
                         });
 
                         const handlerResult = await reactorInstance[entry.methodName](content, context);
-                        const sideEffectResult = await appendReactorSideEffects(
-                            this._eventLog,
-                            handlerResult,
-                            event.Context!.EventSourceId,
-                            event.Context!.EventStreamType,
-                            event.Context!.EventStreamId);
-                        if (!sideEffectResult.isSuccess) {
-                            throw new Error(`Reactor side effect failed to append: ${sideEffectResult.errors.join('; ')}`);
-                        }
+                        await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
+                            this._eventStoreName, this._namespace, this._resultHandler);
 
                         lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                     } catch (err) {

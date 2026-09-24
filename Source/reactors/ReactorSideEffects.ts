@@ -4,6 +4,8 @@
 import { hasEventType } from '../events/eventTypeDecorator.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
+import type { EventContext } from '../events/EventContext.js';
+import type { ReactorResultHandler } from './ReactorResultHandler.js';
 
 /**
  * Represents the outcome of appending a reactor handler's returned side-effect events.
@@ -17,6 +19,15 @@ export interface ReactorSideEffectResult {
 }
 
 const noSideEffects: ReactorSideEffectResult = { isSuccess: true, errors: [] };
+
+/** Dispatch to the optional application hook first, preserving the SDK event append when it declines. */
+export async function dispatchReactorSideEffects(eventLog: IEventLog, result: unknown, context: EventContext,
+    reactorType: Function, eventStore: string, namespace: string, handler?: ReactorResultHandler): Promise<void> {
+    if (await handler?.(result, context, reactorType, eventStore, namespace)) return;
+    const appended = await appendReactorSideEffects(eventLog, result, context.eventSourceId,
+        context.eventStreamType ?? 'Default', context.eventStreamId ?? context.eventSourceId);
+    if (!appended.isSuccess) throw new Error(`Reactor side effect failed to append: ${appended.errors.join('; ')}`);
+}
 
 /**
  * Determines whether a value is shaped like an {@link EventForEventSourceId} — a plain object
