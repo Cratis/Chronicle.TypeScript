@@ -95,6 +95,9 @@ async function promoteAndConfirm(store: IEventStore, person: Person, user: Ident
     }
 
     const state = await store.readModels.getInstanceById(EmployeeState, person.id);
+    if (!state) {
+        throw new Error(`No EmployeeState read model found for ${person.id} after promotion.`);
+    }
     console.log(`[wait-for-completion] Promoted ${person.firstName} ${person.lastName} to '${title}' and confirmed the read model shows it: '${state.title}'  [caused-by: ${user.userName}]`);
 }
 
@@ -156,6 +159,10 @@ async function transact(store: IEventStore, selectedIndex: number, user: Identit
 
 async function readModel(store: IEventStore, person: Person): Promise<void> {
     const state = await store.readModels.getInstanceById(EmployeeState, person.id);
+    if (!state) {
+        console.log(`[read-model] No EmployeeState read model found for ${person.id}.`);
+        return;
+    }
     console.log(`[read-model] ${person.firstName} ${person.lastName}: ${state.title} <${state.email || 'no email yet'}> @ ${state.address || 'no address yet'}`);
 }
 

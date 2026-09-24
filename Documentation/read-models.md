@@ -11,3 +11,5 @@ Read models are shared Chronicle concepts. Querying, snapshots, watching, and co
 - [Getting read model collections](/chronicle/read-models/getting-collection-instances/)
 - [Watching read models](/chronicle/read-models/watching-read-models/)
 - [TypeScript client setup](./getting-started.md)
+
+`store.readModels.getInstanceById(Model, key)` returns `null` when the instance does not exist. Check for absence before using the result. Compliance release failures reject the read operation rather than returning an unreleased instance.

@@ -73,7 +73,7 @@ export class ReadModels implements IReadModels {
     }
 
     /** @inheritdoc */
-    async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel> {
+    async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel | null> {
         const readModel = this.resolveReadModel(readModelType);
         const response = await this._connection.readModels.getInstanceByKey({
             EventStore: this._eventStore,
@@ -84,6 +84,9 @@ export class ReadModels implements IReadModels {
             SessionId: sessionId ?? ''
         });
 
+        if (!response.ReadModel) {
+            return null;
+        }
         const instance = this.deserializeReadModel(readModelType, response.ReadModel);
 
         if (readModel.observerType === ContractReadModelObserverType.Reducer && this.schemaHasComplianceMetadata(readModel.schema)) {
@@ -149,10 +152,13 @@ export class ReadModels implements IReadModels {
             ReadModelIdentifier: readModel.identifier,
             EventSequenceId: readModel.eventSequenceId
         })) {
+            const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
+            const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
+                this.schemaHasComplianceMetadata(readModel.schema);
             yield {
                 namespace: changeset.Namespace,
                 key: changeset.ModelKey,
-                readModel: this.deserializeReadModel(readModelType, changeset.ReadModel),
+                readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
                 removed: changeset.Removed
             };
         }

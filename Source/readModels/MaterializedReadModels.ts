@@ -100,7 +100,7 @@ export class MaterializedReadModels implements IMaterializedReadModels {
     private async releaseInstance<TReadModel>(readModelType: Constructor<TReadModel>, instance: TReadModel, schema: string): Promise<TReadModel> {
         const subject = ReadModelSubjectResolver.resolveFrom(readModelType, instance);
         if (!subject) {
-            return instance;
+            throw new Error('Read model instance must have a property decorated with @subject() or an "id" property to serve as the subject for PII release');
         }
 
         const payload = JsonSerializer.serialize(instance);
@@ -113,7 +113,7 @@ export class MaterializedReadModels implements IMaterializedReadModels {
         });
 
         if (response.HasError) {
-            return instance;
+            throw new Error(`Failed to release PII: ${response.Error}`);
         }
 
         return this.deserialize(readModelType, response.Payload);

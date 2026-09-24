@@ -33,9 +33,9 @@ export interface IReadModels {
      * @param readModelType - The read model type to retrieve.
      * @param key - The read model key.
      * @param sessionId - Optional session identifier.
-     * @returns The read model instance.
+     * @returns The read model instance, or null when no instance exists for the key.
      */
-    getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel>;
+    getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel | null>;
 
     /**
      * Gets all instances of a read model.

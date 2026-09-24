@@ -386,7 +386,7 @@ const formatField = (label: string, value: unknown, isPii: boolean): string => {
 export async function showCustomerReadModel(store: IEventStore): Promise<void> {
     const customer = await store.readModels.getInstanceById(Customer, sampleCustomer.id);
 
-    if (!customer.id) {
+    if (!customer) {
         console.log(`[pii] No Customer read model found for ${sampleCustomer.id}. Append the PII events first.`);
         return;
     }
