@@ -49,7 +49,12 @@ export interface EventTypeMetadata {
  * ```typescript
  * @eventType()
  * class EmployeeHired {
- *     constructor(readonly firstName: string, readonly lastName: string) {}
+ *     @field(String) firstName: string;
+ *     @field(String) lastName: string;
+ *     constructor(firstName: string, lastName: string) {
+ *         this.firstName = firstName;
+ *         this.lastName = lastName;
+ *     }
  * }
  * ```
  */

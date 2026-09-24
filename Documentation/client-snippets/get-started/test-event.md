@@ -1,8 +1,10 @@
 ```typescript title="The event - an immutable fact"
 import { eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TestEvent {
-    constructor(readonly message: string) {}
+    @field(String) message: string;
+    constructor(message: string) { this.message = message; }
 }
 ```
