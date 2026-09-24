@@ -359,12 +359,20 @@ describe('EventSequence', () => {
         it('should not carry the previous append link into the next append', async () => {
             const { eventSequence, appendManyForEventSources } = createEventSequence();
             await causationManager.run(new CausationType('Command'), {}, async () => {
+                const commandChain = causationManager.getCurrentChain().map(c => ({
+                    Occurred: { Value: c.occurred.toISOString() }, Type: c.type.name, Properties: { ...c.properties }
+                }));
                 await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }]);
                 await eventSequence.appendMany([{ eventSourceId: 'target', event: new SomethingHappened() }]);
+
+                // The test runner may have an ambient causation link; neither batch may add one to the next.
+                const [first, second] = appendManyForEventSources.mock.calls;
+                const expectedChain = [...commandChain, expect.objectContaining({
+                    Type: CausationType.appendManyEvents.name, Properties: { count: '1' }
+                })];
+                expect(first[0].Causation).toEqual(expectedChain);
+                expect(second[0].Causation).toEqual(expectedChain);
             });
-            const [first, second] = appendManyForEventSources.mock.calls;
-            expect(first[0].Causation).toHaveLength(3);
-            expect(second[0].Causation).toHaveLength(3);
         });
     });
 

@@ -67,8 +67,9 @@ describe('when appending with explicit legacy routing and metadata', () => {
         request.Occurred!.Value.should.equal(occurred.toISOString());
     });
     it('should not derive concurrency scope from the route', () => {
+        // The .NET converter sends the contract's explicit false when no before-first check was requested.
         request.ConcurrencyScope!.should.deep.equal({
-            SequenceNumber: EventSequenceNumber.unset.value, EventSourceId: false,
+            SequenceNumber: EventSequenceNumber.unset.value, ExpectsNoMatchingEvent: false, EventSourceId: false,
             EventStreamType: '', EventStreamId: '', EventSourceType: '', EventTypes: []
         });
     });
