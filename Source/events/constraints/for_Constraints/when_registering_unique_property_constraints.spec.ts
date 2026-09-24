@@ -3,14 +3,14 @@
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { ConstraintType } from '@cratis/chronicle.contracts';
-import type { IClientArtifactsProvider } from '../../../artifacts';
-import type { ChronicleConnection } from '../../../connection';
-import { eventType } from '../../eventTypeDecorator';
-import { ConstraintBuilder } from '../ConstraintBuilder';
-import { constraint } from '../constraint';
-import { Constraints } from '../Constraints';
-import type { IConstraint } from '../IConstraint';
-import type { IConstraintBuilder } from '../IConstraintBuilder';
+import type { IClientArtifactsProvider } from '../../../artifacts/index.js';
+import type { ChronicleConnection } from '../../../connection/index.js';
+import { eventType } from '../../eventTypeDecorator.js';
+import { ConstraintBuilder } from '../ConstraintBuilder.js';
+import { constraint } from '../constraint.js';
+import { Constraints } from '../Constraints.js';
+import type { IConstraint } from '../IConstraint.js';
+import type { IConstraintBuilder } from '../IConstraintBuilder.js';
 
 const should = chai.should();
 

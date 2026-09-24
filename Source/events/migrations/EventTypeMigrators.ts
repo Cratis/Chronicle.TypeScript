@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { IClientArtifactsProvider } from '../../artifacts';
-import { getEventTypeFor } from '../eventTypeDecorator';
-import { getEventTypeMigrationMetadata } from './eventTypeMigration';
-import { IEventTypeMigrators } from './IEventTypeMigrators';
+import { IClientArtifactsProvider } from '../../artifacts/index.js';
+import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { getEventTypeMigrationMetadata } from './eventTypeMigration.js';
+import { IEventTypeMigrators } from './IEventTypeMigrators.js';
 
 /**
  * Represents an implementation of {@link IEventTypeMigrators}.

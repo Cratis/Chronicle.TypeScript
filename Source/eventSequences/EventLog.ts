@@ -1,11 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '../connection';
-import { EventSequence } from './EventSequence';
-import { EventSequenceId } from './EventSequenceId';
-import { IEventLog } from './IEventLog';
-import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
+import { ChronicleConnection } from '../connection/index.js';
+import { EventSequence } from './EventSequence.js';
+import { EventSequenceId } from './EventSequenceId.js';
+import { IEventLog } from './IEventLog.js';
+import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 
 /**
  * Implements {@link IEventLog} by extending the base {@link EventSequence}.

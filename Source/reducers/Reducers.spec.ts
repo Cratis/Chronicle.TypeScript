@@ -3,15 +3,15 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { Constructor } from '@cratis/fundamentals';
-import type { IClientArtifactsProvider } from '../artifacts';
-import type { ChronicleConnection } from '../connection';
-import { ConnectionLifecycle } from '../connection/ConnectionLifecycle';
-import { eventType, getEventTypeFor } from '../events/eventTypeDecorator';
-import type { EventContext } from '../events/EventContext';
-import { filterEventsByTag } from '../events/filterEventsByTagDecorator';
-import { tag } from '../events/tagDecorator';
-import { reducer } from './reducer';
-import { Reducers } from './Reducers';
+import type { IClientArtifactsProvider } from '../artifacts/index.js';
+import type { ChronicleConnection } from '../connection/index.js';
+import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
+import { eventType, getEventTypeFor } from '../events/eventTypeDecorator.js';
+import type { EventContext } from '../events/EventContext.js';
+import { filterEventsByTag } from '../events/filterEventsByTagDecorator.js';
+import { tag } from '../events/tagDecorator.js';
+import { reducer } from './reducer.js';
+import { Reducers } from './Reducers.js';
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 

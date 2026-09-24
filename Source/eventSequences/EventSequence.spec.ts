@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import type { ChronicleConnection } from '../connection';
-import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
-import { eventType } from '../events/eventTypeDecorator';
-import { CompleteStreamError } from './CompleteStreamError';
-import { EventSequence } from './EventSequence';
-import { EventSequenceId } from './EventSequenceId';
-import { EventSequenceNumber } from './EventSequenceNumber';
+import type { ChronicleConnection } from '../connection/index.js';
+import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { CompleteStreamError } from './CompleteStreamError.js';
+import { EventSequence } from './EventSequence.js';
+import { EventSequenceId } from './EventSequenceId.js';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
 
 class SomethingHappened {
     constructor(readonly value: string = '') {}
@@ -31,7 +31,9 @@ function createEventSequence(
         fromSequenceNumber: vi.fn().mockResolvedValue({ Data: [] }),
         tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: EventSequenceNumber.unset.value } }),
         completeStream: vi.fn().mockResolvedValue({ Response: { IsSuccess: true, SequenceNumber: 3n, Error: 0 } }),
-        appendManyForEventSources: vi.fn().mockResolvedValue({ Response: { SequenceNumbers: [], ConstraintViolations: [], Errors: [] } }),
+        appendManyForEventSources: vi.fn().mockImplementation(async request => ({
+            Response: { SequenceNumbers: request.Events.map((_: unknown, index: number) => BigInt(index)), ConstraintViolations: [], Errors: [] }
+        })),
         append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 0n, ConstraintViolations: [], Errors: [] } }),
         ...overrides
     };
@@ -567,6 +569,43 @@ describe('EventSequence', () => {
                 expectedSequenceNumber: new EventSequenceNumber(1n),
                 actualSequenceNumber: new EventSequenceNumber(2n)
             });
+        });
+    });
+
+    describe('when appendMany is rejected without sequence numbers', () => {
+        const { eventSequence, waitForCompletion } = createEventSequence({
+            appendManyForEventSources: vi.fn().mockResolvedValue({
+                Response: {
+                    SequenceNumbers: [],
+                    ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: { value: 'a' } }],
+                    Errors: ['Batch rejected']
+                }
+            })
+        });
+
+        it('should carry every batch rejection detail on each input result', async () => {
+            const results = await eventSequence.appendMany('some-event-source', [new SomethingHappened('a'), new SomethingHappened('b')]);
+
+            expect(results).toHaveLength(2);
+            for (const result of results) {
+                expect(result.isSuccess).toBe(false);
+                expect(result.sequenceNumber.value).toBe(0n);
+                expect(result.constraintViolations).toEqual([{ constraintId: 'unique', message: 'Value must be unique', details: { value: 'a' } }]);
+                expect(result.errors).toEqual([{ message: 'Batch rejected' }]);
+                await result.waitForCompletion();
+            }
+            expect(waitForCompletion).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('when appendMany has no sequence numbers or rejection details', () => {
+        const { eventSequence } = createEventSequence({
+            appendManyForEventSources: vi.fn().mockResolvedValue({ Response: { SequenceNumbers: [], ConstraintViolations: [], Errors: [] } })
+        });
+
+        it('should not report an unknown outcome as success', async () => {
+            await expect(eventSequence.appendMany('some-event-source', [new SomethingHappened('a')]))
+                .rejects.toThrow('Append many events returned no sequence numbers or rejection details.');
         });
     });
 

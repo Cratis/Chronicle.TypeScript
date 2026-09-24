@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import { ChronicleConnectionString } from './ChronicleConnectionString';
-import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver';
-import type { ChronicleSrvResolver } from './ChronicleSrvResolver';
+import { ChronicleConnectionString } from './ChronicleConnectionString.js';
+import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
+import type { ChronicleSrvResolver } from './ChronicleSrvResolver.js';
 
 describe('ChronicleServerAddressResolver', () => {
     describe('when resolving a plain multi-host connection string', () => {

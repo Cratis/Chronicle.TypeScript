@@ -2,15 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import type { AppendedEvent } from '../events/AppendedEvent';
-import { AppendedEventWithResult } from './AppendedEventWithResult';
-import { AppendOptions } from './AppendOptions';
-import { CompleteStreamResult } from './CompleteStreamResult';
-import { EventForEventSourceId } from './EventForEventSourceId';
-import { AppendResult } from './AppendResult';
-import { EventSequenceId } from './EventSequenceId';
-import { EventSequenceNumber } from './EventSequenceNumber';
-import { ITransactionalEventSequence } from './ITransactionalEventSequence';
+import type { AppendedEvent } from '../events/AppendedEvent.js';
+import { AppendedEventWithResult } from './AppendedEventWithResult.js';
+import { AppendOptions } from './AppendOptions.js';
+import { CompleteStreamResult } from './CompleteStreamResult.js';
+import { EventForEventSourceId } from './EventForEventSourceId.js';
+import { AppendResult } from './AppendResult.js';
+import { EventSequenceId } from './EventSequenceId.js';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
+import { ITransactionalEventSequence } from './ITransactionalEventSequence.js';
 
 /**
  * Defines the API surface for an event sequence.

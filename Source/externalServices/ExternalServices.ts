@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '../connection';
-import { ExternalServiceBuilder } from './ExternalServiceBuilder';
-import { IExternalServiceBuilder } from './IExternalServiceBuilder';
-import { IExternalServices } from './IExternalServices';
+import { ChronicleConnection } from '../connection/index.js';
+import { ExternalServiceBuilder } from './ExternalServiceBuilder.js';
+import { IExternalServiceBuilder } from './IExternalServiceBuilder.js';
+import { IExternalServices } from './IExternalServices.js';
 
 /**
  * Implements {@link IExternalServices}.

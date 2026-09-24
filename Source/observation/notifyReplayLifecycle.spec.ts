@@ -3,7 +3,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { ReplayState } from '@cratis/chronicle.contracts';
-import { notifyReplayLifecycle } from './notifyReplayLifecycle';
+import { notifyReplayLifecycle } from './notifyReplayLifecycle.js';
 
 describe('notifyReplayLifecycle', () => {
     describe('when the replay state is None', () => {

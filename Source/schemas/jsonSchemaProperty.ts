@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { TypeIntrospector } from '../types';
+import { TypeIntrospector } from '../types/index.js';
 
 /**
  * Decorates a class property so its runtime type metadata can be used for JSON schema generation.

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { IReadModelPropertiesBuilder } from './IReadModelPropertiesBuilder';
+import { IReadModelPropertiesBuilder } from './IReadModelPropertiesBuilder.js';
 
 /**
  * Defines the builder for configuring a join projection from a specific event type.

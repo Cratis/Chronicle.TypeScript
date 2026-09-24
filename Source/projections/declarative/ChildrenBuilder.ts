@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { ChildrenDefinitionLike, ProjectionBuilderCore } from './ProjectionBuilderCore';
-import { IChildrenBuilder } from './IChildrenBuilder';
-import { INestedBuilder } from './INestedBuilder';
-import { NestedBuilder } from './NestedBuilder';
+import { ChildrenDefinitionLike, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
+import { IChildrenBuilder } from './IChildrenBuilder.js';
+import { INestedBuilder } from './INestedBuilder.js';
+import { NestedBuilder } from './NestedBuilder.js';
 
 /**
  * Concrete implementation of {@link IChildrenBuilder}, building the `ChildrenDefinition` for a

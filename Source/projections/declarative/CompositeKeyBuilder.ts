@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
+import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
 
 /**
  * Concrete implementation of {@link ICompositeKeyBuilder} that builds a `$composite(...)` key

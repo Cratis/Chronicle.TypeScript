@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts';
-import { ChronicleConnectionString } from './connection';
-import { WellKnownSinks } from './sinks';
+import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts/index.js';
+import { ChronicleConnectionString } from './connection/index.js';
+import { WellKnownSinks } from './sinks/index.js';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;

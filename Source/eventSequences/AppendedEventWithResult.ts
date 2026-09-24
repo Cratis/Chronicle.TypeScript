@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { AppendedEvent } from '../events/AppendedEvent';
-import type { AppendResult } from './AppendResult';
+import type { AppendedEvent } from '../events/AppendedEvent.js';
+import type { AppendResult } from './AppendResult.js';
 
 /**
  * Represents an event that was appended to an event sequence together with the result of the

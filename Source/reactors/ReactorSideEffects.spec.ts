@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import type { IEventLog } from '../eventSequences/IEventLog';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
-import { eventType } from '../events/eventTypeDecorator';
-import { appendReactorSideEffects } from './ReactorSideEffects';
+import type { IEventLog } from '../eventSequences/IEventLog.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { appendReactorSideEffects } from './ReactorSideEffects.js';
 
 class SomethingHappened {
     constructor(readonly value: string = '') {}

@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { Causation } from './Causation';
-import { CausationType } from './CausationType';
+import { Causation } from './Causation.js';
+import { CausationType } from './CausationType.js';
 
 /**
  * Defines a system that manages causation for the active call context.

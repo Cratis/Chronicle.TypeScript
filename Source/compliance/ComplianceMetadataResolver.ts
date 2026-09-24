@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ComplianceMetadata } from './ComplianceMetadata';
-import { getPIIMetadata, getTypePIIMetadata } from './pii';
+import type { ComplianceMetadata } from './ComplianceMetadata.js';
+import { getPIIMetadata, getTypePIIMetadata } from './pii.js';
 
 /**
  * Resolves compliance metadata for properties and types.

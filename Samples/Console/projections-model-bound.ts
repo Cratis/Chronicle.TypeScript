@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { count, fromEvent, Guid, readModel, setFrom } from '@cratis/chronicle';
-import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events';
+import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events.js';
 
 /**
  * Model-bound projection artifact discovered by the TypeScript client.

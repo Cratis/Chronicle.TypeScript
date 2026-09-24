@@ -3,9 +3,9 @@
 
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { encrypted, getEncryptedMetadata, getTypeEncryptedMetadata, hasEncryptedMetadata, isEncrypted } from './encrypted';
-import { EncryptionScope } from './EncryptionScope';
-import { EncryptedNotSupportedOnEventSourceId } from './EncryptedNotSupportedOnEventSourceId';
+import { encrypted, getEncryptedMetadata, getTypeEncryptedMetadata, hasEncryptedMetadata, isEncrypted } from './encrypted.js';
+import { EncryptionScope } from './EncryptionScope.js';
+import { EncryptedNotSupportedOnEventSourceId } from './EncryptedNotSupportedOnEventSourceId.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IProjectionBuilderFor } from './IProjectionBuilderFor';
+import { IProjectionBuilderFor } from './IProjectionBuilderFor.js';
 
 /**
  * Defines the contract for a declarative projection class bound to a specific read model type.

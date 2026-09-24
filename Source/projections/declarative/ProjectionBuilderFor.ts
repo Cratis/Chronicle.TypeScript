@@ -3,13 +3,13 @@
 
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { EventSequenceId } from '../../eventSequences/EventSequenceId';
-import { ChildrenBuilder } from './ChildrenBuilder';
-import { IChildrenBuilder } from './IChildrenBuilder';
-import { INestedBuilder } from './INestedBuilder';
-import { IProjectionBuilderFor } from './IProjectionBuilderFor';
-import { NestedBuilder } from './NestedBuilder';
-import { ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore';
+import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
+import { ChildrenBuilder } from './ChildrenBuilder.js';
+import { IChildrenBuilder } from './IChildrenBuilder.js';
+import { INestedBuilder } from './INestedBuilder.js';
+import { IProjectionBuilderFor } from './IProjectionBuilderFor.js';
+import { NestedBuilder } from './NestedBuilder.js';
+import { ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 
 /**
  * Concrete implementation of {@link IProjectionBuilderFor} that accumulates projection

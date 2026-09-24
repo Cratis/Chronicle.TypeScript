@@ -1,12 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-export { Causation } from './Causation';
-export { CausationType } from './CausationType';
-export type { ICausationManager } from './ICausationManager';
-export { CausationManager } from './CausationManager';
+export { Causation } from './Causation.js';
+export { CausationType } from './CausationType.js';
+export type { ICausationManager } from './ICausationManager.js';
+export { CausationManager } from './CausationManager.js';
 
-import { CausationManager } from './CausationManager';
+import { CausationManager } from './CausationManager.js';
 
 /**
  * The default singleton {@link CausationManager} for the process.

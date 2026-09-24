@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import { IUnitOfWork } from './IUnitOfWork';
+import { IUnitOfWork } from './IUnitOfWork.js';
 
 /**
  * Defines an API for managing units of work in the active async context.

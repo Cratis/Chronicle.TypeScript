@@ -3,18 +3,18 @@
 
 import { type WebhookDefinition } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { IEventTypes } from '../events/IEventTypes';
-import { IWebhook } from './IWebhook';
-import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder';
-import { IWebhooks } from './IWebhooks';
-import { WebhookDefinitionBuilder } from './WebhookDefinitionBuilder';
-import { WebhookId } from './WebhookId';
-import { WebhookTargetUrl } from './WebhookTargetUrl';
-import { getWebhookMetadata } from './webhook';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { IEventTypes } from '../events/IEventTypes.js';
+import { IWebhook } from './IWebhook.js';
+import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder.js';
+import { IWebhooks } from './IWebhooks.js';
+import { WebhookDefinitionBuilder } from './WebhookDefinitionBuilder.js';
+import { WebhookId } from './WebhookId.js';
+import { WebhookTargetUrl } from './WebhookTargetUrl.js';
+import { getWebhookMetadata } from './webhook.js';
 
 /**
  * Implements {@link IWebhooks}.

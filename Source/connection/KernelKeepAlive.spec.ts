@@ -3,7 +3,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import type { ConnectRequest } from '@cratis/chronicle.contracts';
-import { KernelKeepAlive, type IKeepAliveConnections } from './KernelKeepAlive';
+import { KernelKeepAlive, type IKeepAliveConnections } from './KernelKeepAlive.js';
 
 const request = { ConnectionId: 'connection-1' } as unknown as ConnectRequest;
 

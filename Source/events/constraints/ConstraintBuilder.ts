@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { getEventTypeFor } from '../eventTypeDecorator';
-import { IConstraintBuilder } from './IConstraintBuilder';
-import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder';
-import { UniqueConstraintBuilder, UniqueConstraintCapture } from './UniqueConstraintBuilder';
+import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { IConstraintBuilder } from './IConstraintBuilder.js';
+import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder.js';
+import { UniqueConstraintBuilder, UniqueConstraintCapture } from './UniqueConstraintBuilder.js';
 
 /** Represents the captured scope for a constraint. */
 export interface ConstraintScopeCapture {

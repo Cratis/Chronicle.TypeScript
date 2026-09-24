@@ -2,17 +2,17 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { AddBuilder } from './AddBuilder';
-import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder';
-import { CompositeKeyBuilder } from './CompositeKeyBuilder';
-import { IAddBuilder } from './IAddBuilder';
-import { IAddChildBuilder } from './IAddChildBuilder';
-import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
-import { IFromBuilder } from './IFromBuilder';
-import { ISetBuilder } from './ISetBuilder';
-import { ISubtractBuilder } from './ISubtractBuilder';
-import { SetBuilder } from './SetBuilder';
-import { SubtractBuilder } from './SubtractBuilder';
+import { AddBuilder } from './AddBuilder.js';
+import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder.js';
+import { CompositeKeyBuilder } from './CompositeKeyBuilder.js';
+import { IAddBuilder } from './IAddBuilder.js';
+import { IAddChildBuilder } from './IAddChildBuilder.js';
+import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
+import { IFromBuilder } from './IFromBuilder.js';
+import { ISetBuilder } from './ISetBuilder.js';
+import { ISubtractBuilder } from './ISubtractBuilder.js';
+import { SetBuilder } from './SetBuilder.js';
+import { SubtractBuilder } from './SubtractBuilder.js';
 
 /**
  * Accumulated property mapping for a from clause.

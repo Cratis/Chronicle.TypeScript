@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { FailedPartitionAttempt } from './FailedPartitionAttempt';
+import { FailedPartitionAttempt } from './FailedPartitionAttempt.js';
 
 /**
  * Represents a partition that has failed for an observer (Reactor, Reducer, ++).

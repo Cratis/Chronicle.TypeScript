@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Agent } from 'undici';
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
-import { formatServerAddress } from './formatServerAddress';
-import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { formatServerAddress } from './formatServerAddress.js';
+import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
 
 const DEFAULT_MAX_JITTER_MS = 250;
 const PROBE_TIMEOUT_MS = 2000;

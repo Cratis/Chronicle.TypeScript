@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { getTagsFor, tag, tags } from './tagDecorator';
-import { filterEventsByTag, getFilterTagsFor } from './filterEventsByTagDecorator';
+import { getTagsFor, tag, tags } from './tagDecorator.js';
+import { filterEventsByTag, getFilterTagsFor } from './filterEventsByTagDecorator.js';
 
 describe('tag', () => {
     describe('when a class carries no tags', () => {

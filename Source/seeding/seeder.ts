@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { DecoratorType, TypeDiscoverer } from '../types';
+import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 
 /** Metadata key used to store seeder information on a class. */
 const SEEDER_METADATA_KEY = 'chronicle:seeder';

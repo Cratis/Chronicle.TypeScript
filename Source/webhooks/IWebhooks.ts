@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { WebhookDefinition } from '@cratis/chronicle.contracts';
-import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder';
-import { WebhookId } from './WebhookId';
-import { WebhookTargetUrl } from './WebhookTargetUrl';
+import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder.js';
+import { WebhookId } from './WebhookId.js';
+import { WebhookTargetUrl } from './WebhookTargetUrl.js';
 
 /**
  * Defines the API for working with webhooks.

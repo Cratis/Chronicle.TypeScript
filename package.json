@@ -1,7 +1,7 @@
 {
     "name": "chronicle-typescript-workspace",
     "private": true,
-    "packageManager": "yarn@4.14.1",
+    "packageManager": "yarn@4.17.1",
     "workspaces": [
         "Source",
         "Samples/Console"
@@ -10,7 +10,7 @@
         "compile": "yarn workspaces foreach -A -t run compile",
         "build": "yarn workspaces foreach -A -t run build",
         "clean": "yarn workspaces foreach -A -t run clean",
-        "ci": "yarn clean && yarn build",
+        "ci": "yarn clean && yarn build && yarn workspace @cratis/chronicle test:native",
         "publish-version": "node ./publish-version.js"
     },
     "dependencies": {

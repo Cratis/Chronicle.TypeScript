@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Resolver } from 'dns/promises';
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
-import { ChronicleSrvResolutionError } from './ChronicleSrvResolutionError';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { ChronicleSrvResolutionError } from './ChronicleSrvResolutionError.js';
 
 const DEFAULT_DNS_PORT = 53;
 

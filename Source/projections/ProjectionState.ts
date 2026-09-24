@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ObserverRunningState } from '../observation/ObserverRunningState';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
+import { ObserverRunningState } from '../observation/ObserverRunningState.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
 
 /**
  * Represents the state of a projection.

@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import type { SecurityMetadata } from './SecurityMetadata';
-import { SecurityMetadataType } from './SecurityMetadataType';
-import { EncryptionScope } from './EncryptionScope';
-import { EncryptedNotSupportedOnEventSourceId } from './EncryptedNotSupportedOnEventSourceId';
-import { TypeIntrospector } from '../types';
+import type { SecurityMetadata } from './SecurityMetadata.js';
+import { SecurityMetadataType } from './SecurityMetadataType.js';
+import { EncryptionScope } from './EncryptionScope.js';
+import { EncryptedNotSupportedOnEventSourceId } from './EncryptedNotSupportedOnEventSourceId.js';
+import { TypeIntrospector } from '../types/index.js';
 
 /** The property name this client uses everywhere for the event source identifier. */
 const EVENT_SOURCE_ID_PROPERTY = 'eventSourceId';

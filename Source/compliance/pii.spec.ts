@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { pii } from './pii';
-import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId';
+import { pii } from './pii.js';
+import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

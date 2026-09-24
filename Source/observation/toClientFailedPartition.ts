@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { FailedPartition as ContractsFailedPartition } from '@cratis/chronicle.contracts';
-import { fromContractsGuid } from '../connection/Guid';
-import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber';
-import { FailedPartition } from './FailedPartition';
+import { fromContractsGuid } from '../connection/Guid.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import { FailedPartition } from './FailedPartition.js';
 
 /**
  * Converts a wire {@link ContractsFailedPartition} into the client {@link FailedPartition} shape.

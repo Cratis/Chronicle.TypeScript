@@ -4,10 +4,10 @@
 import 'reflect-metadata';
 import { ConceptAs, field } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
-import { pii } from '../compliance/pii';
-import { eventType, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator';
-import { getReadModelMetadata, readModel } from '../readModels/readModel';
-import { JsonSchema } from './JsonSchema';
+import { pii } from '../compliance/pii.js';
+import { eventType, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator.js';
+import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { JsonSchema } from './JsonSchema.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support - they exercise exactly

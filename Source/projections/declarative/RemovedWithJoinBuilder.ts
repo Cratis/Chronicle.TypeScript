@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder';
+import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder.js';
 
 /**
  * Accumulated removal configuration for a removedWithJoin clause.

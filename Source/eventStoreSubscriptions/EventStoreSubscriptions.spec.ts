@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import type { ChronicleConnection } from '../connection';
-import type { IEventTypes } from '../events';
-import { EventStoreSubscriptions } from './EventStoreSubscriptions';
+import type { ChronicleConnection } from '../connection/index.js';
+import type { IEventTypes } from '../events/index.js';
+import { EventStoreSubscriptions } from './EventStoreSubscriptions.js';
 
 function createEventStoreSubscriptions(getSubscriptionsResult?: unknown) {
     const getSubscriptions = vi.fn().mockResolvedValue(getSubscriptionsResult ?? { items: [] });

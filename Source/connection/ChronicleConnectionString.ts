@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import * as grpc from '@grpc/grpc-js';
-import { formatServerAddress } from './formatServerAddress';
-import { LoadBalancerMode } from './LoadBalancerMode';
+import { formatServerAddress } from './formatServerAddress.js';
+import { LoadBalancerMode } from './LoadBalancerMode.js';
 
 const DEFAULT_PORT = 35000;
 const SRV_SCHEME = 'chronicle+srv';

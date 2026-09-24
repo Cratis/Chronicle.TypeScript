@@ -4,20 +4,20 @@
 import * as os from 'os';
 import { diag } from '@opentelemetry/api';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { ChronicleOptions } from './ChronicleOptions';
-import { ChronicleConnection } from './connection';
-import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer';
-import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults';
-import { ConnectionLifecycle } from './connection/ConnectionLifecycle';
-import { KernelKeepAlive } from './connection/KernelKeepAlive';
-import { EventStore } from './EventStore';
-import { EventStoreName } from './EventStoreName';
-import { EventStoreNamespaceName } from './EventStoreNamespaceName';
-import { IChronicleClient } from './IChronicleClient';
-import { IEventStore } from './IEventStore';
-import { ChronicleMetrics } from './Metrics';
-import { ChronicleTracer } from './Tracing';
-import { TypeDiscoverer } from './types';
+import { ChronicleOptions } from './ChronicleOptions.js';
+import { ChronicleConnection } from './connection/index.js';
+import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
+import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults.js';
+import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
+import { KernelKeepAlive } from './connection/KernelKeepAlive.js';
+import { EventStore } from './EventStore.js';
+import { EventStoreName } from './EventStoreName.js';
+import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
+import { IChronicleClient } from './IChronicleClient.js';
+import { IEventStore } from './IEventStore.js';
+import { ChronicleMetrics } from './Metrics.js';
+import { ChronicleTracer } from './Tracing.js';
+import { TypeDiscoverer } from './types/index.js';
 
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the

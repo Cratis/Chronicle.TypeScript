@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ContractEventType, FromRecord, JoinRecord } from './declarative/ProjectionBuilderCore';
-import { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant';
-import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent';
+import { ContractEventType, FromRecord, JoinRecord } from './declarative/ProjectionBuilderCore.js';
+import { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant.js';
+import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent.js';
 
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
 

@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import { ChronicleConnection } from '../connection';
-import { PIIManager } from './PIIManager';
+import { ChronicleConnection } from '../connection/index.js';
+import { PIIManager } from './PIIManager.js';
 
 function createPIIManager() {
     const deleteEncryptionKeyMock = vi.fn().mockResolvedValue(undefined);

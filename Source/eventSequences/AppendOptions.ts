@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import type { Tag } from '../events/Tag';
-import type { ConcurrencyScope } from './ConcurrencyScope';
+import type { Tag } from '../events/Tag.js';
+import type { ConcurrencyScope } from './ConcurrencyScope.js';
 
 /**
  * Options for appending an event to an event sequence.

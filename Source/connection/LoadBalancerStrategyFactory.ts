@@ -1,11 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy';
-import { LeastConnectionsLoadBalancerStrategy } from './LeastConnectionsLoadBalancerStrategy';
-import { LoadBalancerMode } from './LoadBalancerMode';
-import { RandomLoadBalancerStrategy } from './RandomLoadBalancerStrategy';
-import { RoundRobinLoadBalancerStrategy } from './RoundRobinLoadBalancerStrategy';
+import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
+import { LeastConnectionsLoadBalancerStrategy } from './LeastConnectionsLoadBalancerStrategy.js';
+import { LoadBalancerMode } from './LoadBalancerMode.js';
+import { RandomLoadBalancerStrategy } from './RandomLoadBalancerStrategy.js';
+import { RoundRobinLoadBalancerStrategy } from './RoundRobinLoadBalancerStrategy.js';
 
 /**
  * Creates the {@link ILoadBalancerStrategy} instance matching a {@link LoadBalancerMode}.

@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
-import { ChronicleClient } from '../../ChronicleClient';
-import { ChronicleOptions } from '../../ChronicleOptions';
-import { IncompatibleChronicleServer } from '../../connection/IncompatibleChronicleServer';
+import { ChronicleClient } from '../../ChronicleClient.js';
+import { ChronicleOptions } from '../../ChronicleOptions.js';
+import { IncompatibleChronicleServer } from '../../connection/IncompatibleChronicleServer.js';
 
 chai.should();
 

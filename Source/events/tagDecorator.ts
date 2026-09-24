@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { Tag } from './Tag';
-import { mergeTags } from './mergeTags';
+import { Tag } from './Tag.js';
+import { mergeTags } from './mergeTags.js';
 
 /** Metadata key used to store the tags labeling a class. */
 const TAGS_METADATA_KEY = 'chronicle:tags';

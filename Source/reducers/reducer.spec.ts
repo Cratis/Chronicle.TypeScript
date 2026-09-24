@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { getReducerMetadata, reducer } from './reducer';
+import { getReducerMetadata, reducer } from './reducer.js';
 
 describe('reducer', () => {
     describe('when decorating a class without specifying isActive', () => {

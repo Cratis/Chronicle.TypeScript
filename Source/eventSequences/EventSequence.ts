@@ -1,46 +1,46 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '../connection';
+import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
 import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
-import { getEventTypeFor } from '../events/eventTypeDecorator';
-import type { AppendedEvent } from '../events/AppendedEvent';
-import { toClientEventContext } from '../events/toClientEventContext';
-import { Tag } from '../events/Tag';
-import { getTagsFor } from '../events/tagDecorator';
-import { mergeTags } from '../events/mergeTags';
-import { DecoratorType } from '../types/DecoratorType';
-import { TypeDiscoverer } from '../types/TypeDiscoverer';
-import { toClientFailedPartition } from '../observation/toClientFailedPartition';
-import { AppendedEventWithResult } from './AppendedEventWithResult';
-import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster';
-import { AppendOptions } from './AppendOptions';
-import { AppendResult } from './AppendResult';
-import { CompleteStreamError } from './CompleteStreamError';
-import { CompleteStreamResult } from './CompleteStreamResult';
-import { ConcurrencyViolation } from './ConcurrencyViolation';
-import { ConstraintViolation } from './ConstraintViolation';
-import { EventForEventSourceId } from './EventForEventSourceId';
-import { IEventSequence } from './IEventSequence';
-import { ITransactionalEventSequence } from './ITransactionalEventSequence';
-import { EventSequenceId } from './EventSequenceId';
-import { EventSequenceNumber } from './EventSequenceNumber';
-import { TransactionalEventSequence } from './TransactionalEventSequence';
-import { WaitForCompletionResult } from './WaitForCompletionResult';
+import { getEventTypeFor } from '../events/eventTypeDecorator.js';
+import type { AppendedEvent } from '../events/AppendedEvent.js';
+import { toClientEventContext } from '../events/toClientEventContext.js';
+import { Tag } from '../events/Tag.js';
+import { getTagsFor } from '../events/tagDecorator.js';
+import { mergeTags } from '../events/mergeTags.js';
+import { DecoratorType } from '../types/DecoratorType.js';
+import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
+import { toClientFailedPartition } from '../observation/toClientFailedPartition.js';
+import { AppendedEventWithResult } from './AppendedEventWithResult.js';
+import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster.js';
+import { AppendOptions } from './AppendOptions.js';
+import { AppendResult } from './AppendResult.js';
+import { CompleteStreamError } from './CompleteStreamError.js';
+import { CompleteStreamResult } from './CompleteStreamResult.js';
+import { ConcurrencyViolation } from './ConcurrencyViolation.js';
+import { ConstraintViolation } from './ConstraintViolation.js';
+import { EventForEventSourceId } from './EventForEventSourceId.js';
+import { IEventSequence } from './IEventSequence.js';
+import { ITransactionalEventSequence } from './ITransactionalEventSequence.js';
+import { EventSequenceId } from './EventSequenceId.js';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
+import { TransactionalEventSequence } from './TransactionalEventSequence.js';
+import { WaitForCompletionResult } from './WaitForCompletionResult.js';
 
 /** Default timeout for {@link AppendResult.waitForCompletion}, matching the C# client's default. */
 const DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS = 5000;
-import { ChronicleTracer } from '../Tracing';
-import { ChronicleMetrics } from '../Metrics';
-import { identityProvider, Identity } from '../identity';
-import { causationManager, CausationType } from '../auditing';
-import { correlationIdManager } from '../correlation';
-import { toContractsGuid } from '../connection/Guid';
-import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults';
-import type { ConcurrencyScope } from './ConcurrencyScope';
-import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
+import { ChronicleTracer } from '../Tracing.js';
+import { ChronicleMetrics } from '../Metrics.js';
+import { identityProvider, Identity } from '../identity/index.js';
+import { causationManager, CausationType } from '../auditing/index.js';
+import { correlationIdManager } from '../correlation/index.js';
+import { toContractsGuid } from '../connection/Guid.js';
+import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
+import type { ConcurrencyScope } from './ConcurrencyScope.js';
+import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -298,14 +298,24 @@ export class EventSequence implements IEventSequence {
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
                 const firstConcurrencyViolation = (appendManyResponse.ConcurrencyViolations ?? [])[0];
-                const result = (appendManyResponse.SequenceNumbers ?? []).map((sequenceNumber: bigint, index: number) =>
-                    this.mapAppendResponse(
-                        sequenceNumber,
-                        appendManyResponse.ConstraintViolations ?? [],
-                        (appendManyResponse.Errors ?? []).filter((_: string, errorIndex: number) => errorIndex === index),
-                        firstConcurrencyViolation
-                    )
-                );
+                const sequenceNumbers = appendManyResponse.SequenceNumbers ?? [];
+                const constraintViolations = appendManyResponse.ConstraintViolations ?? [];
+                const errors = appendManyResponse.Errors ?? [];
+                const batchWasRejected = sequenceNumbers.length === 0 &&
+                    (constraintViolations.length > 0 || errors.length > 0 || firstConcurrencyViolation !== undefined);
+                if (sequenceNumbers.length === 0 && eventsForEventSourceIds.length > 0 && !batchWasRejected) {
+                    throw new Error('Append many events returned no sequence numbers or rejection details.');
+                }
+                const result = batchWasRejected
+                    ? eventsForEventSourceIds.map(() => this.mapAppendResponse(0n, constraintViolations, errors, firstConcurrencyViolation))
+                    : sequenceNumbers.map((sequenceNumber: bigint, index: number) =>
+                        this.mapAppendResponse(
+                            sequenceNumber,
+                            constraintViolations,
+                            errors.filter((_: string, errorIndex: number) => errorIndex === index),
+                            firstConcurrencyViolation
+                        )
+                    );
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 ChronicleMetrics.batchAppendsPerformed.add(1, batchMetricAttributes);

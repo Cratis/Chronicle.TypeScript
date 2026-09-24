@@ -2,16 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { ensureCommandSuccess } from '../connection/callResults';
-import { EventStoreNamespaceName } from '../EventStoreNamespaceName';
-import { getEventTypeFor } from '../events/eventTypeDecorator';
-import { getTagsFor } from '../events/tagDecorator';
-import { ICanSeedEvents } from './ICanSeedEvents';
-import { IEventSeeding } from './IEventSeeding';
-import { IEventSeedingBuilder } from './IEventSeedingBuilder';
-import { IEventSeedingScopeBuilder } from './IEventSeedingScopeBuilder';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { ensureCommandSuccess } from '../connection/callResults.js';
+import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
+import { getEventTypeFor } from '../events/eventTypeDecorator.js';
+import { getTagsFor } from '../events/tagDecorator.js';
+import { ICanSeedEvents } from './ICanSeedEvents.js';
+import { IEventSeeding } from './IEventSeeding.js';
+import { IEventSeedingBuilder } from './IEventSeedingBuilder.js';
+import { IEventSeedingScopeBuilder } from './IEventSeedingScopeBuilder.js';
 
 interface SeedingEntry {
     readonly eventSourceId: string;

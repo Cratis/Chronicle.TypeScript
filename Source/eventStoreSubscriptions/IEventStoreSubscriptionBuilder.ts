@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { EventTypeId } from '../events';
-import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition';
+import { EventTypeId } from '../events/index.js';
+import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition.js';
 
 /**
  * Defines a builder for configuring an event store subscription.

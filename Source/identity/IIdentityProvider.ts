@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { Identity } from './Identity';
+import { Identity } from './Identity.js';
 
 /**
  * Defines a system that can provide and manage the current {@link Identity} for the active call context.

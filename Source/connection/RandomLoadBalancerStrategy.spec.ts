@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import type { ChronicleServerAddress } from './ChronicleConnectionString';
-import { RandomLoadBalancerStrategy } from './RandomLoadBalancerStrategy';
+import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { RandomLoadBalancerStrategy } from './RandomLoadBalancerStrategy.js';
 
 describe('RandomLoadBalancerStrategy', () => {
     describe('when selecting from an empty candidate list', () => {

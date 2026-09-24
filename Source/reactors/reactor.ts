@@ -3,8 +3,8 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { ReactorId } from './ReactorId';
-import { DecoratorType, TypeDiscoverer } from '../types';
+import { ReactorId } from './ReactorId.js';
+import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 
 /** Metadata key used to store reactor information on a class. */
 const REACTOR_METADATA_KEY = 'chronicle:reactor';

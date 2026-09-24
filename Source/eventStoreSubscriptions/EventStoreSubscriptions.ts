@@ -2,14 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { ChronicleConnection } from '../connection';
-import { EventStoreName } from '../EventStoreName';
-import { EventType, EventTypeGeneration, EventTypeId, IEventTypes } from '../events';
-import { EventStoreSubscriptionBuilder } from './EventStoreSubscriptionBuilder';
-import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition';
-import { EventStoreSubscriptionId } from './EventStoreSubscriptionId';
-import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder';
-import { IEventStoreSubscriptions } from './IEventStoreSubscriptions';
+import { ChronicleConnection } from '../connection/index.js';
+import { EventStoreName } from '../EventStoreName.js';
+import { EventType, EventTypeGeneration, EventTypeId, IEventTypes } from '../events/index.js';
+import { EventStoreSubscriptionBuilder } from './EventStoreSubscriptionBuilder.js';
+import { EventStoreSubscriptionDefinition } from './EventStoreSubscriptionDefinition.js';
+import { EventStoreSubscriptionId } from './EventStoreSubscriptionId.js';
+import { IEventStoreSubscriptionBuilder } from './IEventStoreSubscriptionBuilder.js';
+import { IEventStoreSubscriptions } from './IEventStoreSubscriptions.js';
 
 /**
  * Represents an implementation of {@link IEventStoreSubscriptions}.

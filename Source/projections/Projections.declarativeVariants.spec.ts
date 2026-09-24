@@ -3,14 +3,14 @@
 
 import 'reflect-metadata';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { eventType } from '../events/eventTypeDecorator';
-import { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor';
-import { IProjectionFor } from './declarative/IProjectionFor';
-import { projection } from './declarative/projection';
-import { Projections } from './Projections';
-import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
+import { IProjectionFor } from './declarative/IProjectionFor.js';
+import { projection } from './declarative/projection.js';
+import { Projections } from './Projections.js';
+import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent.js';
 
 class IssueCreated {
     title!: string;

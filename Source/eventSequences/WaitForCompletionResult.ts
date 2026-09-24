@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { FailedPartition } from '../observation/FailedPartition';
+import { FailedPartition } from '../observation/FailedPartition.js';
 
 /**
  * Represents the result of waiting for the observers affected by an append operation to catch up.

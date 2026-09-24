@@ -3,17 +3,17 @@
 
 import 'reflect-metadata';
 import { describe, expect, it, vi } from 'vitest';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { eventType } from '../events/eventTypeDecorator';
-import { readModel } from '../readModels/readModel';
-import { addFrom } from './modelBound/addFrom';
-import { count } from './modelBound/count';
-import { decrement } from './modelBound/decrement';
-import { fromEvent } from './modelBound/fromEvent';
-import { increment } from './modelBound/increment';
-import { subtractFrom } from './modelBound/subtractFrom';
-import { Projections } from './Projections';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { readModel } from '../readModels/readModel.js';
+import { addFrom } from './modelBound/addFrom.js';
+import { count } from './modelBound/count.js';
+import { decrement } from './modelBound/decrement.js';
+import { fromEvent } from './modelBound/fromEvent.js';
+import { increment } from './modelBound/increment.js';
+import { subtractFrom } from './modelBound/subtractFrom.js';
+import { Projections } from './Projections.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support - they exercise exactly

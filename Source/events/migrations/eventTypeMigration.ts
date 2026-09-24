@@ -3,10 +3,10 @@
 
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
-import { getEventTypeFor } from '../eventTypeDecorator';
-import { EventType } from '../EventType';
-import { InvalidMigrationGenerationGap } from './InvalidMigrationGenerationGap';
-import { DecoratorType, TypeDiscoverer } from '../../types';
+import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { EventType } from '../EventType.js';
+import { InvalidMigrationGenerationGap } from './InvalidMigrationGenerationGap.js';
+import { DecoratorType, TypeDiscoverer } from '../../types/index.js';
 
 const EVENT_TYPE_MIGRATION_METADATA_KEY = 'chronicle:eventTypeMigration';
 

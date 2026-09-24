@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { EventSequenceId } from '../../eventSequences/EventSequenceId';
+import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 
 const METADATA_KEY = 'chronicle:projection:eventSequence';
 

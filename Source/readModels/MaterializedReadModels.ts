@@ -3,11 +3,11 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import { JsonSerializer } from '@cratis/fundamentals';
-import { ChronicleConnection } from '../connection';
-import { JsonSchemaGenerator } from '../schemas';
-import { getReadModelMetadata } from './readModel';
-import { ReadModelSubjectResolver } from './ReadModelSubjectResolver';
-import type { IMaterializedReadModels } from './IMaterializedReadModels';
+import { ChronicleConnection } from '../connection/index.js';
+import { JsonSchemaGenerator } from '../schemas/index.js';
+import { getReadModelMetadata } from './readModel.js';
+import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
+import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 
 const defaultTake = 50;
 

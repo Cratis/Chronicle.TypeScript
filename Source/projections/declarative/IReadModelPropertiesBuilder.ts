@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { ICompositeKeyBuilder } from './ICompositeKeyBuilder';
-import { IAddBuilder } from './IAddBuilder';
-import { IAddChildBuilder } from './IAddChildBuilder';
-import { ISetBuilder } from './ISetBuilder';
-import { ISubtractBuilder } from './ISubtractBuilder';
+import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
+import { IAddBuilder } from './IAddBuilder.js';
+import { IAddChildBuilder } from './IAddChildBuilder.js';
+import { ISetBuilder } from './ISetBuilder.js';
+import { ISubtractBuilder } from './ISubtractBuilder.js';
 
 /**
  * Defines the common read model property mapping operations shared by from and join builders.

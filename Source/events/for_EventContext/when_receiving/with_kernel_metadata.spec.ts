@@ -3,17 +3,17 @@
 
 import { beforeEach, chai, describe, it } from 'vitest';
 import { EventContext as ContractsEventContext, EventType as ContractsEventType } from '@cratis/chronicle.contracts';
-import type { IClientArtifactsProvider } from '../../../artifacts';
-import type { ChronicleConnection } from '../../../connection';
-import { ConnectionLifecycle } from '../../../connection/ConnectionLifecycle';
-import { toContractsGuid } from '../../../connection/Guid';
-import { EventSequence, EventSequenceId, EventSequenceNumber } from '../../../eventSequences';
-import type { IEventLog } from '../../../eventSequences';
-import { Reactors, reactor } from '../../../reactors';
-import { Reducers, reducer } from '../../../reducers';
-import type { IUnitOfWorkManager } from '../../../transactions';
-import { eventType } from '../../eventTypeDecorator';
-import type { EventContext } from '../../EventContext';
+import type { IClientArtifactsProvider } from '../../../artifacts/index.js';
+import type { ChronicleConnection } from '../../../connection/index.js';
+import { ConnectionLifecycle } from '../../../connection/ConnectionLifecycle.js';
+import { toContractsGuid } from '../../../connection/Guid.js';
+import { EventSequence, EventSequenceId, EventSequenceNumber } from '../../../eventSequences/index.js';
+import type { IEventLog } from '../../../eventSequences/index.js';
+import { Reactors, reactor } from '../../../reactors/index.js';
+import { Reducers, reducer } from '../../../reducers/index.js';
+import type { IUnitOfWorkManager } from '../../../transactions/index.js';
+import { eventType } from '../../eventTypeDecorator.js';
+import type { EventContext } from '../../EventContext.js';
 import { Guid } from '@cratis/fundamentals';
 
 chai.should();

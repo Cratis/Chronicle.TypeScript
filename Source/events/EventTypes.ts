@@ -2,16 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { IClientArtifactsProvider } from '../artifacts';
-import { ChronicleConnection } from '../connection';
-import { ensureCommandSuccess } from '../connection/callResults';
-import { EventTypeId } from './EventTypeId';
-import { IEventTypes } from './IEventTypes';
-import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator';
-import { EventMigrationBuilder } from './migrations/EventMigrationBuilder';
-import { EventTypeMigrators } from './migrations/EventTypeMigrators';
-import { getEventTypeMigrationMetadata } from './migrations/eventTypeMigration';
-import { IEventTypeMigration } from './migrations/IEventTypeMigration';
+import { IClientArtifactsProvider } from '../artifacts/index.js';
+import { ChronicleConnection } from '../connection/index.js';
+import { ensureCommandSuccess } from '../connection/callResults.js';
+import { EventTypeId } from './EventTypeId.js';
+import { IEventTypes } from './IEventTypes.js';
+import { getEventTypeMetadata, getEventTypeJsonSchemaFor } from './eventTypeDecorator.js';
+import { EventMigrationBuilder } from './migrations/EventMigrationBuilder.js';
+import { EventTypeMigrators } from './migrations/EventTypeMigrators.js';
+import { getEventTypeMigrationMetadata } from './migrations/eventTypeMigration.js';
+import { IEventTypeMigration } from './migrations/IEventTypeMigration.js';
 
 // Mirrors .NET client behavior for migration-only generations that do not have a local CLR/TS type.
 const UNKNOWN_GENERATION_SCHEMA = '{}';

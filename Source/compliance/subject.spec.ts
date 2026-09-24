@@ -3,7 +3,7 @@
 
 import 'reflect-metadata';
 import { describe, expect, it } from 'vitest';
-import { getSubjectPropertyName, hasSubjectMetadata, subject } from './subject';
+import { getSubjectPropertyName, hasSubjectMetadata, subject } from './subject.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

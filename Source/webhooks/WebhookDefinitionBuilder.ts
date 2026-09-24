@@ -9,12 +9,12 @@ import type {
     WebhookDefinition
 } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
-import { IEventTypes } from '../events/IEventTypes';
-import { getEventTypeFor } from '../events/eventTypeDecorator';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder';
-import { WebhookId } from './WebhookId';
-import { WebhookTargetUrl } from './WebhookTargetUrl';
+import { IEventTypes } from '../events/IEventTypes.js';
+import { getEventTypeFor } from '../events/eventTypeDecorator.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { IWebhookDefinitionBuilder } from './IWebhookDefinitionBuilder.js';
+import { WebhookId } from './WebhookId.js';
+import { WebhookTargetUrl } from './WebhookTargetUrl.js';
 
 /**
  * Implements {@link IWebhookDefinitionBuilder}.

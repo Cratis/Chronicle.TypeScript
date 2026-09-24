@@ -1,26 +1,26 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IEventLog } from './eventSequences/IEventLog';
-import { IEventSequence } from './eventSequences/IEventSequence';
-import { EventSequenceId } from './eventSequences/EventSequenceId';
-import { EventStoreName } from './EventStoreName';
-import { EventStoreNamespaceName } from './EventStoreNamespaceName';
-import { IEventTypes } from './events/IEventTypes';
-import { IConstraints } from './events/constraints/IConstraints';
-import { IProjections } from './projections/IProjections';
-import { IReactors } from './reactors/IReactors';
-import { IReducers } from './reducers/IReducers';
-import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager';
-import { IJobs } from './jobs/IJobs';
-import { IWebhooks } from './webhooks/IWebhooks';
-import { IEventSeeding } from './seeding/IEventSeeding';
-import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions';
-import { IReadModels } from './readModels/IReadModels';
-import { IExternalServices } from './externalServices/IExternalServices';
-import { IIdentityManager } from './identities/IIdentityManager';
-import { IPIIManager } from './compliance/IPIIManager';
-import { IFailedPartitions } from './observation/IFailedPartitions';
+import { IEventLog } from './eventSequences/IEventLog.js';
+import { IEventSequence } from './eventSequences/IEventSequence.js';
+import { EventSequenceId } from './eventSequences/EventSequenceId.js';
+import { EventStoreName } from './EventStoreName.js';
+import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
+import { IEventTypes } from './events/IEventTypes.js';
+import { IConstraints } from './events/constraints/IConstraints.js';
+import { IProjections } from './projections/IProjections.js';
+import { IReactors } from './reactors/IReactors.js';
+import { IReducers } from './reducers/IReducers.js';
+import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
+import { IJobs } from './jobs/IJobs.js';
+import { IWebhooks } from './webhooks/IWebhooks.js';
+import { IEventSeeding } from './seeding/IEventSeeding.js';
+import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions.js';
+import { IReadModels } from './readModels/IReadModels.js';
+import { IExternalServices } from './externalServices/IExternalServices.js';
+import { IIdentityManager } from './identities/IIdentityManager.js';
+import { IPIIManager } from './compliance/IPIIManager.js';
+import { IFailedPartitions } from './observation/IFailedPartitions.js';
 
 /**
  * Defines the API surface for an event store.

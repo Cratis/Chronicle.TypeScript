@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IEventSequence } from './IEventSequence';
+import { IEventSequence } from './IEventSequence.js';
 
 /**
  * Defines the API surface for the event log, which is the default event sequence.

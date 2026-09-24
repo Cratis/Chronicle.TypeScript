@@ -2,8 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { AsyncLocalStorage } from 'async_hooks';
-import { Identity } from './Identity';
-import { IIdentityProvider } from './IIdentityProvider';
+import { Identity } from './Identity.js';
+import { IIdentityProvider } from './IIdentityProvider.js';
 
 /**
  * Implements {@link IIdentityProvider} using {@link AsyncLocalStorage} to scope the identity to the active async call context.

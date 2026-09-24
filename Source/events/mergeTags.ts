@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { Tag } from './Tag';
+import { Tag } from './Tag.js';
 
 /**
  * Merges one or more sources of tags - static tags declared on a type, tags carried by an

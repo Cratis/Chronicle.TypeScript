@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { CorrelationId } from './CorrelationId';
+import { CorrelationId } from './CorrelationId.js';
 
 /**
  * Defines the read side of a correlation identifier provider scoped to the active call context.

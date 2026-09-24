@@ -4,11 +4,11 @@
 import 'reflect-metadata';
 import { field } from '@cratis/fundamentals';
 import { describe, expect, it, vi } from 'vitest';
-import type { ChronicleConnection } from '../connection';
-import { pii } from '../compliance/pii';
-import { subject } from '../compliance/subject';
-import { readModel } from './readModel';
-import { MaterializedReadModels } from './MaterializedReadModels';
+import type { ChronicleConnection } from '../connection/index.js';
+import { pii } from '../compliance/pii.js';
+import { subject } from '../compliance/subject.js';
+import { readModel } from './readModel.js';
+import { MaterializedReadModels } from './MaterializedReadModels.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support.

@@ -2,18 +2,18 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { AutoMap } from '@cratis/chronicle.contracts';
-import { getEventTypeFor } from '../../events/eventTypeDecorator';
-import { FromBuilder } from './FromBuilder';
-import { IFromBuilder } from './IFromBuilder';
-import { IFromEveryBuilder } from './IFromEveryBuilder';
-import { IJoinBuilder } from './IJoinBuilder';
-import { IRemovedWithBuilder } from './IRemovedWithBuilder';
-import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder';
-import { JoinBuilder } from './JoinBuilder';
-import { FromEveryBuilder } from './FromEveryBuilder';
-import { RemovedWithBuilder } from './RemovedWithBuilder';
-import { RemovedWithJoinBuilder } from './RemovedWithJoinBuilder';
-import { ChildAdditionEntry } from './AddChildBuilder';
+import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
+import { FromBuilder } from './FromBuilder.js';
+import { IFromBuilder } from './IFromBuilder.js';
+import { IFromEveryBuilder } from './IFromEveryBuilder.js';
+import { IJoinBuilder } from './IJoinBuilder.js';
+import { IRemovedWithBuilder } from './IRemovedWithBuilder.js';
+import { IRemovedWithJoinBuilder } from './IRemovedWithJoinBuilder.js';
+import { JoinBuilder } from './JoinBuilder.js';
+import { FromEveryBuilder } from './FromEveryBuilder.js';
+import { RemovedWithBuilder } from './RemovedWithBuilder.js';
+import { RemovedWithJoinBuilder } from './RemovedWithJoinBuilder.js';
+import { ChildAdditionEntry } from './AddChildBuilder.js';
 
 /** The contract-level event type identifier shape used across projection definitions. */
 export type ContractEventType = { Id: string; Generation: number; Tombstone: boolean };

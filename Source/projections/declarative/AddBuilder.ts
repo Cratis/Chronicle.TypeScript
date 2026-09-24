@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { IAddBuilder } from './IAddBuilder';
+import { IAddBuilder } from './IAddBuilder.js';
 
 /**
  * Concrete implementation of {@link IAddBuilder} that records an add expression

@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ChronicleConnection } from '../connection';
-import { IPIIManager } from './IPIIManager';
+import { ChronicleConnection } from '../connection/index.js';
+import { IPIIManager } from './IPIIManager.js';
 
 /**
  * Implements {@link IPIIManager} by proxying to the Chronicle Kernel over the client connection.

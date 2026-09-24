@@ -1,10 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { IUnitOfWork } from '../transactions/IUnitOfWork';
-import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager';
-import { IEventSequence } from './IEventSequence';
-import { ITransactionalEventSequence } from './ITransactionalEventSequence';
+import { IUnitOfWork } from '../transactions/IUnitOfWork.js';
+import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
+import { IEventSequence } from './IEventSequence.js';
+import { ITransactionalEventSequence } from './ITransactionalEventSequence.js';
 
 /**
  * Implements {@link ITransactionalEventSequence} by delegating appends to the current unit of work.

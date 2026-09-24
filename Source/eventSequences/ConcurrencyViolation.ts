@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventSequenceNumber } from './EventSequenceNumber';
+import { EventSequenceNumber } from './EventSequenceNumber.js';
 
 /**
  * Represents a concurrency violation that occurred during an append operation.

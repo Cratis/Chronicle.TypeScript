@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { SecurityMetadata } from './SecurityMetadata';
-import { getEncryptedMetadata, getTypeEncryptedMetadata } from './encrypted';
+import type { SecurityMetadata } from './SecurityMetadata.js';
+import { getEncryptedMetadata, getTypeEncryptedMetadata } from './encrypted.js';
 
 /**
  * Resolves security metadata for properties and types.

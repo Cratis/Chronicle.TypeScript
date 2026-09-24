@@ -2,9 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Constructor } from '@cratis/fundamentals';
-import { IClientArtifactsProvider } from './IClientArtifactsProvider';
-import { DecoratorType } from '../types/DecoratorType';
-import { TypeDiscoverer } from '../types/TypeDiscoverer';
+import { IClientArtifactsProvider } from './IClientArtifactsProvider.js';
+import { DecoratorType } from '../types/DecoratorType.js';
+import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 
 /**
  * Represents the default provider for discovered client artifacts.

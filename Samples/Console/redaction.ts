@@ -3,8 +3,8 @@
 
 import { diag } from '@opentelemetry/api';
 import { EventSequenceNumber, IEventStore } from '@cratis/chronicle';
-import { EmployeeEmailSet } from './events';
-import { Person } from './employees';
+import { EmployeeEmailSet } from './events.js';
+import { Person } from './employees.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/RedactionExample' });
 

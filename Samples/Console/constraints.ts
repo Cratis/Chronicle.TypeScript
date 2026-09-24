@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { constraint, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
-import { EmployeeEmailSet, EmployeeHired } from './events';
+import { EmployeeEmailSet, EmployeeHired } from './events.js';
 
 /**
  * Prevents the same employee from being hired more than once per event source.

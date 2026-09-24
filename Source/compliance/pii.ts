@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import type { ComplianceMetadata } from './ComplianceMetadata';
-import { ComplianceMetadataType } from './ComplianceMetadataType';
-import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId';
-import { TypeIntrospector } from '../types';
+import type { ComplianceMetadata } from './ComplianceMetadata.js';
+import { ComplianceMetadataType } from './ComplianceMetadataType.js';
+import { PIINotSupportedOnEventSourceId } from './PIINotSupportedOnEventSourceId.js';
+import { TypeIntrospector } from '../types/index.js';
 
 /** The property name this client uses everywhere for the event source identifier. */
 const EVENT_SOURCE_ID_PROPERTY = 'eventSourceId';

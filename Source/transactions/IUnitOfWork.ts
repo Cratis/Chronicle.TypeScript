@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { Guid } from '@cratis/fundamentals';
-import { AppendError } from '../eventSequences/AppendError';
-import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation';
-import { ConstraintViolation } from '../eventSequences/ConstraintViolation';
-import { EventSequenceId } from '../eventSequences/EventSequenceId';
-import { AppendResult } from '../eventSequences/AppendResult';
+import { AppendError } from '../eventSequences/AppendError.js';
+import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation.js';
+import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
+import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { AppendResult } from '../eventSequences/AppendResult.js';
 
 /**
  * Represents a unit of work for buffering event appends and committing them as transactions.

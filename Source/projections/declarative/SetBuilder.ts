@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
-import { ISetBuilder } from './ISetBuilder';
+import { ISetBuilder } from './ISetBuilder.js';
 
 /**
  * Concrete implementation of {@link ISetBuilder} that records the property mapping

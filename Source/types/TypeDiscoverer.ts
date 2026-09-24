@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import path from 'path';
-import { DecoratorType } from './DecoratorType';
+import { DecoratorType } from './DecoratorType.js';
 import { Constructor } from '@cratis/fundamentals';
 
 type GlobFunction = (pattern: string | string[]) => Promise<string[]>;
