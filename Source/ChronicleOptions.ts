@@ -4,6 +4,7 @@
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts/index.js';
 import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
+import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;
@@ -13,12 +14,14 @@ type ChronicleOptionsConstructorParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
+    reactorResultHandler?: ReactorResultHandler;
 };
 
 type ChronicleOptionsFactoryParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
+    reactorResultHandler?: ReactorResultHandler;
 };
 
 /**
@@ -64,6 +67,9 @@ export class ChronicleOptions {
      */
     readonly defaultSinkTypeId: string;
 
+    /** Optional handler for application-owned reactor returns, installed before observations begin. */
+    readonly reactorResultHandler?: ReactorResultHandler;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -82,6 +88,7 @@ export class ChronicleOptions {
             '!**/*.test.ts'
         ];
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
+        this.reactorResultHandler = options.reactorResultHandler;
     }
 
     /**
@@ -100,7 +107,8 @@ export class ChronicleOptions {
             connectionString: parsed,
             clientArtifactsProvider: options?.clientArtifactsProvider,
             discoveryPatterns: options?.discoveryPatterns,
-            defaultSinkTypeId: options?.defaultSinkTypeId
+            defaultSinkTypeId: options?.defaultSinkTypeId,
+            reactorResultHandler: options?.reactorResultHandler
         });
     }
 

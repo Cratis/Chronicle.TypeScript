@@ -21,6 +21,7 @@ import { IConstraints } from './events/constraints/IConstraints.js';
 import { Projections } from './projections/Projections.js';
 import { IProjections } from './projections/IProjections.js';
 import { Reactors } from './reactors/Reactors.js';
+import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import { IReactors } from './reactors/IReactors.js';
 import { Reducers } from './reducers/Reducers.js';
 import { IReducers } from './reducers/IReducers.js';
@@ -83,7 +84,8 @@ export class EventStore implements IEventStore {
         private readonly _connection: ChronicleConnection,
         lifecycle: ConnectionLifecycle,
         defaultSinkTypeId: string,
-        private readonly _artifacts: IClientArtifactsProvider = DefaultClientArtifactsProvider.default
+        private readonly _artifacts: IClientArtifactsProvider = DefaultClientArtifactsProvider.default,
+        reactorResultHandler?: ReactorResultHandler
     ) {
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
@@ -94,7 +96,7 @@ export class EventStore implements IEventStore {
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
-        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog);
+        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
