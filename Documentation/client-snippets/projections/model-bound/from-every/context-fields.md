@@ -1,14 +1,13 @@
 ```typescript title="Track audit metadata from every event"
-import { eventType, fromEvent, fromEvery, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
 
 @eventType()
-class AuditableInventoryChangedForEvery {
+export class AuditableInventoryChangedForEvery {
     constructor(readonly reason: string) {}
 }
 
-@readModel()
 @fromEvent(AuditableInventoryChangedForEvery)
-class AuditableInventoryStatusFromEvery {
+export class AuditableInventoryStatusFromEvery {
     @fromEvery(undefined, 'occurred')
     lastModified = new Date();
 

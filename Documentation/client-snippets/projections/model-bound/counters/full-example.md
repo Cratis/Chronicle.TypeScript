@@ -1,30 +1,29 @@
 ```typescript
-import { addFrom, count, decrement, eventType, Guid, increment, readModel, subtractFrom } from '@cratis/chronicle';
+import { addFrom, count, decrement, eventType, Guid, increment, subtractFrom } from '@cratis/chronicle';
 
 // Events
 @eventType()
-class MbCountersUserLoggedInFull {
+export class MbCountersUserLoggedInFull {
     timestamp = new Date();
 }
 
 @eventType()
-class MbCountersUserLoggedOutFull {
+export class MbCountersUserLoggedOutFull {
     timestamp = new Date();
 }
 
 @eventType()
-class MbCountersPurchaseMade {
+export class MbCountersPurchaseMade {
     amount = 0;
 }
 
 @eventType()
-class MbCountersRefundIssued {
+export class MbCountersRefundIssued {
     amount = 0;
 }
 
 // Read Model
-@readModel()
-class MbCountersUserActivity {
+export class MbCountersUserActivity {
     id: Guid = Guid.empty;
 
     // Track login/logout counts

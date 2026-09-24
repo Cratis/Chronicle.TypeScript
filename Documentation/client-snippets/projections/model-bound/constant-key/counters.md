@@ -1,24 +1,23 @@
 ```typescript
-import { count, decrement, eventType, increment, readModel } from '@cratis/chronicle';
+import { count, decrement, eventType, increment } from '@cratis/chronicle';
 
 @eventType()
-class MbConstantKeyOrderPlacedForMetrics {
+export class MbConstantKeyOrderPlacedForMetrics {
 }
 
 @eventType()
-class MbConstantKeyUserLoggedIn {
+export class MbConstantKeyUserLoggedIn {
 }
 
 @eventType()
-class MbConstantKeyUserLoggedOut {
+export class MbConstantKeyUserLoggedOut {
 }
 
 @eventType()
-class MbConstantKeyErrorOccurred {
+export class MbConstantKeyErrorOccurred {
 }
 
-@readModel()
-class MbConstantKeySystemMetrics {
+export class MbConstantKeySystemMetrics {
     @count(MbConstantKeyOrderPlacedForMetrics, 'metrics')
     totalOrders = 0;
 

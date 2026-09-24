@@ -1,10 +1,9 @@
 ```typescript
-import { count, fromEvent, Guid, readModel } from '@cratis/chronicle';
+import { count, fromEvent, Guid } from '@cratis/chronicle';
 
-@readModel()
 @fromEvent(CrudComparisonCustomerRegistered)
 @fromEvent(CrudComparisonAddressChanged)
-class CrudComparisonCustomerCard {
+export class CrudComparisonCustomerCard {
     id: Guid = Guid.empty;
     name = '';
     address = '';

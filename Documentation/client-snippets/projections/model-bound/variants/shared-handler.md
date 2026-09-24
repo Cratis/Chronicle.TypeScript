@@ -1,28 +1,27 @@
 ```typescript
-import { entersOn, eventType, fromEvent, globalFor, readModel, setFrom, variantOf } from '@cratis/chronicle';
+import { entersOn, eventType, fromEvent, globalFor, setFrom, variantOf } from '@cratis/chronicle';
 
 @eventType()
-class MbVariantSharedIssueCreated {
+export class MbVariantSharedIssueCreated {
     title = '';
 }
 
 @eventType()
-class MbVariantSharedPullRequestCreated {
+export class MbVariantSharedPullRequestCreated {
     pullRequestUrl = '';
 }
 
 @eventType()
-class MbVariantSharedTitleChanged {
+export class MbVariantSharedTitleChanged {
     title = '';
 }
 
-class MbVariantSharedWorkItem {}
+export class MbVariantSharedWorkItem {}
 
 @variantOf(MbVariantSharedWorkItem, 'id')
 @entersOn(MbVariantSharedIssueCreated)
 @fromEvent(MbVariantSharedIssueCreated)
-@readModel()
-class MbVariantSharedBacklogItem {
+export class MbVariantSharedBacklogItem {
     id = '';
     title = '';
 }
@@ -30,8 +29,7 @@ class MbVariantSharedBacklogItem {
 @variantOf(MbVariantSharedWorkItem, 'id')
 @entersOn(MbVariantSharedPullRequestCreated)
 @fromEvent(MbVariantSharedPullRequestCreated)
-@readModel()
-class MbVariantSharedPullRequestItem {
+export class MbVariantSharedPullRequestItem {
     id = '';
     title = '';
 
@@ -45,7 +43,7 @@ class MbVariantSharedPullRequestItem {
  * registered as a projection on its own.
  */
 @globalFor(MbVariantSharedWorkItem)
-class MbVariantSharedHandlers {
+export class MbVariantSharedHandlers {
     @setFrom(MbVariantSharedTitleChanged, 'title')
     title = '';
 }

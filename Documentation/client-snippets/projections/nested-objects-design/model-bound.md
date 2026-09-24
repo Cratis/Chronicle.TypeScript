@@ -1,30 +1,29 @@
 ```typescript
-import { clearWith, eventType, fromEvent, Guid, nested, readModel } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, Guid, nested } from '@cratis/chronicle';
 
 @eventType()
-class NodSliceCreated {
+export class NodSliceCreated {
     constructor(readonly name: string) {}
 }
 
 @eventType()
-class NodCommandSetForSlice {
+export class NodCommandSetForSlice {
     constructor(readonly name: string, readonly schema: string) {}
 }
 
 @eventType()
-class NodCommandClearedForSlice {
+export class NodCommandClearedForSlice {
 }
 
 @fromEvent(NodCommandSetForSlice)
 @clearWith(NodCommandClearedForSlice)
-class NodCommandItem {
+export class NodCommandItem {
     name = '';
     schema = '';
 }
 
-@readModel()
 @fromEvent(NodSliceCreated)
-class NodSlice {
+export class NodSlice {
     id: Guid = Guid.empty;
     name = '';
 

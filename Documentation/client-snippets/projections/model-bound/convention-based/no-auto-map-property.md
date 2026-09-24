@@ -1,8 +1,8 @@
 ```typescript title="Exclude a single property from convention mapping"
-import { eventType, fromEvent, noAutoMap, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, noAutoMap, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class NoAutoMapWorkArrangementSet {
+export class NoAutoMapWorkArrangementSet {
     constructor(
         readonly location: string,
         readonly workMode: number
@@ -10,16 +10,15 @@ class NoAutoMapWorkArrangementSet {
 }
 
 @eventType()
-class NoAutoMapCandidateSubmitted {
+export class NoAutoMapCandidateSubmitted {
     constructor(
         readonly name: string,
         readonly location: string
     ) {}
 }
 
-@readModel()
 @fromEvent(NoAutoMapWorkArrangementSet)
-class NoAutoMapAssignmentSummary {
+export class NoAutoMapAssignmentSummary {
     // location is sourced only from NoAutoMapWorkArrangementSet. NoAutoMapCandidateSubmitted is
     // value-mapped (for candidateName) and also carries a location; @noAutoMap stops that location
     // from being auto-mapped over the explicit value, while every other property keeps mapping.

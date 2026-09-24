@@ -1,20 +1,19 @@
 ```typescript title="Update an audit timestamp from every event"
-import { eventType, fromEvent, fromEvery, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
 
 @eventType()
-class InventoryProductRegisteredForEvery {
+export class InventoryProductRegisteredForEvery {
     constructor(readonly productName: string) {}
 }
 
 @eventType()
-class InventoryItemsAdjustedForEvery {
+export class InventoryItemsAdjustedForEvery {
     constructor(readonly quantity: number) {}
 }
 
-@readModel()
 @fromEvent(InventoryProductRegisteredForEvery)
 @fromEvent(InventoryItemsAdjustedForEvery)
-class InventoryStatusFromEvery {
+export class InventoryStatusFromEvery {
     productName = '';
 
     @fromEvery(undefined, 'occurred')

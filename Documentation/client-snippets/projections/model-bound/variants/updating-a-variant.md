@@ -1,17 +1,17 @@
 ```typescript
-import { entersOn, eventType, fromEvent, readModel, setFrom, variantOf } from '@cratis/chronicle';
+import { entersOn, eventType, fromEvent, setFrom, variantOf } from '@cratis/chronicle';
 
 @eventType()
-class MbVariantUpdatingPullRequestCreated {
+export class MbVariantUpdatingPullRequestCreated {
     pullRequestUrl = '';
 }
 
 @eventType()
-class MbVariantUpdatingBuildCompleted {
+export class MbVariantUpdatingBuildCompleted {
     buildStatus = '';
 }
 
-class MbVariantUpdatingWorkItem {}
+export class MbVariantUpdatingWorkItem {}
 
 /**
  * buildStatus is mapped from MbVariantUpdatingBuildCompleted - an event that is NOT this variant's
@@ -22,8 +22,7 @@ class MbVariantUpdatingWorkItem {}
 @entersOn(MbVariantUpdatingPullRequestCreated)
 @fromEvent(MbVariantUpdatingPullRequestCreated)
 @fromEvent(MbVariantUpdatingBuildCompleted)
-@readModel()
-class MbVariantUpdatingPullRequestItem {
+export class MbVariantUpdatingPullRequestItem {
     id = '';
 
     @setFrom(MbVariantUpdatingPullRequestCreated, 'pullRequestUrl')

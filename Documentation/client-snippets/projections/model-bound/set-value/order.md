@@ -1,19 +1,18 @@
 ```typescript
-import { eventType, fromEvent, Guid, readModel, setFrom, setValue } from '@cratis/chronicle';
+import { eventType, fromEvent, Guid, setFrom, setValue } from '@cratis/chronicle';
 
 @eventType()
-class MbSetValueOrderPlaced {
+export class MbSetValueOrderPlaced {
     customerName = '';
 }
 
 @eventType()
-class MbSetValueOrderCanceled {
+export class MbSetValueOrderCanceled {
 }
 
-@readModel()
 @fromEvent(MbSetValueOrderPlaced)
 @fromEvent(MbSetValueOrderCanceled)
-class MbSetValueOrder {
+export class MbSetValueOrder {
     id: Guid = Guid.empty;
 
     @setFrom(MbSetValueOrderPlaced, 'customerName')

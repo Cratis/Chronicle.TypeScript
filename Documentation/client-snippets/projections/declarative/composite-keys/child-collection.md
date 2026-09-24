@@ -1,8 +1,8 @@
 ```typescript
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class CompositeItemAddedToOrder {
+export class CompositeItemAddedToOrder {
     constructor(
         readonly customerId: string = '',
         readonly orderNumber: string = '',
@@ -12,26 +12,25 @@ class CompositeItemAddedToOrder {
     ) {}
 }
 
-class CompositeItemKey {
+export class CompositeItemKey {
     productId = '';
     variant = '';
 }
 
-class CompositeOrderItem {
+export class CompositeOrderItem {
     id = '';
     productId = '';
     variant = '';
     quantity = 0;
 }
 
-@readModel()
-class CompositeOrderWithItems {
+export class CompositeOrderWithItems {
     id = '';
     orderItems: CompositeOrderItem[] = [];
 }
 
 @projection('', CompositeOrderWithItems)
-class CompositeOrderItemsProjection implements IProjectionFor<CompositeOrderWithItems> {
+export class CompositeOrderItemsProjection implements IProjectionFor<CompositeOrderWithItems> {
     define(builder: IProjectionBuilderFor<CompositeOrderWithItems>): void {
         builder
             .from(CompositeOrderCreated, from => from

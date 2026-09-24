@@ -1,9 +1,8 @@
 ```typescript title="The projection - builds queryable state"
-import { fromEvent, readModel } from '@cratis/chronicle';
+import { fromEvent } from '@cratis/chronicle';
 
-@readModel()
 @fromEvent(TestEvent)
-class TestProjection {
+export class TestProjection {
     message = '';
 }
 ```

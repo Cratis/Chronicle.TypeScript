@@ -1,27 +1,26 @@
 ```typescript
-import { count, decrement, eventType, increment, readModel } from '@cratis/chronicle';
+import { count, decrement, eventType, increment } from '@cratis/chronicle';
 
 // Events
 @eventType()
-class MbConstantKeyProductPurchased {
+export class MbConstantKeyProductPurchased {
     productId = '';
     amount = 0;
 }
 
 @eventType()
-class MbConstantKeyProductReturned {
+export class MbConstantKeyProductReturned {
     productId = '';
     amount = 0;
 }
 
 @eventType()
-class MbConstantKeyPageViewed {
+export class MbConstantKeyPageViewed {
     pageUrl = '';
 }
 
 // Global read model
-@readModel()
-class MbConstantKeyStoreMetrics {
+export class MbConstantKeyStoreMetrics {
     @count(MbConstantKeyProductPurchased, 'store')
     totalPurchases = 0;
 

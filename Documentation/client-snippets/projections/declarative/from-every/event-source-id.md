@@ -1,19 +1,18 @@
 ```typescript title="Map the event source id"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AccountOpenedDeclarativeEvery {
+export class AccountOpenedDeclarativeEvery {
     constructor(readonly ownerName: string) {}
 }
 
-@readModel()
-class AccountSummaryDeclarativeEvery {
+export class AccountSummaryDeclarativeEvery {
     accountId = '';
     ownerName = '';
 }
 
 @projection('', AccountSummaryDeclarativeEvery)
-class AccountSummaryDeclarativeEveryProjection implements IProjectionFor<AccountSummaryDeclarativeEvery> {
+export class AccountSummaryDeclarativeEveryProjection implements IProjectionFor<AccountSummaryDeclarativeEvery> {
     define(builder: IProjectionBuilderFor<AccountSummaryDeclarativeEvery>): void {
         builder
             .from(AccountOpenedDeclarativeEvery)

@@ -1,13 +1,13 @@
 ```typescript
-import { entersOn, eventType, fromEvent, readModel, setFrom, variantOf } from '@cratis/chronicle';
+import { entersOn, eventType, fromEvent, setFrom, variantOf } from '@cratis/chronicle';
 
 @eventType()
-class MbVariantIssueCreated {
+export class MbVariantIssueCreated {
     title = '';
 }
 
 @eventType()
-class MbVariantPullRequestCreated {
+export class MbVariantPullRequestCreated {
     pullRequestUrl = '';
 }
 
@@ -15,13 +15,12 @@ class MbVariantPullRequestCreated {
  * Anchors the logical identity shared by every variant. It does not need to be a read model
  * itself, and it does not need a common shape with any of the variants.
  */
-class MbVariantWorkItem {}
+export class MbVariantWorkItem {}
 
 @variantOf(MbVariantWorkItem, 'id')
 @entersOn(MbVariantIssueCreated)
 @fromEvent(MbVariantIssueCreated)
-@readModel()
-class MbVariantBacklogItem {
+export class MbVariantBacklogItem {
     id = '';
 
     @setFrom(MbVariantIssueCreated, 'title')
@@ -31,8 +30,7 @@ class MbVariantBacklogItem {
 @variantOf(MbVariantWorkItem, 'id')
 @entersOn(MbVariantPullRequestCreated)
 @fromEvent(MbVariantPullRequestCreated)
-@readModel()
-class MbVariantPullRequestItem {
+export class MbVariantPullRequestItem {
     id = '';
 
     @setFrom(MbVariantPullRequestCreated, 'pullRequestUrl')

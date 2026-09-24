@@ -1,9 +1,8 @@
 ```typescript
-import { fromEvent, Guid, readModel, setFrom, setValue } from '@cratis/chronicle';
+import { fromEvent, Guid, setFrom, setValue } from '@cratis/chronicle';
 
-@readModel()
 @fromEvent(BookAdded)
-class Book {
+export class Book {
     id: Guid = Guid.empty;
 
     @setFrom(BookAdded, 'title')

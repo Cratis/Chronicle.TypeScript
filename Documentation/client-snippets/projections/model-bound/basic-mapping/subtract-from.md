@@ -1,26 +1,25 @@
 ```typescript title="Subtract from an event"
-import { addFrom, eventType, fromEvent, readModel, setFrom, subtractFrom } from '@cratis/chronicle';
+import { addFrom, eventType, fromEvent, setFrom, subtractFrom } from '@cratis/chronicle';
 
 @eventType()
-class BalanceAccountOpened {
+export class BalanceAccountOpened {
     constructor(readonly initialBalance: number) {}
 }
 
 @eventType()
-class BalanceDepositMade {
+export class BalanceDepositMade {
     constructor(readonly amount: number) {}
 }
 
 @eventType()
-class BalanceWithdrawalMade {
+export class BalanceWithdrawalMade {
     constructor(readonly amount: number) {}
 }
 
-@readModel()
 @fromEvent(BalanceAccountOpened)
 @fromEvent(BalanceDepositMade)
 @fromEvent(BalanceWithdrawalMade)
-class BalanceAccount {
+export class BalanceAccount {
     @setFrom(BalanceAccountOpened, 'initialBalance')
     @addFrom(BalanceDepositMade, 'amount')
     @subtractFrom(BalanceWithdrawalMade, 'amount')

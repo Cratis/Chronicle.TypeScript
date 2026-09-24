@@ -1,24 +1,23 @@
 ```typescript title="Declarative FromAll with a dynamic dictionary key"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class UserRegisteredForEventCounts {
+export class UserRegisteredForEventCounts {
     constructor(readonly name: string) {}
 }
 
 @eventType()
-class OrderPlacedForEventCounts {
+export class OrderPlacedForEventCounts {
     constructor(readonly orderId: string) {}
 }
 
-@readModel()
-class EventTypeCountsReadModel {
+export class EventTypeCountsReadModel {
     eventCountByType: Record<string, number> = {};
     lastEventOccurred = new Date();
 }
 
 @projection('', EventTypeCountsReadModel)
-class EventTypeCountsProjection implements IProjectionFor<EventTypeCountsReadModel> {
+export class EventTypeCountsProjection implements IProjectionFor<EventTypeCountsReadModel> {
     define(builder: IProjectionBuilderFor<EventTypeCountsReadModel>): void {
         builder
             .fromEvery(_ => _

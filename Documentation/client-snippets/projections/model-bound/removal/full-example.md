@@ -1,38 +1,37 @@
 ```typescript
-import { childrenFrom, eventType, Guid, readModel, removedWith, setFrom } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, removedWith, setFrom } from '@cratis/chronicle';
 
 // Events
 @eventType()
-class MbRemovalFullShoppingCartCreated {
+export class MbRemovalFullShoppingCartCreated {
     customerName = '';
 }
 
 @eventType()
-class MbRemovalFullItemAddedToCart {
+export class MbRemovalFullItemAddedToCart {
     itemId: Guid = Guid.empty;
     productName = '';
     price = 0;
 }
 
 @eventType()
-class MbRemovalFullItemRemovedFromCart {
+export class MbRemovalFullItemRemovedFromCart {
     cartId: Guid = Guid.empty;
     itemId: Guid = Guid.empty;
 }
 
 @eventType()
-class MbRemovalFullCartCheckedOut {
+export class MbRemovalFullCartCheckedOut {
 }
 
 @eventType()
-class MbRemovalFullCartAbandoned {
+export class MbRemovalFullCartAbandoned {
 }
 
 // Read Models
-@readModel()
 @removedWith(MbRemovalFullCartCheckedOut)
 @removedWith(MbRemovalFullCartAbandoned)
-class MbRemovalFullShoppingCart {
+export class MbRemovalFullShoppingCart {
     id: Guid = Guid.empty;
 
     @setFrom(MbRemovalFullShoppingCartCreated, 'customerName')
@@ -43,7 +42,7 @@ class MbRemovalFullShoppingCart {
 }
 
 @removedWith(MbRemovalFullItemRemovedFromCart, 'itemId', 'cartId')
-class MbRemovalFullCartItem {
+export class MbRemovalFullCartItem {
     id: Guid = Guid.empty;
 
     @setFrom(MbRemovalFullItemAddedToCart, 'productName')

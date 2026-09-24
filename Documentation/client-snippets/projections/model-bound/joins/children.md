@@ -1,20 +1,19 @@
 ```typescript
-import { childrenFrom, eventType, Guid, join, readModel, setFrom } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, join, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbJoinsLineItemAdded {
+export class MbJoinsLineItemAdded {
     productId: Guid = Guid.empty;
     quantity = 0;
 }
 
 @eventType()
-class MbJoinsProductUpdated {
+export class MbJoinsProductUpdated {
     productName = '';
     currentPrice = 0;
 }
 
-@readModel()
-class MbJoinsOrder {
+export class MbJoinsOrder {
     id: Guid = Guid.empty;
 
     @childrenFrom(MbJoinsLineItemAdded, 'productId')
@@ -23,7 +22,7 @@ class MbJoinsOrder {
 
 // The line's key is the product id, so the join to ProductUpdated (raised on that
 // same product's event source) resolves implicitly through the child's own key.
-class MbJoinsOrderLine {
+export class MbJoinsOrderLine {
     id: Guid = Guid.empty;
 
     @setFrom(MbJoinsLineItemAdded, 'quantity')

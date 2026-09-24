@@ -1,20 +1,19 @@
 ```typescript title="Use the read model property name by convention"
-import { eventType, fromEvent, fromEvery, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
 
 @eventType()
-class ProductRenamedForEveryConvention {
+export class ProductRenamedForEveryConvention {
     constructor(readonly name: string, readonly version: number) {}
 }
 
 @eventType()
-class ProductPriceChangedForEveryConvention {
+export class ProductPriceChangedForEveryConvention {
     constructor(readonly price: number, readonly version: number) {}
 }
 
-@readModel()
 @fromEvent(ProductRenamedForEveryConvention)
 @fromEvent(ProductPriceChangedForEveryConvention)
-class ProductVersionFromEveryConvention {
+export class ProductVersionFromEveryConvention {
     name = '';
     price = 0;
 

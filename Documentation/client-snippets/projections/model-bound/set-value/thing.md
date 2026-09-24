@@ -1,13 +1,12 @@
 ```typescript
-import { eventType, fromEvent, Guid, readModel, setValue } from '@cratis/chronicle';
+import { eventType, fromEvent, Guid, setValue } from '@cratis/chronicle';
 
 @eventType()
-class MbSetValueThingHappened {
+export class MbSetValueThingHappened {
 }
 
-@readModel()
 @fromEvent(MbSetValueThingHappened)
-class MbSetValueThing {
+export class MbSetValueThing {
     id: Guid = Guid.empty;
 
     @setValue(MbSetValueThingHappened, 'pending')

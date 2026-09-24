@@ -1,8 +1,8 @@
 ```typescript title="Equivalent explicit mappings"
-import { eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class ExplicitConventionUserRegistered {
+export class ExplicitConventionUserRegistered {
     constructor(
         readonly name: string,
         readonly email: string,
@@ -10,9 +10,8 @@ class ExplicitConventionUserRegistered {
     ) {}
 }
 
-@readModel()
 @fromEvent(ExplicitConventionUserRegistered)
-class ExplicitConventionUser {
+export class ExplicitConventionUser {
     @setFrom(ExplicitConventionUserRegistered, 'name')
     name = '';
 

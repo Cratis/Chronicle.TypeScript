@@ -1,29 +1,28 @@
 ```typescript
-import { eventType, Guid, readModel, removedWith, removedWithJoin, setFrom } from '@cratis/chronicle';
+import { eventType, Guid, removedWith, removedWithJoin, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbRemovalMultipleAccountOpened {
+export class MbRemovalMultipleAccountOpened {
     name = '';
 }
 
 @eventType()
-class MbRemovalMultipleAccountClosed {
+export class MbRemovalMultipleAccountClosed {
 }
 
 @eventType()
-class MbRemovalMultipleAccountMerged {
+export class MbRemovalMultipleAccountMerged {
     sourceAccountId: Guid = Guid.empty;
 }
 
 @eventType()
-class MbRemovalMultipleOrganizationClosed {
+export class MbRemovalMultipleOrganizationClosed {
 }
 
-@readModel()
 @removedWith(MbRemovalMultipleAccountClosed)
 @removedWith(MbRemovalMultipleAccountMerged, 'sourceAccountId')
 @removedWithJoin(MbRemovalMultipleOrganizationClosed)
-class MbRemovalMultipleAccount {
+export class MbRemovalMultipleAccount {
     id: Guid = Guid.empty;
 
     @setFrom(MbRemovalMultipleAccountOpened, 'name')

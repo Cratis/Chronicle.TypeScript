@@ -1,11 +1,15 @@
 ```typescript
 import { eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class BookAdded {
-    constructor(
-        readonly title: string,
-        readonly isbn: string
-    ) {}
+    @field(String) title: string;
+    @field(String) isbn: string;
+
+    constructor(title: string, isbn: string) {
+        this.title = title;
+        this.isbn = isbn;
+    }
 }
 ```

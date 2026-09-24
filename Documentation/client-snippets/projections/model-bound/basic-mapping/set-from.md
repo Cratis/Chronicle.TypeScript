@@ -1,14 +1,13 @@
 ```typescript title="Model-bound set mapping"
-import { eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class UserRegisteredForContact {
+export class UserRegisteredForContact {
     constructor(readonly name: string, readonly email: string) {}
 }
 
-@readModel()
 @fromEvent(UserRegisteredForContact)
-class UserContact {
+export class UserContact {
     @setFrom(UserRegisteredForContact, 'email')
     email = '';
 

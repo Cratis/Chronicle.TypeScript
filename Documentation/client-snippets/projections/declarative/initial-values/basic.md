@@ -1,5 +1,5 @@
 ```typescript title="Initial values"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 enum InitialValuesUserStatus {
     Inactive = 'Inactive',
@@ -7,12 +7,11 @@ enum InitialValuesUserStatus {
 }
 
 @eventType()
-class InitialValuesUserCreated {
+export class InitialValuesUserCreated {
     constructor(readonly name: string, readonly email: string) {}
 }
 
-@readModel()
-class InitialValuesUserProfile {
+export class InitialValuesUserProfile {
     name = 'Unknown user';
     email = '';
     status = InitialValuesUserStatus.Inactive;
@@ -23,7 +22,7 @@ class InitialValuesUserProfile {
 }
 
 @projection('', InitialValuesUserProfile)
-class InitialValuesUserProfileProjection implements IProjectionFor<InitialValuesUserProfile> {
+export class InitialValuesUserProfileProjection implements IProjectionFor<InitialValuesUserProfile> {
     define(builder: IProjectionBuilderFor<InitialValuesUserProfile>): void {
         builder
             .withInitialValues(() => new InitialValuesUserProfile())

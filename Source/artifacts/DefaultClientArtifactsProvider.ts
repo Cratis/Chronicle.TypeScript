@@ -5,6 +5,8 @@ import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from './IClientArtifactsProvider.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
+import { getProjectionMetadata } from '../projections/declarative/projection.js';
+import { getReducerMetadata } from '../reducers/reducer.js';
 
 /**
  * Represents the default provider for discovered client artifacts.
@@ -26,7 +28,16 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
 
     /** @inheritdoc */
     get readModels(): Constructor[] {
-        return this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel);
+        const types = new Set(this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel));
+        for (const projection of this.projections) {
+            const type = getProjectionMetadata(projection)?.readModelType;
+            if (type) types.add(type);
+        }
+        for (const reducer of this.reducers) {
+            const type = getReducerMetadata(reducer)?.readModel;
+            if (type) types.add(type);
+        }
+        return Array.from(types);
     }
 
     /** @inheritdoc */

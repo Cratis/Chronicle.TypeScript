@@ -17,11 +17,13 @@ import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent.js';
+import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { isPassive } from '../projections/modelBound/passive.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
-import { getReadModelMetadata } from './readModel.js';
+import { getReadModelMetadata, getReadModelId } from './readModel.js';
+import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
@@ -239,6 +241,7 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
+        assertUniqueReadModelIds(this._clientArtifacts.readModels);
         const resolved = new Map<string, ResolvedReadModel>();
 
         for (const projectionType of this._clientArtifacts.projections) {
@@ -251,9 +254,8 @@ export class ReadModels implements IReadModels {
                 continue;
             }
 
-            const readModelMetadata = getReadModelMetadata(metadata.readModelType);
-            const identifier = readModelMetadata?.id.value ?? metadata.readModelType.name;
-            resolved.set(identifier, {
+            const identifier = getReadModelId(metadata.readModelType);
+            this.addResolved(resolved, {
                 type: metadata.readModelType,
                 identifier,
                 eventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
@@ -265,7 +267,7 @@ export class ReadModels implements IReadModels {
         }
 
         for (const modelBoundType of this._clientArtifacts.readModels) {
-            if (!hasFromEventMetadata(modelBoundType)) {
+            if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }
 
@@ -273,18 +275,14 @@ export class ReadModels implements IReadModels {
                 continue;
             }
 
-            const metadata = getReadModelMetadata(modelBoundType);
-            if (!metadata) {
-                continue;
-            }
-
-            resolved.set(metadata.id.value, {
+            const identifier = getReadModelId(modelBoundType);
+            this.addResolved(resolved, {
                 type: modelBoundType,
-                identifier: metadata.id.value,
+                identifier,
                 eventSequenceId: EventSequenceId.eventLog.value,
                 observerType: ContractReadModelObserverType.Projection,
-                observerIdentifier: metadata.id.value,
-                schema: JSON.stringify(metadata.schema),
+                observerIdentifier: identifier,
+                schema: this.getReadModelSchema(modelBoundType, identifier),
                 isActive: !isPassive(modelBoundType)
             });
         }
@@ -299,9 +297,8 @@ export class ReadModels implements IReadModels {
                 continue;
             }
 
-            const readModelMetadata = getReadModelMetadata(metadata.readModel);
-            const identifier = readModelMetadata?.id.value ?? metadata.readModel.name;
-            resolved.set(identifier, {
+            const identifier = getReadModelId(metadata.readModel);
+            this.addResolved(resolved, {
                 type: metadata.readModel,
                 identifier,
                 eventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
@@ -313,6 +310,15 @@ export class ReadModels implements IReadModels {
         }
 
         return Array.from(resolved.values());
+    }
+
+    private addResolved(models: Map<string, ResolvedReadModel>, model: ResolvedReadModel): void {
+        const existing = models.get(model.identifier);
+        if (existing && (existing.type !== model.type || existing.observerType !== model.observerType ||
+            existing.observerIdentifier !== model.observerIdentifier)) {
+            throw new Error(`Read model id '${model.identifier}' has multiple observers or model types.`);
+        }
+        models.set(model.identifier, model);
     }
 
     private resolveReadModel<TReadModel>(readModelType: Constructor<TReadModel>): ResolvedReadModel {

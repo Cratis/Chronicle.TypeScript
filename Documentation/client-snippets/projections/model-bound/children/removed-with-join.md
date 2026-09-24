@@ -1,19 +1,18 @@
 ```typescript
-import { childrenFrom, eventType, Guid, readModel, removedWithJoin } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, removedWithJoin } from '@cratis/chronicle';
 
 @eventType()
-class MbChildrenRemovedFeatureActivated {
+export class MbChildrenRemovedFeatureActivated {
     featureId: Guid = Guid.empty;
     name = '';
 }
 
 @eventType()
-class MbChildrenRemovedFeatureDeactivated {
+export class MbChildrenRemovedFeatureDeactivated {
     featureId: Guid = Guid.empty;
 }
 
-@readModel()
-class MbChildrenRemovedSubscription {
+export class MbChildrenRemovedSubscription {
     id: Guid = Guid.empty;
 
     @childrenFrom(MbChildrenRemovedFeatureActivated, 'featureId', 'featureId')
@@ -21,7 +20,7 @@ class MbChildrenRemovedSubscription {
     features: MbChildrenRemovedFeature[] = [];
 }
 
-class MbChildrenRemovedFeature {
+export class MbChildrenRemovedFeature {
     featureId: Guid = Guid.empty;
     name = '';
 }

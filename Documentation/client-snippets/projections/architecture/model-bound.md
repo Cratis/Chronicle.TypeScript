@@ -1,14 +1,13 @@
 ```typescript
-import { count, eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { count, eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ArchitectureModelBoundItemAdded {
+export class ArchitectureModelBoundItemAdded {
     category = '';
 }
 
-@readModel()
 @fromEvent(ArchitectureModelBoundItemAdded, { key: 'category' })
-class ArchitectureModelBoundSummary {
+export class ArchitectureModelBoundSummary {
     category = '';
 
     @count(ArchitectureModelBoundItemAdded)

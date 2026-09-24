@@ -1,44 +1,43 @@
 ```typescript
-import { childrenFrom, eventType, Guid, join, readModel, setFrom } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, join, setFrom } from '@cratis/chronicle';
 
 // Events
 @eventType()
-class MbJoinsFullOrderPlaced {
+export class MbJoinsFullOrderPlaced {
     customerId: Guid = Guid.empty;
     placedAt = new Date();
 }
 
 @eventType()
-class MbJoinsFullCustomerRegistered {
+export class MbJoinsFullCustomerRegistered {
     name = '';
     email = '';
 }
 
 @eventType()
-class MbJoinsFullCustomerProfileUpdated {
+export class MbJoinsFullCustomerProfileUpdated {
     phoneNumber = '';
 }
 
 @eventType()
-class MbJoinsFullLineItemAdded {
+export class MbJoinsFullLineItemAdded {
     productId: Guid = Guid.empty;
     quantity = 0;
 }
 
 @eventType()
-class MbJoinsFullProductCreated {
+export class MbJoinsFullProductCreated {
     name = '';
     price = 0;
 }
 
 @eventType()
-class MbJoinsFullProductPriceChanged {
+export class MbJoinsFullProductPriceChanged {
     newPrice = 0;
 }
 
 // Read Models
-@readModel()
-class MbJoinsFullOrderDetails {
+export class MbJoinsFullOrderDetails {
     id: Guid = Guid.empty;
 
     @setFrom(MbJoinsFullOrderPlaced, 'placedAt')
@@ -62,7 +61,7 @@ class MbJoinsFullOrderDetails {
 }
 
 // Keyed by product id, so the joins below resolve implicitly through the child's own key.
-class MbJoinsFullLineItemDetails {
+export class MbJoinsFullLineItemDetails {
     id: Guid = Guid.empty;
 
     @setFrom(MbJoinsFullLineItemAdded, 'quantity')

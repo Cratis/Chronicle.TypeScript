@@ -1,13 +1,13 @@
 ```typescript title="Multiple convention events"
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class ConventionUserProfileCreated {
+export class ConventionUserProfileCreated {
     constructor(readonly name: string, readonly email: string) {}
 }
 
 @eventType()
-class ConventionUserProfileUpdated {
+export class ConventionUserProfileUpdated {
     constructor(
         readonly name: string,
         readonly email: string,
@@ -15,10 +15,9 @@ class ConventionUserProfileUpdated {
     ) {}
 }
 
-@readModel()
 @fromEvent(ConventionUserProfileCreated)
 @fromEvent(ConventionUserProfileUpdated)
-class ConventionUserProfile {
+export class ConventionUserProfile {
     name = '';
     email = '';
     phone = '';

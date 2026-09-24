@@ -4,6 +4,8 @@
 import 'reflect-metadata';
 import { FromEventMetadata } from './FromEventMetadata.js';
 import { FromEventOptions } from './FromEventOptions.js';
+import { DecoratorType, TypeDiscoverer } from '../../types/index.js';
+import type { Constructor } from '@cratis/fundamentals';
 
 const METADATA_KEY = 'chronicle:projection:fromEvent';
 
@@ -18,6 +20,7 @@ export function fromEvent(eventType: Function, options?: FromEventOptions): Clas
         const existing: FromEventMetadata[] = Reflect.getMetadata(METADATA_KEY, target) ?? [];
         const metadata: FromEventMetadata = { eventType, ...options };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target);
+        TypeDiscoverer.default.register(DecoratorType.ReadModel, target as Constructor);
     };
 }
 

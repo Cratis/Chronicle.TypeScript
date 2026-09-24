@@ -1,14 +1,13 @@
 ```typescript
-import { eventType, Guid, passive, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, Guid, passive, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbPassiveSnapshotCreated {
+export class MbPassiveSnapshotCreated {
     data = '';
 }
 
-@readModel()
 @passive
-class MbPassiveHistoricalSnapshot {
+export class MbPassiveHistoricalSnapshot {
     id: Guid = Guid.empty;
 
     @setFrom(MbPassiveSnapshotCreated, 'data')

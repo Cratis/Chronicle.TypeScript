@@ -1,15 +1,14 @@
 ```typescript
-import { eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbConstantKeyOrderPlaced {
+export class MbConstantKeyOrderPlaced {
     customerName = '';
     placedAt = new Date();
 }
 
-@readModel()
 @fromEvent(MbConstantKeyOrderPlaced, { constantKey: 'global' })
-class MbConstantKeyGlobalOrderSummary {
+export class MbConstantKeyGlobalOrderSummary {
     @setFrom(MbConstantKeyOrderPlaced, 'customerName')
     lastCustomer = '';
 

@@ -1,23 +1,22 @@
 ```typescript
-import { eventType, fromEvent, Guid, readModel, setValue } from '@cratis/chronicle';
+import { eventType, fromEvent, Guid, setValue } from '@cratis/chronicle';
 
 @eventType()
-class MbSetValueSubscriptionStarted {
+export class MbSetValueSubscriptionStarted {
 }
 
 @eventType()
-class MbSetValueSubscriptionPaused {
+export class MbSetValueSubscriptionPaused {
 }
 
 @eventType()
-class MbSetValueSubscriptionCanceled {
+export class MbSetValueSubscriptionCanceled {
 }
 
-@readModel()
 @fromEvent(MbSetValueSubscriptionStarted)
 @fromEvent(MbSetValueSubscriptionPaused)
 @fromEvent(MbSetValueSubscriptionCanceled)
-class MbSetValueSubscription {
+export class MbSetValueSubscription {
     id: Guid = Guid.empty;
 
     @setValue(MbSetValueSubscriptionStarted, 'active')

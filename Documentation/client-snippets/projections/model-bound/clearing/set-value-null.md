@@ -1,18 +1,17 @@
 ```typescript
-import { eventType, fromEvent, Guid, readModel, setValue } from '@cratis/chronicle';
+import { eventType, fromEvent, Guid, setValue } from '@cratis/chronicle';
 
 @eventType()
-class MbClearingInvoiceIssued {
+export class MbClearingInvoiceIssued {
     constructor(readonly reference: string) {}
 }
 
 @eventType()
-class MbClearingInvoiceVoided {
+export class MbClearingInvoiceVoided {
 }
 
-@readModel()
 @fromEvent(MbClearingInvoiceIssued)
-class MbClearingInvoice {
+export class MbClearingInvoice {
     id: Guid = Guid.empty;
 
     @setValue(MbClearingInvoiceVoided, null)

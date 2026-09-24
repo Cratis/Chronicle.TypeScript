@@ -1,20 +1,19 @@
 ```typescript title="Disable AutoMap"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AutoMapDisabledAccountRegistered {
+export class AutoMapDisabledAccountRegistered {
     constructor(readonly accountName: string, readonly contactEmail: string) {}
 }
 
-@readModel()
-class AutoMapDisabledAccount {
+export class AutoMapDisabledAccount {
     name = '';
     email = '';
     createdAt = new Date(0);
 }
 
 @projection('', AutoMapDisabledAccount)
-class AutoMapDisabledAccountProjection implements IProjectionFor<AutoMapDisabledAccount> {
+export class AutoMapDisabledAccountProjection implements IProjectionFor<AutoMapDisabledAccount> {
     define(builder: IProjectionBuilderFor<AutoMapDisabledAccount>): void {
         builder
             .noAutoMap()

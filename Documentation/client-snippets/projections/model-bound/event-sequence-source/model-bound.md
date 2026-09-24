@@ -1,15 +1,14 @@
 ```typescript
-import { eventSequence, eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { eventSequence, eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class MbEventSeqOrderPlaced {
+export class MbEventSeqOrderPlaced {
     amount = 0;
 }
 
-@readModel()
 @fromEvent(MbEventSeqOrderPlaced)
 @eventSequence('custom-sequence')
-class MbEventSeqOrderSummary {
+export class MbEventSeqOrderSummary {
     @setFrom(MbEventSeqOrderPlaced, 'amount')
     totalAmount = 0;
 }

@@ -1,20 +1,19 @@
 ```typescript title="Map context fields with FromAll"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AccountTouchedDeclarativeAll {
+export class AccountTouchedDeclarativeAll {
     constructor(readonly reason: string) {}
 }
 
-@readModel()
-class AccountAuditDeclarativeAll {
+export class AccountAuditDeclarativeAll {
     lastUpdated = new Date();
     lastEventSequence = 0n;
     lastCorrelationId = '';
 }
 
 @projection('', AccountAuditDeclarativeAll)
-class AccountAuditDeclarativeAllProjection implements IProjectionFor<AccountAuditDeclarativeAll> {
+export class AccountAuditDeclarativeAllProjection implements IProjectionFor<AccountAuditDeclarativeAll> {
     define(builder: IProjectionBuilderFor<AccountAuditDeclarativeAll>): void {
         builder
             .from(AccountTouchedDeclarativeAll)

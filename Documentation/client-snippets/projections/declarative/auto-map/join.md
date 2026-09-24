@@ -1,25 +1,24 @@
 ```typescript title="AutoMap with a join"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
-class AutoMapEmployeeHired {
+export class AutoMapEmployeeHired {
     constructor(readonly employeeName: string, readonly departmentId: string) {}
 }
 
 @eventType()
-class AutoMapDepartmentRenamed {
+export class AutoMapDepartmentRenamed {
     constructor(readonly departmentName: string) {}
 }
 
-@readModel()
-class AutoMapEmployee {
+export class AutoMapEmployee {
     employeeName = '';
     departmentId = '';
     departmentName = '';
 }
 
 @projection('', AutoMapEmployee)
-class AutoMapEmployeeProjection implements IProjectionFor<AutoMapEmployee> {
+export class AutoMapEmployeeProjection implements IProjectionFor<AutoMapEmployee> {
     define(builder: IProjectionBuilderFor<AutoMapEmployee>): void {
         builder
             .from(AutoMapEmployeeHired)

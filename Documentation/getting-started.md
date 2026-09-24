@@ -48,14 +48,19 @@ class Quantity extends ConceptAs<number> {
 
 @eventType('stock-counted')
 class StockCounted {
-    @field(Quantity) quantity!: Quantity;
+    @field(Quantity) quantity: Quantity;
+
+    constructor(quantity: Quantity) { this.quantity = quantity; }
 }
 
+const event = new StockCounted(new Quantity(42));
+console.log(event.quantity.value);
+// 42
 console.log(getEventTypeJsonSchemaFor(StockCounted).properties?.quantity.type);
 // number
 ```
 
-An event type or read model with no members is valid. An unresolved member type or an array without `genericArguments` fails when its schema is first read, or during connection before any artifacts are registered with the Kernel. The remaining constructor-property examples in the legacy-mode client snippets use `experimentalDecorators: true` and do not represent standard-mode schema declarations. For standard mode, use `@field` on each typed member as shown above. Chronicle supports standard public instance fields, not standard accessors or getters, for property decorators.
+An event type or read model with no members is valid. An unresolved member type or an array without `genericArguments` fails when its schema is first read, or during connection before any artifacts are registered with the Kernel. For events with constructor arguments, declare each serialized property as a field with `@field(Type)` and assign it in the constructor. You can then append `new StockCounted(new Quantity(42))` directly. The constructor must tolerate `undefined` during schema inspection and deserialization: do not dereference or validate its arguments, freeze the instance, or perform side effects there. Deserialization constructs an instance without arguments and assigns its decorated fields. Constructor parameter properties without `@field` remain a legacy-decorator idiom; they do not supply schema types in standard mode. Chronicle supports standard public instance fields, not standard accessors or getters, for property decorators.
 
 ## Connecting to Chronicle
 

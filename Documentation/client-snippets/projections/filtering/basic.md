@@ -1,21 +1,20 @@
 ```typescript
-import { eventType, fromEvent, readModel } from '@cratis/chronicle';
+import { eventType, fromEvent } from '@cratis/chronicle';
 
 @eventType()
-class FilteringOrderPlaced {
+export class FilteringOrderPlaced {
     customerId = '';
     totalAmount = 0;
 }
 
 @eventType()
-class FilteringOrderShipped {
+export class FilteringOrderShipped {
     shippedAt: Date | null = null;
 }
 
-@readModel()
 @fromEvent(FilteringOrderPlaced)
 @fromEvent(FilteringOrderShipped)
-class FilteringOrderSummary {
+export class FilteringOrderSummary {
     customerId = '';
     totalAmount = 0;
     shippedAt: Date | null = null;

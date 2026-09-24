@@ -1,25 +1,24 @@
 ```typescript title="Initialize collections"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
-class InitialValuesAddress {
+export class InitialValuesAddress {
     street = '';
     city = '';
 }
 
 @eventType()
-class InitialValuesCustomerRegistered {
+export class InitialValuesCustomerRegistered {
     constructor(readonly name: string) {}
 }
 
-@readModel()
-class InitialValuesCustomerRecord {
+export class InitialValuesCustomerRecord {
     name = '';
     addresses: InitialValuesAddress[] = [];
     tags: string[] = [];
 }
 
 @projection('', InitialValuesCustomerRecord)
-class InitialValuesCustomerRecordProjection implements IProjectionFor<InitialValuesCustomerRecord> {
+export class InitialValuesCustomerRecordProjection implements IProjectionFor<InitialValuesCustomerRecord> {
     define(builder: IProjectionBuilderFor<InitialValuesCustomerRecord>): void {
         builder
             .withInitialValues(() => new InitialValuesCustomerRecord())

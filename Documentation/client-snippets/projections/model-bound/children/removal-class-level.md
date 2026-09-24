@@ -1,20 +1,19 @@
 ```typescript
-import { childrenFrom, eventType, Guid, readModel, removedWith } from '@cratis/chronicle';
+import { childrenFrom, eventType, Guid, removedWith } from '@cratis/chronicle';
 
 @eventType()
-class MbChildrenRemovalClassLineItemAdded {
+export class MbChildrenRemovalClassLineItemAdded {
     itemId: Guid = Guid.empty;
     description = '';
 }
 
 @eventType()
-class MbChildrenRemovalClassLineItemRemoved {
+export class MbChildrenRemovalClassLineItemRemoved {
     orderId: Guid = Guid.empty;
     itemId: Guid = Guid.empty;
 }
 
-@readModel()
-class MbChildrenRemovalClassOrder {
+export class MbChildrenRemovalClassOrder {
     id: Guid = Guid.empty;
 
     @childrenFrom(MbChildrenRemovalClassLineItemAdded, 'itemId')
@@ -22,7 +21,7 @@ class MbChildrenRemovalClassOrder {
 }
 
 @removedWith(MbChildrenRemovalClassLineItemRemoved, 'itemId', 'orderId')
-class MbChildrenRemovalClassOrderLine {
+export class MbChildrenRemovalClassOrderLine {
     id: Guid = Guid.empty;
     description = '';
 }

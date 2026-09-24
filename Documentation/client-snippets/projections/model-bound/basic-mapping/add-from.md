@@ -1,20 +1,19 @@
 ```typescript title="Add from an event"
-import { addFrom, eventType, fromEvent, readModel, setFrom } from '@cratis/chronicle';
+import { addFrom, eventType, fromEvent, setFrom } from '@cratis/chronicle';
 
 @eventType()
-class AccountOpenedForDeposits {
+export class AccountOpenedForDeposits {
     constructor(readonly initialBalance: number) {}
 }
 
 @eventType()
-class DepositMadeForBalance {
+export class DepositMadeForBalance {
     constructor(readonly amount: number) {}
 }
 
-@readModel()
 @fromEvent(AccountOpenedForDeposits)
 @fromEvent(DepositMadeForBalance)
-class DepositAccount {
+export class DepositAccount {
     @setFrom(AccountOpenedForDeposits, 'initialBalance')
     @addFrom(DepositMadeForBalance, 'amount')
     balance = 0;
