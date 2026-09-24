@@ -30,6 +30,7 @@ import { EventSeeding } from './seeding/EventSeeding.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
 import { ChronicleTracer } from './Tracing.js';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider.js';
+import type { IClientArtifactsProvider } from './artifacts/IClientArtifactsProvider.js';
 import { validateArtifactSchemas } from './artifacts/validateArtifactSchemas.js';
 import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
 import { UnitOfWorkManager } from './transactions/UnitOfWorkManager.js';
@@ -81,14 +82,15 @@ export class EventStore implements IEventStore {
         readonly namespace: EventStoreNamespaceName,
         private readonly _connection: ChronicleConnection,
         lifecycle: ConnectionLifecycle,
-        defaultSinkTypeId: string
+        defaultSinkTypeId: string,
+        private readonly _artifacts: IClientArtifactsProvider = DefaultClientArtifactsProvider.default
     ) {
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
         this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
-        const artifacts = DefaultClientArtifactsProvider.default;
+        const artifacts = this._artifacts;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.constraints = new Constraints(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
@@ -126,7 +128,7 @@ export class EventStore implements IEventStore {
             this.seeding.discover()
         ]);
 
-        validateArtifactSchemas(DefaultClientArtifactsProvider.default);
+        validateArtifactSchemas(this._artifacts);
 
         this._logger.debug('Registering discovered artifacts', {
             eventStore: this.name.value,
