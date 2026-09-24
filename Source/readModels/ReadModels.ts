@@ -108,7 +108,7 @@ export class ReadModels implements IReadModels {
             SessionId: sessionId ?? ''
         });
 
-        if (!response.ReadModel) {
+        if (!response.ReadModel || response.ReadModel.trim() === 'null') {
             return null;
         }
         const instance = this.deserializeReadModel(readModelType, response.ReadModel);
