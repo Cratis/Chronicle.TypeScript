@@ -6,6 +6,7 @@ import { Constructor } from '@cratis/fundamentals';
 import { ReadModelId } from './ReadModelId.js';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
 import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
+import { ChronicleClassDecorator, requireCompletedStandardMetadata } from '../types/standardDecoratorMetadata.js';
 
 /** Metadata key used to store read model information on a class. */
 const READ_MODEL_METADATA_KEY = 'chronicle:readModel';
@@ -29,14 +30,31 @@ export interface ReadModelMetadata {
  * @param id - The unique identifier for the read model. Defaults to the class name if omitted.
  * @returns A class decorator.
  */
-export function readModel(id: string = ''): ClassDecorator {
-    return (target: object) => {
+export function readModel(id: string = ''): ChronicleClassDecorator {
+    return (target: object, context?: ClassDecoratorContext) => {
         const constructor = target as Function;
         const readModelId = new ReadModelId(id || constructor.name);
-        const members = TypeIntrospector.getMembers(constructor);
-        const metadata: ReadModelMetadata = {
+        const members = context?.kind === 'class' ? undefined : TypeIntrospector.getMembers(constructor);
+        let resolved: { members: ReadonlyMap<string, Function | undefined>; schema: JsonSchema } | undefined;
+        const resolve = () => {
+            requireCompletedStandardMetadata(constructor);
+            if (!resolved) {
+                const members = TypeIntrospector.getMembers(constructor);
+                resolved = { members, schema: JsonSchemaGenerator.generate(constructor, members, true) };
+            }
+            return resolved;
+        };
+        const metadata: ReadModelMetadata = context?.kind === 'class' ? {
             id: readModelId,
-            members,
+            get members() {
+                return resolve().members;
+            },
+            get schema() {
+                return resolve().schema;
+            }
+        } : {
+            id: readModelId,
+            members: members!,
             schema: JsonSchemaGenerator.generate(constructor, members)
         };
         Reflect.defineMetadata(READ_MODEL_METADATA_KEY, metadata, target);

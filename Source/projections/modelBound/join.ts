@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the join property decorator. */
 export interface JoinMetadata {
@@ -23,14 +24,14 @@ const METADATA_KEY = 'chronicle:projection:join';
  * @param eventPropertyName - Optional event property name. Defaults to the property name.
  * @returns A property decorator.
  */
-export function join(eventType: Function, on?: string, eventPropertyName?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function join(eventType: Function, on?: string, eventPropertyName?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: JoinMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: JoinMetadata = { eventType, on, eventPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -40,5 +41,5 @@ export function join(eventType: Function, on?: string, eventPropertyName?: strin
  * @returns An array of join metadata entries.
  */
 export function getJoinMetadata(target: object, propertyKey: string): JoinMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<JoinMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

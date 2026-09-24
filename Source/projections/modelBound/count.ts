@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the count property decorator. */
 export interface CountMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:count';
  * @param constantKey - Optional constant key value.
  * @returns A property decorator.
  */
-export function count(eventType: Function, constantKey?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function count(eventType: Function, constantKey?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: CountMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: CountMetadata = { eventType, constantKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function count(eventType: Function, constantKey?: string): PropertyDecora
  * @returns An array of count metadata entries.
  */
 export function getCountMetadata(target: object, propertyKey: string): CountMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<CountMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

@@ -63,6 +63,7 @@ __metadata:
     "@opentelemetry/api": "npm:^1.9.1"
     "@types/node": "npm:^26.5.1"
     "@typescript/native": "npm:typescript@^7.0.2"
+    esbuild: "npm:^0.28.2"
     nice-grpc: "npm:^2.1.17"
     nice-grpc-common: "npm:^2.0.4"
     reflect-metadata: "npm:^0.2.2"
@@ -2165,7 +2166,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:~0.28.0":
+"esbuild@npm:^0.28.2, esbuild@npm:~0.28.0":
   version: 0.28.2
   resolution: "esbuild@npm:0.28.2"
   dependencies:

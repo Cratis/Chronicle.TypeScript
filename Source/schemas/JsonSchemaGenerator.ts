@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { ConceptAs, Constructor, Fields, Guid } from '@cratis/fundamentals';
+import { conceptAsTypeKey, Constructor, Fields, Guid, typeKeyOf } from '@cratis/fundamentals';
 import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema.js';
 import { TypeIntrospector } from '../types/index.js';
 import { ComplianceMetadata } from '../compliance/ComplianceMetadata.js';
@@ -44,15 +44,22 @@ export class JsonSchemaGenerator {
      * Generates a JSON schema for a class constructor.
      * @param target - The class constructor to generate schema for.
      * @param members - Optional pre-introspected members for reuse.
+     * @param requireResolvedTypes - Reject unresolved members instead of retaining the legacy empty-schema fallback.
      * @returns The generated JSON schema.
      */
-    static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>): JsonSchema {
+    static generate(target: Function, members?: ReadonlyMap<string, Function | undefined>, requireResolvedTypes = false): JsonSchema {
         const membersToUse = members ?? TypeIntrospector.getMembers(target);
+        if (requireResolvedTypes && membersToUse.size === 0) {
+            throw new TypeError(`Cannot determine the members of ${target.name}; declare @field with each member's runtime type.`);
+        }
         const schemaProperties: Record<string, JsonSchema> = {};
         const prototype = target.prototype;
 
         for (const [memberName, memberType] of membersToUse.entries()) {
-            const propertySchema = this.mapRuntimeTypeToSchema(memberType, target, memberName);
+            if (!memberType && requireResolvedTypes) {
+                throw new TypeError(`Cannot determine the type of ${target.name}.${memberName}; declare @field with its runtime type.`);
+            }
+            const propertySchema = this.mapRuntimeTypeToSchema(memberType, target, memberName, requireResolvedTypes);
             // Only include properties whose type was resolved. An empty schema ({}) means
             // the runtime type was unavailable (e.g. esbuild/tsx omits design:paramtypes).
             if (Object.keys(propertySchema).length > 0) {
@@ -71,9 +78,8 @@ export class JsonSchemaGenerator {
             }
         }
 
-        // When no property types could be resolved, return a minimal schema with empty
-        // properties so the server uses its fallback path that preserves all event
-        // content as-is via ConvertUnknownSchemaTypeToClrType.
+        // Legacy decorators retain the minimal schema fallback for members with no
+        // runtime type metadata. Standard decorators reject unresolved types above.
         if (Object.keys(schemaProperties).length === 0) {
             return this.createEmptySchema(target.name);
         }
@@ -85,7 +91,7 @@ export class JsonSchemaGenerator {
         };
     }
 
-    private static mapRuntimeTypeToSchema(runtimeType: Function | undefined, declaringType?: Function, propertyName?: string): JsonSchema {
+    private static mapRuntimeTypeToSchema(runtimeType: Function | undefined, declaringType?: Function, propertyName?: string, requireResolvedTypes = false): JsonSchema {
         const knownTypeFormat = this.getKnownTypeFormat(runtimeType);
         if (knownTypeFormat) {
             return knownTypeFormat;
@@ -104,25 +110,28 @@ export class JsonSchemaGenerator {
         }
 
         if (runtimeType === Array) {
-            return this.mapArrayTypeToSchema(declaringType, propertyName);
+            return this.mapArrayTypeToSchema(declaringType, propertyName, requireResolvedTypes);
         }
 
         if (!runtimeType) {
             return {};
         }
 
-        // A ConceptAs<T> serializes as its underlying primitive value, so the schema must
-        // describe that primitive rather than the wrapper object. The generic argument T is
-        // not available at runtime, so resolve it from the 'value' property's design:type
-        // when present (ts-node/webpack with emitDecoratorMetadata) and fall back to string
-        // when it is not (esbuild/tsx) — string-backed concepts are by far the common case.
+        // TypeScript erases ConceptAs<T>'s primitive type. Prefer an explicit field or
+        // static hint; legacy emitDecoratorMetadata is the last available source.
         if (this.isConceptAs(runtimeType)) {
-            const valueType = Reflect.getMetadata('design:type', runtimeType.prototype, 'value') as Function | undefined;
-            return this.mapRuntimeTypeToSchema(valueType ?? String);
+            const concept = runtimeType as Function & { valueType?: Function };
+            const fieldType = Fields.getFieldsForType(concept as Constructor).find(field => field.name === 'value')?.type;
+            const valueType = fieldType ?? concept.valueType ?? Reflect.getMetadata('design:type', runtimeType.prototype, 'value') as Function | undefined;
+            if (!valueType && !requireResolvedTypes) return { type: 'string' }; // Legacy schema compatibility.
+            if (valueType !== String && valueType !== Number && valueType !== Boolean) {
+                throw new TypeError(`Cannot determine the primitive type of concept ${runtimeType.name}; declare static readonly valueType = String or Number.`);
+            }
+            return this.mapRuntimeTypeToSchema(valueType);
         }
 
         if (runtimeType !== Object) {
-            return this.generate(runtimeType);
+            return this.generate(runtimeType, undefined, requireResolvedTypes);
         }
 
         return { type: 'object' };
@@ -135,7 +144,7 @@ export class JsonSchemaGenerator {
      * @param propertyName - The array property name.
      * @returns The array schema, with the element's own compliance metadata carried onto `items` when the element is a PII concept.
      */
-    private static mapArrayTypeToSchema(declaringType: Function | undefined, propertyName: string | undefined): JsonSchema {
+    private static mapArrayTypeToSchema(declaringType: Function | undefined, propertyName: string | undefined, requireResolvedTypes: boolean): JsonSchema {
         const elementType = this.getArrayElementType(declaringType, propertyName);
 
         // An array whose element is a ConceptAs<T> loses its classification the moment it is put in
@@ -143,7 +152,7 @@ export class JsonSchemaGenerator {
         // item schema - a value that would be encrypted as a scalar would otherwise be persisted in
         // the clear as a list element. Mirrors the C# generator's explicit enumerable-of-concept branch.
         if (elementType && this.isConceptAs(elementType)) {
-            const itemSchema = this.mapRuntimeTypeToSchema(elementType);
+            const itemSchema = this.mapRuntimeTypeToSchema(elementType, undefined, undefined, requireResolvedTypes);
             const complianceMetadata = ComplianceMetadataResolver.getMetadataForType(elementType);
             const securityMetadata = SecurityMetadataResolver.getMetadataForType(elementType);
             this.throwIfBothCompliantAndSecure(elementType.name, complianceMetadata, securityMetadata);
@@ -189,16 +198,7 @@ export class JsonSchemaGenerator {
     }
 
     private static isConceptAs(runtimeType: Function): boolean {
-        let current: Function | null = runtimeType;
-        while (current && current !== Function.prototype) {
-            if (current === ConceptAs) {
-                return true;
-            }
-
-            current = Object.getPrototypeOf(current) as Function | null;
-        }
-
-        return false;
+        return typeKeyOf(runtimeType as Constructor) === conceptAsTypeKey;
     }
 
     private static getKnownTypeFormat(runtimeType: Function | undefined): JsonSchema | undefined {
@@ -206,7 +206,9 @@ export class JsonSchemaGenerator {
             return undefined;
         }
 
-        const known = this._knownTypeFormats.get(runtimeType);
+        const known = typeKeyOf(runtimeType as Constructor) === 'Guid'
+            ? this._knownTypeFormats.get(Guid)
+            : this._knownTypeFormats.get(runtimeType);
         if (!known) {
             return undefined;
         }

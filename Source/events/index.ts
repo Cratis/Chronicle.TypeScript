@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import '../types/standardDecoratorMetadata.js';
+
 export { EventType } from './EventType.js';
 export { EventTypeId } from './EventTypeId.js';
 export { EventTypeGeneration } from './EventTypeGeneration.js';

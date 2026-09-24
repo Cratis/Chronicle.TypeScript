@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the fromEvery property decorator. */
 export interface FromEveryMetadata {
@@ -20,12 +21,12 @@ const METADATA_KEY = 'chronicle:projection:fromEvery';
  * @param contextProperty - Optional event context property name.
  * @returns A property decorator.
  */
-export function fromEvery(property?: string, contextProperty?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function fromEvery(property?: string, contextProperty?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propertyKey.toString());
         const metadata: FromEveryMetadata = { property, contextProperty };
         Reflect.defineMetadata(METADATA_KEY, metadata, target, propertyKey.toString());
-    };
+    });
 }
 
 /**
@@ -35,5 +36,5 @@ export function fromEvery(property?: string, contextProperty?: string): Property
  * @returns The fromEvery metadata, or undefined if not decorated.
  */
 export function getFromEveryMetadata(target: object, propertyKey: string): FromEveryMetadata | undefined {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey);
+    return getPropertyMetadata<FromEveryMetadata>(METADATA_KEY, target, propertyKey);
 }

@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the subtractFrom property decorator. */
 export interface SubtractFromMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:subtractFrom';
  * @param eventPropertyName - Optional event property name. Defaults to the property name.
  * @returns A property decorator.
  */
-export function subtractFrom(eventType: Function, eventPropertyName?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function subtractFrom(eventType: Function, eventPropertyName?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SubtractFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: SubtractFromMetadata = { eventType, eventPropertyName };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function subtractFrom(eventType: Function, eventPropertyName?: string): P
  * @returns An array of subtractFrom metadata entries.
  */
 export function getSubtractFromMetadata(target: object, propertyKey: string): SubtractFromMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<SubtractFromMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

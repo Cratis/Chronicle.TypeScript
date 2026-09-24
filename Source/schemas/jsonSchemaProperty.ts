@@ -3,15 +3,16 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty } from '../types/propertyDecoratorMetadata.js';
 
 /**
  * Decorates a class property so its runtime type metadata can be used for JSON schema generation.
  * @returns A property decorator.
  */
-export function jsonSchemaProperty(): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function jsonSchemaProperty(): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         TypeIntrospector.trackProperty(target.constructor as Function, propertyKey.toString());
-    };
+    });
 }
 
 /**

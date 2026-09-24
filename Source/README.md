@@ -28,7 +28,7 @@ Beyond appending and observing events, the client covers the full Chronicle surf
 ## Installation
 
 ```bash
-npm install @cratis/chronicle reflect-metadata
+npm install @cratis/chronicle @cratis/fundamentals reflect-metadata
 ```
 
 You need a Chronicle Kernel available. The easiest local setup is the development Docker image:
@@ -41,11 +41,18 @@ docker run -p 35000:35000 cratis/chronicle:latest-development
 
 ```typescript
 import 'reflect-metadata';
+import { field } from '@cratis/fundamentals';
 import { ChronicleClient, ChronicleOptions, eventType } from '@cratis/chronicle';
 
 @eventType()
 class EmployeeHired {
-    constructor(readonly firstName: string, readonly lastName: string) {}
+    @field(String) firstName!: string;
+    @field(String) lastName!: string;
+
+    constructor(firstName: string, lastName: string) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
 const client = new ChronicleClient(ChronicleOptions.development());
@@ -54,6 +61,10 @@ const result = await store.eventLog.append('employee-123', new EmployeeHired('Ja
 console.log(`Appended at sequence number ${result.sequenceNumber.value}`);
 client.dispose();
 ```
+
+## Decorators and TypeScript configuration
+
+Chronicle decorators work with both TC39 standard decorators (TypeScript 5.2+; do not enable `experimentalDecorators`) and legacy decorators (`experimentalDecorators: true`). Keep `reflect-metadata` imported at your entry point for Chronicle's runtime metadata storage. In standard mode, TypeScript does not emit `design:type` or `design:paramtypes`; declare event and read-model fields with `@field(Type)` from `@cratis/fundamentals` so Chronicle can generate their schemas. For arrays, provide an element type with `@field(Array, { genericArguments: [ItemType] })`. For a `ConceptAs<string>` or `ConceptAs<number>`, declare `static readonly valueType = String` or `Number` on the concept class. Chronicle rejects unresolved standard-mode member types rather than registering a partial schema.
 
 ## Documentation
 

@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the decrement property decorator. */
 export interface DecrementMetadata {
@@ -20,14 +21,14 @@ const METADATA_KEY = 'chronicle:projection:decrement';
  * @param constantKey - Optional constant key value.
  * @returns A property decorator.
  */
-export function decrement(eventType: Function, constantKey?: string): PropertyDecorator {
-    return (target: object, propertyKey: string | symbol) => {
+export function decrement(eventType: Function, constantKey?: string): ChroniclePropertyDecorator {
+    return decorateProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: DecrementMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];
         const metadata: DecrementMetadata = { eventType, constantKey };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
-    };
+    });
 }
 
 /**
@@ -37,5 +38,5 @@ export function decrement(eventType: Function, constantKey?: string): PropertyDe
  * @returns An array of decrement metadata entries.
  */
 export function getDecrementMetadata(target: object, propertyKey: string): DecrementMetadata[] {
-    return Reflect.getMetadata(METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<DecrementMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
 }

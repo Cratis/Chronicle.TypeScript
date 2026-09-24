@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the removedWithJoin class or property decorator. */
 export interface RemovedWithJoinMetadata {
@@ -21,8 +22,8 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:removedWithJoin:property';
  * @param key - Optional event property name used as the key to identify the instance to remove.
  * @returns A class and property decorator.
  */
-export function removedWithJoin(eventType: Function, key?: string): ClassDecorator & PropertyDecorator {
-    return (target: object, propertyKey?: string | symbol) => {
+export function removedWithJoin(eventType: Function, key?: string): ChronicleClassOrPropertyDecorator {
+    return decorateClassOrProperty((target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const propKey = propertyKey.toString();
             TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
@@ -32,7 +33,7 @@ export function removedWithJoin(eventType: Function, key?: string): ClassDecorat
             const existing: RemovedWithJoinMetadata[] = Reflect.getMetadata(CLASS_METADATA_KEY, target) ?? [];
             Reflect.defineMetadata(CLASS_METADATA_KEY, [...existing, { eventType, key }], target);
         }
-    };
+    });
 }
 
 /**
@@ -51,5 +52,5 @@ export function getRemovedWithJoinClassMetadata(target: Function): RemovedWithJo
  * @returns An array of removedWithJoin metadata entries.
  */
 export function getRemovedWithJoinPropertyMetadata(target: object, propertyKey: string): RemovedWithJoinMetadata[] {
-    return Reflect.getMetadata(PROPERTY_METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<RemovedWithJoinMetadata[]>(PROPERTY_METADATA_KEY, target, propertyKey) ?? [];
 }

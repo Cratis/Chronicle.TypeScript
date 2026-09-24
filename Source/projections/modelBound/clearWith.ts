@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
+import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the clearWith class or property decorator. */
 export interface ClearWithMetadata {
@@ -20,8 +21,8 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:clearWith:property';
  * @param eventType - The event constructor.
  * @returns A class and property decorator.
  */
-export function clearWith(eventType: Function): ClassDecorator & PropertyDecorator {
-    return (target: object, propertyKey?: string | symbol) => {
+export function clearWith(eventType: Function): ChronicleClassOrPropertyDecorator {
+    return decorateClassOrProperty((target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const key = propertyKey.toString();
             TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
@@ -31,7 +32,7 @@ export function clearWith(eventType: Function): ClassDecorator & PropertyDecorat
             const existing: ClearWithMetadata[] = Reflect.getMetadata(CLASS_METADATA_KEY, target) ?? [];
             Reflect.defineMetadata(CLASS_METADATA_KEY, [...existing, { eventType }], target);
         }
-    };
+    });
 }
 
 /**
@@ -50,5 +51,5 @@ export function getClearWithClassMetadata(target: Function): ClearWithMetadata[]
  * @returns An array of clearWith metadata entries.
  */
 export function getClearWithPropertyMetadata(target: object, propertyKey: string): ClearWithMetadata[] {
-    return Reflect.getMetadata(PROPERTY_METADATA_KEY, target, propertyKey) ?? [];
+    return getPropertyMetadata<ClearWithMetadata[]>(PROPERTY_METADATA_KEY, target, propertyKey) ?? [];
 }

@@ -22,6 +22,15 @@ function schemaFor(target: Function): JsonSchema {
 }
 
 describe('JsonSchemaGenerator', () => {
+    it('retains the legacy string-concept fallback without emitted type metadata', () => {
+        class LegacyCode extends ConceptAs<string> {}
+        class LegacyModel {
+            code = new LegacyCode('A');
+        }
+        readModel()(LegacyModel);
+        expect(schemaFor(LegacyModel).properties?.code.type).toBe('string');
+    });
+
     describe('when a class is marked @pii() at the class level', () => {
         class PersonProfile {
             name = '';
@@ -59,6 +68,8 @@ describe('JsonSchemaGenerator', () => {
 
     describe('when a property is typed as a ConceptAs<T> marked @pii()', () => {
         class EmailAddress extends ConceptAs<string> {
+            static readonly valueType = String;
+
             constructor(value: string) {
                 super(value);
             }
@@ -145,6 +156,8 @@ describe('JsonSchemaGenerator', () => {
 
     describe('when an array element is a ConceptAs<T> marked @pii()', () => {
         class RequirementCode extends ConceptAs<string> {
+            static readonly valueType = String;
+
             constructor(value: string) {
                 super(value);
             }
