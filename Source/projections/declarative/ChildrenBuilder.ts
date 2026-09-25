@@ -77,6 +77,7 @@ export class ChildrenBuilder<TParentReadModel, TChildReadModel>
      * @returns The accumulated children definition.
      */
     buildDefinition(): ChildrenDefinitionLike {
+        this.resolveJoins();
         return {
             IdentifiedBy: this._identifiedBy ?? '$eventSourceId',
             From: this._from,

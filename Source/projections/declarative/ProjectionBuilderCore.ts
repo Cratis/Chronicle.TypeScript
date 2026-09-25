@@ -73,6 +73,7 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
     protected _initialState: string = '{}';
     protected readonly _from: FromRecord[] = [];
     protected readonly _join: JoinRecord[] = [];
+    private readonly _joinEventNames = new Map<JoinRecord, string>();
     protected readonly _removedWith: RemovedWithRecord[] = [];
     protected readonly _removedWithJoin: RemovedWithJoinRecord[] = [];
     protected readonly _children: Record<string, ChildrenDefinitionLike> = {};
@@ -129,18 +130,16 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
         const contractType = this.toContractEventType(eventType);
         const joinBuilder = new JoinBuilder<TReadModel, TEvent>();
         builderCallback?.(joinBuilder);
-        const on = joinBuilder.entry.on || this.defaultJoinOn();
-        if (!on) {
-            throw new Error(`A join with event '${eventType.name}' requires an on property.`);
-        }
-        this._join.push({
+        const record: JoinRecord = {
             Key: contractType,
             Value: {
-                On: on,
+                On: joinBuilder.entry.on,
                 Properties: joinBuilder.entry.properties,
                 Key: joinBuilder.entry.key
             }
-        });
+        };
+        this._join.push(record);
+        this._joinEventNames.set(record, eventType.name);
         this.mergeChildAdditions(contractType, joinBuilder.entry.children);
         return this as unknown as TBuilder;
     }
@@ -193,6 +192,16 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
             }
         });
         return this as unknown as TBuilder;
+    }
+
+    /** Resolves join defaults once the entire projection (including identifiedBy) is configured. */
+    protected resolveJoins(): void {
+        for (const record of this._join) {
+            record.Value.On ||= this.defaultJoinOn() ?? '';
+            if (!record.Value.On) {
+                throw new Error(`A join with event '${this._joinEventNames.get(record)}' requires an on property.`);
+            }
+        }
     }
 
     /** Returns a default join-on path for children, if one is available. */

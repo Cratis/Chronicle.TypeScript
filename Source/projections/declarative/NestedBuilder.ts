@@ -62,6 +62,7 @@ export class NestedBuilder<TParentReadModel, TNestedReadModel>
      * @returns The accumulated nested definition.
      */
     buildDefinition(): ChildrenDefinitionLike {
+        this.resolveJoins();
         return {
             IdentifiedBy: notSetPropertyPath,
             From: this._from,

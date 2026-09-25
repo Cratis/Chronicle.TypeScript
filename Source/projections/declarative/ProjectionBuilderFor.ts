@@ -127,6 +127,7 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
      * @returns The projection definition object ready to send to the kernel.
      */
     build(identifier: string, readModelName: string): Record<string, unknown> {
+        this.resolveJoins();
         const definition: Record<string, unknown> = {
             EventSequenceId: this._eventSequenceId,
             Identifier: identifier,

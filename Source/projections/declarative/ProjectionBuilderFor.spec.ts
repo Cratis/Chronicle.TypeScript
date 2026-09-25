@@ -172,7 +172,8 @@ describe('ProjectionBuilderFor', () => {
     describe('when joining without an on property', () => {
         it('should reject a definition that the kernel cannot convert', () => {
             const builder = new ProjectionBuilderFor<Inventory>();
-            expect(() => builder.join(ThingHappened, join => join.count(model => model.thingsHappenedCount)))
+            builder.join(ThingHappened, join => join.count(model => model.thingsHappenedCount));
+            expect(() => builder.build('inventory', 'Inventory'))
                 .toThrow("A join with event 'ThingHappened' requires an on property.");
         });
     });

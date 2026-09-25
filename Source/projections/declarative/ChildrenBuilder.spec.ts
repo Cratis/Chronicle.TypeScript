@@ -72,6 +72,21 @@ interface BuiltDefinition {
 }
 
 describe('ChildrenBuilder and NestedBuilder', () => {
+    it('resolves a child join after identifiedBy is configured', () => {
+        const builder = new ProjectionBuilderFor<Order>();
+        builder.children<OrderLine>(order => order.lines, child => child
+            .join(LineAdded, join => join.set(line => line.quantity).to(event => event.quantity))
+            .identifiedBy(line => line.productId));
+        const definition = builder.build('order', 'Order') as unknown as BuiltDefinition;
+        expect(definition.Children.lines.Join[0].Value.On).toBe('productId');
+    });
+
+    it('rejects a root join without on at build time', () => {
+        const builder = new ProjectionBuilderFor<Order>();
+        expect(() => builder.join(LineAdded)).not.toThrow();
+        expect(() => builder.build('order', 'Order')).toThrow("A join with event 'LineAdded' requires an on property.");
+    });
+
     describe('when using children on the top-level builder', () => {
         it('should produce a children definition keyed by the target property', () => {
             const builder = new ProjectionBuilderFor<Order>();
