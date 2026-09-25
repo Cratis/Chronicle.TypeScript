@@ -27,7 +27,7 @@ For `jobId`, you can pass:
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const eventStore = await client.getEventStore('MyStore');
 
 const jobId = '94ba2c17-0977-478e-a278-70f6757aac2d';

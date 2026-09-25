@@ -69,8 +69,7 @@ class EmployeeHired {
     }
 }
 
-// discoveryPatterns: [] relies on this module's imports instead of scanning source files.
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const store = await client.getEventStore('MyStore');
 const result = await store.eventLog.append('employee-123', new EmployeeHired('Jane', 'Doe'));
 console.log(`Appended at sequence number ${result.sequenceNumber.value}`);

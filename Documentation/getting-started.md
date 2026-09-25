@@ -112,9 +112,7 @@ export class Book {
 
 `@fromEvent(BookAdded)` makes this a model-bound projection: the kernel copies `BookAdded` properties onto `Book` properties with the same names, keyed by the event source id you append to. `@setFrom` maps a property from a different event.
 
-:::caution[Declare every read-model property you read with @field]
-The kernel stores every mapped property, but when the client reads a read model back, for example with `findInstanceById`, it only fills properties declared with `@field(Type)`. A plain `title = '';`, or a property with only `@setFrom`, comes back with its default value and no error.
-:::
+In standard decorator mode the client infers `title` and `author` as strings from their default values; `@field(String)` makes the type explicit and is required for a property without a default value.
 
 ## React to an event
 
@@ -147,8 +145,7 @@ import { BookAdded, BookBorrowed } from './events.js';
 import { Book } from './book.js';
 import './notifications.js';
 
-const options = ChronicleOptions.development({ discoveryPatterns: [] });
-const client = new ChronicleClient(options);
+const client = new ChronicleClient(ChronicleOptions.development());
 
 try {
     const store = await client.getEventStore('Library');
@@ -170,7 +167,7 @@ try {
 }
 ```
 
-Importing the three modules runs their decorators, which is how the client knows about the event types, the read model, and the reactor. `discoveryPatterns: []` turns off the client's file-scanning discovery, which this project does not need; see [Artifact discovery](#artifact-discovery).
+Importing the three modules runs their decorators, which is how the client knows about the event types, the read model, and the reactor. Because this program runs as compiled JavaScript, the client does not scan for other files; see [Artifact discovery](#artifact-discovery).
 
 ## Run it
 
@@ -191,11 +188,7 @@ Book {
 }
 ```
 
-If the program prints nothing and keeps running, the client cannot reach the kernel. See [Troubleshooting](#troubleshooting).
-
-:::note[The process may not exit on its own]
-With version 6.7.1, a process that registered a reactor can keep running after `client.dispose()`. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop it. In a short-lived script, call `process.exit()` after `dispose()`.
-:::
+The program exits after `client.dispose()` closes the connection. If it prints nothing and keeps running, the client cannot reach the kernel. See [Troubleshooting](#troubleshooting).
 
 ## What happened
 
@@ -206,6 +199,10 @@ With version 6.7.1, a process that registered a reactor can keep running after `
 
 `waitForCompletion()` is useful in scripts and tests. In a service, design reads to tolerate the delay instead; the shared [eventual consistency](/chronicle/projections/eventual-consistency/) page explains why. It resolves immediately for a failed append, times out after 5 seconds by default, and rejects when the timeout passes.
 
+:::caution[waitForCompletion can time out on unrelated observers]
+The kernel currently waits for every observer on the event sequence, including observers that do not handle the event you appended ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)). A projection or reducer that has not yet handled any event keeps `waitForCompletion()` waiting until the timeout. In this guide every observer handles `BookBorrowed`, so waiting on that append completes.
+:::
+
 ## Decorator mode and schema types
 
 Chronicle supports both TypeScript decorator modes. Choose one per project.
@@ -214,12 +211,12 @@ Chronicle supports both TypeScript decorator modes. Choose one per project.
 | --- | --- | --- |
 | `tsconfig.json` | Leave `experimentalDecorators` and `emitDecoratorMetadata` unset | `"experimentalDecorators": true`, `"emitDecoratorMetadata": true` |
 | TypeScript | 5.2 or later | Any version that supports `experimentalDecorators` |
-| Property types | Declare each with `@field(Type)` | Inferred from `design:type` metadata on decorated properties; `@field(Type)` also works |
-| Constructor parameter properties (`constructor(readonly name: string)`) | Not supported for schema types | Only with a default value for each parameter; see the caution below |
+| Property types | Declare with `@field(Type)`, or give the property a default value to infer from | Inferred from `design:type` and constructor parameter metadata; `@field(Type)` also works |
+| Constructor parameter properties (`constructor(readonly name: string)`) | Not supported for schema types | Supported |
 
 For event types and read models in standard mode, follow these rules:
 
-- Declare every serialized member as a public instance field with `@field(Type)`. Accessors and getters are not supported.
+- Declare every serialized member as a public instance field with `@field(Type)`, or give it a default value the client can infer the type from. Accessors and getters are not supported.
 - For arrays, give the element type: `@field(Array, { genericArguments: [ItemType] })`.
 - For a concept class such as `class Quantity extends ConceptAs<number>`, declare `static readonly valueType = Number` (or `String`, `Boolean`, `Guid`, `Date`) so Chronicle knows the serialized value type.
 - Name constructor parameters after the fields they assign. The client also inspects constructor parameter names; a parameter such as `t` for a field `title` fails with `Cannot determine the type of BookAdded.t; declare @field with its runtime type`.
@@ -250,29 +247,22 @@ console.log(getEventTypeJsonSchemaFor(StockCounted).properties?.quantity.type);
 // number
 ```
 
-:::caution[Constructor parameter properties need default values in 6.7.1]
-With legacy decorators, an event such as `constructor(readonly name: string) {}` registers with an empty schema in version 6.7.1: its constructor parameter types are ignored. Appends still store the data, but projections cannot map it. Give every parameter a default value (`readonly name: string = ''`), or declare the properties with `@field(Type)`, which works in both modes.
-:::
-
-The TypeScript examples on the shared Chronicle pages are compiled with legacy decorators, and many declare event properties as constructor parameters without default values. Those examples compile, but in 6.7.1 they are affected by the caution above. Examples that use `@field` work in both modes. When you copy an example, rewrite its constructor parameter properties as `@field` fields as shown in the `StockCounted` example.
+The TypeScript examples on the shared Chronicle pages are compiled with legacy decorators. Examples that use `@field` work in both modes. Examples that declare event properties as constructor parameters (`constructor(readonly name: string)`) need legacy decorators; in standard mode, rewrite them as `@field` fields as shown in the `StockCounted` example.
 
 Import `reflect-metadata` first in your entry point. The client uses it to store decorator metadata, and in legacy mode it must be loaded before any decorated class is evaluated. The client initializes `Symbol.metadata` where the runtime does not provide it.
 
 ## Artifact discovery
 
-The client registers every artifact whose decorator has run, so importing a module is enough. On top of that, `ChronicleOptions` has a `discoveryPatterns` option. When it is not empty, the client starts matching those glob patterns against the current working directory as soon as you create it, imports every matching file, and makes `getEventStore` wait for the scan.
+The client registers every artifact whose decorator has run, so importing a module is enough. On top of that, `ChronicleOptions` has a `discoveryPatterns` option: glob patterns for files the client imports when you create it, before `getEventStore(...)` registers artifacts. Patterns that start with `!` exclude files.
 
-The default patterns are `**/*.ts` followed by exclusions such as `!**/node_modules`, `!**/dist`, and `!**/*.spec.ts`. Scanning needs the `glob` package, which `@cratis/chronicle` does not install. The client passes all patterns to `glob`, which does not treat a leading `!` as an exclusion, so in 6.7.1 the exclusions have no effect: the default also imports `.d.ts` and `.spec.ts` files. In a compiled project the default fails in one of two ways:
+The default depends on how you run your program:
 
-- Without `glob` installed, `getEventStore` rejects with `Could not load a compatible "glob" function for type discovery.`
-- With `glob` installed, Node.js imports your `.ts` source files and fails on the first decorator with `SyntaxError: Invalid or unexpected token`.
+- **Compiled JavaScript** (`node dist/index.js`): no patterns, so the client imports nothing on its own. Import the modules that declare your artifacts, as this guide does.
+- **A TypeScript entry file** run through a loader such as `tsx` (`.ts`, `.mts`, or `.cts`): `**/*.ts` in the working directory, excluding `node_modules`, `dist`, `build`, `.git`, `.vscode`, and `.d.ts`, `.spec.ts`, and `.test.ts` files.
 
-Choose one of these:
+Pass your own patterns to override the default, for example `discoveryPatterns: ['dist/**/*.js']` for compiled output, or `[]` to turn scanning off. If a matched file fails to import, `getEventStore(...)` rejects with `Could not import discovered file '<path>'` and the original error as its cause.
 
-- **Import your artifacts and pass `discoveryPatterns: []`**, as in this guide. Explicit imports also make it obvious which modules register artifacts.
-- **Install `glob` and point positive patterns at exactly the code Node.js should load**, for example `discoveryPatterns: ['dist/**/*.js']` for compiled output. Do not rely on `!` patterns to exclude files.
-
-A model-bound read model with only property decorators, such as `@setFrom` without a class-level `@fromEvent`, is found only by file discovery, and only when its module exports it. With discovery off, querying it fails with `Unknown read model`; give the class a `@fromEvent(...)` decorator or keep discovery on.
+With standard decorators, a model-bound read model whose mappings are all on properties, such as `@setFrom` without a class-level `@fromEvent`, is only registered once an instance of it has been created. Querying it before that fails with `Unknown read model`. Give the class a `@fromEvent(...)` decorator so it registers when its module loads. With legacy decorators such a class registers when its module loads.
 
 ## Connecting to Chronicle
 
@@ -283,7 +273,7 @@ For any other kernel, build the options from a connection string:
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const options = ChronicleOptions.fromConnectionString(process.env.CHRONICLE_CONNECTION!, { discoveryPatterns: [] });
+const options = ChronicleOptions.fromConnectionString(process.env.CHRONICLE_CONNECTION!);
 const client = new ChronicleClient(options);
 ```
 
@@ -305,7 +295,7 @@ The TypeScript client skips TLS certificate validation unless the connection str
 ## Development Mode
 
 ```typescript
-const options = ChronicleOptions.development({ discoveryPatterns: [] });
+const options = ChronicleOptions.development();
 ```
 
 This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000', ...)`. The development credentials are public, so use it only against a local development kernel.
@@ -315,11 +305,11 @@ This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicl
 | Symptom | Cause and fix |
 | --- | --- |
 | `getEventStore` never returns and nothing is logged | The client retries the connection with backoff until it succeeds or the client is disposed, and it logs through OpenTelemetry diagnostics, which are silent by default. Check that the kernel is running and the host, port, TLS settings, and credentials are right. [Connect to Chronicle](./connecting.md#connection-diagnostics) shows how to print the retry log and bound the wait. |
-| `Could not load a compatible "glob" function for type discovery.` | Default file discovery is on and `glob` is not installed. See [Artifact discovery](#artifact-discovery). |
-| `SyntaxError: Invalid or unexpected token` pointing at a decorator in a `.ts` file | Default file discovery imported your TypeScript source. See [Artifact discovery](#artifact-discovery). |
+| `Could not import discovered file '<path>'` | A `discoveryPatterns` pattern matched a file Node.js cannot load, such as a `.ts` file in a compiled program. Narrow the patterns; see [Artifact discovery](#artifact-discovery). |
+| `Unknown read model '<name>'` | The read model was not registered when the event store was created. Import its module before `getEventStore(...)`, and with standard decorators give a property-only model a class-level `@fromEvent(...)`. |
+| `waitForCompletion()` rejects with `TimeoutError` although the read model is up to date | An observer that does not handle the appended event keeps the kernel waiting ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)). Read the read model without waiting, or wait on an append every observer handles. |
 | `Cannot register artifacts: N schema error(s).` | An event type or read model has a member whose type the client cannot determine. Add `@field(Type)`, and check that constructor parameters are named after their fields. |
 | `IncompatibleChronicleServer` | The kernel's gRPC contract does not match this client, or the kernel predates the compatibility check. The client does not retry. Deploy a compatible kernel, then create a new client. |
-| A read-model property comes back with its default value | The property is not declared with `@field(Type)`, so the client does not read it back; add `@field(Type)`. Or the event declares its properties as constructor parameters without default values, so it registered with an empty schema; see [Decorator mode and schema types](#decorator-mode-and-schema-types). |
 | `findInstanceById` returns `null` right after an append | Projections run asynchronously. Wait with `waitForCompletion()`, or treat the read model as eventually consistent. |
 | `TypeError: webidl.util.markAsUncloneable is not a function` on startup | Node.js is older than 22.19. Upgrade Node.js. |
 | `tsc` reports `TS2834` or missing exports in `node_modules/@cratis/chronicle.contracts` | `NodeNext` resolution checks the contracts declarations. Set `"skipLibCheck": true`. |

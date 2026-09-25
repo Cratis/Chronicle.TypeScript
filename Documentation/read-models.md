@@ -14,7 +14,7 @@ Read models are shared Chronicle concepts. Querying, snapshots, watching, and co
 
 Read models are discovered from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with model-bound event mappings such as `@fromEvent(Event)` and `@setFrom(Event)`. The model type supplies the schema; its class name is the default Chronicle read-model identifier.
 
-The client's read-model queries only fill properties declared with `@field(Type)`; any other property comes back with its default value even though the stored read model has it. Declare every property you read with `@field(Type)`. A model with only property decorators and no class-level `@fromEvent` is found only by [file discovery](./getting-started.md#artifact-discovery), and only when its module exports it.
+Queries fill every property the model declares from the stored read model. With standard decorators, a model with only property decorators and no class-level `@fromEvent` registers once an instance of it exists; give it `@fromEvent(...)` so it registers when its module loads. See [Artifact discovery](./getting-started.md#artifact-discovery).
 
 ```typescript
 import { field } from '@cratis/fundamentals';

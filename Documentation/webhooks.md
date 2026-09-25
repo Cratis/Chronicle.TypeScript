@@ -23,7 +23,7 @@ class EmployeeHired {
     }
 }
 
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const eventStore = await client.getEventStore('MyStore');
 
 await eventStore.webhooks.register(

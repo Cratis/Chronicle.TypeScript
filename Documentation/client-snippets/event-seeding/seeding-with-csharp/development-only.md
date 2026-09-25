@@ -1,9 +1,8 @@
 ```typescript
 import { ICanSeedEvents, IEventSeedingBuilder, seeder } from '@cratis/chronicle';
 
-// Only include this seeder's file in your development build/discovery patterns -
-// TypeScript has no build-time equivalent of C#'s #if DEBUG, so keep it out of what
-// ChronicleOptions.discoveryPatterns picks up for production.
+// TypeScript has no build-time equivalent of C#'s #if DEBUG: import this seeder's module only
+// in development, and exclude it from ChronicleOptions.discoveryPatterns in production.
 @seeder()
 class EvtSeedingDevelopmentSeeding implements ICanSeedEvents {
     seed(builder: IEventSeedingBuilder): void {
