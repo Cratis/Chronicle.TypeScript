@@ -7,6 +7,13 @@ import * as https from 'https';
 /**
  * The shape of a successful OAuth2 token response.
  */
+export class OAuthTokenHttpError extends Error {
+    constructor(readonly statusCode: number, body: string) {
+        super(`Token request failed with status ${statusCode}: ${body}`);
+        this.name = 'OAuthTokenHttpError';
+    }
+}
+
 export interface OAuthTokenResponse {
     access_token: string;
 
@@ -58,7 +65,7 @@ export function fetchOAuthAccessToken(
 
             response.on('end', () => {
                 if (response.statusCode !== 200) {
-                    reject(new Error(`Token request failed with status ${response.statusCode}: ${data}`));
+                    reject(new OAuthTokenHttpError(response.statusCode ?? 0, data));
                     return;
                 }
 

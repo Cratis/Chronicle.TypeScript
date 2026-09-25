@@ -108,7 +108,8 @@ describe('OAuthTokenProvider', () => {
             const { provider, fetchToken } = createProvider([new Error('unavailable')]);
 
             await expect(provider.getAccessToken()).rejects.toThrow('unavailable');
-            await expect(provider.getAccessToken()).rejects.toThrow('unavailable');
+            expect(await provider.getAccessToken()).toBeUndefined();
+            expect(provider.lastTokenFailure?.message).toContain('unavailable');
 
             // The second request arrives well inside the retry delay — one attempt,
             // not one per RPC (the session answers a keepalive every second).

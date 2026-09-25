@@ -7,6 +7,8 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions.js';
 import { ChronicleConnection } from './connection/index.js';
 import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
+import { OAuthTokenHttpError } from './connection/fetchOAuthAccessToken.js';
+import { RejectedChronicleCredentials } from './connection/RejectedChronicleCredentials.js';
 import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
 import { clientVersion } from './connection/clientVersion.js';
@@ -245,9 +247,10 @@ export class ChronicleClient implements IChronicleClient {
 
 
             } catch (error) {
-                if (error instanceof IncompatibleChronicleServer) {
-                    this.failConnection(error);
-                    throw error;
+                const terminal = this.terminalConnectionError(error);
+                if (terminal) {
+                    this.failConnection(terminal);
+                    throw terminal;
                 }
                 attempt++;
                 const delayMs = await this.backOff(attempt, 'Connection attempt failed, retrying', error);
@@ -314,9 +317,10 @@ export class ChronicleClient implements IChronicleClient {
                         });
                         return;
                     } catch (reconnectError) {
-                        if (reconnectError instanceof IncompatibleChronicleServer) {
-                            this.failConnection(reconnectError);
-                            throw reconnectError;
+                        const terminal = this.terminalConnectionError(reconnectError);
+                        if (terminal) {
+                            this.failConnection(terminal);
+                            throw terminal;
                         }
                         attempt++;
                         await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
@@ -362,8 +366,18 @@ export class ChronicleClient implements IChronicleClient {
         }
     }
 
+    private terminalConnectionError(error: unknown): Error | undefined {
+        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return error;
+        const tokenError = (error as Error | undefined)?.cause;
+        const httpError = (tokenError as Error | undefined)?.cause;
+        if (httpError instanceof OAuthTokenHttpError && [400, 401, 403].includes(httpError.statusCode)) {
+            return new RejectedChronicleCredentials(`Chronicle credentials were rejected: ${(tokenError as Error).message}`, { cause: error });
+        }
+        return undefined;
+    }
+
     private shouldReconnect(error: unknown): boolean {
-        if (error instanceof IncompatibleChronicleServer) return false;
+        if (this.terminalConnectionError(error)) return false;
         const code = Number((error as { code?: number })?.code ?? -1);
         const details = String((error as { details?: string })?.details ?? '');
         const message = this.toErrorMessage(error);

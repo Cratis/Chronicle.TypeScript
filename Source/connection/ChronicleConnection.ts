@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { Channel, ChannelCredentials, ChannelOptions } from '@grpc/grpc-js';
+import { status, type Channel, type ChannelCredentials, type ChannelOptions } from '@grpc/grpc-js';
+import { diag } from '@opentelemetry/api';
 import {
     ConnectionServiceDefinition,
     ConstraintsDefinition,
@@ -358,9 +359,22 @@ export class ChronicleConnection implements ChronicleServices {
 
     private createAuthMiddleware(tokenProvider: ITokenProvider): ClientMiddleware {
         const connectionString = this._connectionString;
+        const logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/ChronicleConnection' });
+        const loggedFailures = new WeakSet<Error>();
 
         return async function* authMiddleware(call, options) {
-            const token = await tokenProvider.getAccessToken();
+            let token: string | undefined;
+            let tokenFailure: Error | undefined;
+            try {
+                token = await tokenProvider.getAccessToken();
+            } catch (error) {
+                tokenFailure = error instanceof Error ? error : new Error(String(error));
+                if (!loggedFailures.has(tokenFailure)) {
+                    loggedFailures.add(tokenFailure);
+                    logger.warn('Failed to obtain OAuth2 token; sending RPC without authorization', { error: tokenFailure.message });
+                }
+            }
+            if (!token) tokenFailure ??= tokenProvider.lastTokenFailure;
 
             if (token) {
                 const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
@@ -372,7 +386,14 @@ export class ChronicleConnection implements ChronicleServices {
                 options.metadata = metadata;
             }
 
-            return yield* call.next(call.request, options);
+            try {
+                return yield* call.next(call.request, options);
+            } catch (error) {
+                if (tokenFailure && (error as { code?: number })?.code === status.UNAUTHENTICATED) {
+                    throw new Error(`${tokenFailure.message}; Chronicle rejected the unauthenticated RPC`, { cause: tokenFailure });
+                }
+                throw error;
+            }
         };
     }
 }

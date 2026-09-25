@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
 import { fetchOAuthAccessToken, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
 
 // Refresh once the token has less than this long left before it expires.
@@ -19,10 +18,12 @@ export interface ITokenProvider {
     /**
      * Gets the current access token.
      *
-     * Rejects with the token endpoint and cause when no usable token can be obtained.
-     * @returns Promise resolving to the access token or undefined for non-token authentication.
+     * A failed fetch rejects with the token endpoint and cause; throttled calls return undefined.
+     * @returns Promise resolving to the access token or undefined when no token is available.
      */
     getAccessToken(): Promise<string | undefined>;
+    /** Most recent token failure when no token could be obtained. */
+    readonly lastTokenFailure?: Error;
 
     /**
      * Refreshes the access token by clearing cached tokens and obtaining a new one.
@@ -56,15 +57,15 @@ export class NoOpTokenProvider implements ITokenProvider {
  * auth endpoint does not turn every RPC into a fetch attempt.
  */
 export class OAuthTokenProvider implements ITokenProvider {
-    private readonly _logger = diag.createComponentLogger({
-        namespace: '@cratis/chronicle/OAuthTokenProvider'
-    });
-
     private _accessToken?: string;
     private _expiresAt = 0;
     private _lastFailedFetch?: number;
     private _lastFetchError?: Error;
     private _refreshPromise?: Promise<string | undefined>;
+
+    get lastTokenFailure(): Error | undefined {
+        return this._lastFetchError;
+    }
 
     /**
      * Creates a new {@link OAuthTokenProvider}.
@@ -95,7 +96,7 @@ export class OAuthTokenProvider implements ITokenProvider {
         if (this.isThrottled()) {
             const cached = this.cachedTokenWhileValid();
             if (cached) return cached;
-            throw this._lastFetchError!;
+            return undefined;
         }
 
         this._refreshPromise = this.fetchAndCacheAccessToken();
@@ -135,9 +136,6 @@ export class OAuthTokenProvider implements ITokenProvider {
             this._lastFetchError = undefined;
             return this._accessToken;
         } catch (error) {
-            this._logger.warn('Failed to fetch OAuth2 token', {
-                error: error instanceof Error ? error.message : String(error)
-            });
             this._lastFailedFetch = Date.now();
             this._lastFetchError = new Error(`Failed to obtain OAuth2 token from ${this._tokenEndpoint}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
             const cached = this.cachedTokenWhileValid();

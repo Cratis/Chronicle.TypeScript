@@ -2,8 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createServer, type ServiceImplementation } from 'nice-grpc';
+import { createServer, ServerError, type ServiceImplementation } from 'nice-grpc';
 import { ConnectionServiceDefinition } from '@cratis/chronicle.contracts';
+import { status } from '@grpc/grpc-js';
 import { ChronicleConnection } from './ChronicleConnection.js';
 
 const fetchToken = vi.hoisted(() => vi.fn());
@@ -12,12 +13,15 @@ vi.mock('./fetchOAuthAccessToken.js', () => ({ fetchOAuthAccessToken: fetchToken
 const servers: Array<ReturnType<typeof createServer>> = [];
 const connections: ChronicleConnection[] = [];
 
-async function listen(): Promise<number> {
+async function listen(rejectAnonymous = false): Promise<number> {
     const server = createServer();
     const unsupported = async () => { throw new Error('Unexpected RPC'); };
     const methods = Object.fromEntries(Object.keys(ConnectionServiceDefinition.methods).map(name => [name, unsupported]));
     server.add(ConnectionServiceDefinition, {
-        ...methods, checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' })
+        ...methods, checkCompatibility: async () => {
+            if (rejectAnonymous) throw new ServerError(status.UNAUTHENTICATED, 'Unauthenticated');
+            return { IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' };
+        }
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     servers.push(server);
     return server.listen('127.0.0.1:0');
@@ -65,13 +69,21 @@ describe('ChronicleConnection authentication', () => {
         expect(fetchToken.mock.calls[0][0]).toBe('http://identity.example:1234/connect/token');
     });
 
+    it('includes the token endpoint failure when the unauthenticated RPC is rejected', async () => {
+        const port = await listen(true);
+        fetchToken.mockRejectedValue(new Error('invalid_client'));
+        const connection = new ChronicleConnection({ connectionString: `chronicle://wrong:wrong@127.0.0.1:${port}?disableTls=true` });
+        connections.push(connection);
+        await expect(connection.connect()).rejects.toThrow(`http://127.0.0.1:${port}/connect/token: invalid_client`);
+    });
+
     it('reports the selected endpoint and underlying failure for development credentials', async () => {
         const port = await listen();
         fetchToken.mockRejectedValue(new Error('ECONNREFUSED'));
         const connection = new ChronicleConnection({ connectionString: `chronicle://127.0.0.1:${port}?disableTls=true` });
         connections.push(connection);
 
-        await expect(connection.connect()).rejects.toThrow(`http://127.0.0.1:${port}/connect/token: ECONNREFUSED`);
+        await expect(connection.connect()).resolves.toBeUndefined();
         expect(fetchToken.mock.calls[0][1]).toBe('chronicle-dev-client');
     });
 });
