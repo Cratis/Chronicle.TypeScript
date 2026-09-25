@@ -2,13 +2,19 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ConstraintType } from '@cratis/chronicle.contracts';
+import type { ConstraintViolation } from '../../eventSequences/ConstraintViolation.js';
 import { IClientArtifactsProvider } from '../../artifacts/index.js';
 import { ChronicleConnection } from '../../connection/index.js';
 import { ConstraintId } from './ConstraintId.js';
 import { IConstraint } from './IConstraint.js';
 import { IConstraints } from './IConstraints.js';
 import { ConstraintBuilder, ConstraintCapture } from './ConstraintBuilder.js';
+import { UniqueConstraintBuilder } from './UniqueConstraintBuilder.js';
 import { getConstraintMetadata } from './constraint.js';
+import { getUniqueEventMetadata, getUniquePropertyMetadata } from './unique.js';
+import { getRemovedConstraintNames } from './removeConstraint.js';
+import { TypeIntrospector } from '../../types/TypeIntrospector.js';
+import { getEventTypeFor } from '../eventTypeDecorator.js';
 
 /**
  * Manages discovery and registration of constraints with the Chronicle Kernel.
@@ -39,6 +45,69 @@ export class Constraints implements IConstraints {
             const instance = new (type as new () => IConstraint)();
             instance.define(builder);
             this._captures.set(metadata.id.value, builder.capture);
+        }
+
+        const removalEvents = new Map<string, Function[]>();
+        for (const eventType of this._clientArtifacts.eventTypes) {
+            for (const name of getRemovedConstraintNames(eventType)) {
+                const events = removalEvents.get(name) ?? [];
+                events.push(eventType);
+                removalEvents.set(name, events);
+            }
+        }
+
+        for (const eventType of this._clientArtifacts.eventTypes) {
+            const eventMetadata = getUniqueEventMetadata(eventType);
+            if (eventMetadata) {
+                const name = eventMetadata.name ?? eventType.name;
+                let capture = this._captures.get(name);
+                if (!capture) {
+                    const builder = new ConstraintBuilder(name);
+                    builder.uniqueFor(eventType, eventMetadata.message, name);
+                    capture = builder.capture;
+                    this._captures.set(name, capture);
+                } else if (!capture.uniqueEventType) {
+                    throw new Error(`Constraint '${name}' is not a unique event type constraint.`);
+                } else {
+                    capture.uniqueEventType.eventTypeIds ??= [capture.uniqueEventType.eventTypeId];
+                    const id = getEventTypeFor(eventType).id.value;
+                    if (!capture.uniqueEventType.eventTypeIds.includes(id)) capture.uniqueEventType.eventTypeIds.push(id);
+                }
+            }
+
+            for (const property of TypeIntrospector.getTrackedProperties(eventType)) {
+                const metadata = getUniquePropertyMetadata(eventType, property);
+                if (!metadata) continue;
+                const name = metadata.name ?? property;
+                let capture = this._captures.get(name);
+                if (!capture) {
+                    const builder = new ConstraintBuilder(name);
+                    builder.unique(() => {});
+                    capture = builder.capture;
+                    this._captures.set(name, capture);
+                }
+                if (!capture.uniqueConstraint) throw new Error(`Constraint '${name}' is not a unique property constraint.`);
+                const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
+                unique.on(eventType, event => (event as Record<string, unknown>)[property]);
+                if (metadata.message && !capture.uniqueConstraint.message) unique.withMessage(metadata.message);
+            }
+        }
+
+        for (const [name, eventTypes] of removalEvents) {
+            const captures = [...this._captures.values()].filter(capture =>
+                (capture.uniqueEventType?.name ?? capture.name) === name);
+            for (const capture of captures) {
+                if (capture.uniqueConstraint) {
+                    const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
+                    eventTypes.forEach(eventType => unique.removedWith(eventType));
+                } else if (capture.uniqueEventType) {
+                    const removedWith = capture.uniqueEventType.removedWithEventTypeIds ??= [];
+                    for (const eventType of eventTypes) {
+                        const id = getEventTypeFor(eventType).id.value;
+                        if (!removedWith.includes(id)) removedWith.push(id);
+                    }
+                }
+            }
         }
     }
 
@@ -85,11 +154,11 @@ export class Constraints implements IConstraints {
                 return {
                     Name: uet.name ?? capture.name,
                     Type: ConstraintType.UniqueEventType,
-                    RemovedWith: [],
+                    RemovedWith: uet.removedWithEventTypeIds ?? [],
                     Definition: {
                         Value0: undefined,
                         Value1: {
-                            EventTypeIds: [uet.eventTypeId]
+                            EventTypeIds: uet.eventTypeIds ?? [uet.eventTypeId]
                         }
                     },
                     Scope: scope
@@ -118,5 +187,19 @@ export class Constraints implements IConstraints {
     /** @inheritdoc */
     hasFor(id: ConstraintId): boolean {
         return this._captures.has(id.value);
+    }
+
+    /** Resolves a configured violation message, preserving the Kernel message when none was supplied. */
+    resolveMessageFor(violation: ConstraintViolation): ConstraintViolation {
+        const capture = [...this._captures.values()].find(item =>
+            (item.uniqueEventType?.name ?? item.name) === violation.constraintId);
+        const message = capture?.uniqueConstraint?.message ?? capture?.uniqueEventType?.message;
+        if (!message) return violation;
+
+        let resolved = message;
+        for (const [key, value] of Object.entries(violation.details)) {
+            resolved = resolved.replaceAll(`{${key}}`, value);
+        }
+        return { ...violation, message: resolved };
     }
 }
