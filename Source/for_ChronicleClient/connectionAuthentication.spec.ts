@@ -44,6 +44,17 @@ describe('client authentication recovery', () => {
         expect(transport.connect).toHaveBeenCalledTimes(1);
     });
 
+    it('makes a terminal error on the retried call permanent', async () => {
+        await client.getEventStores();
+        const rejection = new RejectedChronicleCredentials('rejected after reconnect');
+        transport.allEventStores.mockRejectedValueOnce(Object.assign(new Error('unavailable'), { code: 14 }))
+            .mockRejectedValueOnce(rejection);
+        await expect(client.getEventStores()).rejects.toBe(rejection);
+        const calls = transport.allEventStores.mock.calls.length;
+        await expect(client.getEventStores()).rejects.toBe(rejection);
+        expect(transport.allEventStores).toHaveBeenCalledTimes(calls);
+    });
+
     it('continues retrying a network outage until disposed', async () => {
         transport.connect.mockRejectedValue(new Error('UNAVAILABLE: connection refused'));
         const pending = client.getEventStores().then(() => undefined, error => error as Error);

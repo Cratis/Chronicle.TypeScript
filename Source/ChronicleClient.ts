@@ -368,7 +368,16 @@ export class ChronicleClient implements IChronicleClient {
             if (!this.shouldReconnect(error)) throw error;
 
             await this.reconnect(operation, error);
-            return action();
+            try {
+                return await action();
+            } catch (retryError) {
+                const retryTerminal = this.terminalConnectionError(retryError);
+                if (retryTerminal) {
+                    this.failConnection(retryTerminal);
+                    throw retryTerminal;
+                }
+                throw retryError;
+            }
         }
     }
 
