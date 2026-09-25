@@ -56,7 +56,7 @@ export class ChronicleOptions {
     /**
      * Glob patterns used to discover artifact files at startup.
      * Patterns prefixed with '!' are treated as exclusions.
-     * By default, TypeScript entry files (.ts, .mts, .cts) scan TypeScript sources;
+     * By default, TypeScript entry files (.ts, .tsx, .mts, .cts) or TypeScript runtimes scan TypeScript sources;
      * compiled JavaScript entry files do not scan (imported modules register their artifacts).
      * Explicit patterns are used regardless of the entry file. Set to an empty array to
      * disable automatic file discovery.
@@ -85,7 +85,9 @@ export class ChronicleOptions {
     }
 
     private static defaultDiscoveryPatterns(): string[] {
-        if (!/\.(?:ts|mts|cts)$/i.test(process.argv[1] ?? '')) return [];
+        const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');
+        const typescriptLoader = process.execArgv.some(arg => /(?:tsx|ts-node|--experimental-strip-types|--experimental-transform-types)/i.test(arg));
+        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader && !process.features?.typescript) return [];
         return [
             '**/*.ts',
             '!**/*.d.ts',
