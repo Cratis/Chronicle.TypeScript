@@ -1,8 +1,8 @@
 ---
+title: Compliance
+description: Compliance and PII handling are documented in the shared Chronicle docs, with TypeScript examples.
 sharedTopicBridge: true
 ---
-
-# Compliance
 
 Compliance and PII handling are shared Chronicle topics. The shared docs own the concepts, storage behavior, and client-tabbed examples.
 

@@ -31,10 +31,14 @@ Beyond appending and observing events, the client covers the full Chronicle surf
 npm install @cratis/chronicle @cratis/fundamentals reflect-metadata
 ```
 
-You need a Chronicle Kernel available. The easiest local setup is the development Docker image:
+Requirements:
+
+- Node.js 22.19 or later. The `undici` dependency requires it, and the package fails to import on Node.js 20.
+- The package ships ES modules only. Use it from an ES module project, or `require()` it on a Node.js version with `require(esm)` support.
+- A running Chronicle kernel. The easiest local setup is the development Docker image, published on this machine only:
 
 ```bash
-docker run -p 35000:35000 cratis/chronicle:latest-development
+docker run -d --name chronicle -p 127.0.0.1:35000:35000 cratis/chronicle:latest-development
 ```
 
 ## Quick Example
@@ -55,7 +59,8 @@ class EmployeeHired {
     }
 }
 
-const client = new ChronicleClient(ChronicleOptions.development());
+// discoveryPatterns: [] relies on this module's imports instead of scanning source files.
+const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
 const store = await client.getEventStore('MyStore');
 const result = await store.eventLog.append('employee-123', new EmployeeHired('Jane', 'Doe'));
 console.log(`Appended at sequence number ${result.sequenceNumber.value}`);
@@ -66,11 +71,15 @@ client.dispose();
 
 Chronicle decorators work with both TC39 standard decorators (TypeScript 5.2+; do not enable `experimentalDecorators`) and legacy decorators (`experimentalDecorators: true`). Keep `reflect-metadata` imported at your entry point for Chronicle's runtime metadata storage. In standard mode, TypeScript does not emit `design:type` or `design:paramtypes`; declare event and read-model fields with `@field(Type)` from `@cratis/fundamentals` so Chronicle can generate their schemas. For arrays, provide an element type with `@field(Array, { genericArguments: [ItemType] })`. For a `ConceptAs<string>` or `ConceptAs<number>`, declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` on the concept class. Member-less event types and read models are valid. Unresolved standard-mode types fail on first schema read or during connection before Kernel registration; property decorators support public instance fields, not standard accessors or getters.
 
-Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](../Documentation/read-models.md) for preserving existing custom identifiers.
+Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/read-models.md) for preserving existing custom identifiers.
+
+`ChronicleOptions` scans `**/*.ts` files for artifacts by default, which needs the `glob` package, and fails when the matched `.ts` files cannot be loaded by Node.js. Import your artifact modules and pass `discoveryPatterns: []`, as in the example above, or see [artifact discovery](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/getting-started.md#artifact-discovery).
+
+The client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`. Set it for every server other than a local development kernel; see [Connect to Chronicle](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/connecting.md).
 
 ## Documentation
 
-See the [getting started guide](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/getting-started.md) and the rest of the [documentation](https://github.com/Cratis/Chronicle.TypeScript/tree/main/Documentation) for installation and usage instructions, or visit [cratis.io](https://www.cratis.io/chronicle/).
+Read the [TypeScript client documentation](https://www.cratis.io/chronicle/clients/typescript/), starting with [Get started with the TypeScript client](https://www.cratis.io/chronicle/clients/typescript/getting-started/). The [Chronicle documentation](https://www.cratis.io/chronicle/) explains the concepts, with TypeScript examples.
 
 ## The Cratis ecosystem
 
