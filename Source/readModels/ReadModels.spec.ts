@@ -50,7 +50,7 @@ describe('ReadModels', () => {
         class MissingModel { id = ''; }
         fromEvent(SomeEvent)(MissingModel);
 
-        it('should retain the legacy prototype-only instance for getInstanceById', async () => {
+        it('should retain a prototype-only instance for getInstanceById when the document is empty', async () => {
             const { readModels, release } = createReadModels(MissingModel);
             const instance = await readModels.getInstanceById(MissingModel, 'missing');
             expect(instance).toBeInstanceOf(MissingModel);
@@ -66,12 +66,20 @@ describe('ReadModels', () => {
             expect(release).not.toHaveBeenCalled();
         });
 
-        it('should return null when the kernel responds with literal JSON null', async () => {
+        it('should return null from findInstanceById when the kernel responds with JSON null', async () => {
             const { readModels, getInstanceByKey, release } = createReadModels(MissingModel);
             getInstanceByKey.mockResolvedValue({ ReadModel: 'null' });
             const instance = await readModels.findInstanceById(MissingModel, 'missing');
             expect(instance).toBeNull();
             expect(release).not.toHaveBeenCalled();
+        });
+
+        it('should retain the constructed default instance from getInstanceById for JSON null', async () => {
+            const { readModels, getInstanceByKey } = createReadModels(MissingModel);
+            getInstanceByKey.mockResolvedValue({ ReadModel: 'null' });
+            const instance = await readModels.getInstanceById(MissingModel, 'missing');
+            expect(instance).toBeInstanceOf(MissingModel);
+            expect(instance.id).toBe('');
         });
     });
 
@@ -86,9 +94,9 @@ describe('ReadModels', () => {
             const instance = await readModels.findInstanceById(ExistingModel, 'found');
             expect(instance).toBeInstanceOf(ExistingModel);
             expect(instance?.id).toBe('found');
-            const legacyInstance = await readModels.getInstanceById(ExistingModel, 'found');
-            expect(legacyInstance).toBeInstanceOf(ExistingModel);
-            expect(legacyInstance.id).toBe('found');
+            const canonicalInstance = await readModels.getInstanceById(ExistingModel, 'found');
+            expect(canonicalInstance).toBeInstanceOf(ExistingModel);
+            expect(canonicalInstance.id).toBe('found');
         });
     });
 
