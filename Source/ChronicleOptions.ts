@@ -56,7 +56,10 @@ export class ChronicleOptions {
     /**
      * Glob patterns used to discover artifact files at startup.
      * Patterns prefixed with '!' are treated as exclusions.
-     * Set to an empty array to disable automatic file discovery.
+     * By default, TypeScript entry files (.ts, .mts, .cts) scan TypeScript sources;
+     * compiled JavaScript entry files do not scan (imported modules register their artifacts).
+     * Explicit patterns are used regardless of the entry file. Set to an empty array to
+     * disable automatic file discovery.
      */
     readonly discoveryPatterns: string[];
 
@@ -76,7 +79,14 @@ export class ChronicleOptions {
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
         this.softwareCommit = options.softwareCommit ?? 'Unknown';
         this.clientArtifactsProvider = options.clientArtifactsProvider ?? DefaultClientArtifactsProvider.default;
-        this.discoveryPatterns = options.discoveryPatterns ?? [
+        this.discoveryPatterns = options.discoveryPatterns ?? ChronicleOptions.defaultDiscoveryPatterns();
+        this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
+        this.reactorResultHandler = options.reactorResultHandler;
+    }
+
+    private static defaultDiscoveryPatterns(): string[] {
+        if (!/\.(?:ts|mts|cts)$/i.test(process.argv[1] ?? '')) return [];
+        return [
             '**/*.ts',
             '!**/*.d.ts',
             '!**/node_modules',
@@ -87,8 +97,6 @@ export class ChronicleOptions {
             '!**/*.spec.ts',
             '!**/*.test.ts'
         ];
-        this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
-        this.reactorResultHandler = options.reactorResultHandler;
     }
 
     /**
