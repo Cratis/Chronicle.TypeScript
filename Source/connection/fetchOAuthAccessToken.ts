@@ -8,9 +8,17 @@ import * as https from 'https';
  * The shape of a successful OAuth2 token response.
  */
 export class OAuthTokenHttpError extends Error {
+    readonly errorCode?: string;
+
     constructor(readonly statusCode: number, body: string) {
         super(`Token request failed with status ${statusCode}: ${body}`);
         this.name = 'OAuthTokenHttpError';
+        try {
+            const parsed = JSON.parse(body) as { error?: unknown };
+            if (parsed && typeof parsed.error === 'string') this.errorCode = parsed.error;
+        } catch {
+            // A proxy may return HTML or plain text instead of an OAuth error response.
+        }
     }
 }
 

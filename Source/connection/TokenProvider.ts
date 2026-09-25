@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { fetchOAuthAccessToken, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
+import { fetchOAuthAccessToken, OAuthTokenHttpError, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
 
 // Refresh once the token has less than this long left before it expires.
 const TOKEN_REFRESH_MARGIN_MS = 60_000;
@@ -120,6 +120,11 @@ export class OAuthTokenProvider implements ITokenProvider {
     }
 
     private isThrottled(): boolean {
+        // Authentication rejections must be checked on each new connection attempt: the
+        // kernel may still be registering bootstrap clients during startup.
+        const failure = this._lastFetchError?.cause;
+        if (failure instanceof OAuthTokenHttpError && [400, 401].includes(failure.statusCode) &&
+            ['invalid_client', 'unauthorized_client', 'invalid_grant'].includes(failure.errorCode ?? '')) return false;
         return this._lastFailedFetch !== undefined && Date.now() - this._lastFailedFetch < FAILED_FETCH_RETRY_DELAY_MS;
     }
 

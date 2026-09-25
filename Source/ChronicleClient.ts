@@ -55,6 +55,7 @@ export class ChronicleClient implements IChronicleClient {
     private _keepAliveAbortController?: AbortController;
     private _healthCheckInFlight = false;
     private _connectionFailure?: Error;
+    private _consecutiveCredentialRejections = 0;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
@@ -236,6 +237,7 @@ export class ChronicleClient implements IChronicleClient {
                 // so this effectively waits until the channel reaches READY or fails.
                 await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
 
+                this._consecutiveCredentialRejections = 0;
                 this._logger.info('Connected to Chronicle kernel');
                 await this.startKernelKeepAlive();
                 await this._lifecycle.connected(error => {
@@ -308,6 +310,7 @@ export class ChronicleClient implements IChronicleClient {
                         await this._connection.resetChannel();
                         await this._connection.connect();
                         await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
+                        this._consecutiveCredentialRejections = 0;
                         this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
                         await this.startKernelKeepAlive();
                         await this._lifecycle.connected(connectedError => {
@@ -357,9 +360,12 @@ export class ChronicleClient implements IChronicleClient {
         try {
             return await action();
         } catch (error) {
-            if (!this.shouldReconnect(error)) {
-                throw error;
+            const terminal = this.terminalConnectionError(error);
+            if (terminal) {
+                this.failConnection(terminal);
+                throw terminal;
             }
+            if (!this.shouldReconnect(error)) throw error;
 
             await this.reconnect(operation, error);
             return action();
@@ -368,16 +374,26 @@ export class ChronicleClient implements IChronicleClient {
 
     private terminalConnectionError(error: unknown): Error | undefined {
         if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return error;
-        const tokenError = (error as Error | undefined)?.cause;
-        const httpError = (tokenError as Error | undefined)?.cause;
-        if (httpError instanceof OAuthTokenHttpError && [400, 401, 403].includes(httpError.statusCode)) {
-            return new RejectedChronicleCredentials(`Chronicle credentials were rejected: ${(tokenError as Error).message}`, { cause: error });
+        const rejection = (error as { code?: number })?.code === 16 &&
+            (this.options.connectionString.apiKey || this.hasOAuthCredentialRejection(error));
+        this._consecutiveCredentialRejections = rejection ? this._consecutiveCredentialRejections + 1 : 0;
+        if (this._consecutiveCredentialRejections === 3) {
+            return new RejectedChronicleCredentials(`Chronicle credentials were rejected: ${this.toErrorMessage(error)}`, { cause: error });
         }
         return undefined;
     }
 
+    private hasOAuthCredentialRejection(error: unknown): boolean {
+        const tokenError = (error as { tokenFailure?: Error })?.tokenFailure;
+        const httpError = tokenError?.cause;
+        return httpError instanceof OAuthTokenHttpError && [400, 401].includes(httpError.statusCode) &&
+            ['invalid_client', 'unauthorized_client', 'invalid_grant'].includes(httpError.errorCode ?? '');
+    }
+
     private shouldReconnect(error: unknown): boolean {
-        if (this.terminalConnectionError(error)) return false;
+        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return false;
+        if ((error as { code?: number })?.code === 16 &&
+            (this.options.connectionString.apiKey || !!(error as { tokenFailure?: Error })?.tokenFailure)) return true;
         const code = Number((error as { code?: number })?.code ?? -1);
         const details = String((error as { details?: string })?.details ?? '');
         const message = this.toErrorMessage(error);

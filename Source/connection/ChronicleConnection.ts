@@ -30,7 +30,7 @@ import {
 import { ComplianceDefinition } from '../compliance/ComplianceContracts.js';
 import { createChannel, createClientFactory } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
-import { Metadata } from 'nice-grpc-common';
+import { ClientError, Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts.js';
 import { ChronicleConnectionString, type ChronicleServerAddress } from './ChronicleConnectionString.js';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
@@ -389,8 +389,26 @@ export class ChronicleConnection implements ChronicleServices {
             try {
                 return yield* call.next(call.request, options);
             } catch (error) {
-                if (tokenFailure && (error as { code?: number })?.code === status.UNAUTHENTICATED) {
-                    throw new Error(`${tokenFailure.message}; Chronicle rejected the unauthenticated RPC`, { cause: tokenFailure });
+                if ((error as { code?: number })?.code !== status.UNAUTHENTICATED) throw error;
+                if (token && !call.responseStream && !call.requestStream) {
+                    try {
+                        const refreshed = await tokenProvider.refresh();
+                        if (refreshed) {
+                            const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
+                            metadata.set('authorization', `Bearer ${refreshed}`);
+                            return yield* call.next(call.request, { ...options, metadata });
+                        }
+                    } catch (refreshError) {
+                        tokenFailure = refreshError instanceof Error ? refreshError : new Error(String(refreshError));
+                    }
+                    tokenFailure ??= tokenProvider.lastTokenFailure;
+                }
+                if (tokenFailure) {
+                    const original = error as ClientError;
+                    const wrapped = new ClientError(original.path, original.code, `${tokenFailure.message}; Chronicle rejected the unauthenticated RPC`);
+                    Object.defineProperty(wrapped, 'cause', { value: original });
+                    Object.defineProperty(wrapped, 'tokenFailure', { value: tokenFailure });
+                    throw wrapped;
                 }
                 throw error;
             }

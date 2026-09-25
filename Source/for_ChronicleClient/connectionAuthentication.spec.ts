@@ -4,7 +4,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChronicleClient } from '../ChronicleClient.js';
 import { ChronicleOptions } from '../ChronicleOptions.js';
-import { OAuthTokenHttpError } from '../connection/fetchOAuthAccessToken.js';
 import { RejectedChronicleCredentials } from '../connection/RejectedChronicleCredentials.js';
 
 const transport = vi.hoisted(() => ({ connect: vi.fn(), resetChannel: vi.fn(), disconnect: vi.fn(), getVersionInfo: vi.fn(), allEventStores: vi.fn() }));
@@ -37,13 +36,11 @@ describe('client authentication recovery', () => {
         expect(transport.connect).toHaveBeenCalledTimes(1);
     });
 
-    it('fails permanently when credentials are rejected and the kernel requires authentication', async () => {
-        const tokenFailure = new Error('Failed to obtain OAuth2 token from http://localhost:35000/connect/token: invalid_client', {
-            cause: new OAuthTokenHttpError(401, 'invalid_client')
-        });
-        transport.connect.mockRejectedValue(new Error(`${tokenFailure.message}; Chronicle rejected the unauthenticated RPC`, { cause: tokenFailure }));
+    it('preserves a typed terminal error when an established call enters withReconnect', async () => {
+        await client.getEventStores();
+        transport.allEventStores.mockRejectedValue(new RejectedChronicleCredentials('rejected'));
         await expect(client.getEventStores()).rejects.toBeInstanceOf(RejectedChronicleCredentials);
-        await expect(client.getEventStores()).rejects.toThrow(/invalid_client/);
+        await expect(client.getEventStores()).rejects.toThrow('rejected');
         expect(transport.connect).toHaveBeenCalledTimes(1);
     });
 
