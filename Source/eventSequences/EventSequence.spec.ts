@@ -558,9 +558,36 @@ describe('EventSequence', () => {
             const options = waitForCompletion.mock.calls[0][1];
             expect(options.signal).toBeInstanceOf(AbortSignal);
         });
+
+        it('should clear the timeout after completion', async () => {
+            vi.useFakeTimers();
+            try {
+                const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+                await appendResult.waitForCompletion({ timeoutMs: 1000 });
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
     });
 
     describe('when a caller cancels a completion wait', () => {
+        it('should reject a pre-aborted signal without starting the RPC or a timer', async () => {
+            const { eventSequence, waitForCompletion } = createEventSequence();
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const controller = new AbortController();
+            const reason = new Error('already canceled');
+            controller.abort(reason);
+            vi.useFakeTimers();
+            try {
+                await expect(appendResult.waitForCompletion({ signal: controller.signal })).rejects.toBe(reason);
+                expect(waitForCompletion).not.toHaveBeenCalled();
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
         it('should abort the underlying RPC and reject with the caller reason', async () => {
             const waitForCompletion = vi.fn().mockImplementation((_request, { signal }: { signal: AbortSignal }) =>
                 new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true })));
@@ -576,6 +603,25 @@ describe('EventSequence', () => {
             await expect(pending).rejects.toBe(reason);
             expect(signal.aborted).toBe(true);
             expect(signal.reason).toBe(reason);
+        });
+
+        it('should clear the timeout when the caller aborts', async () => {
+            const waitForCompletion = vi.fn().mockImplementation((_request, { signal }: { signal: AbortSignal }) =>
+                new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true })));
+            const { eventSequence } = createEventSequence({}, { waitForCompletion });
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const controller = new AbortController();
+            vi.useFakeTimers();
+            try {
+                const pending = appendResult.waitForCompletion({ timeoutMs: 1000, signal: controller.signal });
+                expect(vi.getTimerCount()).toBe(1);
+                const reason = new Error('caller canceled');
+                controller.abort(reason);
+                await expect(pending).rejects.toBe(reason);
+                expect(vi.getTimerCount()).toBe(0);
+            } finally {
+                vi.useRealTimers();
+            }
         });
 
         it('should cancel the underlying RPC when the options timeout expires', async () => {

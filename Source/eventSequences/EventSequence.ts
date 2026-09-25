@@ -744,23 +744,31 @@ export class EventSequence implements IEventSequence {
         }
 
         const timeoutMs = typeof options === 'number' ? options : options.timeoutMs ?? DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS;
-        const timeoutSignal = AbortSignal.timeout(timeoutMs);
-        const signal = typeof options === 'number' || !options.signal
-            ? timeoutSignal
-            : AbortSignal.any([options.signal, timeoutSignal]);
-        const response = await this._connection.observers.waitForCompletion(
-            {
-                EventStore: this._eventStoreName,
-                Namespace: this._namespace,
-                EventSequenceId: this.id.value,
-                TailEventSequenceNumber: tailSequenceNumber.value
-            },
-            { signal });
+        const callerSignal = typeof options === 'number' ? undefined : options.signal;
+        if (callerSignal?.aborted) throw callerSignal.reason;
 
-        return {
-            isSuccess: response.IsSuccess,
-            failedPartitions: (response.FailedPartitions ?? []).map(failedPartition => toClientFailedPartition(failedPartition))
-        };
+        const controller = new AbortController();
+        const forwardAbort = () => controller.abort(callerSignal?.reason);
+        callerSignal?.addEventListener('abort', forwardAbort, { once: true });
+        const timer = setTimeout(() => controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError')), timeoutMs);
+        try {
+            const response = await this._connection.observers.waitForCompletion(
+                {
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    TailEventSequenceNumber: tailSequenceNumber.value
+                },
+                { signal: controller.signal });
+
+            return {
+                isSuccess: response.IsSuccess,
+                failedPartitions: (response.FailedPartitions ?? []).map(failedPartition => toClientFailedPartition(failedPartition))
+            };
+        } finally {
+            clearTimeout(timer);
+            callerSignal?.removeEventListener('abort', forwardAbort);
+        }
     }
 
     private toContractConcurrencyScope(scope?: ConcurrencyScope) {

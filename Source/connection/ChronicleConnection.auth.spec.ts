@@ -89,6 +89,57 @@ describe('ChronicleConnection authentication', () => {
         ].sort());
     });
 
+    it('rejects a pre-aborted RPC before starting token acquisition', async () => {
+        const port = await listenAuthenticated();
+        let resolveToken!: (response: { access_token: string; expires_in: number }) => void;
+        fetchToken.mockImplementation(() => new Promise(resolve => { resolveToken = resolve; }));
+        const connection = new ChronicleConnection({ connectionString: `chronicle://user:secret@127.0.0.1:${port}?disableTls=true` });
+        connections.push(connection);
+        await connection.resetChannel();
+        const pending = connection.server.getVersionInfo({});
+        await vi.waitFor(() => expect(fetchToken).toHaveBeenCalledTimes(1));
+        const controller = new AbortController();
+        const reason = new Error('already canceled');
+        controller.abort(reason);
+
+        await expect(connection.server.getVersionInfo({}, { signal: controller.signal })).rejects.toBe(reason);
+        expect(fetchToken).toHaveBeenCalledTimes(1);
+        resolveToken({ access_token: 'fresh', expires_in: 3600 });
+        await expect(pending).resolves.toBeDefined();
+    });
+
+    it('rejects promptly during token acquisition without canceling the shared request for another caller', async () => {
+        const port = await listenAuthenticated();
+        let resolveToken!: (response: { access_token: string; expires_in: number }) => void;
+        fetchToken.mockImplementation(() => new Promise(resolve => { resolveToken = resolve; }));
+        const connection = new ChronicleConnection({ connectionString: `chronicle://user:secret@127.0.0.1:${port}?disableTls=true` });
+        connections.push(connection);
+        await connection.resetChannel();
+        const controller = new AbortController();
+        const canceled = connection.server.getVersionInfo({}, { signal: controller.signal });
+        const continuing = connection.server.getVersionInfo({});
+        await vi.waitFor(() => expect(fetchToken).toHaveBeenCalledTimes(1));
+        const reason = new Error('caller canceled');
+        controller.abort(reason);
+
+        await expect(canceled).rejects.toBe(reason);
+        resolveToken({ access_token: 'fresh', expires_in: 3600 });
+        await expect(continuing).resolves.toBeDefined();
+        expect(fetchToken).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects when a timeout expires while waiting for an OAuth token', async () => {
+        const port = await listenAuthenticated();
+        fetchToken.mockImplementation(() => new Promise(() => {}));
+        const connection = new ChronicleConnection({ connectionString: `chronicle://user:secret@127.0.0.1:${port}?disableTls=true` });
+        connections.push(connection);
+        await connection.resetChannel();
+
+        await expect(connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(20) }))
+            .rejects.toMatchObject({ name: 'TimeoutError' });
+        expect(fetchToken).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps an explicit authority across server selections', async () => {
         const first = await listen();
         const second = await listen();
