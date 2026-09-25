@@ -77,10 +77,26 @@ export function fetchOAuthAccessToken(
         });
 
         request.on('error', error => {
-            reject(new Error(`Token request failed: ${error.message}`));
+            reject(new Error(`Token request failed: ${describeRequestError(error)}`, { cause: error }));
         });
 
         request.write(body);
         request.end();
     });
+}
+
+/**
+ * Describes a request error. Connecting to a host that resolves to several addresses, such as
+ * localhost, fails with an AggregateError whose own message is empty.
+ * @param error - The request error.
+ * @returns A description that names the failure.
+ */
+export function describeRequestError(error: Error): string {
+    const code = (error as NodeJS.ErrnoException).code;
+    const inner = error instanceof AggregateError
+        ? error.errors.map(item => item instanceof Error ? item.message : String(item)).filter(Boolean).join('; ')
+        : '';
+    return [error.message, inner, code && !error.message.includes(code) && !inner.includes(code) ? code : '']
+        .filter(Boolean)
+        .join(' ') || 'unknown error';
 }
