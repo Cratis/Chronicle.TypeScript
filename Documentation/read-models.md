@@ -14,6 +14,8 @@ Read models are shared Chronicle concepts. Querying, snapshots, watching, and co
 
 Read models are discovered from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with model-bound event mappings such as `@fromEvent(Event)` and `@setFrom(Event)`. The model type supplies the schema; its class name is the default Chronicle read-model identifier.
 
+Use `@index()` on a read-model field to declare a single ascending, non-unique index. It works on models registered through projections, reducers, and model-bound mappings. The registration includes nested paths such as `lines.productId` when an indexed field belongs to a typed child collection; declare the element type with `@field(Array, { genericArguments: [Line] })`. The read-model key is indexed by the store already. Indexes are created on registration, including when a container is rebuilt after replay; this does not add a general-purpose query API. See [Indexing read models](/chronicle/read-models/indexing/).
+
 Queries fill every property the model declares from the stored read model. With standard decorators, a model with only property decorators and no class-level `@fromEvent` registers once an instance of it exists; give it `@fromEvent(...)` so it registers when its module loads. See [Artifact discovery](./getting-started.md#artifact-discovery).
 
 ```typescript

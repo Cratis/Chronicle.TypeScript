@@ -23,6 +23,7 @@ import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { getReadModelMetadata, getReadModelId } from './readModel.js';
+import { getIndexesForType } from './indexDecorator.js';
 import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from './rootReadModelTypes.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
@@ -355,7 +356,7 @@ export class ReadModels implements IReadModels {
                 TypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None
             },
             Schema: readModel.schema,
-            Indexes: [],
+            Indexes: getIndexesForType(readModel.type),
             ObserverType: readModel.observerType,
             ObserverIdentifier: readModel.observerIdentifier,
             Owner: 1,
