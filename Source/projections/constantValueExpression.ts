@@ -16,11 +16,13 @@ export function constantValueExpression(value: unknown): string {
     }
 
     const text = String(value);
-    if (text === '$null' || text.startsWith('$value(')) return text;
+    if (text === '$null') return text;
+    const wrapped = text.startsWith('$value(');
+    const content = wrapped && text.endsWith(')') ? text.slice(7, -1) : text;
     // ValueExpressionResolver accepts only word characters, spaces, and ._/:*+-.
     // .NET's \w also accepts Unicode letters, non-spacing marks, decimal digits and connector punctuation.
-    if (!/^[\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*$/u.test(text)) {
+    if ((wrapped && !text.endsWith(')')) || !/^[\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*$/u.test(content)) {
         throw new Error(`Constant value '${text}' contains characters unsupported by the kernel's $value expression.`);
     }
-    return `$value(${text})`;
+    return wrapped ? text : `$value(${text})`;
 }

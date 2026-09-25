@@ -25,7 +25,7 @@ describe('constantValueExpression', () => {
         expect(constantValueExpression(value)).toBe(expression);
     });
 
-    it.each(['a(b)', 'a,b', 'a\nb', '$bad', 'a)'])('rejects unsupported characters in %s', value => {
+    it.each(['a(b)', 'a,b', 'a\nb', '$bad', 'a)', '$value(a,b)', '$value(a(b))', '$value(a', '$value(a)garbage'])('rejects unsupported characters in %s', value => {
         expect(() => constantValueExpression(value)).toThrow(/unsupported by the kernel/);
     });
 });
