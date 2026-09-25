@@ -67,6 +67,11 @@ export class ChildrenBuilder<TParentReadModel, TChildReadModel>
         return this;
     }
 
+    /** @inheritdoc */
+    protected defaultJoinOn(): string | undefined {
+        return this._identifiedBy;
+    }
+
     /**
      * Builds the {@link ChildrenDefinitionLike} representing this children collection.
      * @returns The accumulated children definition.
