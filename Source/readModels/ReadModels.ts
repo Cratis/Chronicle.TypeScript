@@ -42,6 +42,7 @@ interface ResolvedReadModel {
     readonly observerIdentifier: string;
     readonly schema: string;
     readonly isActive: boolean;
+    readonly isModelBound?: boolean;
 }
 
 /**
@@ -55,7 +56,8 @@ export class ReadModels implements IReadModels {
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _isModelBoundProjectionRegistered?: (readModelType: Constructor) => boolean
     ) {
         this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
     }
@@ -284,7 +286,8 @@ export class ReadModels implements IReadModels {
                 observerType: ContractReadModelObserverType.Projection,
                 observerIdentifier: identifier,
                 schema: this.getReadModelSchema(modelBoundType, identifier),
-                isActive: !isPassive(modelBoundType)
+                isActive: !isPassive(modelBoundType),
+                isModelBound: true
             });
         }
 
@@ -324,14 +327,15 @@ export class ReadModels implements IReadModels {
 
     private resolveReadModel<TReadModel>(readModelType: Constructor<TReadModel>): ResolvedReadModel {
         const [resolved] = this.resolveReadModels(readModelType);
-        if (!resolved) {
+        const neverRegistered = resolved?.isModelBound && this._isModelBoundProjectionRegistered && !this._isModelBoundProjectionRegistered(readModelType);
+        if (!resolved || neverRegistered) {
             throw new Error(hasModelBoundProperties(readModelType)
                 ? `Unknown read model '${readModelType.name}'. It has model-bound property mappings but was not registered when the event store was created. With standard decorators, a class whose mappings are all on properties is only registered once an instance exists; add a class-level @fromEvent(...) decorator so it registers when its module loads.`
                 : `Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
         }
-
         return resolved;
     }
+
 
     private toDefinition(readModel: ResolvedReadModel) {
         return {

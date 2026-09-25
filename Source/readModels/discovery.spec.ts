@@ -77,6 +77,14 @@ describe('when discovering read models from observers', () => {
         expect(registerMany.mock.calls[0][0].ReadModels[0].Type.Identifier).toBe('DecoratedOnly');
     });
 
+    it('should refuse to query a model-bound read model whose projection was never registered', async () => {
+        class RegisteredLate { value = ''; }
+        setFrom(Event)(RegisteredLate.prototype, 'value');
+        const { connection } = createConnection();
+        const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink', () => false);
+        await expect(readModels.findInstanceById(RegisteredLate, 'key')).rejects.toThrow(/add a class-level @fromEvent/);
+    });
+
     it('should explain how to register an unregistered property-bound model', async () => {
         class NeverRegistered { value = ''; }
         Reflect.defineMetadata('chronicle:projection:setFrom', [{ eventType: Event }], NeverRegistered.prototype, 'value');
