@@ -7,6 +7,7 @@ import { ChronicleConnection } from '../connection/index.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { getReadModelMetadata } from './readModel.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
+import { deserializeReadModel } from './deserializeReadModel.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 
 const defaultTake = 50;
@@ -82,10 +83,7 @@ export class MaterializedReadModels implements IMaterializedReadModels {
     }
 
     private deserialize<TReadModel>(readModelType: Constructor<TReadModel>, json: string): TReadModel {
-        if (!json) {
-            return Object.create(readModelType.prototype) as TReadModel;
-        }
-        return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+        return deserializeReadModel(readModelType, json);
     }
 
     private async releaseInstances<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]> {

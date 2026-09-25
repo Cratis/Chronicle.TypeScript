@@ -27,6 +27,7 @@ import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
+import { deserializeReadModel } from './deserializeReadModel.js';
 import type { IReadModels } from './IReadModels.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
@@ -363,10 +364,7 @@ export class ReadModels implements IReadModels {
     }
 
     private deserializeReadModel<TReadModel>(readModelType: Constructor<TReadModel>, json: string): TReadModel {
-        if (!json) {
-            return Object.create(readModelType.prototype) as TReadModel;
-        }
-        return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+        return deserializeReadModel(readModelType, json);
     }
 
     private schemaHasComplianceMetadata(schema: string): boolean {

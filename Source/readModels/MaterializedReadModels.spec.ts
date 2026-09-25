@@ -25,6 +25,28 @@ function createMaterializedReadModels(instancesJson: string[], releaseResponse: 
 }
 
 describe('MaterializedReadModels', () => {
+    describe('when materialized models have undecorated members', () => {
+        class Model { name = ''; count = 0; occurred = new Date(0); }
+        const json = JSON.stringify({ name: 'stored', count: 3, occurred: '2024-02-01T00:00:00.000Z' });
+
+        it('should restore members in paged reads', async () => {
+            const { readModels } = createMaterializedReadModels([json]);
+            const [instance] = await readModels.getInstances(Model);
+            expect(instance).toMatchObject({ name: 'stored', count: 3 });
+            expect(instance.occurred).toEqual(new Date('2024-02-01T00:00:00.000Z'));
+        });
+
+        it('should restore members in observed pages', async () => {
+            const connection = { materializedReadModels: { observeInstances: async function* () {
+                yield { Instances: [json] };
+            } } } as unknown as ChronicleConnection;
+            const readModels = new MaterializedReadModels('store', 'tenant', connection);
+            const response = await readModels.observeInstances(Model)[Symbol.asyncIterator]().next();
+            expect(response.value?.[0].name).toBe('stored');
+            expect(response.value?.[0].occurred).toBeInstanceOf(Date);
+        });
+    });
+
     describe('when a read model has a property decorated with @subject()', () => {
         class Employee {
             id = '';
