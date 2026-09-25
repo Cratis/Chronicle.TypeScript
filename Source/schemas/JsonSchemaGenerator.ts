@@ -6,6 +6,7 @@ import { conceptAsTypeKey, Constructor, Fields, Guid, typeKeyOf } from '@cratis/
 import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema.js';
 import { TypeIntrospector } from '../types/index.js';
 import { conceptValueType } from '../types/conceptValueType.js';
+import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
 import { hasOwnStandardMetadata } from '../types/standardDecoratorMetadata.js';
 import { ComplianceMetadata } from '../compliance/ComplianceMetadata.js';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver.js';
@@ -190,7 +191,7 @@ export class JsonSchemaGenerator {
         }
 
         const field = Fields.getFieldsForType(declaringType as Constructor).find(candidate => candidate.name === propertyName);
-        return field?.genericArguments?.[0];
+        return getChildrenFromMetadata(declaringType.prototype, propertyName).find(metadata => metadata.childType)?.childType ?? field?.genericArguments?.[0];
     }
 
     /**

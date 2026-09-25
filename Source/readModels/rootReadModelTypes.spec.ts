@@ -11,6 +11,7 @@ import { nested } from '../projections/modelBound/nested.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
+import { JsonSchemaGenerator } from '../schemas/JsonSchemaGenerator.js';
 import { projection } from '../projections/declarative/projection.js';
 import type { IProjectionBuilderFor } from '../projections/declarative/IProjectionBuilderFor.js';
 import { setFrom } from '../projections/modelBound/setFrom.js';
@@ -54,6 +55,7 @@ describe('root model-bound discovery', () => {
         childrenFrom(Added, Item)(Parent.prototype, 'items');
         const artifacts = { readModels: [Parent, Item], projections: [], reducers: [] } as unknown as IClientArtifactsProvider;
         expect(rootReadModelTypes(artifacts)).toEqual([Parent]);
+        expect(JsonSchemaGenerator.generate(Parent, undefined, true).properties?.items.items?.properties?.value.type).toBe('string');
         const projections = new Projections('test', 'Default', {} as ChronicleConnection, artifacts, 'sink');
         return projections.discover().then(() => {
             expect(projections.hasFor('Parent')).toBe(true);
