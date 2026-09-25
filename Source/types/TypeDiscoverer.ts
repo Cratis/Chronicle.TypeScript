@@ -7,7 +7,7 @@ import { Constructor } from '@cratis/fundamentals';
 import { TypeIntrospector } from './TypeIntrospector.js';
 import { hasPropertyMetadata } from './propertyDecoratorMetadata.js';
 
-type GlobFunction = (pattern: string | string[]) => Promise<string[]>;
+type GlobFunction = (pattern: string | string[], options?: { ignore: string[] }) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
 
 const modelBoundPropertyKeys = [
@@ -49,9 +49,18 @@ export class TypeDiscoverer {
      */
     async discover(pattern: string | string[]): Promise<void> {
         const patterns = Array.isArray(pattern) ? pattern : [pattern];
-        const files = await this._glob(patterns);
+        const included = patterns.filter(pattern => !pattern.startsWith('!'));
+        const excluded = patterns.filter(pattern => pattern.startsWith('!')).map(pattern => pattern.slice(1));
+        const ignore = excluded.flatMap(pattern => [pattern, `${pattern}/**`]);
+        const files = await this._glob(included, { ignore });
         for (const file of files) {
-            const module = await this._importFile(path.resolve(file));
+            const filePath = path.resolve(file);
+            let module: unknown;
+            try {
+                module = await this._importFile(filePath);
+            } catch (error) {
+                throw new Error(`Could not import discovered file '${filePath}'.`, { cause: error });
+            }
             if (module && typeof module === 'object') {
                 for (const type of Object.values(module)) {
                     if (typeof type !== 'function' || !type.prototype) continue;
@@ -118,7 +127,7 @@ export class TypeDiscoverer {
         TypeDiscoverer._registeredTypes.clear();
     }
 
-    private static async resolveWithGlobPackage(pattern: string | string[]): Promise<string[]> {
+    private static async resolveWithGlobPackage(pattern: string | string[], options?: { ignore: string[] }): Promise<string[]> {
         let globFunction: unknown;
         try {
             const globModule = await import('glob') as { glob?: unknown };
@@ -131,7 +140,7 @@ export class TypeDiscoverer {
             throw new Error('The "glob" module was loaded but does not export a function named "glob".');
         }
 
-        const files = await globFunction(pattern);
+        const files = await globFunction(pattern, options);
         if (!Array.isArray(files) || files.some(file => typeof file !== 'string')) {
             throw new Error('Type discovery glob resolution did not return an array of file paths.');
         }
