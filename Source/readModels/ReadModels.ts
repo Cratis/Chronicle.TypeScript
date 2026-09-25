@@ -17,8 +17,7 @@ import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent.js';
-import { TypeDiscoverer, hasModelBoundProperties } from '../types/TypeDiscoverer.js';
-import { DecoratorType } from '../types/DecoratorType.js';
+import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { isPassive } from '../projections/modelBound/passive.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
@@ -243,11 +242,6 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
-        if (readModelType && hasModelBoundProperties(readModelType)) {
-            // Standard field decorators have no class constructor until an instance is made.
-            // Explicit queries supply it, even when file discovery is disabled.
-            TypeDiscoverer.default.register(DecoratorType.ReadModel, readModelType);
-        }
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         const resolved = new Map<string, ResolvedReadModel>();
 
@@ -273,9 +267,7 @@ export class ReadModels implements IReadModels {
             });
         }
 
-        const modelBoundTypes = new Set(this._clientArtifacts.readModels);
-        if (readModelType && hasModelBoundProperties(readModelType)) modelBoundTypes.add(readModelType);
-        for (const modelBoundType of modelBoundTypes) {
+        for (const modelBoundType of this._clientArtifacts.readModels) {
             if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }
@@ -333,7 +325,9 @@ export class ReadModels implements IReadModels {
     private resolveReadModel<TReadModel>(readModelType: Constructor<TReadModel>): ResolvedReadModel {
         const [resolved] = this.resolveReadModels(readModelType);
         if (!resolved) {
-            throw new Error(`Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
+            throw new Error(hasModelBoundProperties(readModelType)
+                ? `Unknown read model '${readModelType.name}'. It has model-bound property mappings but was not registered when the event store was created. With standard decorators, a class whose mappings are all on properties is only registered once an instance exists; add a class-level @fromEvent(...) decorator so it registers when its module loads.`
+                : `Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
         }
 
         return resolved;
