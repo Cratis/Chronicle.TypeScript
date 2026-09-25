@@ -9,6 +9,7 @@ import { ChronicleConnection } from './connection/index.js';
 import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
 import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
+import { clientVersion } from './connection/clientVersion.js';
 import { KernelKeepAlive } from './connection/KernelKeepAlive.js';
 import { EventStore } from './EventStore.js';
 import { EventStoreName } from './EventStoreName.js';
@@ -194,6 +195,7 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     dispose(): void {
         this._isDisposed = true;
+        for (const store of this._stores.values()) store.disposeObservations();
 
         if (this._watchdogHandle) {
             clearInterval(this._watchdogHandle);
@@ -439,9 +441,7 @@ export class ChronicleClient implements IChronicleClient {
         await keepAlive.start(
             {
                 ConnectionId: this._lifecycle.connectionId,
-                // TODO: Not derived from this package's own version anywhere yet; kept as
-                // the pre-existing hardcoded placeholder until such a mechanism exists.
-                ClientVersion: '1.0.0',
+                ClientVersion: clientVersion,
                 IsRunningWithDebugger: false,
                 ProcessId: process.pid,
                 ProcessPath: process.execPath,

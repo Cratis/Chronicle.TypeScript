@@ -157,6 +157,12 @@ export class EventStore implements IEventStore {
         });
     }
 
+    /** Stops the store's long-lived observations when the client is disposed. */
+    disposeObservations(): void {
+        (this.reactors as Reactors).dispose();
+        (this.reducers as Reducers).dispose();
+    }
+
     /** @inheritdoc */
     getEventSequence(id: EventSequenceId): IEventSequence {
         const existing = this._sequences.get(id.value);
