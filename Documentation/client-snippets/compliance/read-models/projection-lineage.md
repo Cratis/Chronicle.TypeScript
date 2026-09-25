@@ -1,6 +1,6 @@
 ```typescript
 import { eventType, fromEvent, pii } from '@cratis/chronicle';
-import { ConceptAs } from '@cratis/fundamentals';
+import { ConceptAs, field } from '@cratis/fundamentals';
 
 @pii()
 export class ComplianceReadModelsPersonName extends ConceptAs<string> {
@@ -11,7 +11,13 @@ export class ComplianceReadModelsPersonName extends ConceptAs<string> {
 
 @eventType()
 export class ComplianceReadModelsEmployeeRegistered {
-    constructor(readonly name: ComplianceReadModelsPersonName, readonly department: string) {}
+    @field(ComplianceReadModelsPersonName) name: ComplianceReadModelsPersonName;
+    @field(String) department: string;
+
+    constructor(name: ComplianceReadModelsPersonName, department: string) {
+        this.name = name;
+        this.department = department;
+    }
 }
 
 // Chronicle's projection pipeline carries PII lineage automatically from the source event
@@ -19,7 +25,7 @@ export class ComplianceReadModelsEmployeeRegistered {
 // string. It is still encrypted at rest because it came from a PII-marked event property.
 @fromEvent(ComplianceReadModelsEmployeeRegistered)
 export class ComplianceReadModelsEmployee {
-    name = '';
-    department = '';
+    @field(String) name = '';
+    @field(String) department = '';
 }
 ```

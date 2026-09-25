@@ -1,5 +1,6 @@
 ```typescript
 import { count, eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ArchitectureModelBoundItemAdded {
@@ -8,7 +9,7 @@ export class ArchitectureModelBoundItemAdded {
 
 @fromEvent(ArchitectureModelBoundItemAdded, { key: 'category' })
 export class ArchitectureModelBoundSummary {
-    category = '';
+    @field(String) category = '';
 
     @count(ArchitectureModelBoundItemAdded)
     count = 0;

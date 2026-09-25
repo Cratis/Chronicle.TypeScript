@@ -1,5 +1,6 @@
 ```typescript title="Use the read model property name by convention"
 import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ProductRenamedForEveryConvention {
@@ -14,8 +15,8 @@ export class ProductPriceChangedForEveryConvention {
 @fromEvent(ProductRenamedForEveryConvention)
 @fromEvent(ProductPriceChangedForEveryConvention)
 export class ProductVersionFromEveryConvention {
-    name = '';
-    price = 0;
+    @field(String) name = '';
+    @field(Number) price = 0;
 
     @fromEvery()
     version = 0;

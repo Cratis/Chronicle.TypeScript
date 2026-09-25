@@ -1,5 +1,6 @@
 ```typescript title="Custom key"
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserRegisteredWithKey {
@@ -12,7 +13,7 @@ export class ConventionUserRegisteredWithKey {
 
 @fromEvent(ConventionUserRegisteredWithKey, { key: 'userId' })
 export class ConventionUserById {
-    name = '';
-    email = '';
+    @field(String) name = '';
+    @field(String) email = '';
 }
 ```

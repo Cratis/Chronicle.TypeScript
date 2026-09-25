@@ -1,5 +1,6 @@
 ```typescript title="Model-bound and declarative AutoMap"
 import { eventType, fromEvent, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionEquivalentUserRegistered {
@@ -8,8 +9,8 @@ export class ConventionEquivalentUserRegistered {
 
 @fromEvent(ConventionEquivalentUserRegistered)
 export class ConventionEquivalentUser {
-    name = '';
-    email = '';
+    @field(String) name = '';
+    @field(String) email = '';
 }
 
 @projection('', ConventionEquivalentUser)
