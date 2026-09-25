@@ -24,4 +24,6 @@ The TypeScript client supports these projection capabilities, in addition to `@f
 
 Earlier client versions rejected these with a `not implemented yet.` error at registration. Upgrade the client if you still see it.
 
+Under runtimes that emit no type metadata, such as `tsx`, name the child type of a children collection in `@childrenFrom(ItemAdded, Item, 'itemId')`: the second argument can be the child class instead of the key. The client then excludes `Item` from the root read models and restores the collection as `Item` instances.
+
 With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.

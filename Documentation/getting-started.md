@@ -258,7 +258,7 @@ The client registers every artifact whose decorator has run, so importing a modu
 The default depends on how you run your program:
 
 - **Compiled JavaScript** (`node dist/index.js`): no patterns, so the client imports nothing on its own. Import the modules that declare your artifacts, as this guide does.
-- **TypeScript**, when the entry file ends in `.ts`, `.tsx`, `.mts`, or `.cts`, the process runs under Vitest, or Node.js was started with a `tsx`, `ts-node`, `--experimental-strip-types`, or `--experimental-transform-types` option: `**/*.ts` in the working directory, excluding `node_modules`, `dist`, `build`, `.git`, `.vscode`, and `.d.ts`, `.spec.ts`, and `.test.ts` files.
+- **TypeScript**, when the entry file ends in `.ts`, `.tsx`, `.mts`, or `.cts`, the process runs under Vitest, or Node.js was started with a `tsx`, `ts-node`, `--experimental-strip-types`, or `--experimental-transform-types` option: `**/*.ts` and `**/*.tsx` in the working directory, excluding `node_modules`, `dist`, `build`, `.git`, `.vscode`, and declaration, spec, and test files.
 
 Pass your own patterns to override the default, for example `discoveryPatterns: ['dist/**/*.js']` for compiled output, or `[]` to turn scanning off. If a matched file fails to import, `getEventStore(...)` rejects with `Could not import discovered file '<path>'` and the original error as its cause.
 

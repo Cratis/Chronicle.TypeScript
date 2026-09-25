@@ -43,7 +43,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `discoveryPatterns` | None for compiled JavaScript; `**/*.ts` with exclusions when the program runs from TypeScript | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
+| `discoveryPatterns` | None for compiled JavaScript; `**/*.ts` and `**/*.tsx` with exclusions when the program runs from TypeScript | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
@@ -94,11 +94,13 @@ When `getEventStore(...)` needs a connection, the client:
 3. Calls the kernel and registers a keep-alive.
 4. Creates the event store if needed and registers its artifacts.
 
-Two failures are permanent. When the kernel is incompatible, the client throws `IncompatibleChronicleServer`. When the token endpoint rejects the credentials (HTTP 400, 401, or 403) and the kernel then refuses the call as unauthenticated, it throws `RejectedChronicleCredentials`. In both cases it stops retrying and rejects every later call; fix the deployment or the connection string, then create a new client.
+Two failures are permanent. When the kernel is incompatible, the client throws `IncompatibleChronicleServer`. When the token endpoint rejects the client credentials with an OAuth `invalid_client`, `unauthorized_client`, or `invalid_grant` error, or the kernel refuses an API key, and this repeats on three consecutive attempts, it throws `RejectedChronicleCredentials`. The repeats ride out a kernel that is still registering its clients at startup; other token-endpoint errors, such as a 403 from a proxy, keep retrying. In both cases it stops retrying and rejects every later call; fix the deployment or the connection string, then create a new client.
 
 If one of the first three steps fails for any other reason, such as the kernel being unreachable, the client waits and tries again, indefinitely. The wait doubles from about one second up to 30 seconds, with random jitter so that many clients don't return at once. Until a connection succeeds or you dispose the client, `getEventStore(...)` neither resolves nor rejects. Once connected, a failure to register artifacts, such as a schema error, rejects `getEventStore(...)` straight away.
 
 After connecting, the client checks the connection every five seconds and watches the kernel keep-alive. When either fails, it reconnects with the same backoff and registers the artifacts again for every event store it has handed out. A registration failure during that reconnect is logged, not thrown. Reactor and reducer observations restart after the reconnect. If `getEventStore(...)` or `getEventStores()` fails with a connection error, the client reconnects and retries the call once. Other calls, such as appends, reject with the gRPC error, and your code decides whether to retry.
+
+When the kernel rejects a cached token as unauthenticated, for example after a key rotation, the client requests a new token and retries the call once. Observation streams are not retried within the call; they are observed again after a reconnect.
 
 ## Connection diagnostics
 
