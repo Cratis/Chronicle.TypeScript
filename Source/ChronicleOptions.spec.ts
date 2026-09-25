@@ -8,8 +8,8 @@ const entry = process.argv[1];
 const execArgv = [...process.execArgv];
 const vitest = process.env.VITEST;
 const patterns = [
-    '**/*.ts', '!**/*.d.ts', '!**/node_modules', '!**/dist', '!**/build',
-    '!**/.git', '!**/.vscode', '!**/*.spec.ts', '!**/*.test.ts'
+    '**/*.ts', '**/*.tsx', '!**/*.d.ts', '!**/node_modules', '!**/dist', '!**/build',
+    '!**/.git', '!**/.vscode', '!**/*.spec.ts', '!**/*.test.ts', '!**/*.spec.tsx', '!**/*.test.tsx'
 ];
 afterEach(() => {
     process.argv[1] = entry;

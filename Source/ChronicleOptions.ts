@@ -92,6 +92,7 @@ export class ChronicleOptions {
         if (!typescriptEntry && !process.env.VITEST && !typescriptLoader) return [];
         return [
             '**/*.ts',
+            '**/*.tsx',
             '!**/*.d.ts',
             '!**/node_modules',
             '!**/dist',
@@ -99,7 +100,9 @@ export class ChronicleOptions {
             '!**/.git',
             '!**/.vscode',
             '!**/*.spec.ts',
-            '!**/*.test.ts'
+            '!**/*.test.ts',
+            '!**/*.spec.tsx',
+            '!**/*.test.tsx'
         ];
     }
 
