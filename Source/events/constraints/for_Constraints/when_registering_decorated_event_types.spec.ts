@@ -70,4 +70,21 @@ describe('when registering decorated event types', () => {
         definitions[0].Definition.Value1.EventTypeIds.should.deep.equal(['decorator-once', 'decorator-alternate']);
         definitions[0].RemovedWith.should.deep.equal(['decorator-reset']);
     });
+
+    it('should retain the first supplied message when the first declaration has none', async () => {
+        class First {}
+        class Second {}
+        class Third {}
+        eventType('first-registration')(First);
+        eventType('second-registration')(Second);
+        eventType('third-registration')(Third);
+        unique('SharedRegistration')(First);
+        unique('SharedRegistration', 'Second message')(Second);
+        unique('SharedRegistration', 'Third message')(Third);
+        const artifacts = { eventTypes: [First, Second, Third], constraints: [] } as IClientArtifactsProvider;
+        const constraints = new Constraints('store', {} as ChronicleConnection, artifacts);
+        await constraints.discover();
+        constraints.resolveMessageFor({ constraintId: 'SharedRegistration', message: 'Kernel', details: {} }).message
+            .should.equal('Second message');
+    });
 });

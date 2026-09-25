@@ -31,6 +31,13 @@ class FluentOnce implements IConstraint {
 }
 constraint('FluentOnce')(FluentOnce);
 
+class FluentWithoutMessage implements IConstraint {
+    define(builder: IConstraintBuilder): void {
+        builder.uniqueFor(Once, undefined, 'OneRegistration');
+    }
+}
+constraint('FluentWithoutMessage')(FluentWithoutMessage);
+
 class FluentValue implements IConstraint {
     define(builder: IConstraintBuilder): void {
         builder.unique(uniqueBuilder => uniqueBuilder.on(ValueClaimed, event => event.address));
@@ -54,6 +61,43 @@ describe('when combining fluent and decorated unique event type constraints', ()
         definitions[0].Definition.Value1!.EventTypeIds.should.deep.equal(['once', 'again']);
         definitions[0].RemovedWith.should.deep.equal(['released']);
         constraints.resolveMessageFor({ constraintId: 'OneRegistration', message: 'Kernel', details: { email: 'a$b' } }).message.should.equal('Registered a$b');
+    });
+});
+
+describe('when merging fluent unique event types with the same name', () => {
+    it('should use the first supplied message', async () => {
+        class Additional {}
+        eventType('additional')(Additional);
+        class FluentWithMessage implements IConstraint {
+            define(builder: IConstraintBuilder): void {
+                builder.uniqueFor(Additional, 'Fluent message', 'OneRegistration');
+            }
+        }
+        constraint('FluentWithMessage')(FluentWithMessage);
+        class Another {}
+        eventType('another')(Another);
+        class FluentWithAnotherMessage implements IConstraint {
+            define(builder: IConstraintBuilder): void {
+                builder.uniqueFor(Another, 'Another message', 'OneRegistration');
+            }
+        }
+        constraint('FluentWithAnotherMessage')(FluentWithAnotherMessage);
+        const { definitions, constraints } = await discover([], [FluentWithoutMessage, FluentWithMessage, FluentWithAnotherMessage]);
+        definitions.length.should.equal(1);
+        definitions[0].Definition.Value1!.EventTypeIds.should.deep.equal(['once', 'additional', 'another']);
+        constraints.resolveMessageFor({ constraintId: 'OneRegistration', message: 'Kernel', details: {} }).message
+            .should.equal('Fluent message');
+    });
+});
+
+describe('when merging a fluent unique event type without a message and a decorated event type with a message', () => {
+    it('should use the decorated message', async () => {
+        class DecoratedOnce {}
+        eventType('decorated-once')(DecoratedOnce);
+        unique('OneRegistration', 'Decorated message')(DecoratedOnce);
+        const { constraints } = await discover([DecoratedOnce], [FluentWithoutMessage]);
+        constraints.resolveMessageFor({ constraintId: 'OneRegistration', message: 'Kernel', details: {} }).message
+            .should.equal('Decorated message');
     });
 });
 
@@ -84,9 +128,11 @@ describe('when a fluent property constraint and decorated event type share a nam
 
 describe('when decorating two properties on the same event with one unique name', () => {
     it('should reject the second property instead of silently making a compound key', async () => {
-        unique('Pair')(ValueClaimed.prototype, 'address');
-        unique('Pair')(ValueClaimed.prototype, 'second');
-        const artifacts = { eventTypes: [ValueClaimed], constraints: [] } as unknown as IClientArtifactsProvider;
+        class PairedValues { address = ''; second = ''; }
+        eventType('paired-values')(PairedValues);
+        unique('Pair')(PairedValues.prototype, 'address');
+        unique('Pair')(PairedValues.prototype, 'second');
+        const artifacts = { eventTypes: [PairedValues], constraints: [] } as unknown as IClientArtifactsProvider;
         const constraints = new Constraints('store', {} as ChronicleConnection, artifacts);
         await constraints.discover().then(
             () => should.fail('Expected a duplicate event type error'),

@@ -8,7 +8,7 @@ import { ChronicleConnection } from '../../connection/index.js';
 import { ConstraintId } from './ConstraintId.js';
 import { IConstraint } from './IConstraint.js';
 import { IConstraints } from './IConstraints.js';
-import { ConstraintBuilder, ConstraintCapture } from './ConstraintBuilder.js';
+import { ConstraintBuilder, ConstraintCapture, ConstraintScopeCapture } from './ConstraintBuilder.js';
 import { UniqueConstraintBuilder } from './UniqueConstraintBuilder.js';
 import { getConstraintMetadata } from './constraint.js';
 import { getUniqueEventMetadata, getUniquePropertyMetadata } from './unique.js';
@@ -19,6 +19,20 @@ import { getEventTypeFor } from '../eventTypeDecorator.js';
 /** Resolves the name registered with the Chronicle Kernel. */
 function wireNameOf(capture: ConstraintCapture): string {
     return capture.uniqueEventType?.name ?? capture.name;
+}
+
+const decoratorScope: ConstraintScopeCapture = {
+    perEventSourceType: false,
+    perEventStreamType: false,
+    perEventStreamId: false
+};
+
+function assertMatchingScope(name: string, left: ConstraintScopeCapture, right: ConstraintScopeCapture): void {
+    if (left.perEventSourceType !== right.perEventSourceType ||
+        left.perEventStreamType !== right.perEventStreamType ||
+        left.perEventStreamId !== right.perEventStreamId) {
+        throw new Error(`Conflicting scopes for constraint '${name}'.`);
+    }
 }
 
 /** Manages discovery and registration of constraints with the Chronicle Kernel. */
@@ -51,7 +65,9 @@ export class Constraints implements IConstraints {
             const name = wireNameOf(capture);
             const existing = this._captures.get(name);
             if (existing?.uniqueEventType && capture.uniqueEventType) {
+                assertMatchingScope(name, existing.scope, capture.scope);
                 const merged = existing.uniqueEventType;
+                if (capture.uniqueEventType.message && !merged.message) merged.message = capture.uniqueEventType.message;
                 const ids = merged.eventTypeIds ??= [merged.eventTypeId];
                 for (const id of capture.uniqueEventType.eventTypeIds ?? [capture.uniqueEventType.eventTypeId]) {
                     if (!ids.includes(id)) ids.push(id);
@@ -89,6 +105,8 @@ export class Constraints implements IConstraints {
                 } else if (!capture.uniqueEventType) {
                     throw new Error(`Constraint '${name}' is not a unique event type constraint.`);
                 } else {
+                    assertMatchingScope(name, capture.scope, decoratorScope);
+                    if (eventMetadata.message && !capture.uniqueEventType.message) capture.uniqueEventType.message = eventMetadata.message;
                     capture.uniqueEventType.eventTypeIds ??= [capture.uniqueEventType.eventTypeId];
                     const id = getEventTypeFor(eventType).id.value;
                     if (!capture.uniqueEventType.eventTypeIds.includes(id)) capture.uniqueEventType.eventTypeIds.push(id);
@@ -107,6 +125,8 @@ export class Constraints implements IConstraints {
                     this._captures.set(name, capture);
                 }
                 if (!capture.uniqueConstraint) throw new Error(`Constraint '${name}' is not a unique property constraint.`);
+                assertMatchingScope(name, capture.scope, decoratorScope);
+                if (capture.uniqueConstraint.ignoreCasing) throw new Error(`Conflicting ignoreCasing for unique property constraint '${name}'.`);
                 const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
                 const id = getEventTypeFor(eventType).id.value;
                 const existing = capture.uniqueConstraint.eventDefinitions.find(definition => definition.eventTypeId === id);
