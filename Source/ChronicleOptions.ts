@@ -87,7 +87,9 @@ export class ChronicleOptions {
     private static defaultDiscoveryPatterns(): string[] {
         const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');
         const typescriptLoader = process.execArgv.some(arg => /(?:tsx|ts-node|--experimental-strip-types|--experimental-transform-types)/i.test(arg));
-        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader && !process.features?.typescript) return [];
+        // process.features.typescript is set on every Node.js 24+ process (type stripping), so it
+        // does not mean the program was started from TypeScript; it is deliberately not consulted.
+        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader) return [];
         return [
             '**/*.ts',
             '!**/*.d.ts',

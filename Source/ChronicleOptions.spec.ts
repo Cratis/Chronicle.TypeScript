@@ -43,7 +43,7 @@ describe('default artifact discovery', () => {
         process.argv[1] = '/app/dist/index.js';
         delete process.env.VITEST;
         process.execArgv = [];
-        if (!process.features?.typescript) expect(ChronicleOptions.development().discoveryPatterns).toEqual([]);
+        expect(ChronicleOptions.development().discoveryPatterns).toEqual([]);
     });
 
     it('always honors explicit discovery patterns', () => {
