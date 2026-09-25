@@ -24,6 +24,7 @@ The existing client snippets under `Documentation/client-snippets/` with `constr
 ## TypeScript-specific pages
 
 - [Getting Started](./getting-started.md) — install and connect the TypeScript client
+- [Observers](./observers.md) — listing observers and removing one whose declaring code is gone
 - [Sinks](./sinks.md) — configuring read-model persistence targets
 - [Jobs](./jobs.md) — managing Chronicle jobs from TypeScript
 - [Webhooks](./webhooks.md) — registering and discovering client webhooks
