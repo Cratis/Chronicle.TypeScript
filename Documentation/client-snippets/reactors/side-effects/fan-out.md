@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, EventForEventSourceId, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, EventForEventSourceId, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class FanOutBookReserved {
@@ -18,6 +18,7 @@ class FanOutStockDecreased {
 
 @reactor()
 class ReservationFanOutReactor {
+    @onceOnly()
     async fanOutBookReserved(event: FanOutBookReserved, context: EventContext): Promise<EventForEventSourceId[]> {
         return [
             { eventSourceId: event.memberId, event: new FanOutMemberActivityRecorded(event.isbn) },

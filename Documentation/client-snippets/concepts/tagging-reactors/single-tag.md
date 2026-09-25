@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor, tag } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor, tag } from '@cratis/chronicle';
 
 @eventType()
 class TaggingReactorsOrderPlaced {
@@ -15,6 +15,7 @@ interface TaggingReactorsEmailService {
 class TaggingReactorsOrderConfirmationReactor {
     constructor(private readonly emailService: TaggingReactorsEmailService) {}
 
+    @onceOnly()
     async taggingReactorsOrderPlaced(event: TaggingReactorsOrderPlaced, _context: EventContext): Promise<void> {
         await this.emailService.sendOrderConfirmation(event.customerId, event.orderId);
     }

@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class EventSequenceReactorShipmentDispatched {
@@ -8,6 +8,7 @@ class EventSequenceReactorShipmentDispatched {
 
 @reactor('', 'fulfillment-events')
 class EventSequenceShipmentReactor {
+    @onceOnly()
     async eventSequenceReactorShipmentDispatched(event: EventSequenceReactorShipmentDispatched, context: EventContext): Promise<void> {
         await this.notifyCarrier(event.trackingNumber);
     }

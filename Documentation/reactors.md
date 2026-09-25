@@ -9,6 +9,7 @@ Reactors are documented in the shared Chronicle docs with synchronized examples 
 - [Getting started with reactors](/chronicle/reactors/getting-started/)
 - [Reactor event processing](/chronicle/reactors/event-processing/)
 - [Returning side effects](/chronicle/reactors/side-effects/)
+- [OnceOnly](/chronicle/reactors/once-only/)
 - [Replay](/chronicle/reactors/replay/)
 - [Reactors overview](/chronicle/reactors/)
 
@@ -23,3 +24,35 @@ A reactor handler method can return a side effect instead of only observing: a s
 For application-owned return types, pass `reactorResultHandler` to `ChronicleOptions.fromConnectionString(connectionString, { reactorResultHandler })` (or `development({ reactorResultHandler })`). The callback receives the returned value, triggering `EventContext`, reactor class, event store name, and namespace. Return `true` only after handling the entire result; return `false` to let Chronicle append its recognized event returns. Throw on failure so the partition fails instead of acknowledging a lost side effect. The hook is installed before reactor observations begin. It does not provide a transaction across commands and events; handle mixed returns deliberately.
 
 A `@reactor`/`@reducer`-decorated class instance can also optionally implement `ICanBeNotifiedWhenReplay` (`beginReplay`/`endReplay`) and/or `ICanBeNotifiedWhenPartitionReplayed` (`beginReplayPartition`/`endReplayPartition`, both given the partition) to be notified when a replay begins and ends, at the full-observer or per-partition granularity.
+
+## Replay policies
+
+Reactors are replayable by default. Put `@onceOnly()` on a handler to skip that handler for replayed events, or on the reactor class to register the entire reactor as non-replayable so the kernel does not replay it.
+
+```typescript
+import { eventType, reactor, onceOnly, replay } from '@cratis/chronicle';
+
+@eventType()
+class OrderPlaced {
+    constructor(readonly orderId: string = '') {}
+}
+
+@reactor()
+class OrderReactor {
+    @onceOnly()
+    async orderPlaced(event: OrderPlaced): Promise<void> {
+        // Notify the customer on live delivery; never notify again during replay.
+    }
+
+    @replay()
+    async replayOrderPlaced(event: OrderPlaced): Promise<void> {
+        // Rebuild replay-specific state instead of running orderPlaced.
+    }
+}
+```
+
+**Upgrade caution:** Existing reactors now accept kernel replays, including explicit replays and automatic replays such as revision/redaction rewinds or definition-change replays when enabled. Mark side-effecting reactors with class-level `@onceOnly()` if none of their handlers should replay; use method-level `@onceOnly()` when only particular handlers have side effects. Review existing reactors before upgrading to avoid repeating notifications, external calls, or returned events.
+
+`@replay()` uses the `replay<EventClassName>` method naming convention; `@replay(OrderPlaced)` also accepts an explicit event type when a different name is useful. A replay-only handler subscribes to its event type, but does not run during live delivery. Without a replay-specific handler, the ordinary camelCase event handler runs for replayed events unless that method has `@onceOnly()`. When both are present, **only** the replay handler runs during replay; method-level `@onceOnly()` on the ordinary handler does not prevent it. Both decorators support legacy and standard TypeScript decorator syntax.
+
+These policies apply to the **per-event observation state** sent by the kernel, not the separate begin/end replay lifecycle notifications. They do not guarantee exactly-once delivery: failed-partition recovery delivers ordinary events again, so side effects still need idempotency.

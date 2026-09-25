@@ -4,7 +4,7 @@
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { Constructor } from '@cratis/fundamentals';
-import { ObservationState, ReactorMessage } from '@cratis/chronicle.contracts';
+import { EventObservationState, ObservationState, ReactorMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -18,6 +18,8 @@ import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReactors } from './IReactors.js';
 import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
+import { isOnceOnly } from './onceOnly.js';
+import { getReplayEventType } from './replay.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
 
 /** Expression used to partition reactor observations by event source ID. */
@@ -29,7 +31,8 @@ const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
 interface EventTypeEntry {
     readonly id: string;
     readonly generation: number;
-    readonly methodName: string;
+    readonly methodName?: string;
+    readonly replayMethodName?: string;
 }
 
 /**
@@ -240,7 +243,7 @@ export class Reactors implements IReactors {
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),
-                        IsReplayable: false,
+                        IsReplayable: !isOnceOnly(reactorType),
                         Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reactorType).map(t => t.value),
@@ -288,7 +291,19 @@ export class Reactors implements IReactors {
 
                         const entry = eventTypes.find(et => et.id === eventTypeId);
                         if (!entry) {
-                            this._logger.debug('No handler registered for event type — skipping', { reactorId: id, eventTypeId });
+                            this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId });
+                            lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                            continue;
+                        }
+
+                        const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
+                        const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
+                        if (!methodName || (isReplay && isOnceOnly(reactorInstance[methodName]))) {
+                            if (isReplay && methodName && isOnceOnly(reactorInstance[methodName])) {
+                                this._logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: methodName });
+                            } else {
+                                this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay });
+                            }
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                             continue;
                         }
@@ -299,12 +314,12 @@ export class Reactors implements IReactors {
 
                         this._logger.info('Invoking reactor handler', {
                             reactorId: id,
-                            method: entry.methodName,
+                            method: methodName,
                             sequenceNumber: event.Context!.SequenceNumber.toString(),
                             eventTypeId
                         });
 
-                        const handlerResult = await reactorInstance[entry.methodName](content, context);
+                        const handlerResult = await reactorInstance[methodName](content, context);
                         await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
                             this._eventStoreName, this._namespace, this._resultHandler);
 
@@ -350,19 +365,55 @@ export class Reactors implements IReactors {
     private getEventTypesFor(reactorType: Constructor): EventTypeEntry[] {
         const proto = reactorType.prototype as Record<string, unknown>;
         const entries: EventTypeEntry[] = [];
+        const replayHandlers = new Map<string, string>();
+        const eventTypes = new Map<string, { eventTypeClass: Function; id: string; generation: number }>();
 
         for (const eventTypeClass of this._clientArtifacts.eventTypes) {
-            const eventTypeMeta = getEventTypeMetadata(eventTypeClass);
-            if (!eventTypeMeta) continue;
+            const metadata = getEventTypeMetadata(eventTypeClass);
+            if (metadata) {
+                eventTypes.set((eventTypeClass as Function).name, {
+                    eventTypeClass: eventTypeClass as Function,
+                    id: metadata.eventType.id.value,
+                    generation: metadata.eventType.generation.value
+                });
+            }
+        }
 
-            const className = (eventTypeClass as Function).name;
+        // A derived method shadows a base method of the same name, even if it is not marked for replay.
+        const seenMethods = new Set<string>();
+        for (let current = proto; current && current !== Object.prototype; current = Object.getPrototypeOf(current) as Record<string, unknown>) {
+            for (const name of Object.getOwnPropertyNames(current)) {
+                if (seenMethods.has(name)) continue;
+                seenMethods.add(name);
+                const method = current[name];
+                if (typeof method !== 'function') continue;
+                const replayEventType = getReplayEventType(method);
+                if (replayEventType === undefined) continue;
+
+                const eventType = replayEventType === true
+                    ? eventTypes.get(name.startsWith('replay') ? name.slice('replay'.length) : '')
+                    : [...eventTypes.values()].find(candidate => candidate.eventTypeClass === replayEventType);
+                if (!eventType) {
+                    throw new Error(`Replay handler '${name}' on reactor '${(reactorType as Function).name}' has no registered event type.`);
+                }
+                if (replayHandlers.has(eventType.id)) {
+                    throw new Error(`Reactor '${(reactorType as Function).name}' has multiple replay handlers for event type '${eventType.id}': '${replayHandlers.get(eventType.id)}' and '${name}'.`);
+                }
+                replayHandlers.set(eventType.id, name);
+            }
+        }
+
+        for (const [className, eventType] of eventTypes) {
             const methodName = className.charAt(0).toLowerCase() + className.slice(1);
-
-            if (typeof proto[methodName] === 'function') {
+            const liveMethod = proto[methodName];
+            const liveMethodName = typeof liveMethod === 'function' && getReplayEventType(liveMethod) === undefined ? methodName : undefined;
+            const replayMethodName = replayHandlers.get(eventType.id);
+            if (liveMethodName || replayMethodName) {
                 entries.push({
-                    id: eventTypeMeta.eventType.id.value,
-                    generation: eventTypeMeta.eventType.generation.value,
-                    methodName
+                    id: eventType.id,
+                    generation: eventType.generation,
+                    methodName: liveMethodName,
+                    replayMethodName
                 });
             }
         }

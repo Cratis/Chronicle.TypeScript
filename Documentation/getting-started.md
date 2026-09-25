@@ -121,11 +121,12 @@ The kernel stores every mapped property, but when the client reads a read model 
 A reactor runs code when an event is appended. Create `src/notifications.ts`:
 
 ```typescript title="src/notifications.ts"
-import { EventContext, reactor } from '@cratis/chronicle';
+import { EventContext, onceOnly, reactor } from '@cratis/chronicle';
 import { BookBorrowed } from './events.js';
 
 @reactor()
 export class LoanNotifications {
+    @onceOnly()
     async bookBorrowed(event: BookBorrowed, context: EventContext): Promise<void> {
         console.log(`Reactor: ${event.memberName} borrowed book ${context.eventSourceId}`);
     }
