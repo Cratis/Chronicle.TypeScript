@@ -12,7 +12,6 @@ import { onceOnly } from './onceOnly.js';
 import { reactor } from './reactor.js';
 import { Reactors } from './Reactors.js';
 import { replay } from './replay.js';
-import { replayable } from './replayable.js';
 
 @eventType('reactor-replay-event')
 class SomethingHappened {
@@ -59,20 +58,20 @@ class DefaultReactor {
 
 @reactor('once-only-replay-policy')
 @onceOnly()
-@replayable()
 class OnceOnlyReactor {
     somethingHappened() { invoked.push('live'); }
 }
 
-@reactor('opt-in-replay-policy')
-@replayable()
-class ReplayableReactor {
+@reactor('inherited-once-only-policy')
+class InheritedOnceOnlyReactor extends OnceOnlyReactor {}
+
+@reactor('method-once-only-policy')
+class MethodOnceOnlyReactor {
     @onceOnly()
     somethingHappened() { invoked.push('live'); }
 }
 
 @reactor('replay-alternative-policy')
-@replayable()
 class AlternativeReactor {
     @onceOnly()
     somethingHappened() { invoked.push('live'); }
@@ -81,31 +80,46 @@ class AlternativeReactor {
     replaySomethingHappened(event: SomethingHappened) { invoked.push(`replay:${event.value}`); }
 }
 
+@reactor('once-only-replay-handler-policy')
+class OnceOnlyReplayHandlerReactor {
+    somethingHappened() { invoked.push('live'); }
+
+    @onceOnly()
+    @replay()
+    replaySomethingHappened() { invoked.push('replay'); }
+}
+
 @reactor('replay-only-policy')
-@replayable()
 class ReplayOnlyReactor {
     @replay(SomethingHappened)
     rebuild(event: SomethingHappened) { invoked.push(`replay:${event.value}`); }
 }
 
 describe('reactor replay policy', () => {
-    it('preserves the non-replayable registration default and ordinary handler dispatch', async () => {
+    it('registers reactors as replayable by default and dispatches ordinary handlers for both deliveries', async () => {
         invoked = [];
         const delivery = await observe(DefaultReactor, [EventObservationState.Initial, EventObservationState.Replay]);
-        expect(delivery.registration?.IsReplayable).toBe(false);
+        expect(delivery.registration?.IsReplayable).toBe(true);
         expect(invoked).toEqual(['live:hello', 'live:hello']);
     });
 
-    it('class-level onceOnly overrides replay opt-in', async () => {
+    it('registers a class marked onceOnly as non-replayable', async () => {
         invoked = [];
         const delivery = await observe(OnceOnlyReactor, [EventObservationState.Initial]);
         expect(delivery.registration?.IsReplayable).toBe(false);
         expect(invoked).toEqual(['live']);
     });
 
+    it('does not inherit a class-level onceOnly marker on registration', async () => {
+        invoked = [];
+        const delivery = await observe(InheritedOnceOnlyReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(delivery.registration?.IsReplayable).toBe(true);
+        expect(invoked).toEqual(['live', 'live']);
+    });
+
     it('skips a method-level onceOnly handler only for replayed events and acknowledges both', async () => {
         invoked = [];
-        const delivery = await observe(ReplayableReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        const delivery = await observe(MethodOnceOnlyReactor, [EventObservationState.Initial, EventObservationState.Replay]);
         expect(delivery.registration?.IsReplayable).toBe(true);
         expect(invoked).toEqual(['live']);
         expect(delivery.result?.LastSuccessfulObservation).toBe(2n);
@@ -115,6 +129,13 @@ describe('reactor replay policy', () => {
         invoked = [];
         const delivery = await observe(AlternativeReactor, [EventObservationState.Initial, EventObservationState.Replay]);
         expect(invoked).toEqual(['live', 'replay:hello']);
+        expect(delivery.result?.LastSuccessfulObservation).toBe(2n);
+    });
+
+    it('does not fall back to the ordinary handler when the replay handler is onceOnly', async () => {
+        invoked = [];
+        const delivery = await observe(OnceOnlyReplayHandlerReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(invoked).toEqual(['live']);
         expect(delivery.result?.LastSuccessfulObservation).toBe(2n);
     });
 

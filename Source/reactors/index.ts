@@ -5,7 +5,6 @@ export { ReactorId } from './ReactorId.js';
 export { reactor, getReactorMetadata, isReactor } from './reactor.js';
 export { onceOnly } from './onceOnly.js';
 export { replay } from './replay.js';
-export { replayable } from './replayable.js';
 export type { ReactorMetadata } from './reactor.js';
 export type { IReactors } from './IReactors.js';
 export { Reactors } from './Reactors.js';

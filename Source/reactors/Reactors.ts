@@ -20,7 +20,6 @@ import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
 import { isOnceOnly } from './onceOnly.js';
 import { getReplayEventType } from './replay.js';
-import { isReplayable } from './replayable.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
 
 /** Expression used to partition reactor observations by event source ID. */
@@ -244,7 +243,7 @@ export class Reactors implements IReactors {
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),
-                        IsReplayable: isReplayable(reactorType) && !isOnceOnly(reactorType),
+                        IsReplayable: !isOnceOnly(reactorType),
                         Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reactorType).map(t => t.value),

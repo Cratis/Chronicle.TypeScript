@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class SideEffectsBookReserved {
@@ -15,6 +15,7 @@ class SideEffectsStockDecreased {
 class SideEffectsWarehouseReactor {
     // Returning an event from a handler appends it for you, targeting the triggering
     // event's own event source id, stream, and subject.
+    @onceOnly()
     async sideEffectsBookReserved(event: SideEffectsBookReserved, context: EventContext): Promise<SideEffectsStockDecreased> {
         return new SideEffectsStockDecreased(event.isbn, 1);
     }

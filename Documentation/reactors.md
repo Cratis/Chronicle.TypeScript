@@ -27,10 +27,10 @@ A `@reactor`/`@reducer`-decorated class instance can also optionally implement `
 
 ## Replay policies
 
-Unlike the .NET client (which registers reactors as replayable unless the class has `[OnceOnly]`), **TypeScript reactors remain non-replayable by default** for compatibility with existing applications. Add `@replayable()` to opt a class into kernel replays. A class-level `@onceOnly()` overrides this opt-in: the kernel never replays that reactor.
+Reactors are replayable by default. Put `@onceOnly()` on a handler to skip that handler for replayed events, or on the reactor class to register the entire reactor as non-replayable so the kernel does not replay it.
 
 ```typescript
-import { reactor, replayable, onceOnly, replay } from '@cratis/chronicle/reactors';
+import { reactor, onceOnly, replay } from '@cratis/chronicle/reactors';
 import { eventType } from '@cratis/chronicle/events';
 
 @eventType()
@@ -39,7 +39,6 @@ class OrderPlaced {
 }
 
 @reactor()
-@replayable()
 class OrderReactor {
     @onceOnly()
     async orderPlaced(event: OrderPlaced): Promise<void> {
@@ -52,6 +51,8 @@ class OrderReactor {
     }
 }
 ```
+
+**Upgrade caution:** Existing reactors now accept kernel replays, including explicit replays and automatic replays such as revision/redaction rewinds or definition-change replays when enabled. Mark side-effecting reactors with class-level `@onceOnly()` if none of their handlers should replay; use method-level `@onceOnly()` when only particular handlers have side effects. Review existing reactors before upgrading to avoid repeating notifications, external calls, or returned events.
 
 `@replay()` uses the `replay<EventClassName>` method naming convention; `@replay(OrderPlaced)` also accepts an explicit event type when a different name is useful. A replay-only handler subscribes to its event type, but does not run during live delivery. Without a replay-specific handler, the ordinary camelCase event handler runs for replayed events unless that method has `@onceOnly()`. When both are present, **only** the replay handler runs during replay; method-level `@onceOnly()` on the ordinary handler does not prevent it. Both decorators support legacy and standard TypeScript decorator syntax.
 

@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class MultipleSideEffectsBookReserved {
@@ -20,6 +20,7 @@ class MultipleSideEffectsStockLow {
 class MultipleSideEffectsInventoryReactor {
     // An array of events is appended together in one atomic AppendMany call - never
     // one append per item.
+    @onceOnly()
     async multipleSideEffectsBookReserved(event: MultipleSideEffectsBookReserved, context: EventContext): Promise<object[]> {
         return [
             new MultipleSideEffectsStockDecreased(event.isbn, 1),

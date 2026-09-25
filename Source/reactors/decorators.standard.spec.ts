@@ -4,12 +4,10 @@
 import { describe, expect, it } from 'vitest';
 import { onceOnly, isOnceOnly } from './onceOnly.js';
 import { replay, getReplayEventType } from './replay.js';
-import { replayable, isReplayable } from './replayable.js';
 
 class EventForReplay {}
 
 @onceOnly()
-@replayable()
 class StandardReactor {
     @onceOnly()
     eventForReplay() {}
@@ -21,15 +19,15 @@ class StandardReactor {
     rebuild() {}
 }
 
-@replayable()
-class OptedInReactor {}
+class OrdinaryReactor {}
+
+class InheritedReactor extends StandardReactor {}
 
 describe('standard reactor policy decorators', () => {
     it('marks the class independently of its handlers', () => {
         expect(isOnceOnly(StandardReactor)).toBe(true);
-        expect(isReplayable(StandardReactor)).toBe(true);
-        expect(isOnceOnly(OptedInReactor)).toBe(false);
-        expect(isReplayable(OptedInReactor)).toBe(true);
+        expect(isOnceOnly(OrdinaryReactor)).toBe(false);
+        expect(isOnceOnly(InheritedReactor)).toBe(false);
     });
 
     it('marks methods without modifying the class or other methods', () => {

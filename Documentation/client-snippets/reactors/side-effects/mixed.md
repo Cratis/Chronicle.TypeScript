@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, EventForEventSourceId, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, EventForEventSourceId, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class MixedBookReserved {
@@ -21,6 +21,7 @@ class MixedSideEffectsReactor {
     // A bare event uses the triggering event's own target; an EventForEventSourceId
     // entry keeps its own explicit target - both can be returned together, in one
     // atomic AppendMany call.
+    @onceOnly()
     async mixedBookReserved(event: MixedBookReserved, context: EventContext): Promise<Array<object | EventForEventSourceId>> {
         return [
             new MixedActivityLogged(event.isbn),

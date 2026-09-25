@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, EventForEventSourceId, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, EventForEventSourceId, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class ExplicitMetadataBookReserved {
@@ -13,6 +13,7 @@ class ExplicitMetadataMemberActivityRecorded {
 
 @reactor()
 class ExplicitMetadataReactor {
+    @onceOnly()
     async explicitMetadataBookReserved(event: ExplicitMetadataBookReserved, context: EventContext): Promise<EventForEventSourceId> {
         return {
             eventSourceId: event.memberId,
