@@ -4,6 +4,8 @@
   href: getting-started.md
 - name: Preserve Existing Append Routes
   href: migrate-append-routing.md
+- name: Constraints
+  href: constraints.md
 - name: Runtime
   items:
     - name: Sinks

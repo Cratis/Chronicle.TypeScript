@@ -26,5 +26,6 @@ The existing client snippets under `Documentation/client-snippets/` with `constr
 - [Getting Started](./getting-started.md) — install and connect the TypeScript client
 - [Sinks](./sinks.md) — configuring read-model persistence targets
 - [Jobs](./jobs.md) — managing Chronicle jobs from TypeScript
+- [Constraints](./constraints.md) — unique event properties and event types
 - [Webhooks](./webhooks.md) — registering and discovering client webhooks
 - [Identity](./identity.md), [Causation](./auditing.md), and [Correlation](./correlation.md) — TypeScript call-context metadata
