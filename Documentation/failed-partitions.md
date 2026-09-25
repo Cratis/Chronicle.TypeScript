@@ -1,4 +1,7 @@
-# Failed Partitions
+---
+title: Failed partitions
+description: Find the observer partitions Chronicle stopped retrying, and wait for observers after an append.
+---
 
 Chronicle partitions the events an observer (a reactor, reducer, or projection) processes — typically by event source id — so many partitions can make progress independently. When a handler keeps failing for a partition, Chronicle stops retrying it and marks it failed, without blocking any other partition; events already applied to *other* partitions keep flowing. Use `eventStore.failedPartitions` to inspect the partitions an observer has given up on.
 
@@ -32,7 +35,7 @@ Each `FailedPartitionAttempt` carries:
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const client = new ChronicleClient(ChronicleOptions.development());
+const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
 const eventStore = await client.getEventStore('MyStore');
 
 const failedPartitions = await eventStore.failedPartitions.getAllFailedPartitions();
@@ -54,7 +57,7 @@ const reactorFailures = await eventStore.failedPartitions.getFailedPartitionsFor
 
 ## Waiting for completion instead of polling
 
-Rather than polling `failedPartitions` after an append, `AppendResult.waitForCompletion()` waits (5 second default timeout) for every observer affected by that specific append to either catch up or fail, and reports any failed partitions directly:
+Rather than polling `failedPartitions` after an append, `AppendResult.waitForCompletion()` waits for every observer affected by that specific append to either catch up or fail, and reports any failed partitions directly. The timeout defaults to 5 seconds; when it passes, the promise rejects. This excerpt assumes an `OrderShipped` event type:
 
 ```typescript
 const result = await eventStore.eventLog.append('order-123', new OrderShipped());

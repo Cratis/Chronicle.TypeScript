@@ -1,13 +1,19 @@
-# External Services
+---
+title: External services
+description: Register HTTP and database external services with the Chronicle kernel from TypeScript.
+---
 
 See [External Services](/chronicle/external-services/) for what an external service is. External services are usually configured in the Workbench, but the TypeScript client also exposes a programmatic API on `eventStore.externalServices`.
 
 ## Register an HTTP service with bearer token authentication
 
+The token comes from your own configuration; this example reads it from an environment variable.
+
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const client = new ChronicleClient(ChronicleOptions.development());
+const token = process.env.CUSTOMERS_API_TOKEN!;
+const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
 const eventStore = await client.getEventStore('MyStore');
 
 await eventStore.externalServices.register('CustomersApi', builder => builder
@@ -20,12 +26,14 @@ client.dispose();
 
 ## Register a PostgreSQL database service
 
+This excerpt uses the `eventStore` from the example above, before the client is disposed; `password` comes from your configuration.
+
 ```typescript
 await eventStore.externalServices.register('CustomersDb', builder => builder
     .postgreSql('db.example.com', 'customers', 'postgres', password, 5432));
 ```
 
-Registering the same name again overwrites the previous definition, so this is safe to call repeatedly (for example, on every application startup).
+The client uses the name as the service identifier. `register` does not check the kernel's response, so a definition the kernel rejects does not raise an error; confirm the service in the Workbench after you register it.
 
 ## API
 

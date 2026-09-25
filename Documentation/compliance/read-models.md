@@ -1,8 +1,8 @@
 ---
+title: Compliance in read models
+description: Read-model compliance is documented in the shared Chronicle compliance docs.
 sharedTopicBridge: true
 ---
-
-# Compliance in Read Models
 
 Read-model compliance is documented in the shared Chronicle compliance section so all clients use the same rules.
 

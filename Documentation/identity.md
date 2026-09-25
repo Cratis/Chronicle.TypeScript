@@ -1,4 +1,7 @@
-# Identity
+---
+title: Identity
+description: Control which identity the TypeScript client records as the cause of each appended event.
+---
 
 See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what identity means and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. The `Identity` class is sent with every event append as the `CausedBy` field.
 
@@ -9,14 +12,14 @@ import { Identity } from '@cratis/chronicle';
 
 // Create a user identity
 const identity = new Identity(
-    'a1b2c3d4-...',  // subject — unique identifier (e.g. a user's ID or OAuth subject claim)
+    'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',  // subject — unique identifier (e.g. a user's ID or OAuth subject claim)
     'Jane Doe',       // name
     'jane.doe'        // userName (optional, defaults to '')
 );
 
 // On-behalf-of chains are supported
 const delegatedIdentity = new Identity(
-    'service-id-...',
+    'my-service',
     'My Service',
     'my-service',
     identity          // onBehalfOf
@@ -60,6 +63,8 @@ For concurrent or nested operations, prefer `identityProvider.run(identity, call
 
 ### Express middleware example
 
+This excerpt assumes an Express `app` and an authentication middleware that sets `req.auth` before it runs.
+
 ```typescript
 import express from 'express';
 import { identityProvider, Identity } from '@cratis/chronicle';
@@ -71,21 +76,8 @@ app.use((req, res, next) => {
 });
 ```
 
-## Implementing a custom provider
+## Derive the identity from your framework
 
-If you need to derive the identity from a framework-specific source (e.g. an HTTP context, a gRPC call, a message-bus header), implement `IIdentityProvider`:
+The client reads the identity for every append from the exported `identityProvider` singleton. It does not accept another `IIdentityProvider` implementation, so a custom class that implements the interface is never consulted. To take the identity from an HTTP context, a gRPC call, or a message header, read it at the boundary where the work starts and wrap the work in `identityProvider.run(...)`, as the Express example above does.
 
-```typescript
-import { IIdentityProvider, Identity } from '@cratis/chronicle';
-
-class MyIdentityProvider implements IIdentityProvider {
-    getCurrent(): Identity {
-        return ...; // pull from your context
-    }
-
-    setCurrentIdentity(identity: Identity): void { /* ... */ }
-    clearCurrentIdentity(): void { /* ... */ }
-}
-```
-
-Then pass it wherever `IIdentityProvider` is expected, or replace usages of the `identityProvider` singleton with your instance.
+`IIdentityProvider` describes the read and set operations (`getCurrent()`, `setCurrentIdentity()`, `clearCurrentIdentity()`). Use it to type your own code against the provider, for example to pass `identityProvider` to a function that only needs `getCurrent()`.

@@ -1,4 +1,7 @@
-# Jobs
+---
+title: Jobs
+description: Inspect, stop, resume, and delete Chronicle jobs from TypeScript with eventStore.jobs.
+---
 
 See [Jobs](/chronicle/jobs/) for what a job is. Use `eventStore.jobs` to inspect and control Chronicle jobs in a namespace.
 
@@ -24,7 +27,7 @@ For `jobId`, you can pass:
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const client = new ChronicleClient(ChronicleOptions.development());
+const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
 const eventStore = await client.getEventStore('MyStore');
 
 const jobId = '94ba2c17-0977-478e-a278-70f6757aac2d';
@@ -36,7 +39,7 @@ client.dispose();
 
 ## Get a single job
 
-`getJob(jobId)` returns `undefined` when the job is not found.
+`getJob(jobId)` returns `undefined` when the job is not found. This excerpt uses the `eventStore` from the example above, before the client is disposed:
 
 ```typescript
 const job = await eventStore.jobs.getJob('94ba2c17-0977-478e-a278-70f6757aac2d');
