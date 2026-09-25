@@ -1,5 +1,6 @@
 ```typescript title="Convention-based fromAll property"
 import { eventType, fromAll, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ProductRenamedFromAllConvention {
@@ -20,8 +21,8 @@ export class ProductPriceChangedFromAllConvention {
 @fromEvent(ProductRenamedFromAllConvention)
 @fromEvent(ProductPriceChangedFromAllConvention)
 export class ProductVersionFromAllConvention {
-    name = '';
-    price = 0;
+    @field(String) name = '';
+    @field(Number) price = 0;
 
     @fromAll()
     version = 0;

@@ -1,5 +1,6 @@
 ```typescript title="Convention-based mapping"
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserRegistered {
@@ -12,8 +13,8 @@ export class ConventionUserRegistered {
 
 @fromEvent(ConventionUserRegistered)
 export class ConventionUser {
-    name = '';
-    email = '';
-    registeredAt = new Date();
+    @field(String) name = '';
+    @field(String) email = '';
+    @field(Date) registeredAt = new Date();
 }
 ```

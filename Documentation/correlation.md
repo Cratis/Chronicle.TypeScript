@@ -1,4 +1,7 @@
-# Correlation
+---
+title: Correlation
+description: Control the correlation ID the TypeScript client sends with every append.
+---
 
 See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what a correlation ID is and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. A `CorrelationId` is sent with every event append as the `CorrelationId` field.
 
@@ -11,7 +14,7 @@ import { CorrelationId } from '@cratis/chronicle';
 const id = CorrelationId.create();
 
 // Wrap an existing string (e.g. from an incoming X-Correlation-Id header)
-const fromHeader = new CorrelationId('d4e5f6a7-...');
+const fromHeader = new CorrelationId('d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f70');
 
 // Well-known sentinel for an unset ID
 const empty = CorrelationId.notSet;
@@ -37,7 +40,7 @@ const id = correlationIdManager.current;
 ```typescript
 import { correlationIdManager, CorrelationId } from '@cratis/chronicle';
 
-correlationIdManager.setCurrent(new CorrelationId('d4e5f6a7-...'));
+correlationIdManager.setCurrent(new CorrelationId('d4e5f6a7-8b9c-4d0e-9f1a-2b3c4d5e6f70'));
 ```
 
 ### Resetting to a new ID
@@ -47,6 +50,8 @@ correlationIdManager.clear(); // replaces the stored ID with a fresh GUID
 ```
 
 ### Express middleware example
+
+This excerpt assumes an Express `app`.
 
 ```typescript
 import express from 'express';
@@ -58,10 +63,8 @@ app.use((req, res, next) => {
         ? new CorrelationId(String(header))
         : CorrelationId.create();
 
-    correlationIdManager.setCurrent(id);
     res.setHeader('x-correlation-id', id.toString());
-    res.on('finish', () => correlationIdManager.clear());
-    next();
+    correlationIdManager.run(id, () => next());
 });
 ```
 
@@ -96,16 +99,16 @@ resetForTest(manager);
 
 ## How correlation flows into events
 
-When you call `eventLog.append()` or `eventLog.appendMany()`, the Chronicle client automatically uses `correlationIdManager.current` as the `CorrelationId` for the gRPC request unless you provide an explicit `correlationId` in `AppendOptions`:
+When you call `eventLog.append()` or `eventLog.appendMany()`, the Chronicle client automatically uses `correlationIdManager.current` as the `CorrelationId` for the gRPC request unless you provide an explicit `correlationId` in `AppendOptions`. That option takes a `string` or a `Guid`, so pass a `CorrelationId`'s `value`. This excerpt assumes a `store`, an `eventSourceId`, and an `EmployeeHired` event type:
 
 ```typescript
 import { CorrelationId } from '@cratis/chronicle';
 
 // Uses correlationIdManager.current automatically
-await store.eventLog.append(eventSourceId, new EmployeeHired(...));
+await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'));
 
 // Override for this single append
-await store.eventLog.append(eventSourceId, new EmployeeHired(...), {
-    correlationId: CorrelationId.create()
+await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'), {
+    correlationId: CorrelationId.create().value
 });
 ```

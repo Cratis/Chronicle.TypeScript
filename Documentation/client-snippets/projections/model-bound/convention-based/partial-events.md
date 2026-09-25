@@ -1,5 +1,6 @@
 ```typescript title="Partial event shapes"
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionPartialUserRegistered {
@@ -18,9 +19,9 @@ export class ConventionPartialUserCompleted {
 @fromEvent(ConventionPartialUserRegistered)
 @fromEvent(ConventionPartialUserCompleted)
 export class ConventionPartialUser {
-    email = '';
-    firstName = '';
-    lastName = '';
-    phone = '';
+    @field(String) email = '';
+    @field(String) firstName = '';
+    @field(String) lastName = '';
+    @field(String) phone = '';
 }
 ```

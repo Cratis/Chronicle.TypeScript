@@ -1,8 +1,8 @@
 ---
+title: PII
+description: PII classification and release are documented in the shared Chronicle compliance docs.
 sharedTopicBridge: true
 ---
-
-# PII
 
 PII classification and release behavior are shared Chronicle compliance topics.
 

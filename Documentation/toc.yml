@@ -2,6 +2,8 @@
   href: index.md
 - name: Get Started
   href: getting-started.md
+- name: Connect to Chronicle
+  href: connecting.md
 - name: Preserve Existing Append Routes
   href: migrate-append-routing.md
 - name: Runtime
