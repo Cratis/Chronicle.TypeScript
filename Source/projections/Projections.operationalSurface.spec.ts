@@ -7,7 +7,6 @@ import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ObserverRunningState } from '../observation/ObserverRunningState.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
 import { eventSequence } from './modelBound/eventSequence.js';
 import { fromEvent } from './modelBound/fromEvent.js';
 import { projection } from './declarative/projection.js';
@@ -30,17 +29,14 @@ class OpSummary {
 }
 fromEvent(OpStateChanged)(OpSummary);
 eventSequence('custom-op-sequence')(OpSummary);
-readModel()(OpSummary);
 
 class UndiscoveredSummary {
     id!: string;
 }
-readModel()(UndiscoveredSummary);
 
 class DeclarativeReadModel {
     id!: string;
 }
-readModel()(DeclarativeReadModel);
 
 class DeclarativeSummaryProjection implements IProjectionFor<DeclarativeReadModel> {
     // discover() never calls define() - only register() does - so a no-op body is sufficient here.

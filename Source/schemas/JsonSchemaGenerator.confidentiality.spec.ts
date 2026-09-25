@@ -8,14 +8,13 @@ import { pii } from '../compliance/pii.js';
 import { encrypted } from '../confidentiality/encrypted.js';
 import { EncryptionScope } from '../confidentiality/EncryptionScope.js';
 import { PIIAndEncryptedCombinedNotSupported } from '../confidentiality/PIIAndEncryptedCombinedNotSupported.js';
-import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { JsonSchemaGenerator } from './JsonSchemaGenerator.js';
 import { JsonSchema } from './JsonSchema.js';
 
-// See JsonSchemaGenerator.spec.ts for why decorators are applied as plain function calls here
-// rather than `@decorator` syntax, and why order matters.
+// See JsonSchemaGenerator.spec.ts for why decorators are applied as plain function calls here.
 
 function schemaFor(target: Function): JsonSchema {
-    return getReadModelMetadata(target)!.schema;
+    return JsonSchemaGenerator.generate(target);
 }
 
 describe('JsonSchemaGenerator - security metadata', () => {
@@ -26,7 +25,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
         }
         encrypted()(PartnerCredentials);
 
-        readModel()(PartnerCredentials);
         const schema = schemaFor(PartnerCredentials);
 
         it('should mark every one of its own properties as EncryptedSubject', () => {
@@ -46,7 +44,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
             name = '';
         }
         encrypted(EncryptionScope.Subject, 'Partner API key')(Integration.prototype, 'apiKey');
-        readModel()(Integration);
         const schema = schemaFor(Integration);
 
         it('should mark the decorated property as EncryptedSubject', () => {
@@ -67,7 +64,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
             value = '';
         }
         encrypted(scope)(Secret.prototype, 'value');
-        readModel()(Secret);
         const schema = schemaFor(Secret);
 
         it(`should resolve to metadataType ${expectedMetadataType}`, () => {
@@ -88,7 +84,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
         class Configuration {
             key: ApiKey = new ApiKey('');
         }
-        readModel()(Configuration);
         const schema = schemaFor(Configuration);
 
         it('should mark the concept-typed property as EncryptedNamespace', () => {
@@ -105,7 +100,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
             contact: ContactDetails = new ContactDetails();
         }
         encrypted(EncryptionScope.Subject, 'Vendor contact information')(Vendor.prototype, 'contact');
-        readModel()(Vendor);
         const schema = schemaFor(Vendor);
 
         it('should push the security metadata down onto every leaf property', () => {
@@ -130,7 +124,6 @@ describe('JsonSchemaGenerator - security metadata', () => {
             tokens: Token[] = [];
         }
         field(Array, { enumerable: true, genericArguments: [Token] })(Session.prototype, 'tokens');
-        readModel()(Session);
         const schema = schemaFor(Session);
 
         it('should carry the element concept security metadata onto the item schema', () => {
@@ -150,7 +143,7 @@ describe('JsonSchemaGenerator - security metadata', () => {
         encrypted()(ConflictedValue.prototype, 'value');
 
         it('should throw PIIAndEncryptedCombinedNotSupported when generating the schema', () => {
-            expect(() => { readModel()(ConflictedValue); }).toThrow(PIIAndEncryptedCombinedNotSupported);
+            expect(() => schemaFor(ConflictedValue)).toThrow(PIIAndEncryptedCombinedNotSupported);
         });
     });
 
@@ -162,7 +155,7 @@ describe('JsonSchemaGenerator - security metadata', () => {
         encrypted()(MixedClass.prototype, 'value');
 
         it('should throw PIIAndEncryptedCombinedNotSupported when generating the schema', () => {
-            expect(() => { readModel()(MixedClass); }).toThrow(PIIAndEncryptedCombinedNotSupported);
+            expect(() => schemaFor(MixedClass)).toThrow(PIIAndEncryptedCombinedNotSupported);
         });
     });
 
@@ -171,13 +164,11 @@ describe('JsonSchemaGenerator - security metadata', () => {
             ssn = '';
         }
         pii()(OnlyPii.prototype, 'ssn');
-        readModel()(OnlyPii);
 
         class OnlyEncrypted {
             apiKey = '';
         }
         encrypted()(OnlyEncrypted.prototype, 'apiKey');
-        readModel()(OnlyEncrypted);
 
         it('should not throw for either type', () => {
             expect(() => schemaFor(OnlyPii)).not.toThrow();

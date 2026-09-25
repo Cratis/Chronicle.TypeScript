@@ -32,7 +32,7 @@ const PII_TYPE_METADATA_KEY = 'chronicle:compliance:pii:type';
  * @example
  * Property usage:
  * ```typescript
- * @readModel()
+ * @fromEvent(EmployeeHired)
  * class Employee {
  *     @pii('Employee social security number')
  *     ssn: string = '';
@@ -49,7 +49,7 @@ const PII_TYPE_METADATA_KEY = 'chronicle:compliance:pii:type';
  * class CustomerEmailConcept extends ConceptAs<string> {}
  * export type CustomerEmail = CustomerEmailConcept | string;
  * 
- * @readModel()
+ * @fromEvent(CustomerRegistered)
  * class Customer {
  *     @field(CustomerEmailConcept)
  *     email: CustomerEmail = '';

@@ -4,7 +4,7 @@
 import { field } from '@cratis/fundamentals';
 import { describe, expect, it, vi } from 'vitest';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
+import { fromEvent } from '../projections/modelBound/fromEvent.js';
 import { IClientArtifactsProvider } from './IClientArtifactsProvider.js';
 import { validateArtifactSchemas } from './validateArtifactSchemas.js';
 import { EventStore } from '../EventStore.js';
@@ -18,9 +18,9 @@ class BadEvent {
     @field(Array) items!: string[];
 }
 
-@readModel('bad-read-model')
+@fromEvent(BadEvent)
 class BadReadModel {
-    constructor(readonly name: string) {}
+    @field(Array) items!: string[];
 }
 
 @eventType('good-event')

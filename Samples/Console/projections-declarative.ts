@@ -1,11 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { Guid, IProjectionBuilderFor, IProjectionFor, projection, readModel } from '@cratis/chronicle';
+import { Guid, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 import { EmployeeHired, EmployeeAddressSet, EmployeePromoted, EmployeeMoved } from './events.js';
 
 /** Read model shape for the declarative employee list projection artifact. */
-@readModel()
 export class Employee {
     id: Guid = Guid.empty;
     firstName: string = '';
