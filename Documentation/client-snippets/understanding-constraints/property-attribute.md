@@ -1,3 +1,9 @@
-```text
-TypeScript does not support this workflow yet.
+```typescript
+import { eventType, unique } from '@cratis/chronicle';
+
+@eventType('understanding-constraints-user-registered')
+class UcUserRegistered {
+    @unique('UniqueEmail') email = '';
+    displayName = '';
+}
 ```

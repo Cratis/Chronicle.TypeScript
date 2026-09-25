@@ -16,6 +16,8 @@ export interface ConstraintScopeCapture {
 /** Represents the captured definition of a unique event type constraint. */
 export interface UniqueEventTypeCapture {
     eventTypeId: string;
+    eventTypeIds?: string[];
+    removedWithEventTypeIds?: string[];
     message?: string;
     name?: string;
 }

@@ -1,3 +1,9 @@
-```text
-TypeScript does not support this workflow yet.
+```typescript
+import { eventType, removeConstraint } from '@cratis/chronicle';
+
+@eventType('constraints-model-bound-once-user-removed')
+@removeConstraint('UniqueUser')
+class CmbOnceUserRemoved {
+    userId = '';
+}
 ```
