@@ -98,19 +98,17 @@ describe('OAuthTokenProvider', () => {
     });
 
     describe('when no token can be fetched', () => {
-        it('should return undefined instead of rejecting', async () => {
+        it('should report the endpoint and cause', async () => {
             const { provider } = createProvider([new Error('unavailable')]);
 
-            // The RPC proceeds and fails with the server's auth rejection — that is
-            // the session machinery's problem, not the token provider's.
-            expect(await provider.getAccessToken()).toBeUndefined();
+            await expect(provider.getAccessToken()).rejects.toThrow('https://localhost:35000/connect/token: unavailable');
         });
 
         it('should throttle further fetch attempts', async () => {
             const { provider, fetchToken } = createProvider([new Error('unavailable')]);
 
-            expect(await provider.getAccessToken()).toBeUndefined();
-            expect(await provider.getAccessToken()).toBeUndefined();
+            await expect(provider.getAccessToken()).rejects.toThrow('unavailable');
+            await expect(provider.getAccessToken()).rejects.toThrow('unavailable');
 
             // The second request arrives well inside the retry delay — one attempt,
             // not one per RPC (the session answers a keepalive every second).
@@ -121,7 +119,7 @@ describe('OAuthTokenProvider', () => {
             vi.useFakeTimers();
             const { provider, fetchToken } = createProvider([new Error('unavailable'), token('token-1', longLifetime)]);
 
-            expect(await provider.getAccessToken()).toBeUndefined();
+            await expect(provider.getAccessToken()).rejects.toThrow('unavailable');
             vi.advanceTimersByTime(5000);
 
             expect(await provider.getAccessToken()).toBe('token-1');

@@ -19,10 +19,8 @@ export interface ITokenProvider {
     /**
      * Gets the current access token.
      *
-     * Never rejects — when no token can be obtained the result is undefined, the RPC
-     * proceeds without authorization and fails with the server's rejection, which the
-     * session machinery recovers from.
-     * @returns Promise resolving to the access token or undefined if not available.
+     * Rejects with the token endpoint and cause when no usable token can be obtained.
+     * @returns Promise resolving to the access token or undefined for non-token authentication.
      */
     getAccessToken(): Promise<string | undefined>;
 
@@ -65,6 +63,7 @@ export class OAuthTokenProvider implements ITokenProvider {
     private _accessToken?: string;
     private _expiresAt = 0;
     private _lastFailedFetch?: number;
+    private _lastFetchError?: Error;
     private _refreshPromise?: Promise<string | undefined>;
 
     /**
@@ -76,12 +75,12 @@ export class OAuthTokenProvider implements ITokenProvider {
      * @param _fetchToken - Test-only seam replacing the OAuth2 token request.
      */
     constructor(
-        tokenEndpoint: string,
+        private readonly _tokenEndpoint: string,
         clientId: string,
         clientSecret: string,
         skipTlsValidation: boolean = true,
         private readonly _fetchToken: () => Promise<OAuthTokenResponse> = () =>
-            fetchOAuthAccessToken(tokenEndpoint, clientId, clientSecret, skipTlsValidation)
+            fetchOAuthAccessToken(this._tokenEndpoint, clientId, clientSecret, skipTlsValidation)
     ) {}
 
     async getAccessToken(): Promise<string | undefined> {
@@ -94,7 +93,9 @@ export class OAuthTokenProvider implements ITokenProvider {
         }
 
         if (this.isThrottled()) {
-            return this.cachedTokenWhileValid();
+            const cached = this.cachedTokenWhileValid();
+            if (cached) return cached;
+            throw this._lastFetchError!;
         }
 
         this._refreshPromise = this.fetchAndCacheAccessToken();
@@ -109,6 +110,7 @@ export class OAuthTokenProvider implements ITokenProvider {
         this._accessToken = undefined;
         this._expiresAt = 0;
         this._lastFailedFetch = undefined;
+        this._lastFetchError = undefined;
         return this.getAccessToken();
     }
 
@@ -130,13 +132,17 @@ export class OAuthTokenProvider implements ITokenProvider {
             this._accessToken = response.access_token;
             this._expiresAt = Date.now() + this.lifetimeSecondsFrom(response) * 1000;
             this._lastFailedFetch = undefined;
+            this._lastFetchError = undefined;
             return this._accessToken;
         } catch (error) {
             this._logger.warn('Failed to fetch OAuth2 token', {
                 error: error instanceof Error ? error.message : String(error)
             });
             this._lastFailedFetch = Date.now();
-            return this.cachedTokenWhileValid();
+            this._lastFetchError = new Error(`Failed to obtain OAuth2 token from ${this._tokenEndpoint}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+            const cached = this.cachedTokenWhileValid();
+            if (cached) return cached;
+            throw this._lastFetchError;
         }
     }
 
