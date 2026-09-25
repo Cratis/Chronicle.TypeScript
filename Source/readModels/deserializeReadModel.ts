@@ -36,11 +36,39 @@ function convert(type: Function, value: unknown): unknown {
     if (type === Boolean) return typeof value === 'string' && /^(true|false)$/i.test(value) ? value.toLowerCase() === 'true' : value;
     if (type === Number) return Number(value);
     if (type === String) return String(value);
-    if (type === Date || type === Guid || typeKeyOf(type as Constructor) === 'Guid' ||
-        (typeof value === 'object' && type !== Array && type !== Object)) {
+    if (type === Date || type === Guid || typeKeyOf(type as Constructor) === 'Guid') {
         return JsonSerializer.deserializeFromInstance(type as Constructor<object>, value);
     }
+    if (typeof value === 'object' && type !== Array && type !== Object && !Array.isArray(value)) {
+        return restore(type as Constructor<object>, value as Record<string, unknown>);
+    }
     return value;
+}
+
+function restore<T>(type: Constructor<T>, stored: Record<string, unknown> | null): T {
+    const fields = Fields.getFieldsForType(type);
+    const instance = fields.length > 0
+        ? JsonSerializer.deserializeFromInstance(type as Constructor<object>, stored) as T
+        : Reflect.construct(type, []) as T;
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return instance;
+
+    const fieldByName = new Map(fields.map(field => [field.name, field]));
+    const result = instance as Record<string, unknown>;
+    for (const [name, runtimeType] of membersFor(type)) {
+        if (name.startsWith('__') || !writable(type, name) || !Object.prototype.hasOwnProperty.call(stored, name)) continue;
+        const value = stored[name];
+        const field = fieldByName.get(name);
+        const childType = field?.genericArguments?.[0];
+        if (Array.isArray(value) && childType) {
+            result[name] = value.map(item => convert(childType, item));
+        } else if (field && (value === null || value === undefined || !runtimeType || runtimeType === Array || runtimeType === Object || typeof value !== 'object')) {
+            // The serializer has already handled decorated scalar fields.
+            if (value === null || value === undefined) result[name] = value;
+        } else {
+            result[name] = value === null || value === undefined || !runtimeType ? value : convert(runtimeType, value);
+        }
+    }
+    return instance;
 }
 
 /** Restores declared model members not covered by Fundamentals' @field-based deserializer. */
@@ -49,26 +77,5 @@ export function deserializeReadModel<TReadModel>(readModelType: Constructor<TRea
         return Object.create(readModelType.prototype) as TReadModel;
     }
 
-    const stored = JSON.parse(json) as Record<string, unknown> | null;
-    const instance = JsonSerializer.deserializeFromInstance(readModelType as Constructor<object>, stored) as TReadModel;
-    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
-        return instance;
-    }
-
-    const decoratedFields = new Set(Fields.getFieldsForType(readModelType).map(field => field.name));
-    const members = membersFor(readModelType);
-    const result = instance as Record<string, unknown>;
-    for (const [name, runtimeType] of members) {
-        if (name.startsWith('__') || decoratedFields.has(name) || !writable(readModelType, name) || !Object.prototype.hasOwnProperty.call(stored, name)) {
-            continue;
-        }
-
-        const value = stored[name];
-        if (value === null || value === undefined || !runtimeType) {
-            result[name] = value;
-        } else {
-            result[name] = convert(runtimeType, value);
-        }
-    }
-    return instance;
+    return restore(readModelType, JSON.parse(json) as Record<string, unknown> | null);
 }
