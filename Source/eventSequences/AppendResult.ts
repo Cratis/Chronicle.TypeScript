@@ -6,6 +6,7 @@ import { ConcurrencyViolation } from './ConcurrencyViolation.js';
 import { ConstraintViolation } from './ConstraintViolation.js';
 import { EventSequenceNumber } from './EventSequenceNumber.js';
 import { WaitForCompletionResult } from './WaitForCompletionResult.js';
+import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 
 /**
  * Represents the result of appending a single event to an event sequence.
@@ -36,4 +37,11 @@ export interface AppendResult {
      * wait for and this resolves immediately with `{ isSuccess: true, failedPartitions: [] }`.
      */
     waitForCompletion(timeoutMs?: number): Promise<WaitForCompletionResult>;
+
+    /**
+     * Waits for observers with an optional timeout and caller cancellation.
+     * @param options - Timeout and/or signal used to cancel the underlying wait RPC.
+     * @returns A {@link WaitForCompletionResult} describing completion and any failures.
+     */
+    waitForCompletion(options: WaitForCompletionOptions): Promise<WaitForCompletionResult>;
 }

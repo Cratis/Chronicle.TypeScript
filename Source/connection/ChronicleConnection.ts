@@ -366,8 +366,9 @@ export class ChronicleConnection implements ChronicleServices {
             let token: string | undefined;
             let tokenFailure: Error | undefined;
             try {
-                token = await tokenProvider.getAccessToken();
+                token = await acquireTokenUnlessAborted(() => tokenProvider.getAccessToken(), options.signal);
             } catch (error) {
+                if (options.signal?.aborted) throw options.signal.reason;
                 tokenFailure = error instanceof Error ? error : new Error(String(error));
                 if (!loggedFailures.has(tokenFailure)) {
                     loggedFailures.add(tokenFailure);
@@ -386,19 +387,21 @@ export class ChronicleConnection implements ChronicleServices {
                 options.metadata = metadata;
             }
 
+            if (options.signal?.aborted) throw options.signal.reason;
             try {
                 return yield* call.next(call.request, options);
             } catch (error) {
                 if ((error as { code?: number })?.code !== status.UNAUTHENTICATED) throw error;
                 if (token && !call.responseStream && !call.requestStream) {
                     try {
-                        const refreshed = await tokenProvider.refresh();
+                        const refreshed = await acquireTokenUnlessAborted(() => tokenProvider.refresh(), options.signal);
                         if (refreshed) {
                             const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
                             metadata.set('authorization', `Bearer ${refreshed}`);
                             return yield* call.next(call.request, { ...options, metadata });
                         }
                     } catch (refreshError) {
+                        if (options.signal?.aborted) throw options.signal.reason;
                         tokenFailure = refreshError instanceof Error ? refreshError : new Error(String(refreshError));
                     }
                     tokenFailure ??= tokenProvider.lastTokenFailure;
@@ -413,5 +416,22 @@ export class ChronicleConnection implements ChronicleServices {
                 throw error;
             }
         };
+    }
+}
+
+/** Stops waiting for a token on cancellation without canceling the shared token request. */
+async function acquireTokenUnlessAborted(acquire: () => Promise<string | undefined>, signal?: AbortSignal): Promise<string | undefined> {
+    if (signal?.aborted) throw signal.reason;
+    if (!signal) return acquire();
+
+    let onAbort!: () => void;
+    const aborted = new Promise<never>((_, reject) => {
+        onAbort = () => reject(signal.reason);
+        signal.addEventListener('abort', onAbort, { once: true });
+    });
+    try {
+        return await Promise.race([acquire(), aborted]);
+    } finally {
+        signal.removeEventListener('abort', onAbort);
     }
 }
