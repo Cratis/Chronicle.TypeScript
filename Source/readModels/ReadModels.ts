@@ -9,9 +9,8 @@ import {
     ReadModelObserverType as ContractReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
-import { Guid, JsonSerializer } from '@cratis/fundamentals';
+import { JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
@@ -23,7 +22,7 @@ import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { getReadModelMetadata, getReadModelId } from './readModel.js';
-import { getIndexesForType } from './indexDecorator.js';
+import { buildReadModelDefinition } from './buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from './rootReadModelTypes.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
@@ -342,26 +341,16 @@ export class ReadModels implements IReadModels {
 
 
     private toDefinition(readModel: ResolvedReadModel) {
-        return {
-            Type: {
-                Identifier: readModel.identifier,
-                Generation: 1
-            },
-            ContainerName: readModel.identifier,
-            DisplayName: readModel.identifier,
-            Sink: {
-                ConfigurationId: toContractsGuid(Guid.empty),
-                // Passive read models never write to a materialized sink, so they register with the
-                // None sink and the kernel resolves them via immediate projection instead of an empty sink.
-                TypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None
-            },
-            Schema: readModel.schema,
-            Indexes: getIndexesForType(readModel.type),
-            ObserverType: readModel.observerType,
-            ObserverIdentifier: readModel.observerIdentifier,
-            Owner: 1,
-            Source: 1
-        };
+        return buildReadModelDefinition({
+            identifier: readModel.identifier,
+            type: readModel.type,
+            schema: readModel.schema,
+            // Passive read models never write to a materialized sink, so they register with the
+            // None sink and the kernel resolves them via immediate projection instead of an empty sink.
+            sinkTypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None,
+            observerType: readModel.observerType,
+            observerIdentifier: readModel.observerIdentifier
+        });
     }
 
     private getReadModelSchema(readModelType: Constructor, identifier: string): string {

@@ -23,9 +23,14 @@ export function index(): ChroniclePropertyDecorator {
     });
 }
 
-/** Collects the indexed paths of a read model, including nested objects and typed collections. */
+/**
+ * Collects the indexed paths of a read model, including nested objects and typed collections.
+ * @param type - The read-model type to inspect.
+ * @returns Index definitions with property paths for the read model.
+ */
 export function getIndexesForType(type: Function): IndexDefinition[] {
     const indexes: IndexDefinition[] = [];
+    // Match .NET: a nested type shared by multiple properties is visited only on its first path.
     const visited = new Set<Function>();
 
     function collect(current: Function, prefix: string): void {
