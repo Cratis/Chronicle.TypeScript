@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundClassOrProperty } from '../../types/modelBoundProperty.js';
+import { ChronicleClassOrPropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the clearWith class or property decorator. */
 export interface ClearWithMetadata {
@@ -22,7 +23,7 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:clearWith:property';
  * @returns A class and property decorator.
  */
 export function clearWith(eventType: Function): ChronicleClassOrPropertyDecorator {
-    return decorateClassOrProperty((target: object, propertyKey?: string | symbol) => {
+    return decorateModelBoundClassOrProperty((target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const key = propertyKey.toString();
             TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);

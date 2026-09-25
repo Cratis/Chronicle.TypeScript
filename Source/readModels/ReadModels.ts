@@ -17,7 +17,8 @@ import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent.js';
-import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
+import { TypeDiscoverer, hasModelBoundProperties } from '../types/TypeDiscoverer.js';
+import { DecoratorType } from '../types/DecoratorType.js';
 import { isPassive } from '../projections/modelBound/passive.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
@@ -27,6 +28,7 @@ import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
+import { deserializeReadModel } from './deserializeReadModel.js';
 import type { IReadModels } from './IReadModels.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
@@ -241,6 +243,11 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
+        if (readModelType && hasModelBoundProperties(readModelType)) {
+            // Standard field decorators have no class constructor until an instance is made.
+            // Explicit queries supply it, even when file discovery is disabled.
+            TypeDiscoverer.default.register(DecoratorType.ReadModel, readModelType);
+        }
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         const resolved = new Map<string, ResolvedReadModel>();
 
@@ -266,7 +273,9 @@ export class ReadModels implements IReadModels {
             });
         }
 
-        for (const modelBoundType of this._clientArtifacts.readModels) {
+        const modelBoundTypes = new Set(this._clientArtifacts.readModels);
+        if (readModelType && hasModelBoundProperties(readModelType)) modelBoundTypes.add(readModelType);
+        for (const modelBoundType of modelBoundTypes) {
             if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }
@@ -363,10 +372,7 @@ export class ReadModels implements IReadModels {
     }
 
     private deserializeReadModel<TReadModel>(readModelType: Constructor<TReadModel>, json: string): TReadModel {
-        if (!json) {
-            return Object.create(readModelType.prototype) as TReadModel;
-        }
-        return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+        return deserializeReadModel(readModelType, json);
     }
 
     private schemaHasComplianceMetadata(schema: string): boolean {
