@@ -1,10 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { Fields, type Constructor } from '@cratis/fundamentals';
+import { type Constructor } from '@cratis/fundamentals';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
+import { ProjectionBuilderFor } from '../projections/declarative/ProjectionBuilderFor.js';
+import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
+import type { ChildrenDefinitionLike } from '../projections/modelBound/childrenAndNestedBuilder.js';
 import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
+import { resolveChildElementType, resolveNestedType } from '../projections/modelBound/childrenAndNestedBuilder.js';
 import { isNested } from '../projections/modelBound/nested.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { TypeIntrospector } from '../types/TypeIntrospector.js';
@@ -17,24 +21,41 @@ export function rootReadModelTypes(artifacts: IClientArtifactsProvider): Constru
     const inspect = (type: Function): void => {
         if (visited.has(type)) return;
         visited.add(type);
-        const fields = Fields.getFieldsForType(type as Constructor);
         for (const property of TypeIntrospector.getTrackedProperties(type)) {
             const child = getChildrenFromMetadata(type.prototype, property).length > 0;
             const nested = isNested(type.prototype, property);
             if (!child && !nested) continue;
-            const field = fields.find(candidate => candidate.name === property);
-            const referenced = child ? field?.genericArguments?.[0] :
-                (field?.type && field.type !== Object ? field.type : Reflect.getMetadata('design:type', type.prototype, property) as Function | undefined);
-            if (referenced && referenced !== Array && referenced !== Object) {
+            const referenced = child ? resolveChildElementType(type, property) : resolveNestedType(type, property);
+            if (referenced && referenced !== type && referenced !== Array && referenced !== Object) {
                 usedAsChildren.add(referenced);
                 inspect(referenced);
             }
         }
     };
     for (const type of models) inspect(type);
+    const inspectDeclarative = (type: Function, definitions: { children: Record<string, ChildrenDefinitionLike>; nested: Record<string, ChildrenDefinitionLike> }): void => {
+        for (const [property, definition] of Object.entries(definitions.children)) {
+            const referenced = resolveChildElementType(type, property);
+            if (!referenced) continue;
+            if (referenced !== type) usedAsChildren.add(referenced);
+            inspect(referenced);
+            inspectDeclarative(referenced, { children: definition.Children, nested: definition.Nested });
+        }
+        for (const [property, definition] of Object.entries(definitions.nested)) {
+            const referenced = resolveNestedType(type, property);
+            if (!referenced) continue;
+            if (referenced !== type) usedAsChildren.add(referenced);
+            inspect(referenced);
+            inspectDeclarative(referenced, { children: definition.Children, nested: definition.Nested });
+        }
+    };
     for (const type of artifacts.projections) {
         const model = getProjectionMetadata(type)?.readModelType;
-        if (model) inspect(model);
+        if (!model) continue;
+        inspect(model);
+        const builder = new ProjectionBuilderFor<unknown>();
+        (new type() as IProjectionFor<unknown>).define(builder);
+        inspectDeclarative(model, builder.getSubobjectDefinitions());
     }
     for (const type of artifacts.reducers) {
         const model = getReducerMetadata(type)?.readModel;

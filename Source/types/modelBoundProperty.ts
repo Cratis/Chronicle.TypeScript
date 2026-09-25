@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import { DecoratorType } from './DecoratorType.js';
 import { TypeDiscoverer } from './TypeDiscoverer.js';
 import { ChronicleClassOrPropertyDecorator, ChroniclePropertyDecorator, decorateClassOrProperty, decorateProperty } from './propertyDecoratorMetadata.js';
 import { getStandardMetadata, hasOwnStandardMetadata } from './standardDecoratorMetadata.js';
@@ -11,7 +10,7 @@ const registered = new WeakSet<Function>();
 
 function register(type: Function): void {
     if (registered.has(type)) return;
-    TypeDiscoverer.default.register(DecoratorType.ReadModel, type as Constructor);
+    TypeDiscoverer.default.trackModelBoundProperty(type as Constructor);
     registered.add(type);
 }
 

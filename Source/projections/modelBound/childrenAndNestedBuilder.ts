@@ -166,17 +166,17 @@ function createEmptyChildrenDefinition(): ChildrenDefinitionLike {
 
 /**
  * Resolves the element type of a `@childrenFrom` collection property. TypeScript erases
- * generic type arguments at runtime, so the element type can only be recovered when the
- * property was declared with `@field(Array, { genericArguments: [ItemType] })` - without it,
+ * generic type arguments at runtime, so the element type must be supplied by @childrenFrom
+ * or `@field(Array, { genericArguments: [ItemType] })` - without it,
  * the children definition still registers correctly (structural Key/ParentKey wiring plus
  * AutoMap), it just cannot also translate the child type's own decorators.
  * @param type - The declaring class constructor.
  * @param property - The property name.
  * @returns The child element type constructor, or undefined when it cannot be resolved.
  */
-function resolveChildElementType(type: Function, property: string): Function | undefined {
+export function resolveChildElementType(type: Function, property: string): Function | undefined {
     const field = Fields.getFieldsForType(type as Constructor).find(candidate => candidate.name === property);
-    return field?.genericArguments?.[0];
+    return getChildrenFromMetadata(type.prototype, property).find(metadata => metadata.childType)?.childType ?? field?.genericArguments?.[0];
 }
 
 /**
@@ -187,7 +187,7 @@ function resolveChildElementType(type: Function, property: string): Function | u
  * @param property - The property name.
  * @returns The nested type constructor, or undefined when it cannot be resolved.
  */
-function resolveNestedType(type: Function, property: string): Function | undefined {
+export function resolveNestedType(type: Function, property: string): Function | undefined {
     const field = Fields.getFieldsForType(type as Constructor).find(candidate => candidate.name === property);
     if (field?.type && field.type !== Object && field.type !== Array) {
         return field.type;
@@ -198,7 +198,8 @@ function resolveNestedType(type: Function, property: string): Function | undefin
         return designType;
     }
 
-    return undefined;
+    const inferred = TypeIntrospector.getMembers(type).get(property);
+    return inferred && inferred !== Object && inferred !== Array ? inferred : undefined;
 }
 
 /**

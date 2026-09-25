@@ -10,6 +10,8 @@ import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/pro
 export interface ChildrenFromMetadata {
     /** The event constructor that adds children to the collection. */
     readonly eventType: Function;
+    /** Optional child type for TypeScript runtimes without emitted generic metadata. */
+    readonly childType?: Function;
     /** The event property name used as the key for children. Defaults to the event source identifier. */
     readonly key?: string;
     /** The child model property name used to uniquely identify instances in the collection. */
@@ -23,14 +25,14 @@ const METADATA_KEY = 'chronicle:projection:childrenFrom';
 /**
  * Property decorator that configures a children collection sub-projection from an event type.
  * @param eventType - The event constructor.
- * @param key - Optional event property name to use as the key for children.
+ * @param key - Optional event property name to use as the key for children, or the child constructor.
  * @param identifiedBy - Optional child model property name used to identify instances.
  * @param parentKey - Optional event property name used as the parent key.
  * @returns A property decorator.
  */
 export function childrenFrom(
     eventType: Function,
-    key?: string,
+    key?: string | Function,
     identifiedBy?: string,
     parentKey?: string
 ): ChroniclePropertyDecorator {
@@ -38,7 +40,10 @@ export function childrenFrom(
         const propKey = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
         const existing: ChildrenFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, propKey) ?? [];
-        const metadata: ChildrenFromMetadata = { eventType, key, identifiedBy, parentKey };
+        const metadata: ChildrenFromMetadata = {
+            eventType, key: typeof key === 'string' ? key : undefined,
+            childType: typeof key === 'function' ? key : undefined, identifiedBy, parentKey
+        };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, propKey);
     });
 }

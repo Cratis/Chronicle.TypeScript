@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { conceptAsTypeKey, type Constructor, Fields, Guid, JsonSerializer, typeKeyOf } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../types/TypeIntrospector.js';
 import { conceptValueType } from '../types/conceptValueType.js';
+import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
 
 const memberCache = new WeakMap<Function, Map<string, Function | undefined>>();
 
@@ -58,7 +59,7 @@ function restore<T>(type: Constructor<T>, stored: Record<string, unknown> | null
         if (name.startsWith('__') || !writable(type, name) || !Object.prototype.hasOwnProperty.call(stored, name)) continue;
         const value = stored[name];
         const field = fieldByName.get(name);
-        const childType = field?.genericArguments?.[0];
+        const childType = getChildrenFromMetadata(type.prototype, name).find(metadata => metadata.childType)?.childType ?? field?.genericArguments?.[0];
         if (Array.isArray(value) && childType) {
             result[name] = value.map(item => convert(childType, item));
         } else if (field && (value === null || value === undefined || !runtimeType || runtimeType === Array || runtimeType === Object || typeof value !== 'object')) {

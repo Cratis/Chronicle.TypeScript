@@ -60,11 +60,11 @@ class UnconstructedMappedOnly {
 }
 
 describe('standard model-bound decorators', () => {
-    it('should register a standard-mapped class when constructed without file discovery', () => {
+    it('collects a standard-mapped class for lazy root discovery when constructed without file discovery', () => {
         new StandardMappedOnly();
         new StandardMappedOnly();
         expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.ReadModel, 'StandardMappedOnly'))
-            .toBe(StandardMappedOnly);
+            .toBeUndefined();
         expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === StandardMappedOnly)).toHaveLength(1);
     });
 
@@ -73,14 +73,14 @@ describe('standard model-bound decorators', () => {
             @setFrom(Changed) value = '';
         }
         class Derived extends Base {}
-        const register = vi.spyOn(TypeDiscoverer.default, 'register');
+        const track = vi.spyOn(TypeDiscoverer.default, 'trackModelBoundProperty');
         try {
             for (let index = 0; index < 50; index++) new Base();
             new Derived();
-            expect(register.mock.calls.filter(([, type]) => type === Base)).toHaveLength(1);
-            expect(register.mock.calls.some(([, type]) => type === Derived)).toBe(false);
+            expect(track.mock.calls.filter(([type]) => type === Base)).toHaveLength(1);
+            expect(track.mock.calls.some(([type]) => type === Derived)).toBe(false);
         } finally {
-            register.mockRestore();
+            track.mockRestore();
         }
     });
 

@@ -29,6 +29,7 @@ export class TypeDiscoverer {
     static readonly default = new TypeDiscoverer();
 
     private static readonly _registeredTypes: Map<DecoratorType, Map<string, Constructor>> = new Map();
+    private static readonly _propertyOnlyModels = new Set<Constructor>();
 
     private readonly _glob: GlobFunction;
     private readonly _importFile: FileImporter;
@@ -65,11 +66,21 @@ export class TypeDiscoverer {
                 for (const type of Object.values(module)) {
                     if (typeof type !== 'function' || !type.prototype) continue;
                     if (hasModelBoundProperties(type)) {
-                        this.register(DecoratorType.ReadModel, type as Constructor);
+                        this.trackModelBoundProperty(type as Constructor);
                     }
                 }
             }
         }
+    }
+
+    /** Collects property-bound models without registering child names as root model identifiers. */
+    trackModelBoundProperty(type: Constructor): void {
+        TypeDiscoverer._propertyOnlyModels.add(type);
+    }
+
+    /** Returns models with property mappings for artifact registration-time root filtering. */
+    getPropertyOnlyModels(): Constructor[] {
+        return [...TypeDiscoverer._propertyOnlyModels];
     }
 
     /**
@@ -125,6 +136,7 @@ export class TypeDiscoverer {
      */
     clear(): void {
         TypeDiscoverer._registeredTypes.clear();
+        TypeDiscoverer._propertyOnlyModels.clear();
     }
 
     private static async resolveWithGlobPackage(pattern: string | string[], options?: { ignore: string[] }): Promise<string[]> {

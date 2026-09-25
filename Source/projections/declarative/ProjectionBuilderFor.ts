@@ -4,6 +4,7 @@
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
+import type { ChildrenDefinitionLike } from '../modelBound/childrenAndNestedBuilder.js';
 import { ChildrenBuilder } from './ChildrenBuilder.js';
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
@@ -118,6 +119,11 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
         builderCallback(builder);
         this._nested[handler.property] = builder.buildDefinition();
         return this;
+    }
+
+    /** Names of children and nested members configured by declarative builders. */
+    getSubobjectDefinitions(): { children: Record<string, ChildrenDefinitionLike>; nested: Record<string, ChildrenDefinitionLike> } {
+        return { children: this._children, nested: this._nested };
     }
 
     /**
