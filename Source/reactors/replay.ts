@@ -8,7 +8,9 @@ const METADATA_KEY = 'chronicle:reactor:replay';
 /**
  * Marks a method as the alternative handler for an event during replay.
  * Without an explicit event type, name the method `replay<EventClassName>`.
- * The regular camelCase handler continues to handle live events.
+ * The regular camelCase handler continues to handle live events, but this method replaces
+ * it during replay. Marking this replay handler with @onceOnly() means neither handler
+ * runs for replayed events.
  * @param eventType - Optional event constructor for a differently named replay handler.
  * @returns A method decorator for legacy and standard TypeScript decorators.
  */
@@ -16,6 +18,9 @@ export function replay(eventType?: Function): MethodDecorator & ((value: Functio
     return (target: object, propertyOrContext: string | symbol | ClassMethodDecoratorContext, descriptor?: PropertyDescriptor) => {
         const method = typeof propertyOrContext === 'object' ? target : descriptor?.value;
         if (typeof propertyOrContext === 'object' && (propertyOrContext.kind !== 'method' || propertyOrContext.static || propertyOrContext.private)) {
+            throw new TypeError('Replay requires a public instance method.');
+        }
+        if (typeof propertyOrContext !== 'object' && typeof target === 'function') {
             throw new TypeError('Replay requires a public instance method.');
         }
         if (typeof method !== 'function') {

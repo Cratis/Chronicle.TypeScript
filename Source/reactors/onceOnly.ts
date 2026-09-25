@@ -6,7 +6,8 @@ import 'reflect-metadata';
 const METADATA_KEY = 'chronicle:reactor:onceOnly';
 
 /**
- * Excludes a whole reactor from replay, or skips one handler for replayed events.
+ * Reactors replay by default. Excludes a whole reactor from replay, or skips one
+ * handler for replayed events. A class-level marker is not inherited by subclasses.
  * This does not prevent ordinary redelivery after a failed partition is retried.
  * @returns A class or method decorator for legacy and standard TypeScript decorators.
  */

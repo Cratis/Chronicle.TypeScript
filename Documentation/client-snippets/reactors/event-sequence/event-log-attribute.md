@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, Guid, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, Guid, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class EventSequenceLogReactorOrderPlaced {
@@ -9,6 +9,7 @@ class EventSequenceLogReactorOrderPlaced {
 // No eventSequenceId given - observes the default event log
 @reactor()
 class EventSequenceLocalAuditReactor {
+    @onceOnly()
     async eventSequenceLogReactorOrderPlaced(event: EventSequenceLogReactorOrderPlaced, context: EventContext): Promise<void> {
         await this.writeAudit(event.orderId, context.occurred);
     }

@@ -30,8 +30,7 @@ A `@reactor`/`@reducer`-decorated class instance can also optionally implement `
 Reactors are replayable by default. Put `@onceOnly()` on a handler to skip that handler for replayed events, or on the reactor class to register the entire reactor as non-replayable so the kernel does not replay it.
 
 ```typescript
-import { reactor, onceOnly, replay } from '@cratis/chronicle/reactors';
-import { eventType } from '@cratis/chronicle/events';
+import { eventType, reactor, onceOnly, replay } from '@cratis/chronicle';
 
 @eventType()
 class OrderPlaced {

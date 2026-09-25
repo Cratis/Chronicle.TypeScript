@@ -80,6 +80,52 @@ class AlternativeReactor {
     replaySomethingHappened(event: SomethingHappened) { invoked.push(`replay:${event.value}`); }
 }
 
+@reactor('plain-replay-alternative-policy')
+class PlainAlternativeReactor {
+    somethingHappened() { invoked.push('live'); }
+
+    @replay()
+    replaySomethingHappened(event: SomethingHappened) { invoked.push(`replay:${event.value}`); }
+}
+
+@reactor('inherited-replay-policy')
+class InheritedReplayReactor extends PlainAlternativeReactor {}
+
+@reactor('overridden-replay-policy')
+class OverriddenReplayReactor extends PlainAlternativeReactor {
+    @replay()
+    replaySomethingHappened(event: SomethingHappened) { invoked.push(`derived:${event.value}`); }
+}
+
+@reactor('replay-marked-live-handler-policy')
+class ReplayMarkedLiveHandlerReactor {
+    @replay(SomethingHappened)
+    somethingHappened() { invoked.push('replay'); }
+}
+
+@reactor('unknown-replay-policy')
+class UnknownReplayReactor {
+    @replay()
+    replayWrongName() {}
+}
+
+class UnknownEvent {}
+
+@reactor('unregistered-replay-policy')
+class UnregisteredReplayReactor {
+    @replay(UnknownEvent)
+    rebuild() {}
+}
+
+@reactor('duplicate-replay-policy')
+class DuplicateReplayReactor {
+    @replay()
+    replaySomethingHappened() {}
+
+    @replay(SomethingHappened)
+    rebuild() {}
+}
+
 @reactor('once-only-replay-handler-policy')
 class OnceOnlyReplayHandlerReactor {
     somethingHappened() { invoked.push('live'); }
@@ -130,6 +176,52 @@ describe('reactor replay policy', () => {
         const delivery = await observe(AlternativeReactor, [EventObservationState.Initial, EventObservationState.Replay]);
         expect(invoked).toEqual(['live', 'replay:hello']);
         expect(delivery.result?.LastSuccessfulObservation).toBe(2n);
+    });
+
+    it('runs only the alternative replay handler when both handlers are plain', async () => {
+        invoked = [];
+        await observe(PlainAlternativeReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(invoked).toEqual(['live', 'replay:hello']);
+    });
+
+    it('discovers an inherited replay handler', async () => {
+        invoked = [];
+        await observe(InheritedReplayReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(invoked).toEqual(['live', 'replay:hello']);
+    });
+
+    it('prefers a derived replay handler to the inherited one', async () => {
+        invoked = [];
+        await observe(OverriddenReplayReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(invoked).toEqual(['live', 'derived:hello']);
+    });
+
+    it('does not invoke a replay-marked live-named handler on live delivery', async () => {
+        invoked = [];
+        await observe(ReplayMarkedLiveHandlerReactor, [EventObservationState.Initial, EventObservationState.Replay]);
+        expect(invoked).toEqual(['replay']);
+    });
+
+    it('rejects a convention replay handler with no registered event type', async () => {
+        await expect(observe(UnknownReplayReactor, [])).rejects.toThrow(/replayWrongName.*no registered event type/);
+    });
+
+    it('rejects an explicit replay handler for an unregistered event type', async () => {
+        await expect(observe(UnregisteredReplayReactor, [])).rejects.toThrow(/rebuild.*no registered event type/);
+    });
+
+    it('rejects two replay handlers for the same event type', async () => {
+        await expect(observe(DuplicateReplayReactor, [])).rejects.toThrow(/multiple replay handlers.*reactor-replay-event/);
+    });
+
+    it('rejects a static legacy replay method', () => {
+        expect(() => {
+            class StaticReplayReactor {
+                @replay(SomethingHappened)
+                static rebuild() {}
+            }
+            return StaticReplayReactor;
+        }).toThrow('Replay requires a public instance method.');
     });
 
     it('does not fall back to the ordinary handler when the replay handler is onceOnly', async () => {

@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class ScenariosReactBookReturned {
@@ -17,6 +17,7 @@ class ScenariosReactWaitlistNotifier {
 
     // Method name must be the exact camelCase of the event's class name -
     // Chronicle discovers handlers by name, not by parameter type.
+    @onceOnly()
     async scenariosReactBookReturned(event: ScenariosReactBookReturned, context: EventContext): Promise<void> {
         // context.eventSourceId is the source the event happened to (the book)
         await this.notifications.notifyNextInLine(context.eventSourceId);
