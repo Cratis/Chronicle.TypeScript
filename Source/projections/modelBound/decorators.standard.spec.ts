@@ -68,12 +68,12 @@ describe('standard model-bound decorators', () => {
         expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === StandardMappedOnly)).toHaveLength(1);
     });
 
-    it('should resolve an explicitly queried model without constructing an instance first', async () => {
+    it('should explain that an unconstructed property-only model was never registered', async () => {
         const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"value":"stored"}' });
         const connection = { readModels: { getInstanceByKey } } as unknown as ChronicleConnection;
         const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink');
-        const instance = await readModels.findInstanceById(UnconstructedMappedOnly, 'id');
-        expect(instance?.value).toBe('stored');
+        await expect(readModels.findInstanceById(UnconstructedMappedOnly, 'id')).rejects.toThrow(/add a class-level @fromEvent/);
+        expect(getInstanceByKey).not.toHaveBeenCalled();
     });
     it('stores class and property annotations without constructing an instance', () => {
         const target = Mappings.prototype;
