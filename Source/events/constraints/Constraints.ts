@@ -54,9 +54,12 @@ export class Constraints implements IConstraints {
     /** @inheritdoc */
     async discover(): Promise<void> {
         this._captures.clear();
+        const fluentIds = new Set<string>();
         for (const type of this._clientArtifacts.constraints) {
             const metadata = getConstraintMetadata(type);
             if (!metadata) continue;
+            if (fluentIds.has(metadata.id.value)) throw new Error(`Duplicate constraint id '${metadata.id.value}'.`);
+            fluentIds.add(metadata.id.value);
 
             const builder = new ConstraintBuilder(metadata.id.value);
             const instance = new (type as new () => IConstraint)();

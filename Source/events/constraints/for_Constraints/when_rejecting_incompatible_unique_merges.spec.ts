@@ -22,6 +22,24 @@ async function assertDiscoveryFails(eventTypes: Function[], constraintTypes: (ne
     );
 }
 
+describe('when two fluent unique event type constraints use the same class id', () => {
+    it('should reject the duplicate id even if their wire names differ', async () => {
+        class First {}
+        class Second {}
+        eventType('merge-first')(First);
+        eventType('merge-second')(Second);
+        class FirstConstraint implements IConstraint {
+            define(builder: IConstraintBuilder): void { builder.uniqueFor(First, undefined, 'FirstName'); }
+        }
+        class SecondConstraint implements IConstraint {
+            define(builder: IConstraintBuilder): void { builder.uniqueFor(Second, undefined, 'SecondName'); }
+        }
+        constraint('SharedId')(FirstConstraint);
+        constraint('SharedId')(SecondConstraint);
+        await assertDiscoveryFails([], [FirstConstraint, SecondConstraint], /Duplicate constraint id 'SharedId'/);
+    });
+});
+
 describe('when merging fluent unique event types with different scopes', () => {
     it('should reject the conflicting scope', async () => {
         class First {}
