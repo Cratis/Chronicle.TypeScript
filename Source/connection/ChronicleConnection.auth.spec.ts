@@ -136,6 +136,30 @@ describe('ChronicleConnection authentication', () => {
         expect(fetchToken).toHaveBeenCalledTimes(2);
     });
 
+    it('does not retry streaming calls after an unauthenticated response', async () => {
+        const server = createServer();
+        const attempts = vi.fn();
+        const unsupported = async () => { throw new Error('Unexpected RPC'); };
+        server.add(ConnectionServiceDefinition, {
+            ...Object.fromEntries(Object.keys(ConnectionServiceDefinition.methods).map(name => [name, unsupported])),
+            checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' }),
+            observeConnectedClients: async function* () {
+                attempts();
+                throw new ServerError(status.UNAUTHENTICATED, 'Token expired');
+            }
+        } as ServiceImplementation<typeof ConnectionServiceDefinition>);
+        servers.push(server);
+        const port = await server.listen('127.0.0.1:0');
+        fetchToken.mockResolvedValue({ access_token: 'stale', expires_in: 3600 });
+        const connection = new ChronicleConnection({ connectionString: `chronicle://user:secret@127.0.0.1:${port}?disableTls=true` });
+        connections.push(connection);
+        await connection.connect();
+        const observe = async () => { for await (const _ of connection.connections.observeConnectedClients({})) { /* drain */ } };
+        await expect(observe()).rejects.toMatchObject({ code: status.UNAUTHENTICATED });
+        expect(attempts).toHaveBeenCalledTimes(1);
+        expect(fetchToken).toHaveBeenCalledTimes(1);
+    });
+
     it('connects after two startup invalid_client responses', async () => {
         const port = await listenAuthenticated();
         fetchToken.mockRejectedValueOnce(new OAuthTokenHttpError(401, '{"error":"invalid_client"}'))
@@ -157,17 +181,22 @@ describe('ChronicleConnection authentication', () => {
     }, 10000);
 
     it('keeps retrying proxy 403 responses without an OAuth error code', async () => {
+        const random = vi.spyOn(Math, 'random').mockReturnValue(0);
         const checks = vi.fn();
         const port = await listenAuthenticated(checks);
         fetchToken.mockRejectedValue(new OAuthTokenHttpError(403, '<html>blocked</html>'));
         const client = new ChronicleClient(ChronicleOptions.fromConnectionString(`chronicle://user:secret@127.0.0.1:${port}?disableTls=true`, { discoveryPatterns: [] }));
         clients.push(client);
         const pending = client.getEventStores().then(() => undefined, error => error as Error);
-        await new Promise(resolve => setTimeout(resolve, 6000));
-        expect(checks.mock.calls.length).toBeGreaterThanOrEqual(4);
-        client.dispose();
-        expect((await pending).message).toMatch(/disposed/);
-    }, 12000);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 3900));
+            expect(checks.mock.calls.length).toBeGreaterThanOrEqual(4);
+            client.dispose();
+            expect((await pending).message).toMatch(/disposed/);
+        } finally {
+            random.mockRestore();
+        }
+    }, 15000);
 
     it('rejects an API key after three unauthenticated kernel responses', async () => {
         const checks = vi.fn();
