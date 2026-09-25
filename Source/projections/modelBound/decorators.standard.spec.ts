@@ -68,6 +68,22 @@ describe('standard model-bound decorators', () => {
         expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === StandardMappedOnly)).toHaveLength(1);
     });
 
+    it('registers the declaring class once even when subclasses and many instances are constructed', () => {
+        class Base {
+            @setFrom(Changed) value = '';
+        }
+        class Derived extends Base {}
+        const register = vi.spyOn(TypeDiscoverer.default, 'register');
+        try {
+            for (let index = 0; index < 50; index++) new Base();
+            new Derived();
+            expect(register.mock.calls.filter(([, type]) => type === Base)).toHaveLength(1);
+            expect(register.mock.calls.some(([, type]) => type === Derived)).toBe(false);
+        } finally {
+            register.mockRestore();
+        }
+    });
+
     it('should explain that an unconstructed property-only model was never registered', async () => {
         const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"value":"stored"}' });
         const connection = { readModels: { getInstanceByKey } } as unknown as ChronicleConnection;

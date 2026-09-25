@@ -5,9 +5,22 @@ import type { Constructor } from '@cratis/fundamentals';
 import { DecoratorType } from './DecoratorType.js';
 import { TypeDiscoverer } from './TypeDiscoverer.js';
 import { ChronicleClassOrPropertyDecorator, ChroniclePropertyDecorator, decorateClassOrProperty, decorateProperty } from './propertyDecoratorMetadata.js';
+import { getStandardMetadata, hasOwnStandardMetadata } from './standardDecoratorMetadata.js';
+
+const registered = new WeakSet<Function>();
 
 function register(type: Function): void {
+    if (registered.has(type)) return;
     TypeDiscoverer.default.register(DecoratorType.ReadModel, type as Constructor);
+    registered.add(type);
+}
+
+function registerDeclaringClass(instance: object, metadata: object): void {
+    let type: Function | null = instance.constructor;
+    while (type && (!hasOwnStandardMetadata(type) || getStandardMetadata(type) !== metadata)) {
+        type = Object.getPrototypeOf(type) as Function | null;
+    }
+    if (type) register(type);
 }
 
 /** Registers a mapped class when its property decorator can identify the constructor. */
@@ -18,7 +31,8 @@ export function decorateModelBoundProperty(legacy: PropertyDecorator): Chronicle
         if (typeof keyOrContext === 'object') {
             // Standard field decorators do not receive the class constructor. Their initializer
             // runs when the first instance is created; direct queries can also register the type.
-            keyOrContext.addInitializer(function () { register((this as object).constructor); });
+            const metadata = keyOrContext.metadata;
+            keyOrContext.addInitializer(function () { if (metadata) registerDeclaringClass(this as object, metadata); });
         } else {
             register((target as { constructor: Function }).constructor);
         }
@@ -31,7 +45,8 @@ export function decorateModelBoundClassOrProperty(legacy: (target: object, prope
     return (target: object | undefined, keyOrContext?: string | symbol | ClassDecoratorContext | ClassFieldDecoratorContext) => {
         decorate(target as object, keyOrContext as string);
         if (typeof keyOrContext === 'object' && keyOrContext?.kind === 'field') {
-            keyOrContext.addInitializer(function () { register((this as object).constructor); });
+            const metadata = keyOrContext.metadata;
+            keyOrContext.addInitializer(function () { if (metadata) registerDeclaringClass(this as object, metadata); });
         } else if (typeof keyOrContext === 'string' || typeof keyOrContext === 'symbol') {
             register((target as { constructor: Function }).constructor);
         }
