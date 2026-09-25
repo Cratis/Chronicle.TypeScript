@@ -9,6 +9,7 @@ import {
     EventSequencesDefinition,
     EventStoresDefinition,
     EventTypesDefinition,
+    ExternalServicesDefinition,
     FailedPartitionsDefinition,
     IdentitiesDefinition,
     JobsDefinition,
@@ -30,7 +31,6 @@ import { createChannel, createClientFactory } from 'nice-grpc';
 import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts.js';
-import { ExternalServicesDefinition } from '../externalServices/ExternalServicesContracts.js';
 import { ChronicleConnectionString, type ChronicleServerAddress } from './ChronicleConnectionString.js';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
 import { ChronicleServices } from './ChronicleServices.js';
