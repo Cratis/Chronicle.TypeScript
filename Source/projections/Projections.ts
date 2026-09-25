@@ -20,6 +20,7 @@ import { toObserverRunningState } from '../observation/toObserverRunningState.js
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
+import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { TypeIntrospector } from '../types/index.js';
 import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
@@ -102,7 +103,7 @@ export class Projections implements IProjections {
         this._modelBound.clear();
 
         const declarativeTypes = this._clientArtifacts.projections;
-        const readModelTypes = this._clientArtifacts.readModels;
+        const readModelTypes = rootReadModelTypes(this._clientArtifacts);
         this._logger.debug('Discovering projections', { declarativeCount: declarativeTypes.length, readModelCount: readModelTypes.length });
 
         for (const type of declarativeTypes) {
@@ -144,7 +145,7 @@ export class Projections implements IProjections {
         const inferred = this._clientArtifacts.projections
             .map(type => getProjectionMetadata(type)?.readModelType)
             .filter((type): type is Constructor => type !== undefined);
-        assertUniqueReadModelIds([...this._clientArtifacts.readModels, ...inferred]);
+        assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred]);
         const builtProjections: BuiltProjection[] = [
             ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
             ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
@@ -397,7 +398,7 @@ export class Projections implements IProjections {
 
     private getReadModelSchema(readModelIdentifier: string): string {
         const types = [
-            ...this._clientArtifacts.readModels,
+            ...rootReadModelTypes(this._clientArtifacts),
             ...this._clientArtifacts.projections
                 .map(projectionType => getProjectionMetadata(projectionType)?.readModelType)
                 .filter((type): type is Constructor => type !== undefined)
@@ -458,7 +459,7 @@ export class Projections implements IProjections {
             return undefined;
         }
 
-        const matchingReadModels = this._clientArtifacts.readModels
+        const matchingReadModels = rootReadModelTypes(this._clientArtifacts)
             .map(type => ({ type, metadata: getReadModelMetadata(type) }))
             .filter(candidate => candidate.metadata)
             .filter(candidate => {

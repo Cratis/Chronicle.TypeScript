@@ -24,6 +24,7 @@ import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { getReadModelMetadata, getReadModelId } from './readModel.js';
 import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
+import { rootReadModelTypes } from './rootReadModelTypes.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
@@ -248,7 +249,8 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
-        assertUniqueReadModelIds(this._clientArtifacts.readModels);
+        const rootTypes = rootReadModelTypes(this._clientArtifacts);
+        assertUniqueReadModelIds(rootTypes);
         const resolved = new Map<string, ResolvedReadModel>();
 
         for (const projectionType of this._clientArtifacts.projections) {
@@ -273,7 +275,7 @@ export class ReadModels implements IReadModels {
             });
         }
 
-        for (const modelBoundType of this._clientArtifacts.readModels) {
+        for (const modelBoundType of rootTypes) {
             if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }
