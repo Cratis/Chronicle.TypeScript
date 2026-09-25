@@ -783,12 +783,6 @@ export class EventSequence implements IEventSequence {
 }
 
 /**
- * Converts a RFC 4122 Guid string into the protobuf Guid shape used by Chronicle contracts.
- * @param guid - The Guid to convert.
- * @returns The converted protobuf Guid with fixed64-safe hi/lo values.
- */
-
-/**
  * Converts an {@link Identity} into the CausedBy shape used by Chronicle contracts.
  * @param identity - The identity to convert.
  * @returns The contracts CausedBy object.

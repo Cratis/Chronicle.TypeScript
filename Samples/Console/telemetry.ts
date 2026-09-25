@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 // This file MUST be imported before any other application code so that the
-// OpenTelemetry SDK is fully initialised before the first instrumented call.
+// OpenTelemetry SDK is fully initialized before the first instrumented call.
 
 import { diag, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
