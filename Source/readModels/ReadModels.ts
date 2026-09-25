@@ -178,6 +178,10 @@ export class ReadModels implements IReadModels {
             ReadModelIdentifier: readModel.identifier,
             EventSequenceId: readModel.eventSequenceId
         })) {
+            if (changeset.Subscribed) {
+                continue;
+            }
+
             const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
             const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
                 this.schemaHasComplianceMetadata(readModel.schema);
