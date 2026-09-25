@@ -102,7 +102,9 @@ export class Reactors implements IReactors {
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reactors = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();
+    private readonly _observations = new Map<string, AbortController>();
     private _registered = false;
+    private _disposed = false;
 
     /**
      * Creates a new {@link Reactors} instance.
@@ -130,6 +132,13 @@ export class Reactors implements IReactors {
         });
     }
 
+    /** Stops observations permanently when the owning client is disposed. */
+    dispose(): void {
+        this._disposed = true;
+        this._registered = false;
+        this.disconnectAll();
+    }
+
     /** @inheritdoc */
     async discover(): Promise<void> {
         this._reactors.clear();
@@ -144,7 +153,7 @@ export class Reactors implements IReactors {
 
     /** @inheritdoc */
     async register(): Promise<void> {
-        if (this._registered) {
+        if (this._registered || this._disposed) {
             return;
         }
 
@@ -152,6 +161,7 @@ export class Reactors implements IReactors {
             await this.discover();
         }
 
+        if (this._disposed) return;
         this._logger.info('Registering reactors', { count: this._reactors.size });
         for (const [id, reactorType] of this._reactors) {
             this.startObservation(id, reactorType);
@@ -161,6 +171,7 @@ export class Reactors implements IReactors {
     }
 
     private startObservation(id: string, reactorType: Constructor): void {
+        if (this._disposed) return;
         const metadata = getReactorMetadata(reactorType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
         const eventTypes = this.getEventTypesFor(reactorType);
@@ -202,12 +213,12 @@ export class Reactors implements IReactors {
     private scheduleReobserve(id: string, reactorType: Constructor): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reactor from scratch, so retrying here as well would double up.
-        if (!this._registered) {
+        if (!this._registered || this._disposed) {
             return;
         }
 
         const handle = setTimeout(() => {
-            if (!this._registered) {
+            if (!this._registered || this._disposed) {
                 return;
             }
 
@@ -225,7 +236,9 @@ export class Reactors implements IReactors {
         eventTypes: EventTypeEntry[]
     ): Promise<void> {
         const queue = new AsyncQueue<ReactorMessage>();
+        const controller = new AbortController();
         this._queues.set(id, queue);
+        this._observations.set(id, controller);
 
         queue.send({
             Content: {
@@ -256,7 +269,7 @@ export class Reactors implements IReactors {
         try {
             const reactorInstance = new (reactorType as new () => Record<string, Function>)();
 
-            for await (const eventsToObserve of this._connection.reactors.observe(queue)) {
+            for await (const eventsToObserve of this._connection.reactors.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
                 let state = ObservationState.Success;
                 const exceptionMessages: string[] = [];
@@ -343,7 +356,9 @@ export class Reactors implements IReactors {
             // leak a duplicate stream on every reconnect.
             if (this._queues.get(id) === queue) {
                 this._queues.delete(id);
+                this._observations.delete(id);
             }
+            queue.complete();
         }
     }
 
@@ -371,9 +386,9 @@ export class Reactors implements IReactors {
     }
 
     private disconnectAll(): void {
-        for (const queue of this._queues.values()) {
-            queue.complete();
-        }
+        for (const controller of this._observations.values()) controller.abort();
+        for (const queue of this._queues.values()) queue.complete();
+        this._observations.clear();
         this._queues.clear();
     }
 }

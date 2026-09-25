@@ -104,7 +104,9 @@ export class Reducers implements IReducers {
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();
+    private readonly _observations = new Map<string, AbortController>();
     private _registered = false;
+    private _disposed = false;
 
     /**
      * Creates a new {@link Reducers} instance.
@@ -131,6 +133,13 @@ export class Reducers implements IReducers {
         });
     }
 
+    /** Stops observations permanently when the owning client is disposed. */
+    dispose(): void {
+        this._disposed = true;
+        this._registered = false;
+        this.disconnectAll();
+    }
+
     /** @inheritdoc */
     async discover(): Promise<void> {
         this._reducers.clear();
@@ -145,7 +154,7 @@ export class Reducers implements IReducers {
 
     /** @inheritdoc */
     async register(): Promise<void> {
-        if (this._registered) {
+        if (this._registered || this._disposed) {
             return;
         }
 
@@ -156,6 +165,7 @@ export class Reducers implements IReducers {
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         await this.registerReadModels();
 
+        if (this._disposed) return;
         this._logger.info('Registering reducers', { count: this._reducers.size });
         for (const [id, reducerType] of this._reducers) {
             this.startObservation(id, reducerType);
@@ -226,6 +236,7 @@ export class Reducers implements IReducers {
     }
 
     private startObservation(id: string, reducerType: Constructor): void {
+        if (this._disposed) return;
         const metadata = getReducerMetadata(reducerType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
         const eventTypes = this.getEventTypesFor(reducerType);
@@ -271,12 +282,12 @@ export class Reducers implements IReducers {
     private scheduleReobserve(id: string, reducerType: Constructor): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reducer from scratch, so retrying here as well would double up.
-        if (!this._registered) {
+        if (!this._registered || this._disposed) {
             return;
         }
 
         const handle = setTimeout(() => {
-            if (!this._registered) {
+            if (!this._registered || this._disposed) {
                 return;
             }
 
@@ -304,7 +315,9 @@ export class Reducers implements IReducers {
         readModelName: string
     ): Promise<void> {
         const queue = new AsyncQueue<ReducerMessage>();
+        const controller = new AbortController();
         this._queues.set(id, queue);
+        this._observations.set(id, controller);
         const isActive = getReducerMetadata(reducerType)?.isActive ?? true;
 
         queue.send({
@@ -338,7 +351,7 @@ export class Reducers implements IReducers {
         try {
             const reducerInstance = new (reducerType as new () => Record<string, Function>)();
 
-            for await (const operation of this._connection.reducers.observe(queue)) {
+            for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
                 let state = ObservationState.Success;
                 const exceptionMessages: string[] = [];
@@ -433,7 +446,9 @@ export class Reducers implements IReducers {
             // leak a duplicate stream on every reconnect.
             if (this._queues.get(id) === queue) {
                 this._queues.delete(id);
+                this._observations.delete(id);
             }
+            queue.complete();
         }
     }
 
@@ -461,9 +476,9 @@ export class Reducers implements IReducers {
     }
 
     private disconnectAll(): void {
-        for (const queue of this._queues.values()) {
-            queue.complete();
-        }
+        for (const controller of this._observations.values()) controller.abort();
+        for (const queue of this._queues.values()) queue.complete();
+        this._observations.clear();
         this._queues.clear();
     }
 }

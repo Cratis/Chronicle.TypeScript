@@ -194,6 +194,7 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     dispose(): void {
         this._isDisposed = true;
+        for (const store of this._stores.values()) store.disposeObservations();
 
         if (this._watchdogHandle) {
             clearInterval(this._watchdogHandle);
