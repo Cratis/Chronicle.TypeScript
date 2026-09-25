@@ -10,12 +10,12 @@ The [getting started guide](./getting-started.md) connects to a local developmen
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const options = ChronicleOptions.fromConnectionString(process.env.CHRONICLE_CONNECTION!, { discoveryPatterns: [] });
+const options = ChronicleOptions.fromConnectionString(process.env.CHRONICLE_CONNECTION!);
 const client = new ChronicleClient(options);
 const store = await client.getEventStore('Library');
 ```
 
-Keep the connection string, which carries credentials, in configuration or a secret store rather than in source code. `discoveryPatterns: []` turns off file-scanning discovery; see [Artifact discovery](./getting-started.md#artifact-discovery).
+Keep the connection string, which carries credentials, in configuration or a secret store rather than in source code.
 
 Creating a `ChronicleClient` does not connect. The first `getEventStore(...)` or `getEventStores()` call connects, and later calls reuse the connection.
 
@@ -43,7 +43,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `discoveryPatterns` | `**/*.ts` with exclusions | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
+| `discoveryPatterns` | None for compiled JavaScript; `**/*.ts` and `**/*.tsx` with exclusions when the program runs from TypeScript | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
@@ -54,13 +54,13 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 
 The client supports two authentication methods. Use one per connection string.
 
-- **Client credentials.** Put the client id and secret in the user-info part: `chronicle://my-service:<secret>@chronicle.example.com`. The client requests an OAuth access token from `/connect/token` on the first host in the connection string, using TLS unless `disableTls=true`, and sends it as a bearer token on every call.
+- **Client credentials.** Put the client id and secret in the user-info part: `chronicle://my-service:<secret>@chronicle.example.com`. The client requests an OAuth access token from `/connect/token` on the server it connects to, using TLS unless `disableTls=true`, and sends it as a bearer token on every call.
 - **API key.** Add `apiKey=<key>`. The client sends it as `api-key` metadata on every call.
 
 A connection string with a client id and secret and an API key fails. A client id without a secret fails too, unless an API key is present, in which case the client id is ignored.
 
 :::caution[No credentials means development credentials]
-A connection string without credentials does not fail. The client falls back to the public development client id and secret, which work only against a development kernel. Against any other server, the connection keeps failing and retrying; see [Connection diagnostics](#connection-diagnostics).
+A connection string without credentials does not fail. The client falls back to the public development client id and secret, which work only against a development kernel. A server that rejects them fails the connection with `RejectedChronicleCredentials`; see [How the client connects and recovers](#how-the-client-connects-and-recovers).
 :::
 
 ## Secure the connection with TLS
@@ -83,11 +83,7 @@ List several hosts, or use `chronicle+srv://`, to connect to a clustered deploym
 chronicle://my-service:<secret>@chronicle-1.internal:35000,chronicle-2.internal:35000/?skipTlsValidation=false&loadBalancer=round-robin
 ```
 
-The client talks to one server at a time. It resolves SRV records again and picks a server with the `loadBalancer` strategy on every connection and reconnection attempt, so it follows membership changes.
-
-:::caution[Client credentials use the first host for tokens]
-With client credentials, the client requests tokens from `/connect/token` on the first host in the connection string, or on the SRV lookup host for `chronicle+srv://`, whichever server it is connected to. That host must serve the token endpoint and stay reachable, or authentication fails even when another server is up. API-key connections are not affected.
-:::
+The client talks to one server at a time. It resolves SRV records again and picks a server with the `loadBalancer` strategy on every connection and reconnection attempt, so it follows membership changes. With client credentials, it requests tokens from the selected server too, so each server must serve `/connect/token`.
 
 ## How the client connects and recovers
 
@@ -98,9 +94,13 @@ When `getEventStore(...)` needs a connection, the client:
 3. Calls the kernel and registers a keep-alive.
 4. Creates the event store if needed and registers its artifacts.
 
-If one of the first three steps fails for any reason other than an incompatible kernel, the client waits and tries again, indefinitely. The wait doubles from about one second up to 30 seconds, with random jitter so that many clients don't return at once. Until a connection succeeds or you dispose the client, `getEventStore(...)` neither resolves nor rejects. Once connected, a failure to register artifacts, such as a schema error, rejects `getEventStore(...)` straight away.
+Two failures are permanent. When the kernel is incompatible, the client throws `IncompatibleChronicleServer`. When the token endpoint rejects the client credentials with an OAuth `invalid_client`, `unauthorized_client`, or `invalid_grant` error, or the kernel refuses an API key, and this repeats on three consecutive attempts, it throws `RejectedChronicleCredentials`. The repeats ride out a kernel that is still registering its clients at startup; other token-endpoint errors, such as a 403 from a proxy, keep retrying. In both cases it stops retrying and rejects every later call; fix the deployment or the connection string, then create a new client.
+
+If one of the first three steps fails for any other reason, such as the kernel being unreachable, the client waits and tries again, indefinitely. The wait doubles from about one second up to 30 seconds, with random jitter so that many clients don't return at once. Until a connection succeeds or you dispose the client, `getEventStore(...)` neither resolves nor rejects. Once connected, a failure to register artifacts, such as a schema error, rejects `getEventStore(...)` straight away.
 
 After connecting, the client checks the connection every five seconds and watches the kernel keep-alive. When either fails, it reconnects with the same backoff and registers the artifacts again for every event store it has handed out. A registration failure during that reconnect is logged, not thrown. Reactor and reducer observations restart after the reconnect. If `getEventStore(...)` or `getEventStores()` fails with a connection error, the client reconnects and retries the call once. Other calls, such as appends, reject with the gRPC error, and your code decides whether to retry.
+
+When the kernel rejects a cached token as unauthenticated, for example after a key rotation, the client requests a new token and retries the call once. Observation streams are not retried within the call; they are observed again after a reconnect.
 
 ## Connection diagnostics
 
@@ -112,7 +112,7 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 ```
 
-Failed attempts then appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying` with the attempt number, the delay, and the error. When the kernel cannot be reached at all, the reported error can be about authentication (`No authentication method specified`) because the token request failed first; check the host, port, and TLS settings before the credentials.
+Failed attempts then appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying` with the attempt number, the delay, and the error, for example `CheckCompatibility UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:35000`. When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the token endpoint and cause, and sends the call without a token, which a kernel with authentication turned off accepts.
 
 To fail fast at startup instead of waiting forever, bound the first call and dispose the client when the time runs out:
 
@@ -135,16 +135,14 @@ try {
 
 ## Client and kernel compatibility
 
-The TypeScript client and the Chronicle kernel have separate version numbers. For example, client 6.7.1 depends on `@cratis/chronicle.contracts` 19.4.0. Neither number promises which kernel versions work.
+The TypeScript client and the Chronicle kernel have separate version numbers, and the client also depends on a `@cratis/chronicle.contracts` version. None of these numbers promises which kernel versions work.
 
 Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
 
-There is no published compatibility matrix. We ran `@cratis/chronicle` 6.7.1 against the `cratis/chronicle:19.4.8-development` image. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
+There is no published compatibility matrix. The examples in these guides were run against the `cratis/chronicle:19.4.8-development` image. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
 
 ## Shut down
 
-Create one `ChronicleClient` per process and share it. On shutdown, call `client.dispose()`. It stops the health checks and the keep-alive, signals the disconnect to reactors and reducers, and closes the channel. A disposed client rejects every later call with `ChronicleClient is disposed`, including a `getEventStore(...)` that is still waiting to connect.
+Create one `ChronicleClient` per process and share it. On shutdown, call `client.dispose()`. It stops the health checks and the keep-alive, ends reactor and reducer observations, and closes the channel. A disposed client rejects every later call with `ChronicleClient is disposed`, including a `getEventStore(...)` that is still waiting to connect.
 
-:::note[The process may keep running after dispose]
-With version 6.7.1, a process that registered a reactor can keep running after `dispose()`. In a short-lived script, call `process.exit()` after `dispose()`.
-:::
+Once it has disposed every client, the process can exit; the client leaves no open connections or timers behind.

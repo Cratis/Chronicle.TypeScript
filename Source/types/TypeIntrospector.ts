@@ -82,11 +82,12 @@ export class TypeIntrospector {
 
         for (let index = 0; index < constructorParameterNames.length; index++) {
             const parameterName = constructorParameterNames[index];
-            if (members.has(parameterName)) {
+            const resolvedType = members.get(parameterName);
+            if (resolvedType && resolvedType !== Object) {
                 continue;
             }
 
-            members.set(parameterName, constructorParameterTypes[index]);
+            members.set(parameterName, constructorParameterTypes[index] ?? resolvedType);
         }
 
         return members;

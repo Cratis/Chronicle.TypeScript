@@ -13,7 +13,7 @@ The token comes from your own configuration; this example reads it from an envir
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
 const token = process.env.CUSTOMERS_API_TOKEN!;
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const eventStore = await client.getEventStore('MyStore');
 
 await eventStore.externalServices.register('CustomersApi', builder => builder
@@ -33,7 +33,7 @@ await eventStore.externalServices.register('CustomersDb', builder => builder
     .postgreSql('db.example.com', 'customers', 'postgres', password, 5432));
 ```
 
-The client uses the name as the service identifier. `register` does not check the kernel's response, so a definition the kernel rejects does not raise an error; confirm the service in the Workbench after you register it.
+The client uses the name as the service identifier. `register` rejects with the kernel's validation or exception messages when the kernel does not accept the definition.
 
 ## API
 

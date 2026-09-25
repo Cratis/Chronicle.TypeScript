@@ -27,6 +27,7 @@ import * as confidentiality from './confidentiality/index.js';
 
 export { ChronicleClient } from './ChronicleClient.js';
 export { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
+export { RejectedChronicleCredentials } from './connection/RejectedChronicleCredentials.js';
 export type { IChronicleClient } from './IChronicleClient.js';
 export { ChronicleOptions } from './ChronicleOptions.js';
 export { EventStore } from './EventStore.js';

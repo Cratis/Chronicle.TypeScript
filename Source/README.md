@@ -59,8 +59,7 @@ class EmployeeHired {
     }
 }
 
-// discoveryPatterns: [] relies on this module's imports instead of scanning source files.
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const store = await client.getEventStore('MyStore');
 const result = await store.eventLog.append('employee-123', new EmployeeHired('Jane', 'Doe'));
 console.log(`Appended at sequence number ${result.sequenceNumber.value}`);
@@ -73,7 +72,7 @@ Chronicle decorators work with both TC39 standard decorators (TypeScript 5.2+; d
 
 Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/read-models.md) for preserving existing custom identifiers.
 
-`ChronicleOptions` scans `**/*.ts` files for artifacts by default, which needs the `glob` package, and fails when the matched `.ts` files cannot be loaded by Node.js. Import your artifact modules and pass `discoveryPatterns: []`, as in the example above, or see [artifact discovery](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/getting-started.md#artifact-discovery).
+Decorated artifacts register when their modules are imported. When the entry file is TypeScript (run through a loader such as `tsx`), the client also scans `**/*.ts` files by default; compiled JavaScript scans nothing unless you set `discoveryPatterns`. See [artifact discovery](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/getting-started.md#artifact-discovery).
 
 The client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`. Set it for every server other than a local development kernel; see [Connect to Chronicle](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/connecting.md).
 

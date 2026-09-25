@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
+import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the addFrom property decorator. */
 export interface AddFromMetadata {
@@ -22,7 +23,7 @@ const METADATA_KEY = 'chronicle:projection:addFrom';
  * @returns A property decorator.
  */
 export function addFrom(eventType: Function, eventPropertyName?: string): ChroniclePropertyDecorator {
-    return decorateProperty((target: object, propertyKey: string | symbol) => {
+    return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: AddFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];

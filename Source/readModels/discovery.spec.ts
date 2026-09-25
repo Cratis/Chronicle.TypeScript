@@ -67,6 +67,33 @@ describe('when discovering read models from observers', () => {
         expect(JSON.parse(definition.Schema).properties.value.type).toBe('string');
         expect(register.mock.calls.some(call => call[0].Projections[0].ReadModel === 'MappedOnly')).toBe(true);
     });
+    it('should register a property-bound model without file discovery', async () => {
+        class DecoratedOnly { value = ''; }
+        setFrom(Event)(DecoratedOnly.prototype, 'value');
+        setFrom(Event)(DecoratedOnly.prototype, 'value');
+        expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === DecoratedOnly)).toHaveLength(1);
+        const { connection, registerMany } = createConnection();
+        await new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink').register(DecoratedOnly);
+        expect(registerMany.mock.calls[0][0].ReadModels[0].Type.Identifier).toBe('DecoratedOnly');
+    });
+
+    it('should refuse to query a model-bound read model whose projection was never registered', async () => {
+        class RegisteredLate { value = ''; }
+        setFrom(Event)(RegisteredLate.prototype, 'value');
+        const { connection } = createConnection();
+        const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink', () => false);
+        await expect(readModels.findInstanceById(RegisteredLate, 'key')).rejects.toThrow(/add a class-level @fromEvent/);
+    });
+
+    it('should explain how to register an unregistered property-bound model', async () => {
+        class NeverRegistered { value = ''; }
+        Reflect.defineMetadata('chronicle:projection:setFrom', [{ eventType: Event }], NeverRegistered.prototype, 'value');
+        Reflect.defineMetadata('chronicle:typeIntrospection:properties', ['value'], NeverRegistered);
+        const { connection } = createConnection();
+        await expect(new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink').findInstanceById(NeverRegistered, 'key'))
+            .rejects.toThrow(/add a class-level @fromEvent/);
+    });
+
     it('should deduplicate inferred types and retain custom identifiers', async () => {
         const provider = DefaultClientArtifactsProvider.default;
         for (const type of [ModelBound, Projected, Reduced]) {

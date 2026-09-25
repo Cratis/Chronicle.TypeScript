@@ -170,6 +170,7 @@
         "@cratis/chronicle.contracts": "19.4.0",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
+        "glob": "^13.0.6",
         "nice-grpc": "^2.1.17",
         "nice-grpc-common": "^2.0.4",
         "reflect-metadata": "^0.2.2",

@@ -28,6 +28,10 @@ class Inventory {
     removedTotal!: number;
     thingsHappenedCount!: number;
     countsByEventType!: Record<string, number>;
+    active!: boolean;
+    status!: string;
+    started!: Date;
+    cleared!: string | null;
     incrementsByEventType!: Record<string, number>;
     decrementsByEventType!: Record<string, number>;
 }
@@ -81,14 +85,48 @@ describe('ProjectionBuilderFor', () => {
             const entry = definition.From.find(candidate => candidate.Key.Id === 'ThingHappened')!;
 
             expect(entry.Value.Properties.thingsHappenedCount).toBe('$count');
-            expect(entry.Value.Key).toBe('singleton');
+            expect(entry.Value.Key).toBe('$value(singleton)');
+        });
+    });
+
+    describe('when setting constants on a from builder', () => {
+        it('should encode constants as value expressions and null as a clear', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.from(ThingHappened, from => {
+                from.set(model => model.active).toValue(true);
+                from.set(model => model.status).toValue('on-loan');
+                from.set(model => model.total).toValue(2.5);
+                from.set(model => model.started).toValue(new Date('2025-01-02T03:04:05.006Z'));
+                from.set(model => model.cleared).toValue(null);
+                from.set(model => model.id).toValue({ value: 'wrapped' });
+                from.setThisValue().toValue('whole');
+            });
+
+            const definition = builder.build('inventory', 'Inventory') as unknown as { From: FromRecord[] };
+            expect(definition.From[0].Value.Properties).toMatchObject({
+                active: '$value(true)',
+                status: '$value(on-loan)',
+                total: '$value(2.5)',
+                started: '$value(2025-01-02T03:04:05.006Z)',
+                cleared: '$null',
+                id: '$value(wrapped)',
+                $this: '$value(whole)'
+            });
+        });
+
+        it('should encode constant keys and parent keys as expressions', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.from(ThingHappened, from => from.usingConstantKey('singleton').usingConstantParentKey('parent'));
+            const definition = builder.build('inventory', 'Inventory') as unknown as { From: Array<{ Value: { Key: string; ParentKey: string } }> };
+            expect(definition.From[0].Value.Key).toBe('$value(singleton)');
+            expect(definition.From[0].Value.ParentKey).toBe('$value(parent)');
         });
     });
 
     describe('when using add on a join builder', () => {
         it('should produce a $add expression targeting the event property', () => {
             const builder = new ProjectionBuilderFor<Inventory>();
-            builder.join(ItemAdded, join => join.add(model => model.total).with(event => event.quantity));
+            builder.join(ItemAdded, join => join.on(model => model.id).add(model => model.total).with(event => event.quantity));
 
             const definition = builder.build('inventory', 'Inventory') as unknown as { Join: JoinRecord[] };
             const entry = definition.Join.find(candidate => candidate.Key.Id === 'ItemAdded')!;
@@ -97,10 +135,20 @@ describe('ProjectionBuilderFor', () => {
         });
     });
 
+    describe('when setting a constant on a join builder', () => {
+        it('should send a value expression for the property and key', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.join(ItemAdded, join => join.on(model => model.id).usingConstantKey('singleton').set(model => model.status).toValue('on-loan'));
+            const definition = builder.build('inventory', 'Inventory') as unknown as { Join: Array<{ Value: { Key: string; Properties: Record<string, string> } }> };
+            expect(definition.Join[0].Value.Key).toBe('$value(singleton)');
+            expect(definition.Join[0].Value.Properties.status).toBe('$value(on-loan)');
+        });
+    });
+
     describe('when using subtract on a join builder', () => {
         it('should produce a $subtract expression targeting the event property', () => {
             const builder = new ProjectionBuilderFor<Inventory>();
-            builder.join(ItemRemoved, join => join.subtract(model => model.removedTotal).with(event => event.quantity));
+            builder.join(ItemRemoved, join => join.on(model => model.id).subtract(model => model.removedTotal).with(event => event.quantity));
 
             const definition = builder.build('inventory', 'Inventory') as unknown as { Join: JoinRecord[] };
             const entry = definition.Join.find(candidate => candidate.Key.Id === 'ItemRemoved')!;
@@ -112,12 +160,21 @@ describe('ProjectionBuilderFor', () => {
     describe('when using count on a join builder', () => {
         it('should produce a $count expression', () => {
             const builder = new ProjectionBuilderFor<Inventory>();
-            builder.join(ThingHappened, join => join.count(model => model.thingsHappenedCount));
+            builder.join(ThingHappened, join => join.on(model => model.id).count(model => model.thingsHappenedCount));
 
             const definition = builder.build('inventory', 'Inventory') as unknown as { Join: JoinRecord[] };
             const entry = definition.Join.find(candidate => candidate.Key.Id === 'ThingHappened')!;
 
             expect(entry.Value.Properties.thingsHappenedCount).toBe('$count');
+        });
+    });
+
+    describe('when joining without an on property', () => {
+        it('should reject a definition that the kernel cannot convert', () => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.join(ThingHappened, join => join.count(model => model.thingsHappenedCount));
+            expect(() => builder.build('inventory', 'Inventory'))
+                .toThrow("A join with event 'ThingHappened' requires an on property.");
         });
     });
 

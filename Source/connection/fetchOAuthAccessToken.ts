@@ -7,6 +7,21 @@ import * as https from 'https';
 /**
  * The shape of a successful OAuth2 token response.
  */
+export class OAuthTokenHttpError extends Error {
+    readonly errorCode?: string;
+
+    constructor(readonly statusCode: number, body: string) {
+        super(`Token request failed with status ${statusCode}: ${body}`);
+        this.name = 'OAuthTokenHttpError';
+        try {
+            const parsed = JSON.parse(body) as { error?: unknown };
+            if (parsed && typeof parsed.error === 'string') this.errorCode = parsed.error;
+        } catch {
+            // A proxy may return HTML or plain text instead of an OAuth error response.
+        }
+    }
+}
+
 export interface OAuthTokenResponse {
     access_token: string;
 
@@ -58,7 +73,7 @@ export function fetchOAuthAccessToken(
 
             response.on('end', () => {
                 if (response.statusCode !== 200) {
-                    reject(new Error(`Token request failed with status ${response.statusCode}: ${data}`));
+                    reject(new OAuthTokenHttpError(response.statusCode ?? 0, data));
                     return;
                 }
 
@@ -77,10 +92,26 @@ export function fetchOAuthAccessToken(
         });
 
         request.on('error', error => {
-            reject(new Error(`Token request failed: ${error.message}`));
+            reject(new Error(`Token request failed: ${describeRequestError(error)}`, { cause: error }));
         });
 
         request.write(body);
         request.end();
     });
+}
+
+/**
+ * Describes a request error. Connecting to a host that resolves to several addresses, such as
+ * localhost, fails with an AggregateError whose own message is empty.
+ * @param error - The request error.
+ * @returns A description that names the failure.
+ */
+export function describeRequestError(error: Error): string {
+    const code = (error as NodeJS.ErrnoException).code;
+    const inner = error instanceof AggregateError
+        ? error.errors.map(item => item instanceof Error ? item.message : String(item)).filter(Boolean).join('; ')
+        : '';
+    return [error.message, inner, code && !error.message.includes(code) && !inner.includes(code) ? code : '']
+        .filter(Boolean)
+        .join(' ') || 'unknown error';
 }

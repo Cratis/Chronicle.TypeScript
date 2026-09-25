@@ -20,6 +20,12 @@ import { getSetFromMetadata, setFrom } from './setFrom.js';
 import { getSetValueMetadata, setValue } from './setValue.js';
 import { getSubtractFromMetadata, subtractFrom } from './subtractFrom.js';
 import { getTrackedJsonSchemaProperties, jsonSchemaProperty } from '../../schemas/jsonSchemaProperty.js';
+import { DecoratorType } from '../../types/DecoratorType.js';
+import { TypeDiscoverer } from '../../types/TypeDiscoverer.js';
+import { DefaultClientArtifactsProvider } from '../../artifacts/DefaultClientArtifactsProvider.js';
+import { ReadModels } from '../../readModels/ReadModels.js';
+import type { ChronicleConnection } from '../../connection/ChronicleConnection.js';
+import { vi } from 'vitest';
 
 class Changed {}
 
@@ -45,7 +51,46 @@ class Mappings {
     @jsonSchemaProperty() tracked!: string;
 }
 
+class StandardMappedOnly {
+    @setFrom(Changed) value = '';
+}
+
+class UnconstructedMappedOnly {
+    @setFrom(Changed) value = '';
+}
+
 describe('standard model-bound decorators', () => {
+    it('collects a standard-mapped class for lazy root discovery when constructed without file discovery', () => {
+        new StandardMappedOnly();
+        new StandardMappedOnly();
+        expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.ReadModel, 'StandardMappedOnly'))
+            .toBeUndefined();
+        expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === StandardMappedOnly)).toHaveLength(1);
+    });
+
+    it('registers the declaring class once even when subclasses and many instances are constructed', () => {
+        class Base {
+            @setFrom(Changed) value = '';
+        }
+        class Derived extends Base {}
+        const track = vi.spyOn(TypeDiscoverer.default, 'trackModelBoundProperty');
+        try {
+            for (let index = 0; index < 50; index++) new Base();
+            new Derived();
+            expect(track.mock.calls.filter(([type]) => type === Base)).toHaveLength(1);
+            expect(track.mock.calls.some(([type]) => type === Derived)).toBe(false);
+        } finally {
+            track.mockRestore();
+        }
+    });
+
+    it('should explain that an unconstructed property-only model was never registered', async () => {
+        const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"value":"stored"}' });
+        const connection = { readModels: { getInstanceByKey } } as unknown as ChronicleConnection;
+        const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink');
+        await expect(readModels.findInstanceById(UnconstructedMappedOnly, 'id')).rejects.toThrow(/add a class-level @fromEvent/);
+        expect(getInstanceByKey).not.toHaveBeenCalled();
+    });
     it('stores class and property annotations without constructing an instance', () => {
         const target = Mappings.prototype;
         expect(isNoAutoMap(Mappings)).toBe(true);

@@ -2,11 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import {
-    ExternalServiceDefinition,
-    ExternalServiceEndpoint,
+    type ExternalServiceDefinition,
+    type ExternalServiceEndpoint,
     ExternalServiceEndpointType,
-    OneOfBasicAuthorizationBearerTokenAuthorizationOAuthAuthorization
-} from './ExternalServicesContracts.js';
+    type OneOfBasicAuthorizationBearerTokenAuthorizationOAuthAuthorization
+} from '@cratis/chronicle.contracts';
 import { IExternalServiceBuilder } from './IExternalServiceBuilder.js';
 
 /**

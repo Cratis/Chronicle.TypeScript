@@ -7,8 +7,11 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions.js';
 import { ChronicleConnection } from './connection/index.js';
 import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
+import { OAuthTokenHttpError } from './connection/fetchOAuthAccessToken.js';
+import { RejectedChronicleCredentials } from './connection/RejectedChronicleCredentials.js';
 import { ensureCommandSuccess, ensureQuerySuccess } from './connection/callResults.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
+import { clientVersion } from './connection/clientVersion.js';
 import { KernelKeepAlive } from './connection/KernelKeepAlive.js';
 import { EventStore } from './EventStore.js';
 import { EventStoreName } from './EventStoreName.js';
@@ -52,6 +55,7 @@ export class ChronicleClient implements IChronicleClient {
     private _keepAliveAbortController?: AbortController;
     private _healthCheckInFlight = false;
     private _connectionFailure?: Error;
+    private _consecutiveCredentialRejections = 0;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
@@ -194,6 +198,7 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     dispose(): void {
         this._isDisposed = true;
+        for (const store of this._stores.values()) store.disposeObservations();
 
         if (this._watchdogHandle) {
             clearInterval(this._watchdogHandle);
@@ -232,6 +237,7 @@ export class ChronicleClient implements IChronicleClient {
                 // so this effectively waits until the channel reaches READY or fails.
                 await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
 
+                this._consecutiveCredentialRejections = 0;
                 this._logger.info('Connected to Chronicle kernel');
                 await this.startKernelKeepAlive();
                 await this._lifecycle.connected(error => {
@@ -243,9 +249,10 @@ export class ChronicleClient implements IChronicleClient {
 
 
             } catch (error) {
-                if (error instanceof IncompatibleChronicleServer) {
-                    this.failConnection(error);
-                    throw error;
+                const terminal = this.terminalConnectionError(error);
+                if (terminal) {
+                    this.failConnection(terminal);
+                    throw terminal;
                 }
                 attempt++;
                 const delayMs = await this.backOff(attempt, 'Connection attempt failed, retrying', error);
@@ -303,6 +310,7 @@ export class ChronicleClient implements IChronicleClient {
                         await this._connection.resetChannel();
                         await this._connection.connect();
                         await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
+                        this._consecutiveCredentialRejections = 0;
                         this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
                         await this.startKernelKeepAlive();
                         await this._lifecycle.connected(connectedError => {
@@ -312,9 +320,10 @@ export class ChronicleClient implements IChronicleClient {
                         });
                         return;
                     } catch (reconnectError) {
-                        if (reconnectError instanceof IncompatibleChronicleServer) {
-                            this.failConnection(reconnectError);
-                            throw reconnectError;
+                        const terminal = this.terminalConnectionError(reconnectError);
+                        if (terminal) {
+                            this.failConnection(terminal);
+                            throw terminal;
                         }
                         attempt++;
                         await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
@@ -351,17 +360,49 @@ export class ChronicleClient implements IChronicleClient {
         try {
             return await action();
         } catch (error) {
-            if (!this.shouldReconnect(error)) {
-                throw error;
+            const terminal = this.terminalConnectionError(error);
+            if (terminal) {
+                this.failConnection(terminal);
+                throw terminal;
             }
+            if (!this.shouldReconnect(error)) throw error;
 
             await this.reconnect(operation, error);
-            return action();
+            try {
+                return await action();
+            } catch (retryError) {
+                const retryTerminal = this.terminalConnectionError(retryError);
+                if (retryTerminal) {
+                    this.failConnection(retryTerminal);
+                    throw retryTerminal;
+                }
+                throw retryError;
+            }
         }
     }
 
+    private terminalConnectionError(error: unknown): Error | undefined {
+        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return error;
+        const rejection = (error as { code?: number })?.code === 16 &&
+            (this.options.connectionString.apiKey || this.hasOAuthCredentialRejection(error));
+        this._consecutiveCredentialRejections = rejection ? this._consecutiveCredentialRejections + 1 : 0;
+        if (this._consecutiveCredentialRejections === 3) {
+            return new RejectedChronicleCredentials(`Chronicle credentials were rejected: ${this.toErrorMessage(error)}`, { cause: error });
+        }
+        return undefined;
+    }
+
+    private hasOAuthCredentialRejection(error: unknown): boolean {
+        const tokenError = (error as { tokenFailure?: Error })?.tokenFailure;
+        const httpError = tokenError?.cause;
+        return httpError instanceof OAuthTokenHttpError && [400, 401].includes(httpError.statusCode) &&
+            ['invalid_client', 'unauthorized_client', 'invalid_grant'].includes(httpError.errorCode ?? '');
+    }
+
     private shouldReconnect(error: unknown): boolean {
-        if (error instanceof IncompatibleChronicleServer) return false;
+        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return false;
+        if ((error as { code?: number })?.code === 16 &&
+            (this.options.connectionString.apiKey || !!(error as { tokenFailure?: Error })?.tokenFailure)) return true;
         const code = Number((error as { code?: number })?.code ?? -1);
         const details = String((error as { details?: string })?.details ?? '');
         const message = this.toErrorMessage(error);
@@ -439,9 +480,7 @@ export class ChronicleClient implements IChronicleClient {
         await keepAlive.start(
             {
                 ConnectionId: this._lifecycle.connectionId,
-                // TODO: Not derived from this package's own version anywhere yet; kept as
-                // the pre-existing hardcoded placeholder until such a mechanism exists.
-                ClientVersion: '1.0.0',
+                ClientVersion: clientVersion,
                 IsRunningWithDebugger: false,
                 ProcessId: process.pid,
                 ProcessPath: process.execPath,

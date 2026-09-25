@@ -99,7 +99,7 @@ You don't call anything to run a seeder. `client.getEventStore(...)` collects th
 
 The kernel deduplicates seeded events and applies them once per namespace, so sending the same seed data on every startup does not append duplicates.
 
-To keep seed data out of an environment, don't import the seeder module there. For example, import it only when a development configuration flag is set. With [file discovery](./getting-started.md#artifact-discovery) turned on, make sure no positive pattern matches the seeder file; `!` exclusion patterns have no effect in 6.7.1.
+To keep seed data out of an environment, don't import the seeder module there. For example, import it only when a development configuration flag is set. With [file discovery](./getting-started.md#artifact-discovery) turned on, exclude the seeder file with a `!` pattern in `discoveryPatterns`.
 
 ## Best practices
 

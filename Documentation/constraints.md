@@ -1,54 +1,24 @@
-<!-- Copyright (c) Cratis. All rights reserved. -->
-<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+---
+title: Constraints in the TypeScript client
+description: Where constraints are documented, and the TypeScript rules for naming, merging, messages, and releasing constraints declared with decorators.
+sharedTopicBridge: true
+---
 
-# Constraints in the TypeScript client
+Constraints are shared Chronicle behavior. The shared docs explain the consistency model and show TypeScript examples for each constraint style.
 
-Use `@unique` on an event property to prevent the same value from being claimed by another event source. The client groups properties with the same constraint name into one definition, including properties on different event types. Without a name, the property name is used.
+- [Constraints](/chronicle/constraints/)
+- [Unique property values with decorators](/chronicle/constraints/model-bound/unique/)
+- [Unique event types with decorators](/chronicle/constraints/model-bound/unique-event-type/)
+- [TypeScript client setup](./getting-started.md)
 
-The following example shares `UniqueEmail` between user registration and email changes. Either event that ends the lifecycle can release it:
+## TypeScript client notes
 
-```typescript
-import { eventType, unique, removeConstraint } from '@cratis/chronicle';
-
-@eventType('sdk-user-registered')
-class SdkUserRegistered {
-    @unique('UniqueEmail') email = '';
-}
-
-@eventType('sdk-user-email-changed')
-class SdkUserEmailChanged {
-    @unique('UniqueEmail') newEmail = '';
-}
-
-@eventType('sdk-user-deleted')
-@removeConstraint('UniqueEmail')
-class SdkUserDeleted {}
-
-@eventType('sdk-user-anonymized')
-@removeConstraint('UniqueEmail')
-class SdkUserAnonymized {}
-```
-
-Use `@unique` on an event class instead to allow only one occurrence of that event type per event source. The default constraint name is the class name; event classes with the same explicit name participate in the same unique-event-type constraint.
-
-```typescript
-@eventType('sdk-account-registered')
-@unique('UniqueAccount')
-class SdkAccountRegistered {}
-
-@eventType('sdk-account-closed')
-@removeConstraint('UniqueAccount')
-class SdkAccountClosed {}
-
-@eventType('sdk-account-reopened')
-@removeConstraint('UniqueAccount')
-class SdkAccountReopened {}
-```
-
-Place repeatable `@removeConstraint('Name')` decorators on any event class that releases the named constraint. The name must match exactly; a single event can release several names. Removal decorators are inherited by derived event classes and can also release a fluent constraint with the same wire name. Event classes need `@eventType` and must be discoverable by the client (including through its artifact glob). Constraints are registered on connection, and the Kernel enforces them on append. The core client does not require MongoDB or a local uniqueness check.
-
-`@unique(name?, message?)` accepts the same fixed name and message arguments as .NET's `[Unique]`. For example, `@unique('UniqueEmail', 'Email already registered')`. A supplied message replaces the Kernel's default in append results; `{detailKey}` placeholders are replaced from violation details. Without a message, the Kernel's message remains visible. The .NET attribute does not offer ignore-casing: use the fluent `@constraint` / `IConstraintBuilder.unique(...).ignoreCasing()` form when case-insensitive matching is needed. The fluent form remains supported; the decorators feed the same registration path. For shared stores across languages and minified bundles, always give constraints explicit, stable names rather than relying on property or class names. TypeScript deliberately merges same-named unique-event-type declarations across fluent `uniqueFor` constraints and class-level `@unique` decorators into one definition. This differs from .NET: its fluent `Unique<T>(name: ...)` merges within one `IConstraint`, not across constraint classes, while its attribute provider produces separate definitions for same-named class attributes. Merged declarations must agree on scope; decorated properties cannot merge with a case-insensitive fluent constraint. The first supplied message wins when declarations share a name. Fluent `withMessage` messages also resolve in append results.
-
-For fluent `unique(...)` property constraints, the registered name is the `@constraint('Name')` id, even if `withName('OtherName')` is called. Use the `@constraint` id in `@removeConstraint('Name')`; `withName()` does not change the registered name.
-
-For the underlying consistency model and more examples, see [Chronicle constraints](/chronicle/constraints/).
+- `@unique(name?, message?)` on an event property prevents another event source from claiming the same value. On an event class, it allows one occurrence of that event type per event source. Without a name, a property constraint uses the property name and a class constraint uses the class name.
+- The client merges properties and classes that use the same constraint name into one definition, including across event types. For shared stores across languages and minified bundles, always give constraints explicit, stable names.
+- Merged declarations must agree on scope, and decorated properties cannot merge with a case-insensitive fluent constraint. When declarations share a name, the first supplied message wins.
+- TypeScript merges same-named unique-event-type declarations across fluent `uniqueFor` constraints and class-level `@unique` decorators. .NET does not: its fluent `Unique<T>(name: ...)` merges only within one `IConstraint`, and same-named class attributes produce separate definitions.
+- A message replaces the kernel's default in append results; `{detailKey}` placeholders are replaced from violation details. Fluent `withMessage` messages also appear in append results.
+- `@unique` has no ignore-casing option. Use the fluent `@constraint` class with `IConstraintBuilder.unique(...).ignoreCasing()` for case-insensitive matching. Both forms register the same way.
+- Put a repeatable `@removeConstraint('Name')` on each event class that releases a constraint. The name must match exactly, one event can release several names, and derived event classes inherit the decorator. It can also release a fluent constraint with the same name.
+- For a fluent `unique(...)` property constraint, the registered name is the `@constraint('Name')` id, even if you call `withName('OtherName')`. Use that id in `@removeConstraint`.
+- Event classes need `@eventType`, and their modules must be imported or discovered before `getEventStore(...)`. The client registers constraints when it connects, and the kernel enforces them on append.

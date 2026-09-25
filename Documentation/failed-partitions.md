@@ -35,7 +35,7 @@ Each `FailedPartitionAttempt` carries:
 ```typescript
 import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
-const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+const client = new ChronicleClient(ChronicleOptions.development());
 const eventStore = await client.getEventStore('MyStore');
 
 const failedPartitions = await eventStore.failedPartitions.getAllFailedPartitions();

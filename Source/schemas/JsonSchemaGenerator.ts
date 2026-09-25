@@ -5,6 +5,8 @@ import 'reflect-metadata';
 import { conceptAsTypeKey, Constructor, Fields, Guid, typeKeyOf } from '@cratis/fundamentals';
 import { ComplianceSchemaMetadata, JsonSchema, SecuritySchemaMetadata } from './JsonSchema.js';
 import { TypeIntrospector } from '../types/index.js';
+import { conceptValueType } from '../types/conceptValueType.js';
+import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
 import { hasOwnStandardMetadata } from '../types/standardDecoratorMetadata.js';
 import { ComplianceMetadata } from '../compliance/ComplianceMetadata.js';
 import { ComplianceMetadataResolver } from '../compliance/ComplianceMetadataResolver.js';
@@ -124,9 +126,7 @@ export class JsonSchemaGenerator {
         // TypeScript erases ConceptAs<T>'s primitive type. Prefer an explicit field or
         // static hint; legacy emitDecoratorMetadata is the last available source.
         if (this.isConceptAs(runtimeType)) {
-            const concept = runtimeType as Function & { valueType?: Function };
-            const fieldType = Fields.getFieldsForType(concept as Constructor).find(field => field.name === 'value')?.type;
-            const valueType = fieldType ?? concept.valueType ?? Reflect.getMetadata('design:type', runtimeType.prototype, 'value') as Function | undefined;
+            const valueType = conceptValueType(runtimeType);
             if (!valueType && !requireResolvedTypes) return { type: 'string' }; // Legacy schema compatibility.
             const valueSchema = this.mapRuntimeTypeToSchema(valueType, undefined, undefined, requireResolvedTypes);
             if (!valueType || !valueSchema.type || (requireResolvedTypes && valueSchema.type === 'object')) {
@@ -191,7 +191,7 @@ export class JsonSchemaGenerator {
         }
 
         const field = Fields.getFieldsForType(declaringType as Constructor).find(candidate => candidate.name === propertyName);
-        return field?.genericArguments?.[0];
+        return getChildrenFromMetadata(declaringType.prototype, propertyName).find(metadata => metadata.childType)?.childType ?? field?.genericArguments?.[0];
     }
 
     /**

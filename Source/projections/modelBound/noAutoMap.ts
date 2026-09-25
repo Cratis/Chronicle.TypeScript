@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { decorateClassOrProperty, hasPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { hasPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundClassOrProperty } from '../../types/modelBoundProperty.js';
 
 const CLASS_METADATA_KEY = 'chronicle:projection:noAutoMap:class';
 const PROPERTY_METADATA_KEY = 'chronicle:projection:noAutoMap:property';
@@ -18,7 +19,7 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:noAutoMap:property';
  * @param target - The class constructor, or the class prototype when used on a property.
  * @param propertyKey - The property name, when used as a property decorator.
  */
-const decorateNoAutoMap = decorateClassOrProperty((target: object, propertyKey?: string | symbol): void => {
+const decorateNoAutoMap = decorateModelBoundClassOrProperty((target: object, propertyKey?: string | symbol): void => {
     if (propertyKey !== undefined) {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);

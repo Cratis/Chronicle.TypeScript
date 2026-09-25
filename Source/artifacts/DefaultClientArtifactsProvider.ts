@@ -28,7 +28,10 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
 
     /** @inheritdoc */
     get readModels(): Constructor[] {
-        const types = new Set(this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel));
+        const types = new Set([
+            ...this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel),
+            ...this.discoverer.getPropertyOnlyModels()
+        ]);
         for (const projection of this.projections) {
             const type = getProjectionMetadata(projection)?.readModelType;
             if (type) types.add(type);

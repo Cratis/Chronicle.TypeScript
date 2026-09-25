@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ChronicleConnection } from '../connection/index.js';
+import { ensureCommandSuccess } from '../connection/callResults.js';
 import { ExternalServiceBuilder } from './ExternalServiceBuilder.js';
 import { IExternalServiceBuilder } from './IExternalServiceBuilder.js';
 import { IExternalServices } from './IExternalServices.js';
@@ -26,9 +27,10 @@ export class ExternalServices implements IExternalServices {
         configure(builder);
         const definition = builder.build(name, name);
 
-        await this._connection.externalServices.add({
+        const result = await this._connection.externalServices.addExternalServices({
             EventStore: this._eventStore,
             ExternalServices: [definition]
         });
+        ensureCommandSuccess('register external service', result);
     }
 }

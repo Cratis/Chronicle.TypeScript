@@ -3,9 +3,8 @@ import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
 
 async function run() {
     // ChronicleOptions.development() connects to the local development kernel on localhost:35000
-    // with the development credentials. discoveryPatterns: [] relies on your imports to register
-    // artifacts instead of scanning source files.
-    const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
+    // with the development credentials.
+    const client = new ChronicleClient(ChronicleOptions.development());
     try {
         const eventStore = await client.getEventStore('Quickstart');
         console.log(`Connected to event store: ${eventStore.name}`);

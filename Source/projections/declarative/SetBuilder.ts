@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { ISetBuilder } from './ISetBuilder.js';
+import { constantValueExpression } from '../constantValueExpression.js';
 
 /**
  * Concrete implementation of {@link ISetBuilder} that records the property mapping
@@ -28,7 +29,7 @@ export class SetBuilder<TEvent, TParentBuilder> implements ISetBuilder<TEvent, T
 
     /** @inheritdoc */
     toValue<TProperty>(value: TProperty): TParentBuilder {
-        this._setProperty(this._readModelProperty, JSON.stringify(value));
+        this._setProperty(this._readModelProperty, constantValueExpression(value));
         return this._parent;
     }
 

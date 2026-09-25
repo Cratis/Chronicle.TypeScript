@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { field, type Constructor } from '@cratis/fundamentals';
+import { ConceptAs, field, Guid, type Constructor } from '@cratis/fundamentals';
 import { describe, expect, it, vi } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
 import type { ChronicleConnection } from '../connection/index.js';
@@ -10,6 +10,7 @@ import { subject } from '../compliance/subject.js';
 import { pii } from '../compliance/pii.js';
 import { reducer } from '../reducers/reducer.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
+import { setFrom } from '../projections/modelBound/setFrom.js';
 import { ReadModels } from './ReadModels.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
@@ -88,6 +89,62 @@ describe('ReadModels', () => {
             const legacyInstance = await readModels.getInstanceById(ExistingModel, 'found');
             expect(legacyInstance).toBeInstanceOf(ExistingModel);
             expect(legacyInstance.id).toBe('found');
+        });
+    });
+
+    describe('when reading a model with undecorated and model-bound members', () => {
+        class Code extends ConceptAs<string> {}
+        class MappedModel {
+            id = '';
+            name = '';
+            count = 0;
+            active = false;
+            occurred = new Date(0);
+            mapped = '';
+            code = new Code('initial');
+            guid = Guid.empty;
+            typed = Guid.empty;
+        }
+        field(Guid)(MappedModel.prototype, 'typed');
+        setFrom(SomeEvent, 'value')(MappedModel.prototype, 'mapped');
+        fromEvent(SomeEvent)(MappedModel);
+        const json = JSON.stringify({ id: 'a', name: 'stored', count: 42, active: true,
+            occurred: '2024-01-02T00:00:00.000Z', mapped: 'from event', code: 'stored-code',
+            guid: 'e951d9a0-720f-4e37-835f-701707f7b678',
+            typed: 'e951d9a0-720f-4e37-835f-701707f7b678', __internal: 'ignored' });
+
+        it('should restore all declared members for single and multiple reads', async () => {
+            const { readModels, getInstanceByKey } = createReadModels(MappedModel);
+            getInstanceByKey.mockResolvedValue({ ReadModel: json });
+            const getAllInstances = vi.fn().mockResolvedValue({ Instances: [json] });
+            const connection = { readModels: { getAllInstances } } as unknown as ChronicleConnection;
+            const provider = { readModels: [MappedModel], projections: [], reducers: [] } as unknown as IClientArtifactsProvider;
+            const all = await new ReadModels('store', 'tenant', connection, provider, 'sink').getInstances(MappedModel);
+            for (const instance of [await readModels.findInstanceById(MappedModel, 'a'),
+                await readModels.getInstanceById(MappedModel, 'a'), ...all]) {
+                expect(instance).toMatchObject({ id: 'a', name: 'stored', count: 42, active: true, mapped: 'from event' });
+                expect(instance?.occurred).toEqual(new Date('2024-01-02T00:00:00.000Z'));
+                expect(instance?.code).toBeInstanceOf(Code);
+                expect(instance?.code.value).toBe('stored-code');
+                expect(instance?.guid).toBeInstanceOf(Guid);
+                expect(instance?.typed).toBeInstanceOf(Guid);
+                expect(Object.hasOwn(instance as object, '__internal')).toBe(false);
+            }
+        });
+
+        it('should restore snapshot and watched instances', async () => {
+            const connection = { readModelExplorer: { allSnapshotsForReadModel: vi.fn().mockResolvedValue({ Data: [{ Instance: json }] }) },
+                readModels: { watch: async function* () {
+                    yield { Namespace: 'tenant', ModelKey: 'a', ReadModel: json, Removed: false };
+                } } } as unknown as ChronicleConnection;
+            const provider = { readModels: [MappedModel], projections: [], reducers: [] } as unknown as IClientArtifactsProvider;
+            const readModels = new ReadModels('store', 'tenant', connection, provider, 'sink');
+            const snapshots = await readModels.getSnapshotsById(MappedModel, 'a');
+            const watched = await readModels.watch(MappedModel)[Symbol.asyncIterator]().next();
+            expect(snapshots[0].readModel.mapped).toBe('from event');
+            expect(snapshots[0].readModel.occurred).toBeInstanceOf(Date);
+            expect(watched.value?.readModel.name).toBe('stored');
+            expect(watched.value?.readModel.occurred).toBeInstanceOf(Date);
         });
     });
 

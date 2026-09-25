@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { decorateProperty, hasPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { hasPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
 
 const METADATA_KEY = 'chronicle:projection:nested';
 
@@ -13,7 +14,7 @@ const METADATA_KEY = 'chronicle:projection:nested';
  * @param target - The class prototype.
  * @param propertyKey - The property name.
  */
-const decorateNested = decorateProperty((target: object, propertyKey: string | symbol): void => {
+const decorateNested = decorateModelBoundProperty((target: object, propertyKey: string | symbol): void => {
     const key = propertyKey.toString();
     TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
     Reflect.defineMetadata(METADATA_KEY, true, target, key);

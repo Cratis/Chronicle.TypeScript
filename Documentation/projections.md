@@ -19,11 +19,11 @@ The TypeScript client supports these projection capabilities, in addition to `@f
 
 - The model-bound arithmetic decorators — `@addFrom`, `@subtractFrom`, `@increment`, `@decrement`, `@count` — and their fluent equivalents (`.add()`/`.subtract()`/`.count()` on `IFromBuilder`/`IJoinBuilder`).
 - The model-bound `@childrenFrom`, `@nested`, and class- or property-level `@clearWith` decorators, and the matching fluent `.children()`/`.nested()` builders (plus `.addChild()`/`.setThisValue()` on `IFromBuilder`/`IJoinBuilder`).
+- Constant values with `@setValue(Event, value)` and `.set(...).toValue(value)`, and constant keys. Earlier client versions sent these in a form the kernel did not apply, so the read model kept its previous value.
 - `.usingCompositeKey()`/`.usingParentCompositeKey()` on the fluent `IFromBuilder`/`IJoinBuilder`, for read models whose key is composed from more than one event property (see [Composite keys](/chronicle/projections/declarative/composite-keys/)).
 
 Earlier client versions rejected these with a `not implemented yet.` error at registration. Upgrade the client if you still see it.
 
-Two behaviors to know about in version 6.7.1:
+Under runtimes that emit no type metadata, such as `tsx`, name the child type of a children collection in `@childrenFrom(ItemAdded, Item, 'itemId')`: the second argument can be the child class instead of the key. The client then excludes `Item` from the root read models and restores the collection as `Item` instances.
 
-- The kernel stores every property a projection maps, but the client's read-model queries only fill properties declared with `@field(Type)`. An undeclared property such as `title = '';` comes back with its default value. Add `@field(Type)` to every read-model property you read.
-- `@setValue(Event, value)` and `.set(...).toValue(value)` do not write the constant to the read model. Map the value from an event property with `@setFrom` or `.to(...)` instead, or use a reducer.
+With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.

@@ -5,9 +5,9 @@ import { createRequire } from 'node:module';
 import { chronicleDescriptorSet, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
 import { ClientError, Status, type ClientMiddleware } from 'nice-grpc-common';
 import { IncompatibleChronicleServer } from './IncompatibleChronicleServer.js';
+import { clientVersion } from './clientVersion.js';
 
 const require = createRequire(import.meta.url);
-const clientVersion = (require('@cratis/chronicle/package.json') as { version: string }).version;
 const protocolVersion = (require('@cratis/chronicle.contracts/package.json') as { version: string }).version;
 
 /** Verifies the installed wire contract before a channel can perform event-sequence operations. */

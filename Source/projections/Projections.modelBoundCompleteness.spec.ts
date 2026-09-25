@@ -12,7 +12,9 @@ import { eventLog, eventSequence } from './modelBound/eventSequence.js';
 import { fromAll } from './modelBound/fromAll.js';
 import { fromEvent } from './modelBound/fromEvent.js';
 import { noAutoMap } from './modelBound/noAutoMap.js';
+import { join } from './modelBound/join.js';
 import { setFrom } from './modelBound/setFrom.js';
+import { setValue } from './modelBound/setValue.js';
 import { Projections } from './Projections.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
@@ -112,6 +114,28 @@ setFrom(MbProjectNoted, 'note')(MbProjectNotes.prototype, 'note');
 clearWith(MbProjectNoteCleared)(MbProjectNotes.prototype, 'note');
 fromEvent(MbProjectNoted)(MbProjectNotes);
 
+class MbConstants {
+    active!: boolean;
+    status!: string;
+    total!: number;
+    started!: Date;
+    cleared!: string | null;
+    wrapped!: string;
+}
+setValue(MbProjectNoted, true)(MbConstants.prototype, 'active');
+setValue(MbProjectNoted, 'on-loan')(MbConstants.prototype, 'status');
+setValue(MbProjectNoted, 2.5)(MbConstants.prototype, 'total');
+setValue(MbProjectNoted, new Date('2025-01-02T03:04:05.006Z'))(MbConstants.prototype, 'started');
+setValue(MbProjectNoted, null)(MbConstants.prototype, 'cleared');
+setValue(MbProjectNoted, { value: 'wrapped' })(MbConstants.prototype, 'wrapped');
+fromEvent(MbProjectNoted, { constantKey: 'singleton' })(MbConstants);
+
+class MbJoinedNote {
+    id!: string;
+    note!: string;
+}
+join(MbProjectNoted)(MbJoinedNote.prototype, 'note');
+
 interface BuiltFromEntry {
     Key: { Id: string };
     Value: { Properties: Record<string, string>; Key: string; ParentKey: string };
@@ -121,6 +145,7 @@ interface BuiltDefinition {
     EventSequenceId: string;
     AutoMap: AutoMap;
     NoAutoMapProperties: string[];
+    Join: Array<{ Value: { On: string } }>;
     All: { Properties: Record<string, string> };
     From: BuiltFromEntry[];
 }
@@ -205,6 +230,28 @@ describe('Projections model-bound completeness', () => {
         it('should use the event log sequence', async () => {
             const definition = await registerAndGetDefinition(MbLocalSnapshot);
             expect(definition.EventSequenceId).toBe('event-log');
+        });
+    });
+
+    describe('when a property is set to a constant', () => {
+        it('should send value and null expressions for model-bound mappings', async () => {
+            const definition = await registerAndGetDefinition(MbConstants);
+            expect(findFromEntry(definition, 'MbProjectNoted').Value.Properties).toMatchObject({
+                active: '$value(true)',
+                status: '$value(on-loan)',
+                total: '$value(2.5)',
+                started: '$value(2025-01-02T03:04:05.006Z)',
+                cleared: '$null',
+                wrapped: '$value(wrapped)'
+            });
+            expect(findFromEntry(definition, 'MbProjectNoted').Value.Key).toBe('$value(singleton)');
+        });
+    });
+
+    describe('when a model-bound join has no explicit on property', () => {
+        it('should use the mapped property as the join path', async () => {
+            const definition = await registerAndGetDefinition(MbJoinedNote);
+            expect(definition.Join[0].Value.On).toBe('note');
         });
     });
 

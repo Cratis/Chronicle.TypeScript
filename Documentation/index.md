@@ -28,7 +28,7 @@ Then read [Connect to Chronicle](./connecting.md) before you point the client at
 - [Transactions and unit of work](/chronicle/events/transactions/)
 - [Event evolution](/chronicle/understanding-event-evolution/)
 
-The TypeScript examples on those pages are compiled with legacy decorators (`experimentalDecorators`), which proves they type-check, not that they run. Many declare event properties as constructor parameters, such as `constructor(readonly name: string)`. In 6.7.1 such events register without their properties unless each parameter has a default value, so rewrite them with `@field(Type)` when you copy them, as described in [Decorator mode and schema types](./getting-started.md#decorator-mode-and-schema-types).
+The TypeScript examples on those pages are compiled with legacy decorators (`experimentalDecorators`). Examples that declare event properties as constructor parameters, such as `constructor(readonly name: string)`, need legacy decorators. With standard decorators, declare the properties with `@field(Type)` instead, as described in [Decorator mode and schema types](./getting-started.md#decorator-mode-and-schema-types).
 
 ## TypeScript-specific pages
 
@@ -43,10 +43,7 @@ The TypeScript examples on those pages are compiled with legacy decorators (`exp
 - [Identity](./identity.md), [Causation](./auditing.md), and [Correlation](./correlation.md) — the metadata the client attaches to every append
 - [Failed Partitions](./failed-partitions.md) — find observers that stopped processing an event source
 
-## Known limitations in 6.7.1
+## Known limitations
 
-- With legacy decorators, an event whose properties are constructor parameters without default values registers with an empty schema, so projections cannot map its data. Use `@field(Type)` fields or give each parameter a default value.
-- Read-model queries such as `findInstanceById` only fill properties declared with `@field(Type)`. Other properties come back with their default values, even though the stored read model contains them.
-- `@setValue(Event, value)` and the declarative `.set(...).toValue(value)` do not write the constant to the read model. Until this is fixed, map the value from an event property with `@setFrom` or `.to(...)`, or compute it with a [reducer](/chronicle/reducers/).
-- A process that registered a reactor can keep running after `client.dispose()`.
-- Default artifact discovery needs the `glob` package, which is not installed with the client, and its `!` exclusion patterns have no effect. See [Artifact discovery](./getting-started.md#artifact-discovery).
+- `AppendResult.waitForCompletion()` can time out when an observer on the event sequence does not handle the appended event. The kernel waits for every observer on the sequence ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)).
+- With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator. See [Artifact discovery](./getting-started.md#artifact-discovery).

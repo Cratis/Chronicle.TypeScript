@@ -101,7 +101,7 @@ export class EventStore implements IEventStore {
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
-        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
+        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType));
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);
@@ -155,6 +155,12 @@ export class EventStore implements IEventStore {
             eventStore: this.name.value,
             namespace: this.namespace.value
         });
+    }
+
+    /** Stops the store's long-lived observations when the client is disposed. */
+    disposeObservations(): void {
+        (this.reactors as Reactors).dispose();
+        (this.reducers as Reducers).dispose();
     }
 
     /** @inheritdoc */

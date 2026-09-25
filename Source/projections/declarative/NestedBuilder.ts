@@ -6,6 +6,7 @@ import { ChildrenDefinitionLike, ProjectionBuilderCore } from './ProjectionBuild
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
 import { ChildrenBuilder } from './ChildrenBuilder.js';
+import { notSetPropertyPath } from '../notSetPropertyPath.js';
 
 /**
  * Concrete implementation of {@link INestedBuilder}, building the `ChildrenDefinition` for a
@@ -61,8 +62,9 @@ export class NestedBuilder<TParentReadModel, TNestedReadModel>
      * @returns The accumulated nested definition.
      */
     buildDefinition(): ChildrenDefinitionLike {
+        this.resolveJoins();
         return {
-            IdentifiedBy: '',
+            IdentifiedBy: notSetPropertyPath,
             From: this._from,
             Join: this._join,
             Children: this._children,
