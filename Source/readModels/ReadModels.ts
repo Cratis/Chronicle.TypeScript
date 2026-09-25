@@ -324,7 +324,7 @@ export class ReadModels implements IReadModels {
     private resolveReadModel<TReadModel>(readModelType: Constructor<TReadModel>): ResolvedReadModel {
         const [resolved] = this.resolveReadModels(readModelType);
         if (!resolved) {
-            throw new Error(`Unknown read model '${readModelType.name}'. Make sure it is decorated and discoverable.`);
+            throw new Error(`Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
         }
 
         return resolved;

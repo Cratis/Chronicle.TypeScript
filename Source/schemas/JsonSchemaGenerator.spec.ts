@@ -6,19 +6,17 @@ import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
 import { pii } from '../compliance/pii.js';
 import { eventType, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator.js';
-import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { JsonSchemaGenerator } from './JsonSchemaGenerator.js';
 import { JsonSchema } from './JsonSchema.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
 // fixtures don't depend on the test runner's decorator-syntax support - they exercise exactly
 // the same decorator functions and metadata storage that `@decorator` syntax would invoke.
 //
-// Order matters here in a way it would not for a real `@decorator` stack: class decorators
-// apply bottom-to-top, so `pii()` must run - and therefore be called - before `readModel()`/
-// `eventType()` so the compliance metadata already exists when the schema is generated.
+// Apply `pii()` before generating the schema so compliance metadata is available.
 
 function schemaFor(target: Function): JsonSchema {
-    return getReadModelMetadata(target)!.schema;
+    return JsonSchemaGenerator.generate(target);
 }
 
 describe('JsonSchemaGenerator', () => {
@@ -27,7 +25,6 @@ describe('JsonSchemaGenerator', () => {
         class LegacyModel {
             code = new LegacyCode('A');
         }
-        readModel()(LegacyModel);
         expect(schemaFor(LegacyModel).properties?.code.type).toBe('string');
     });
 
@@ -53,7 +50,6 @@ describe('JsonSchemaGenerator', () => {
             email = '';
         }
         pii()(PersonProfile);
-        readModel()(PersonProfile);
 
         const schema = schemaFor(PersonProfile);
 
@@ -69,7 +65,6 @@ describe('JsonSchemaGenerator', () => {
             ssn = '';
         }
         pii('Social security number')(Contact.prototype, 'ssn');
-        readModel()(Contact);
 
         const schema = schemaFor(Contact);
 
@@ -96,7 +91,6 @@ describe('JsonSchemaGenerator', () => {
             class Customer {
                 email: EmailAddress = new EmailAddress('');
             }
-            readModel()(Customer);
 
             const schema = schemaFor(Customer);
 
@@ -130,7 +124,6 @@ describe('JsonSchemaGenerator', () => {
         }
         pii()(Employee.prototype, 'name');
         pii('Every field on this record is personal')(Employee);
-        readModel()(Employee);
 
         const schema = schemaFor(Employee);
 
@@ -156,7 +149,6 @@ describe('JsonSchemaGenerator', () => {
             contact: ContactDetails = new ContactDetails();
         }
         pii('Vendor contact information')(Vendor.prototype, 'contact');
-        readModel()(Vendor);
 
         const schema = schemaFor(Vendor);
 
@@ -182,7 +174,6 @@ describe('JsonSchemaGenerator', () => {
             codes: RequirementCode[] = [];
         }
         field(Array, { enumerable: true, genericArguments: [RequirementCode] })(Contract.prototype, 'codes');
-        readModel()(Contract);
 
         const schema = schemaFor(Contract);
 
@@ -211,7 +202,6 @@ describe('JsonSchemaGenerator', () => {
             items: PlainItem[] = [];
         }
         field(Array, { enumerable: true, genericArguments: [PlainItem] })(Basket.prototype, 'items');
-        readModel()(Basket);
 
         const schema = schemaFor(Basket);
 

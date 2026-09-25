@@ -4,7 +4,7 @@
 import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
 import { eventType, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
-import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { JsonSchemaGenerator } from './JsonSchemaGenerator.js';
 import { expectedProperties } from './decorators.expected.fixture.js';
 import { getProjectionMetadata, projection } from '../projections/declarative/projection.js';
 import { getReducerMetadata, reducer } from '../reducers/reducer.js';
@@ -35,7 +35,6 @@ class LegacyEvent {
     @field(Quantity) quantity!: Quantity;
 }
 
-@readModel('legacy-model')
 class LegacyModel {
     @field(Number) count!: number;
 }
@@ -52,7 +51,7 @@ class LegacyReactor {}
 describe('legacy decorator syntax', () => {
     it('registers the same schemas as standard decorators', () => {
         expect(getEventTypeMetadata(LegacyEvent)?.eventType.id.value).toBe('legacy-fixture');
-        expect(getReadModelMetadata(LegacyModel)?.schema.properties?.count.type).toBe('number');
+        expect(JsonSchemaGenerator.generate(LegacyModel).properties?.count.type).toBe('number');
         expect(getEventTypeMetadata(LegacyEvent)?.schema.properties).toEqual(expectedProperties);
         expect(getEventTypeMetadata(LegacyEvent)?.schema.required).toEqual(Object.keys(expectedProperties));
         expect(getProjectionMetadata(LegacyProjection)?.id.value).toBe('legacy-projection');

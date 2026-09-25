@@ -89,7 +89,7 @@ function createConnection() {
 }
 
 describe('Reducers', () => {
-    describe('when a reducer produces a model without @readModel', () => {
+    describe('when a reducer produces an inferred model', () => {
         class NamedState {
             static readonly readModelId = 'existing-state-id';
             count = 0;

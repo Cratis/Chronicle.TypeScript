@@ -67,20 +67,39 @@ describe('when discovering read models from observers', () => {
         expect(JSON.parse(definition.Schema).properties.value.type).toBe('string');
         expect(register.mock.calls.some(call => call[0].Projections[0].ReadModel === 'MappedOnly')).toBe(true);
     });
-    it('should deduplicate inferred types and retain decorated and custom identifiers', async () => {
+    it('should deduplicate inferred types and retain custom identifiers', async () => {
         const provider = DefaultClientArtifactsProvider.default;
-        for (const type of [ModelBound, Projected, Reduced, Legacy]) {
+        for (const type of [ModelBound, Projected, Reduced]) {
             expect(provider.readModels.filter(model => model === type)).toHaveLength(1);
         }
         const { connection, registerMany } = createConnection();
         await new ReadModels('store', 'Default', connection, provider, 'sink').register();
         const definitions = registerMany.mock.calls[0][0].ReadModels;
         const byId = new Map(definitions.map((definition: { Type: { Identifier: string } }) => [definition.Type.Identifier, definition]));
-        for (const id of ['ModelBound', 'projected-custom', 'Reduced', 'legacy-id']) {
+        for (const id of ['ModelBound', 'projected-custom', 'Reduced']) {
             expect(byId.has(id)).toBe(true);
         }
         expect(JSON.parse(byId.get('projected-custom').Schema).properties.value.type).toBe('string');
         expect(JSON.parse(byId.get('Reduced').Schema).properties.count.type).toBe('number');
+    });
+
+    it('should preserve the deprecated decorator identifier, schema, and discovery', async () => {
+        const provider = DefaultClientArtifactsProvider.default;
+        expect(provider.readModels).toContain(Legacy);
+        const { connection, registerMany } = createConnection();
+        await new ReadModels('store', 'Default', connection, provider, 'sink').register();
+        const definition = registerMany.mock.calls[0][0].ReadModels.find(
+            (model: { Type: { Identifier: string } }) => model.Type.Identifier === 'legacy-id');
+        expect(definition).toBeDefined();
+        expect(JSON.parse(definition.Schema).properties.value.type).toBe('string');
+    });
+
+    it('should explain how to discover an unknown model', async () => {
+        class Unknown {}
+        const provider = { ...DefaultClientArtifactsProvider.default, readModels: [], projections: [], reducers: [] };
+        const { connection } = createConnection();
+        await expect(new ReadModels('store', 'Default', connection, provider, 'sink').findInstanceById(Unknown, 'key'))
+            .rejects.toThrow('Make sure it is discoverable through a projection, reducer, or model-bound mapping.');
     });
 
     it('should reject two distinct models with the same identifier before registration', async () => {

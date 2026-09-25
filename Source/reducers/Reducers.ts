@@ -213,7 +213,7 @@ export class Reducers implements IReducers {
             if (readModelMeta?.schema) {
                 return JSON.stringify(readModelMeta.schema);
             }
-            // No @readModel() decorator — generate from instance
+            // Generate the schema directly from the inferred model type.
             return JSON.stringify(JsonSchemaGenerator.generate(metadata.readModel));
         }
 

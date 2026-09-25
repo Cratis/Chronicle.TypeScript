@@ -21,7 +21,7 @@ const artifacts = {
     constraints: [], projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: []
 } as IClientArtifactsProvider;
 
-describe('standard read models without @readModel', () => {
+describe('inferred read models with standard decorators', () => {
     it('rejects an untyped array before registering a reducer read model', async () => {
         const registerMany = vi.fn();
         const connection = { readModels: { registerMany } } as unknown as ChronicleConnection;

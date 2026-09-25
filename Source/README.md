@@ -13,7 +13,7 @@ Chronicle is an event-sourcing database and processing runtime with a first-clas
 
 `@cratis/chronicle` provides a clean, type-safe TypeScript API for interacting with the Chronicle Kernel. It builds on top of [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) (the gRPC contracts package) and exposes idiomatic TypeScript constructs including:
 
-- **Decorators** — `@eventType`, `@eventTypeMigration`, `@readModel`, `@reactor`, `@reducer`, `@seeder`, `@constraint`, `@projection`, and model-bound decorators such as `@fromEvent`
+- **Decorators** — `@eventType`, `@eventTypeMigration`, `@reactor`, `@reducer`, `@seeder`, `@constraint`, `@projection`, and model-bound decorators such as `@fromEvent`
 - **Value objects** — `EventSequenceNumber`, `EventTypeId`, `EventStoreName`, etc.
 - **Fluent client** — `ChronicleClient` → `EventStore` → `EventLog` → `append()`
 
@@ -65,6 +65,8 @@ client.dispose();
 ## Decorators and TypeScript configuration
 
 Chronicle decorators work with both TC39 standard decorators (TypeScript 5.2+; do not enable `experimentalDecorators`) and legacy decorators (`experimentalDecorators: true`). Keep `reflect-metadata` imported at your entry point for Chronicle's runtime metadata storage. In standard mode, TypeScript does not emit `design:type` or `design:paramtypes`; declare event and read-model fields with `@field(Type)` from `@cratis/fundamentals` so Chronicle can generate their schemas. For arrays, provide an element type with `@field(Array, { genericArguments: [ItemType] })`. For a `ConceptAs<string>` or `ConceptAs<number>`, declare `static readonly valueType = String`, `Number`, `Boolean`, `Guid`, or `Date` on the concept class. Member-less event types and read models are valid. Unresolved standard-mode types fail on first schema read or during connection before Kernel registration; property decorators support public instance fields, not standard accessors or getters.
+
+Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](../Documentation/read-models.md) for preserving existing custom identifiers.
 
 ## Documentation
 

@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
 import { addFrom } from './modelBound/addFrom.js';
 import { count } from './modelBound/count.js';
 import { decrement } from './modelBound/decrement.js';
@@ -59,7 +58,6 @@ decrement(CounterDecremented)(Inventory.prototype, 'decrementedCount');
 count(ThingHappened)(Inventory.prototype, 'thingsHappenedCount');
 count(KeyedThingHappened, 'all-things')(Inventory.prototype, 'constantKeyedCount');
 fromEvent(ItemAdded)(Inventory);
-readModel()(Inventory);
 
 /**
  * Builds a {@link Projections} instance wired to capture the registration payload sent
