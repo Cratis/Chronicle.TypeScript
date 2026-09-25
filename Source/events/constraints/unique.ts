@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { decorateClassOrProperty, getPropertyMetadata, getTypeOrFieldMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata, getTypeOrFieldMetadata } from '../../types/propertyDecoratorMetadata.js';
 import { TypeIntrospector } from '../../types/TypeIntrospector.js';
 
 const CLASS_KEY = 'chronicle:constraint:unique:class';
@@ -21,7 +21,7 @@ interface UniqueMetadata {
  * @param message - Optional fixed violation message.
  * @returns A class or public instance field decorator.
  */
-export function unique(name?: string, message?: string) {
+export function unique(name?: string, message?: string): ChronicleClassOrPropertyDecorator {
     return decorateClassOrProperty((target, property) => {
         const metadata: UniqueMetadata = { name, message };
         if (property !== undefined) {

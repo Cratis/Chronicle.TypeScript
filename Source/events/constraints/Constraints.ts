@@ -16,9 +16,12 @@ import { getRemovedConstraintNames } from './removeConstraint.js';
 import { TypeIntrospector } from '../../types/TypeIntrospector.js';
 import { getEventTypeFor } from '../eventTypeDecorator.js';
 
-/**
- * Manages discovery and registration of constraints with the Chronicle Kernel.
- */
+/** Resolves the name registered with the Chronicle Kernel. */
+function wireNameOf(capture: ConstraintCapture): string {
+    return capture.uniqueEventType?.name ?? capture.name;
+}
+
+/** Manages discovery and registration of constraints with the Chronicle Kernel. */
 export class Constraints implements IConstraints {
     private readonly _captures = new Map<string, ConstraintCapture>();
 
@@ -44,7 +47,24 @@ export class Constraints implements IConstraints {
             const builder = new ConstraintBuilder(metadata.id.value);
             const instance = new (type as new () => IConstraint)();
             instance.define(builder);
-            this._captures.set(metadata.id.value, builder.capture);
+            const capture = builder.capture;
+            const name = wireNameOf(capture);
+            const existing = this._captures.get(name);
+            if (existing?.uniqueEventType && capture.uniqueEventType) {
+                const merged = existing.uniqueEventType;
+                const ids = merged.eventTypeIds ??= [merged.eventTypeId];
+                for (const id of capture.uniqueEventType.eventTypeIds ?? [capture.uniqueEventType.eventTypeId]) {
+                    if (!ids.includes(id)) ids.push(id);
+                }
+                const removedWith = merged.removedWithEventTypeIds ??= [];
+                for (const id of capture.uniqueEventType.removedWithEventTypeIds ?? []) {
+                    if (!removedWith.includes(id)) removedWith.push(id);
+                }
+            } else if (existing) {
+                throw new Error(`Duplicate constraint name '${name}'.`);
+            } else {
+                this._captures.set(name, capture);
+            }
         }
 
         const removalEvents = new Map<string, Function[]>();
@@ -88,15 +108,19 @@ export class Constraints implements IConstraints {
                 }
                 if (!capture.uniqueConstraint) throw new Error(`Constraint '${name}' is not a unique property constraint.`);
                 const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
-                unique.on(eventType, event => (event as Record<string, unknown>)[property]);
+                const id = getEventTypeFor(eventType).id.value;
+                const existing = capture.uniqueConstraint.eventDefinitions.find(definition => definition.eventTypeId === id);
+                if (existing && !existing.properties.includes(property)) {
+                    throw new Error(`Event type '${id}' already added to unique constraint '${name}' with properties '${existing.properties.join(', ')}'.`);
+                }
+                if (!existing) unique.on(eventType, event => (event as Record<string, unknown>)[property]);
                 if (metadata.message && !capture.uniqueConstraint.message) unique.withMessage(metadata.message);
             }
         }
 
         for (const [name, eventTypes] of removalEvents) {
-            const captures = [...this._captures.values()].filter(capture =>
-                (capture.uniqueEventType?.name ?? capture.name) === name);
-            for (const capture of captures) {
+            const capture = this._captures.get(name);
+            if (capture) {
                 if (capture.uniqueConstraint) {
                     const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
                     eventTypes.forEach(eventType => unique.removedWith(eventType));
@@ -189,16 +213,19 @@ export class Constraints implements IConstraints {
         return this._captures.has(id.value);
     }
 
-    /** Resolves a configured violation message, preserving the Kernel message when none was supplied. */
+    /**
+     * Resolves a configured violation message, preserving the Kernel message when none was supplied.
+     * @param violation - Violation returned by the Kernel.
+     * @returns The violation with its configured message and substituted details, if available.
+     */
     resolveMessageFor(violation: ConstraintViolation): ConstraintViolation {
-        const capture = [...this._captures.values()].find(item =>
-            (item.uniqueEventType?.name ?? item.name) === violation.constraintId);
+        const capture = this._captures.get(violation.constraintId);
         const message = capture?.uniqueConstraint?.message ?? capture?.uniqueEventType?.message;
         if (!message) return violation;
 
         let resolved = message;
         for (const [key, value] of Object.entries(violation.details)) {
-            resolved = resolved.replaceAll(`{${key}}`, value);
+            resolved = resolved.replaceAll(`{${key}}`, () => value);
         }
         return { ...violation, message: resolved };
     }

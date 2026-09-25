@@ -20,5 +20,9 @@ export function removeConstraint(name: string): ChronicleClassDecorator {
 
 /** Gets the constraint names released by this event class. */
 export function getRemovedConstraintNames(type: Function): string[] {
-    return Reflect.getOwnMetadata(KEY, type) as string[] | undefined ?? [];
+    const names: string[] = [];
+    for (let current: object | null = type; current && current !== Function.prototype; current = Object.getPrototypeOf(current)) {
+        names.push(...(Reflect.getOwnMetadata(KEY, current) as string[] | undefined ?? []));
+    }
+    return [...new Set(names)];
 }
