@@ -129,10 +129,14 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
         const contractType = this.toContractEventType(eventType);
         const joinBuilder = new JoinBuilder<TReadModel, TEvent>();
         builderCallback?.(joinBuilder);
+        const on = joinBuilder.entry.on || this.defaultJoinOn();
+        if (!on) {
+            throw new Error(`A join with event '${eventType.name}' requires an on property.`);
+        }
         this._join.push({
             Key: contractType,
             Value: {
-                On: joinBuilder.entry.on,
+                On: on,
                 Properties: joinBuilder.entry.properties,
                 Key: joinBuilder.entry.key
             }
@@ -189,6 +193,11 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
             }
         });
         return this as unknown as TBuilder;
+    }
+
+    /** Returns a default join-on path for children, if one is available. */
+    protected defaultJoinOn(): string | undefined {
+        return undefined;
     }
 
     /**

@@ -5,6 +5,8 @@ import 'reflect-metadata';
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { Constructor, Fields } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../../types/index.js';
+import { constantValueExpression } from '../constantValueExpression.js';
+import { notSetPropertyPath } from '../notSetPropertyPath.js';
 import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
 import { getAddFromMetadata } from './addFrom.js';
 import { ChildrenFromMetadata, getChildrenFromMetadata } from './childrenFrom.js';
@@ -110,7 +112,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
 
     for (const mapping of getSetValueMetadata(prototype, property)) {
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = JSON.stringify(mapping.value);
+        entry.Value.Properties[property] = constantValueExpression(mapping.value);
     }
 
     for (const mapping of getAddFromMetadata(prototype, property)) {
@@ -127,7 +129,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
         entry.Value.Properties[property] = '$increment';
         if (mapping.constantKey) {
-            entry.Value.Key = `$value(${mapping.constantKey})`;
+            entry.Value.Key = constantValueExpression(mapping.constantKey);
         }
     }
 
@@ -135,7 +137,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
         entry.Value.Properties[property] = '$decrement';
         if (mapping.constantKey) {
-            entry.Value.Key = `$value(${mapping.constantKey})`;
+            entry.Value.Key = constantValueExpression(mapping.constantKey);
         }
     }
 
@@ -143,7 +145,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
         entry.Value.Properties[property] = '$count';
         if (mapping.constantKey) {
-            entry.Value.Key = `$value(${mapping.constantKey})`;
+            entry.Value.Key = constantValueExpression(mapping.constantKey);
         }
     }
 }
@@ -340,7 +342,7 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
 export function buildNestedEntry(type: Function, property: string): ChildrenDefinitionLike {
     const nestedType = resolveNestedType(type, property);
     const definition = createEmptyChildrenDefinition();
-    definition.IdentifiedBy = '';
+    definition.IdentifiedBy = notSetPropertyPath;
 
     // A @clearWith on the property carrying @nested clears this nested object, the same as a
     // class-level @clearWith on the nested type itself (which populateFromType also honors).

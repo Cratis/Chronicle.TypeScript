@@ -24,6 +24,7 @@ import { JsonSchemaGenerator } from '../schemas/index.js';
 import { TypeIntrospector } from '../types/index.js';
 import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { IProjections } from './IProjections.js';
+import { constantValueExpression } from './constantValueExpression.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -496,7 +497,7 @@ export class Projections implements IProjections {
                 Key: eventType,
                 Value: {
                     Properties: {},
-                    Key: fromEvent.constantKey ?? fromEvent.key ?? '$eventSourceId',
+                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
                     ParentKey: fromEvent.parentKey ?? ''
                 }
             });
@@ -525,7 +526,7 @@ export class Projections implements IProjections {
 
             for (const mapping of getJoinMetadata(prototype, property)) {
                 const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
-                entry.Value.On = mapping.on ?? entry.Value.On;
+                entry.Value.On = mapping.on ?? (entry.Value.On || property);
                 entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
             }
 
@@ -652,7 +653,7 @@ export class Projections implements IProjections {
                 Key: eventType,
                 Value: {
                     Properties: {},
-                    Key: fromEvent.constantKey ?? fromEvent.key ?? '$eventSourceId',
+                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
                     ParentKey: fromEvent.parentKey ?? ''
                 }
             });
