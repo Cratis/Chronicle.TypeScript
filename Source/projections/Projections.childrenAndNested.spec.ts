@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
 import { childrenFrom } from './modelBound/childrenFrom.js';
 import { clearWith } from './modelBound/clearWith.js';
 import { fromEvent } from './modelBound/fromEvent.js';
@@ -86,7 +85,6 @@ field(OrderNote)(Order.prototype, 'note');
 clearWith(NoteCleared)(Order.prototype, 'note');
 childrenFrom(TagAdded)(Order.prototype, 'tags');
 fromEvent(OrderCreated)(Order);
-readModel()(Order);
 
 interface FromRecord {
     Key: { Id: string };

@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
 import { clearWith } from './modelBound/clearWith.js';
 import { eventLog, eventSequence } from './modelBound/eventSequence.js';
 import { fromAll } from './modelBound/fromAll.js';
@@ -40,7 +39,6 @@ setFrom(MbWorkArrangementSet, 'location')(MbAssignmentSummary.prototype, 'locati
 noAutoMap(MbAssignmentSummary.prototype, 'location');
 setFrom(MbCandidateSubmitted, 'name')(MbAssignmentSummary.prototype, 'candidateName');
 fromEvent(MbWorkArrangementSet)(MbAssignmentSummary);
-readModel()(MbAssignmentSummary);
 
 class MbFullyExcluded {
     id!: string;
@@ -49,7 +47,6 @@ class MbFullyExcluded {
 setFrom(MbWorkArrangementSet, 'location')(MbFullyExcluded.prototype, 'location');
 fromEvent(MbWorkArrangementSet)(MbFullyExcluded);
 noAutoMap(MbFullyExcluded);
-readModel()(MbFullyExcluded);
 
 class MbProductRenamed {
     name!: string;
@@ -72,7 +69,6 @@ class MbProductVersion {
 fromAll('version')(MbProductVersion.prototype, 'version');
 fromEvent(MbProductRenamed)(MbProductVersion);
 fromEvent(MbProductPriceChanged)(MbProductVersion);
-readModel()(MbProductVersion);
 
 class MbOrderPlaced {
     amount!: number;
@@ -86,7 +82,6 @@ class MbOrderSummaryWithCustomSequence {
 setFrom(MbOrderPlaced, 'amount')(MbOrderSummaryWithCustomSequence.prototype, 'totalAmount');
 fromEvent(MbOrderPlaced)(MbOrderSummaryWithCustomSequence);
 eventSequence('custom-sequence')(MbOrderSummaryWithCustomSequence);
-readModel()(MbOrderSummaryWithCustomSequence);
 
 class MbLocalEvent {
     data!: string;
@@ -100,7 +95,6 @@ class MbLocalSnapshot {
 setFrom(MbLocalEvent, 'data')(MbLocalSnapshot.prototype, 'data');
 fromEvent(MbLocalEvent)(MbLocalSnapshot);
 eventLog(MbLocalSnapshot);
-readModel()(MbLocalSnapshot);
 
 class MbProjectNoted {
     note!: string;
@@ -117,7 +111,6 @@ class MbProjectNotes {
 setFrom(MbProjectNoted, 'note')(MbProjectNotes.prototype, 'note');
 clearWith(MbProjectNoteCleared)(MbProjectNotes.prototype, 'note');
 fromEvent(MbProjectNoted)(MbProjectNotes);
-readModel()(MbProjectNotes);
 
 interface BuiltFromEntry {
     Key: { Id: string };

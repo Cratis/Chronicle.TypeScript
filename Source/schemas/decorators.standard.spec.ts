@@ -4,7 +4,7 @@
 import { ConceptAs, field, Guid, typeKey } from '@cratis/fundamentals';
 import { describe, expect, it } from 'vitest';
 import { eventType, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
-import { getReadModelMetadata, readModel } from '../readModels/readModel.js';
+import { getReadModelId } from '../readModels/readModel.js';
 import { getSetFromMetadata, setFrom } from '../projections/modelBound/setFrom.js';
 import { getProjectionMetadata, projection } from '../projections/declarative/projection.js';
 import { getReducerMetadata, reducer } from '../reducers/reducer.js';
@@ -39,8 +39,8 @@ class ReplacedEvent {
 }
 
 @replaceClass
-@readModel('replaced-model')
 class ReplacedModel {
+    static readonly readModelId = 'replaced-model';
     @field(Number) amount!: number;
 }
 
@@ -57,7 +57,6 @@ class StandardEvent {
     @field(Quantity) quantity!: Quantity;
 }
 
-@readModel('standard-model')
 class StandardModel {
     @field(Number)
     @setFrom(StandardEvent)
@@ -87,7 +86,6 @@ class ChildMapping extends ParentMapping {
 @eventType('empty-schema')
 class MissingMembers {}
 
-@readModel('empty-model')
 class EmptyModel {}
 
 @eventType('missing-field')
@@ -145,6 +143,9 @@ class UntypedArray {
 @projection('standard-projection', StandardModel)
 class StandardProjection {}
 
+@projection('replaced-model-projection', ReplacedModel)
+class ReplacedModelProjection {}
+
 @reducer('standard-reducer', undefined, StandardModel)
 class StandardReducer {}
 
@@ -157,20 +158,21 @@ const standardSchema = getEventTypeMetadata(StandardEvent)!.schema;
 describe('standard decorator syntax', () => {
     it('registers the event and read model with their declared member types', () => {
         expect(getEventTypeMetadata(StandardEvent)?.eventType.id.value).toBe('standard-fixture');
-        expect(getReadModelMetadata(StandardModel)?.schema.properties?.count.type).toBe('number');
+        expect(JsonSchemaGenerator.generate(StandardModel).properties?.count.type).toBe('number');
         expect(getSetFromMetadata(StandardModel.prototype, 'count')).toEqual([{ eventType: StandardEvent, eventPropertyName: undefined }]);
         expect(getSubjectPropertyName(StandardModel)).toBe('ownerId');
-        expect(getReadModelMetadata(StandardModel)?.schema.properties?.contact.compliance).toEqual([{ metadataType: 'PII', details: 'personal' }]);
-        expect(getReadModelMetadata(StandardModel)?.schema.properties?.secret.security).toEqual([{ metadataType: 'EncryptedSubject', details: '' }]);
+        expect(JsonSchemaGenerator.generate(StandardModel).properties?.contact.compliance).toEqual([{ metadataType: 'PII', details: 'personal' }]);
+        expect(JsonSchemaGenerator.generate(StandardModel).properties?.secret.security).toEqual([{ metadataType: 'EncryptedSubject', details: '' }]);
         expect(standardSchema.properties).toEqual(expectedProperties);
         expect(standardSchema.required).toEqual(Object.keys(expectedProperties));
     });
 
     it('resolves schemas on an outer decorator replacement class', () => {
         expect(getEventTypeMetadata(ReplacedEvent)!.schema.properties?.value.type).toBe('string');
-        expect(getReadModelMetadata(ReplacedModel)!.schema.properties?.amount.type).toBe('number');
+        expect(JsonSchemaGenerator.generate(ReplacedModel).properties?.amount.type).toBe('number');
+        expect(getReadModelId(ReplacedModel)).toBe('replaced-model');
         expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.EventType, 'replaced-event')).toBe(ReplacedEvent);
-        expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.ReadModel, 'replaced-model')).toBe(ReplacedModel);
+        expect(getProjectionMetadata(ReplacedModelProjection)?.readModelType).toBe(ReplacedModel);
     });
 
     it('keeps inherited property metadata copy-on-write', () => {
@@ -205,7 +207,7 @@ describe('standard decorator syntax', () => {
 
     it('rejects missing member metadata instead of registering an empty schema', () => {
         expect(getEventTypeMetadata(MissingMembers)!.schema.properties).toEqual({});
-        expect(getReadModelMetadata(EmptyModel)!.schema.properties).toEqual({});
+        expect(JsonSchemaGenerator.generate(EmptyModel).properties).toEqual({});
         expect(() => getEventTypeMetadata(MissingField)!.schema).toThrow(/Cannot determine the type of MissingField.value/);
     });
 

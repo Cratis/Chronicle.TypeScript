@@ -10,7 +10,6 @@ import { subject } from '../compliance/subject.js';
 import { pii } from '../compliance/pii.js';
 import { reducer } from '../reducers/reducer.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
-import { readModel } from './readModel.js';
 import { ReadModels } from './ReadModels.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
@@ -49,7 +48,6 @@ describe('ReadModels', () => {
     describe('when no read model instance exists for a key', () => {
         class MissingModel { id = ''; }
         fromEvent(SomeEvent)(MissingModel);
-        readModel('MissingModel')(MissingModel);
 
         it('should retain the legacy prototype-only instance for getInstanceById', async () => {
             const { readModels, release } = createReadModels(MissingModel);
@@ -80,7 +78,6 @@ describe('ReadModels', () => {
         class ExistingModel { id = ''; }
         field(String)(ExistingModel.prototype, 'id');
         fromEvent(SomeEvent)(ExistingModel);
-        readModel('ExistingModel')(ExistingModel);
 
         it('should deserialize the model', async () => {
             const { readModels, getInstanceByKey } = createReadModels(ExistingModel);
@@ -99,7 +96,6 @@ describe('ReadModels', () => {
         field(String)(PrivateModel.prototype, 'id');
         field(String)(PrivateModel.prototype, 'ssn');
         pii()(PrivateModel.prototype, 'ssn');
-        readModel('PrivateInstanceModel')(PrivateModel);
         class PrivateReducer {}
         reducer('PrivateInstanceReducer', undefined, PrivateModel)(PrivateReducer);
 
@@ -124,7 +120,6 @@ describe('ReadModels', () => {
         field(String)(PrivateModel.prototype, 'id');
         field(String)(PrivateModel.prototype, 'ssn');
         pii()(PrivateModel.prototype, 'ssn');
-        readModel('PrivateReducerModel')(PrivateModel);
         class PrivateReducer {}
         reducer('PrivateReducer', undefined, PrivateModel)(PrivateReducer);
 
@@ -150,7 +145,6 @@ describe('ReadModels', () => {
         }
         subject()(Employee.prototype, 'personId');
         fromEvent(SomeEvent)(Employee);
-        readModel('EmployeeWithSubject')(Employee);
 
         it('should release using the decorated property as the subject', async () => {
             const { readModels, release } = createReadModels(Employee);
@@ -169,7 +163,6 @@ describe('ReadModels', () => {
             id = '';
         }
         fromEvent(SomeEvent)(Customer);
-        readModel('CustomerWithIdOnly')(Customer);
 
         it('should fall back to the id property as the subject, unchanged from today', async () => {
             const { readModels, release } = createReadModels(Customer);
@@ -187,7 +180,6 @@ describe('ReadModels', () => {
             name = '';
         }
         fromEvent(SomeEvent)(Anonymous);
-        readModel('AnonymousReadModel')(Anonymous);
 
         it('should throw, same as today', async () => {
             const { readModels } = createReadModels(Anonymous);
@@ -202,7 +194,6 @@ describe('ReadModels', () => {
             id = '';
         }
         fromEvent(SomeEvent)(Customer);
-        readModel('CustomerForReleaseMany')(Customer);
 
         it('should release each instance using its own resolved subject', async () => {
             const { readModels, release } = createReadModels(Customer);

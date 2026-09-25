@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../connection/index.js';
 import { pii } from '../compliance/pii.js';
 import { subject } from '../compliance/subject.js';
-import { readModel } from './readModel.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 
 // Decorators are applied as plain function calls (rather than `@decorator` syntax) so these
@@ -37,7 +36,6 @@ describe('MaterializedReadModels', () => {
         field(String)(Employee.prototype, 'ssn');
         pii()(Employee.prototype, 'ssn');
         subject()(Employee.prototype, 'personId');
-        readModel('EmployeeWithSubjectMaterialized')(Employee);
 
         it('should release using the decorated property as the subject', async () => {
             const json = JSON.stringify({ id: 'employee-1', personId: 'person-42', ssn: '123-45-6789' });
@@ -57,7 +55,6 @@ describe('MaterializedReadModels', () => {
         field(String)(Customer.prototype, 'id');
         field(String)(Customer.prototype, 'ssn');
         pii()(Customer.prototype, 'ssn');
-        readModel('CustomerWithIdOnlyMaterialized')(Customer);
 
         it('should fall back to the id property as the subject, unchanged from today', async () => {
             const json = JSON.stringify({ id: 'customer-7', ssn: '987-65-4321' });
@@ -75,7 +72,6 @@ describe('MaterializedReadModels', () => {
         }
         field(String)(Anonymous.prototype, 'ssn');
         pii()(Anonymous.prototype, 'ssn');
-        readModel('AnonymousMaterialized')(Anonymous);
 
         it('should fail closed without a subject', async () => {
             const json = JSON.stringify({ ssn: '000-00-0000' });
@@ -98,7 +94,6 @@ describe('MaterializedReadModels', () => {
         field(String)(PrivateCustomer.prototype, 'id');
         field(String)(PrivateCustomer.prototype, 'ssn');
         pii()(PrivateCustomer.prototype, 'ssn');
-        readModel('PrivateCustomer')(PrivateCustomer);
 
         it('should reject instead of returning encrypted content', async () => {
             const { readModels } = createMaterializedReadModels(

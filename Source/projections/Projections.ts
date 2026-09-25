@@ -601,7 +601,7 @@ export class Projections implements IProjections {
                 }
             }
 
-            const memberNames = new Set(getReadModelMetadata(type)?.members.keys() ?? properties);
+            const memberNames = new Set(getReadModelMetadata(type)?.members.keys() ?? TypeIntrospector.getMembers(type).keys());
             const merged = mergeGlobalHandlers(type.name, memberNames, from, globalHandlers);
             const reclassified = reclassify(type.name, merged, join, enteringEventTypes, variantMetadata.key);
             from = reclassified.from;

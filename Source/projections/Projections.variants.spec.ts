@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { readModel } from '../readModels/readModel.js';
 import { entersOn } from './modelBound/entersOn.js';
 import { fromEvent } from './modelBound/fromEvent.js';
 import { globalFor } from './modelBound/globalFor.js';
@@ -50,7 +49,6 @@ setFrom(IssueCreated, 'title')(BacklogItem.prototype, 'title');
 variantOf(WorkItem, 'id')(BacklogItem);
 entersOn(IssueCreated)(BacklogItem);
 fromEvent(IssueCreated)(BacklogItem);
-readModel()(BacklogItem);
 
 class PullRequestItem {
     id!: string;
@@ -64,7 +62,6 @@ variantOf(WorkItem, 'id')(PullRequestItem);
 entersOn(PullRequestCreated)(PullRequestItem);
 fromEvent(PullRequestCreated)(PullRequestItem);
 fromEvent(BuildCompleted)(PullRequestItem);
-readModel()(PullRequestItem);
 
 /** A shared handler with no entering event of its own - never registered as its own projection. */
 class TitleHandler {
@@ -81,7 +78,6 @@ class UndeclaredVariant {
 setFrom(IssueCreated, 'title')(UndeclaredVariant.prototype, 'title');
 variantOf(WorkItem, 'id')(UndeclaredVariant);
 fromEvent(IssueCreated)(UndeclaredVariant);
-readModel()(UndeclaredVariant);
 
 /** A separate identity, used to prove sibling cross-wiring stays scoped to one identity. */
 class OtherIdentity {}
@@ -92,7 +88,6 @@ class OtherVariant {
 variantOf(OtherIdentity, 'id')(OtherVariant);
 entersOn(IssueCreated)(OtherVariant);
 fromEvent(IssueCreated)(OtherVariant);
-readModel()(OtherVariant);
 
 interface CapturedDefinition {
     Identifier: string;
