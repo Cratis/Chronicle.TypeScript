@@ -15,5 +15,12 @@ export function constantValueExpression(value: unknown): string {
         return constantValueExpression(value.value);
     }
 
-    return `$value(${String(value)})`;
+    const text = String(value);
+    if (text === '$null' || text.startsWith('$value(')) return text;
+    // ValueExpressionResolver accepts only word characters, spaces, and ._/:*+-.
+    // .NET's \w also accepts Unicode letters, non-spacing marks, decimal digits and connector punctuation.
+    if (!/^[\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*$/u.test(text)) {
+        throw new Error(`Constant value '${text}' contains characters unsupported by the kernel's $value expression.`);
+    }
+    return `$value(${text})`;
 }
