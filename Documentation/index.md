@@ -36,6 +36,7 @@ The TypeScript examples on those pages are compiled with legacy decorators (`exp
 - [Preserve existing append routes](./migrate-append-routing.md) — keep writing to existing streams after the append-routing change
 - [Sinks](./sinks.md) — choose where read models are stored
 - [Jobs](./jobs.md) — inspect and control Chronicle jobs
+- [Constraints](./constraints.md) — unique event properties and event types
 - [Webhooks](./webhooks.md) — register webhooks in code or with decorators
 - [External Services](./external-services.md) — register HTTP and database services in code
 - [Seeding](./seeding.md) — seed events with `@seeder` classes

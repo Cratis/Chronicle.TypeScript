@@ -55,7 +55,8 @@ export class EventSequence implements IEventSequence {
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
-        private readonly _unitOfWorkManager: IUnitOfWorkManager
+        private readonly _unitOfWorkManager: IUnitOfWorkManager,
+        private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -695,11 +696,14 @@ export class EventSequence implements IEventSequence {
         errors: string[],
         concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
     ): AppendResult {
-        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => ({
-            constraintId: violation.ConstraintId ?? '',
-            message: violation.Message ?? '',
-            details: violation.Details ?? {}
-        }));
+        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
+            const mapped = {
+                constraintId: violation.ConstraintId ?? '',
+                message: violation.Message ?? '',
+                details: violation.Details ?? {}
+            };
+            return this._resolveConstraintMessage?.(mapped) ?? mapped;
+        });
 
         const mappedErrors = errors.map(message => ({ message }));
 

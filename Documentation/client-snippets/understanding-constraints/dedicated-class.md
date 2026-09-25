@@ -15,12 +15,11 @@ class UcDedicatedUserEmailChanged {
 class UcDedicatedUserRemoved {
 }
 
-@constraint()
+@constraint('UniqueEmail')
 class UcDedicatedUniqueEmail implements IConstraint {
     define(builder: IConstraintBuilder): void {
         builder.unique(unique =>
             unique
-                .withName('UniqueEmail')
                 .on(UcDedicatedUserRegistered, e => e.email)
                 .on(UcDedicatedUserEmailChanged, e => e.newEmail)
                 .ignoreCasing()
