@@ -258,7 +258,7 @@ The client registers every artifact whose decorator has run, so importing a modu
 The default depends on how you run your program:
 
 - **Compiled JavaScript** (`node dist/index.js`): no patterns, so the client imports nothing on its own. Import the modules that declare your artifacts, as this guide does.
-- **A TypeScript entry file** run through a loader such as `tsx` (`.ts`, `.mts`, or `.cts`): `**/*.ts` in the working directory, excluding `node_modules`, `dist`, `build`, `.git`, `.vscode`, and `.d.ts`, `.spec.ts`, and `.test.ts` files.
+- **TypeScript**, when the entry file ends in `.ts`, `.tsx`, `.mts`, or `.cts`, the process runs under Vitest, or Node.js was started with a `tsx`, `ts-node`, `--experimental-strip-types`, or `--experimental-transform-types` option: `**/*.ts` in the working directory, excluding `node_modules`, `dist`, `build`, `.git`, `.vscode`, and `.d.ts`, `.spec.ts`, and `.test.ts` files.
 
 Pass your own patterns to override the default, for example `discoveryPatterns: ['dist/**/*.js']` for compiled output, or `[]` to turn scanning off. If a matched file fails to import, `getEventStore(...)` rejects with `Could not import discovered file '<path>'` and the original error as its cause.
 
@@ -309,6 +309,7 @@ This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicl
 | `Unknown read model '<name>'` | The read model was not registered when the event store was created. Import its module before `getEventStore(...)`, and with standard decorators give a property-only model a class-level `@fromEvent(...)`. |
 | `waitForCompletion()` rejects with `TimeoutError` although the read model is up to date | An observer that does not handle the appended event keeps the kernel waiting ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)). Read the read model without waiting, or wait on an append every observer handles. |
 | `Cannot register artifacts: N schema error(s).` | An event type or read model has a member whose type the client cannot determine. Add `@field(Type)`, and check that constructor parameters are named after their fields. |
+| `RejectedChronicleCredentials` | The token endpoint rejected the client id and secret, and the kernel refused the call. The client does not retry. Correct the credentials in the connection string, then create a new client. A connection string without credentials uses the development credentials, which only a development kernel accepts. |
 | `IncompatibleChronicleServer` | The kernel's gRPC contract does not match this client, or the kernel predates the compatibility check. The client does not retry. Deploy a compatible kernel, then create a new client. |
 | `findInstanceById` returns `null` right after an append | Projections run asynchronously. Wait with `waitForCompletion()`, or treat the read model as eventually consistent. |
 | `TypeError: webidl.util.markAsUncloneable is not a function` on startup | Node.js is older than 22.19. Upgrade Node.js. |

@@ -43,7 +43,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `discoveryPatterns` | None for a compiled JavaScript entry file; `**/*.ts` with exclusions for a TypeScript entry file | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
+| `discoveryPatterns` | None for compiled JavaScript; `**/*.ts` with exclusions when the program runs from TypeScript | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
@@ -60,7 +60,7 @@ The client supports two authentication methods. Use one per connection string.
 A connection string with a client id and secret and an API key fails. A client id without a secret fails too, unless an API key is present, in which case the client id is ignored.
 
 :::caution[No credentials means development credentials]
-A connection string without credentials does not fail. The client falls back to the public development client id and secret, which work only against a development kernel. Against any other server, the connection keeps failing and retrying; see [Connection diagnostics](#connection-diagnostics).
+A connection string without credentials does not fail. The client falls back to the public development client id and secret, which work only against a development kernel. A server that rejects them fails the connection with `RejectedChronicleCredentials`; see [How the client connects and recovers](#how-the-client-connects-and-recovers).
 :::
 
 ## Secure the connection with TLS
@@ -94,7 +94,9 @@ When `getEventStore(...)` needs a connection, the client:
 3. Calls the kernel and registers a keep-alive.
 4. Creates the event store if needed and registers its artifacts.
 
-If one of the first three steps fails for any reason other than an incompatible kernel, the client waits and tries again, indefinitely. The wait doubles from about one second up to 30 seconds, with random jitter so that many clients don't return at once. Until a connection succeeds or you dispose the client, `getEventStore(...)` neither resolves nor rejects. Once connected, a failure to register artifacts, such as a schema error, rejects `getEventStore(...)` straight away.
+Two failures are permanent. When the kernel is incompatible, the client throws `IncompatibleChronicleServer`. When the token endpoint rejects the credentials (HTTP 400, 401, or 403) and the kernel then refuses the call as unauthenticated, it throws `RejectedChronicleCredentials`. In both cases it stops retrying and rejects every later call; fix the deployment or the connection string, then create a new client.
+
+If one of the first three steps fails for any other reason, such as the kernel being unreachable, the client waits and tries again, indefinitely. The wait doubles from about one second up to 30 seconds, with random jitter so that many clients don't return at once. Until a connection succeeds or you dispose the client, `getEventStore(...)` neither resolves nor rejects. Once connected, a failure to register artifacts, such as a schema error, rejects `getEventStore(...)` straight away.
 
 After connecting, the client checks the connection every five seconds and watches the kernel keep-alive. When either fails, it reconnects with the same backoff and registers the artifacts again for every event store it has handed out. A registration failure during that reconnect is logged, not thrown. Reactor and reducer observations restart after the reconnect. If `getEventStore(...)` or `getEventStores()` fails with a connection error, the client reconnects and retries the call once. Other calls, such as appends, reject with the gRPC error, and your code decides whether to retry.
 
@@ -108,7 +110,7 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 ```
 
-Failed attempts then appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying` with the attempt number, the delay, and the error. When the kernel cannot be reached, the error names the token endpoint and the cause, for example `Failed to obtain OAuth2 token from https://localhost:35000/connect/token: Token request failed: connect ECONNREFUSED 127.0.0.1:35000`.
+Failed attempts then appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying` with the attempt number, the delay, and the error, for example `CheckCompatibility UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:35000`. When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the token endpoint and cause, and sends the call without a token, which a kernel with authentication turned off accepts.
 
 To fail fast at startup instead of waiting forever, bound the first call and dispose the client when the time runs out:
 
