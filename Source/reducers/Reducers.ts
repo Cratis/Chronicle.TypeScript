@@ -3,11 +3,10 @@
 
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
-import { Constructor, Guid } from '@cratis/fundamentals';
+import { Constructor } from '@cratis/fundamentals';
 import { ObservationState, ReadModelObserverType, ReducerMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
@@ -19,6 +18,7 @@ import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
+import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 
@@ -181,24 +181,14 @@ export class Reducers implements IReducers {
 
         const readModels = Array.from(this._reducers.entries()).map(([id, reducerType]) => {
             const readModelName = this.getReducerReadModelIdentifier(reducerType);
-            return {
-                Type: {
-                    Identifier: readModelName,
-                    Generation: 1
-                },
-                ContainerName: readModelName,
-                DisplayName: readModelName,
-                Sink: {
-                    ConfigurationId: toContractsGuid(Guid.empty),
-                    TypeId: this._defaultSinkTypeId
-                },
-                Schema: this.getReducerSchema(reducerType, readModelName),
-                Indexes: [],
-                ObserverType: ReadModelObserverType.Reducer,
-                ObserverIdentifier: id,
-                Owner: 1,
-                Source: 1
-            };
+            return buildReadModelDefinition({
+                identifier: readModelName,
+                type: getReducerMetadata(reducerType)?.readModel,
+                schema: this.getReducerSchema(reducerType, readModelName),
+                sinkTypeId: this._defaultSinkTypeId,
+                observerType: ReadModelObserverType.Reducer,
+                observerIdentifier: id
+            });
         });
 
         const identifiers = new Set<string>();

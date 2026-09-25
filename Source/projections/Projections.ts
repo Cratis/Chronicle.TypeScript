@@ -4,12 +4,12 @@
 import { diag } from '@opentelemetry/api';
 import {
     AutoMap,
-    ProjectionOwner
+    ProjectionOwner,
+    ReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
@@ -19,6 +19,7 @@ import { FailedPartitions } from '../observation/FailedPartitions.js';
 import { toObserverRunningState } from '../observation/toObserverRunningState.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
+import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
@@ -370,33 +371,26 @@ export class Projections implements IProjections {
                 continue;
             }
 
-            byReadModel.set(readModelIdentifier, {
-                Type: {
-                    Identifier: readModelIdentifier,
-                    Generation: 1
-                },
-                ContainerName: readModelIdentifier,
-                DisplayName: readModelIdentifier,
-                Sink: {
-                    ConfigurationId: toContractsGuid(Guid.empty),
-                    // Passive projections never write to a materialized sink, so they register with
-                    // the None sink. This lets the kernel fall through to immediate projection when
-                    // resolving the instance by key instead of reading an empty sink and returning null.
-                    TypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId
-                },
-                Schema: this.getReadModelSchema(readModelIdentifier),
-                Indexes: [],
-                ObserverType: 2,
-                ObserverIdentifier: projection.Identifier,
-                Owner: 1,
-                Source: 1
-            });
+            const readModelType = this.getReadModelType(readModelIdentifier);
+            byReadModel.set(readModelIdentifier, buildReadModelDefinition({
+                identifier: readModelIdentifier,
+                type: readModelType,
+                schema: readModelType
+                    ? JSON.stringify(getReadModelMetadata(readModelType)?.schema ?? JsonSchemaGenerator.generate(readModelType))
+                    : '{}',
+                // Passive projections never write to a materialized sink, so they register with
+                // the None sink. This lets the kernel fall through to immediate projection when
+                // resolving the instance by key instead of reading an empty sink and returning null.
+                sinkTypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId,
+                observerType: ReadModelObserverType.Projection,
+                observerIdentifier: projection.Identifier
+            }));
         }
 
         return Array.from(byReadModel.values());
     }
 
-    private getReadModelSchema(readModelIdentifier: string): string {
+    private getReadModelType(readModelIdentifier: string): Constructor | undefined {
         const types = [
             ...rootReadModelTypes(this._clientArtifacts),
             ...this._clientArtifacts.projections
@@ -404,13 +398,12 @@ export class Projections implements IProjections {
                 .filter((type): type is Constructor => type !== undefined)
         ];
         for (const type of types) {
-            const metadata = getReadModelMetadata(type);
             if (getReadModelId(type) === readModelIdentifier) {
-                return JSON.stringify(metadata?.schema ?? JsonSchemaGenerator.generate(type));
+                return type;
             }
         }
 
-        return '{}';
+        return undefined;
     }
 
     private buildDeclarativeDefinition(type: Constructor): BuiltProjection {
