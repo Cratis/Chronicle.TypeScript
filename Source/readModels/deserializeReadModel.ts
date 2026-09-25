@@ -4,6 +4,7 @@
 import 'reflect-metadata';
 import { conceptAsTypeKey, type Constructor, Fields, Guid, JsonSerializer, typeKeyOf } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../types/TypeIntrospector.js';
+import { conceptValueType } from '../types/conceptValueType.js';
 
 const memberCache = new WeakMap<Function, Map<string, Function | undefined>>();
 
@@ -29,7 +30,7 @@ function writable(type: Function, name: string): boolean {
 function convert(type: Function, value: unknown): unknown {
     if (value === null || value === undefined) return value;
     if (typeKeyOf(type as Constructor) === conceptAsTypeKey) {
-        const underlying = (Reflect.getMetadata('design:paramtypes', type) as Function[] | undefined)?.[0];
+        const underlying = conceptValueType(type);
         return Reflect.construct(type, [underlying ? convert(underlying, value) : value]);
     }
     if (type === Boolean) return typeof value === 'string' && /^(true|false)$/i.test(value) ? value.toLowerCase() === 'true' : value;
