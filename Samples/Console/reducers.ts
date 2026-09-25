@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { readModel, reducer } from '@cratis/chronicle';
+import { reducer } from '@cratis/chronicle';
 import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved } from './events.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/EmployeeStateReducer' });
@@ -10,7 +10,6 @@ const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/E
 /**
  * The read model produced by the {@link EmployeeStateReducer}.
  */
-@readModel()
 export class EmployeeState {
     id: string = '';
     firstName: string = '';

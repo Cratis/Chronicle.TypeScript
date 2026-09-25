@@ -3,7 +3,7 @@
 
 import { diag } from '@opentelemetry/api';
 import { ConceptAs, field } from '@cratis/fundamentals';
-import { readModel, reducer, pii, IEventStore } from '@cratis/chronicle';
+import { reducer, pii, IEventStore } from '@cratis/chronicle';
 import { eventType } from '@cratis/chronicle';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/ComplianceExample' });
@@ -153,7 +153,6 @@ export class CustomerEmailUpdated {
  * The Chronicle Kernel automatically encrypts properties of PII types
  * to ensure GDPR compliance and data protection.
  */
-@readModel()
 export class Customer {
     /**
      * Customer identifier (not PII - used as the encryption subject).

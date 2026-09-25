@@ -75,7 +75,7 @@ export class TypeDiscoverer {
         if (decoratorType === DecoratorType.ReadModel) {
             const previous = Array.from(typesForDecorator).find(([, registered]) => registered === type);
             if (previous && previous[0] !== discoveredName) {
-                // A named @readModel overrides the type-name alias registered by an observer.
+                // An explicit legacy registration overrides the type-name alias registered by an observer.
                 if (previous[0] !== type.name) return;
                 typesForDecorator.delete(previous[0]);
             }

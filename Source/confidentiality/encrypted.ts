@@ -60,7 +60,7 @@ function metadataTypeFor(scope: EncryptionScope): SecurityMetadataType {
  * @example
  * Property usage:
  * ```typescript
- * @readModel()
+ * @fromEvent(PartnerIntegrated)
  * class PartnerIntegration {
  *     @encrypted()
  *     apiKey: string = '';

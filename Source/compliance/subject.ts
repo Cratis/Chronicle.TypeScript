@@ -24,7 +24,7 @@ const SUBJECT_TYPE_METADATA_KEY = 'chronicle:compliance:subject:type';
  *
  * @example
  * ```typescript
- * @readModel()
+ * @fromEvent(EmployeeHired)
  * class Employee {
  *     @subject()
  *     personId: string = '';

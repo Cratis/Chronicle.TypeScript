@@ -15,7 +15,7 @@ We believe event sourcing is worth it for almost any system dealing with informa
 
 `@cratis/chronicle` provides a clean, type-safe TypeScript API for interacting with the Chronicle Kernel. It builds on top of [`@cratis/chronicle.contracts`](https://www.npmjs.com/package/@cratis/chronicle.contracts) (the gRPC contracts package) and exposes idiomatic TypeScript constructs including:
 
-- **Decorators** — `@eventType`, `@eventTypeMigration`, `@readModel`, `@reactor`, `@reducer`, `@seeder`, `@constraint`, `@projection`, and model-bound decorators such as `@fromEvent`
+- **Decorators** — `@eventType`, `@eventTypeMigration`, `@reactor`, `@reducer`, `@seeder`, `@constraint`, `@projection`, and model-bound decorators such as `@fromEvent`
 - **Value objects** — `EventSequenceNumber`, `EventTypeId`, `EventStoreName`, etc.
 - **Fluent client** — `ChronicleClient` → `EventStore` → `EventLog` → `append()`
 
@@ -26,6 +26,8 @@ Beyond appending and observing events, the client covers the full Chronicle surf
 - **Webhooks** — push events to HTTP endpoints
 - **Compliance / PII** — classify event data and handle personally identifiable information
 - **OpenTelemetry** — built-in metrics and tracing instrumentation
+
+Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](Documentation/read-models.md) for preserving existing custom identifiers.
 
 ## Structure
 
