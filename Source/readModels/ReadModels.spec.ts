@@ -172,6 +172,34 @@ describe('ReadModels', () => {
         });
     });
 
+    describe('when watching a projection', () => {
+        class ProjectedModel { id = ''; }
+        field(String)(ProjectedModel.prototype, 'id');
+        fromEvent(SomeEvent)(ProjectedModel);
+
+        it('should skip the subscription marker and yield changes and removals', async () => {
+            const connection = {
+                readModels: { watch: async function* () {
+                    yield { Subscribed: true, Namespace: '', ModelKey: '', ReadModel: '', Removed: false };
+                    yield { Subscribed: false, Namespace: 'tenant', ModelKey: 'a', ReadModel: '{"id":"a"}', Removed: false };
+                    yield { Subscribed: false, Namespace: 'tenant', ModelKey: '', ReadModel: '{"id":"empty-key"}', Removed: false };
+                    yield { Subscribed: false, Namespace: 'tenant', ModelKey: 'a', ReadModel: '', Removed: true };
+                } }
+            } as unknown as ChronicleConnection;
+            const provider = { reducers: [], projections: [], readModels: [ProjectedModel] } as unknown as IClientArtifactsProvider;
+            const readModels = new ReadModels('store', 'tenant', connection, provider, 'sink');
+            const changesets = [];
+            for await (const changeset of readModels.watch(ProjectedModel)) {
+                changesets.push(changeset);
+            }
+
+            expect(changesets).toHaveLength(3);
+            expect(changesets[0]).toMatchObject({ namespace: 'tenant', key: 'a', removed: false, readModel: { id: 'a' } });
+            expect(changesets[1]).toMatchObject({ namespace: 'tenant', key: '', removed: false, readModel: { id: 'empty-key' } });
+            expect(changesets[2]).toMatchObject({ namespace: 'tenant', key: 'a', removed: true });
+        });
+    });
+
     describe('when watching a compliance-bearing reducer', () => {
         class PrivateModel { id = ''; ssn = ''; }
         field(String)(PrivateModel.prototype, 'id');
@@ -179,6 +207,29 @@ describe('ReadModels', () => {
         pii()(PrivateModel.prototype, 'ssn');
         class PrivateReducer {}
         reducer('PrivateReducer', undefined, PrivateModel)(PrivateReducer);
+
+        it('should skip the subscription marker while releasing changes and retaining removals', async () => {
+            const release = vi.fn().mockResolvedValue({ HasError: false, Payload: '{"id":"a","ssn":"cleartext"}' });
+            const connection = {
+                readModels: { watch: async function* () {
+                    yield { Subscribed: true, Namespace: '', ModelKey: '', ReadModel: '', Removed: false };
+                    yield { Subscribed: false, Namespace: 'tenant', ModelKey: 'a', ReadModel: '{"id":"a","ssn":"ciphertext"}', Removed: false };
+                    yield { Subscribed: false, Namespace: 'tenant', ModelKey: 'a', ReadModel: '', Removed: true };
+                } },
+                compliance: { release }
+            } as unknown as ChronicleConnection;
+            const provider = { reducers: [PrivateReducer], projections: [], readModels: [] } as unknown as IClientArtifactsProvider;
+            const readModels = new ReadModels('store', 'tenant', connection, provider, 'sink');
+            const changesets = [];
+            for await (const changeset of readModels.watch(PrivateModel)) {
+                changesets.push(changeset);
+            }
+
+            expect(changesets).toHaveLength(2);
+            expect(changesets[0]).toMatchObject({ namespace: 'tenant', key: 'a', removed: false, readModel: { id: 'a', ssn: 'cleartext' } });
+            expect(changesets[1]).toMatchObject({ namespace: 'tenant', key: 'a', removed: true });
+            expect(release).toHaveBeenCalledTimes(1);
+        });
 
         it('should reject rather than expose an unreleased changeset', async () => {
             const release = vi.fn().mockResolvedValue({ HasError: true, Error: 'denied' });

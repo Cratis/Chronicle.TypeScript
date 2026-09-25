@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, EventForEventSourceId, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, EventForEventSourceId, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class SpecificSourceBookReserved {
@@ -15,6 +15,7 @@ class SpecificSourceMemberActivityRecorded {
 class SpecificSourceReservationReactor {
     // Returning an EventForEventSourceId targets a different event source than the one
     // that triggered the reactor - here, the member's own stream rather than the book's.
+    @onceOnly()
     async specificSourceBookReserved(event: SpecificSourceBookReserved, context: EventContext): Promise<EventForEventSourceId> {
         return {
             eventSourceId: event.memberId,

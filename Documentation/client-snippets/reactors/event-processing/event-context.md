@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
 
 @eventType()
 class ReactorAccountClosed {
@@ -10,6 +10,7 @@ class ReactorAccountClosed {
 class AuditReactor {
     // Method name must be the exact camelCase of the event's class name -
     // Chronicle discovers handlers by name, not by parameter type.
+    @onceOnly()
     async reactorAccountClosed(event: ReactorAccountClosed, context: EventContext): Promise<void> {
         this.writeAudit(event.accountId, context.occurred, context.eventSourceId);
     }

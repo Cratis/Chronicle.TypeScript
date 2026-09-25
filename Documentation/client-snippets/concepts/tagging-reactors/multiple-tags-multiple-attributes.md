@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, reactor, tag } from '@cratis/chronicle';
+import { EventContext, eventType, onceOnly, reactor, tag } from '@cratis/chronicle';
 
 @eventType()
 class TaggingReactorsProductStockChanged {
@@ -17,6 +17,7 @@ interface TaggingReactorsInventoryApi {
 class TaggingReactorsInventorySyncReactor {
     constructor(private readonly inventoryApi: TaggingReactorsInventoryApi) {}
 
+    @onceOnly()
     async taggingReactorsProductStockChanged(event: TaggingReactorsProductStockChanged, _context: EventContext): Promise<void> {
         await this.inventoryApi.updateStock(event.productId, event.newQuantity);
     }

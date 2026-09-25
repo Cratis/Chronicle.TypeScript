@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import { reactor, EventContext, EventForEventSourceId, IEventStore } from '@cratis/chronicle';
+import { reactor, onceOnly, EventContext, EventForEventSourceId, IEventStore } from '@cratis/chronicle';
 import { EmployeeHired, EmployeeAddressSet, EmployeeEmailSet, EmployeePromoted, EmployeeMoved, PromotionRecorded } from './events.js';
 
 const logger = diag.createComponentLogger({ namespace: 'chronicle-test-console/HrNotificationReactor' });
@@ -53,6 +53,7 @@ export class HrNotificationReactor {
      * {@link EventForEventSourceId} wrapper with an explicit target — a bare returned
      * event would default to the triggering event's own event source/stream/subject.
      */
+    @onceOnly()
     async employeePromoted(event: EmployeePromoted, context: EventContext): Promise<EventForEventSourceId> {
         logger.info('Employee promoted', { newTitle: event.newTitle, sequenceNumber: context.sequenceNumber });
 
