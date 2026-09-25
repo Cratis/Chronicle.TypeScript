@@ -31,7 +31,7 @@ import type { ClientMiddleware } from 'nice-grpc-common';
 import { Metadata } from 'nice-grpc-common';
 import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/contracts.js';
 import { ExternalServicesDefinition } from '../externalServices/ExternalServicesContracts.js';
-import { AuthenticationMode, ChronicleConnectionString } from './ChronicleConnectionString.js';
+import { ChronicleConnectionString, type ChronicleServerAddress } from './ChronicleConnectionString.js';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
 import { ChronicleServices } from './ChronicleServices.js';
 import { CompatibilityPreflight } from './CompatibilityPreflight.js';
@@ -94,7 +94,7 @@ export class ChronicleConnection implements ChronicleServices {
     private _connections!: ConnectionServiceClient;
     private _compatibility!: CompatibilityPreflight;
     private readonly _connectionString: ChronicleConnectionString;
-    private readonly _tokenProvider: ITokenProvider;
+    private readonly _tokenProviders = new Map<string, ITokenProvider>();
     private readonly _addressResolver: ChronicleServerAddressResolver;
     private readonly _loadBalancerStrategy: ILoadBalancerStrategy;
     private _isConnected = false;
@@ -111,7 +111,10 @@ export class ChronicleConnection implements ChronicleServices {
             this._connectionString = ChronicleConnectionString.Default;
         }
 
-        this._tokenProvider = this.createTokenProvider();
+        if (!this._connectionString.apiKey && (!!this._connectionString.username !== !!this._connectionString.password)) {
+            throw new Error('Connection string must contain both username and password, or neither');
+        }
+
         this._addressResolver = new ChronicleServerAddressResolver();
         this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
 
@@ -273,11 +276,12 @@ export class ChronicleConnection implements ChronicleServices {
         const candidates = await this._addressResolver.resolve(this._connectionString);
         const selected = await this._loadBalancerStrategy.select(candidates);
         const serverAddress = formatServerAddress(selected);
+        const tokenProvider = this.createTokenProvider(selected);
         const credentials = this._options.credentials ?? this._connectionString.createCredentials();
 
         this._channel = createChannel(serverAddress, credentials, channelOptions);
 
-        const factory = createClientFactory().use(this.createAuthMiddleware());
+        const factory = createClientFactory().use(this.createAuthMiddleware(tokenProvider));
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
         this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000);
         const eventSequenceFactory = factory.use(this._compatibility.middleware());
@@ -307,33 +311,29 @@ export class ChronicleConnection implements ChronicleServices {
         };
     }
 
-    private createTokenProvider(): ITokenProvider {
+    private createTokenProvider(selected: ChronicleServerAddress): ITokenProvider {
         const hasUsername = !!this._connectionString.username;
-        const hasPassword = !!this._connectionString.password;
         const hasApiKey = !!this._connectionString.apiKey;
 
         if (hasApiKey) {
             return new NoOpTokenProvider();
         }
 
-        if (hasUsername !== hasPassword) {
-            throw new Error('Connection string must contain both username and password, or neither');
-        }
-
-        if (hasUsername && hasPassword) {
-            return this.createOAuthTokenProvider(this._connectionString.username!, this._connectionString.password!);
+        if (hasUsername) {
+            return this.createOAuthTokenProvider(selected, this._connectionString.username!, this._connectionString.password!);
         }
 
         return this.createOAuthTokenProvider(
+            selected,
             ChronicleConnectionString.DEVELOPMENT_CLIENT,
             ChronicleConnectionString.DEVELOPMENT_CLIENT_SECRET
         );
     }
 
-    private createOAuthTokenProvider(username: string, password: string): ITokenProvider {
-        // Chronicle serves the authentication endpoint on the same port as the rest of the
-        // Kernel, so the authority defaults to the connection string's server address.
-        const serverPort = this._connectionString.serverAddress.port;
+    private createOAuthTokenProvider(selected: ChronicleServerAddress, username: string, password: string): ITokenProvider {
+        // Chronicle serves authentication on the selected kernel's port unless an explicit
+        // authority overrides it. Cache providers by endpoint across channel resets.
+        const serverPort = selected.port;
         let authorityHost: string;
         let authorityPort: number;
 
@@ -342,21 +342,21 @@ export class ChronicleConnection implements ChronicleServices {
             authorityHost = authority.hostname;
             authorityPort = authority.port ? parseInt(authority.port, 10) : serverPort;
         } else {
-            authorityHost = this._connectionString.serverAddress.host;
+            authorityHost = selected.host;
             authorityPort = serverPort;
         }
 
         const scheme = this._connectionString.disableTls ? 'http' : 'https';
-        return new OAuthTokenProvider(
-            `${scheme}://${authorityHost}:${authorityPort}/connect/token`,
-            username,
-            password,
-            this._connectionString.skipTlsValidation
-        );
+        const endpoint = `${scheme}://${authorityHost.includes(':') && !authorityHost.startsWith('[') ? `[${authorityHost}]` : authorityHost}:${authorityPort}/connect/token`;
+        let provider = this._tokenProviders.get(endpoint);
+        if (!provider) {
+            provider = new OAuthTokenProvider(endpoint, username, password, this._connectionString.skipTlsValidation);
+            this._tokenProviders.set(endpoint, provider);
+        }
+        return provider;
     }
 
-    private createAuthMiddleware(): ClientMiddleware {
-        const tokenProvider = this._tokenProvider;
+    private createAuthMiddleware(tokenProvider: ITokenProvider): ClientMiddleware {
         const connectionString = this._connectionString;
 
         return async function* authMiddleware(call, options) {
@@ -366,7 +366,7 @@ export class ChronicleConnection implements ChronicleServices {
                 const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
                 metadata.set('authorization', `Bearer ${token}`);
                 options.metadata = metadata;
-            } else if (connectionString.authenticationMode === AuthenticationMode.ApiKey && connectionString.apiKey) {
+            } else if (connectionString.apiKey) {
                 const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
                 metadata.set('api-key', connectionString.apiKey);
                 options.metadata = metadata;
