@@ -25,8 +25,8 @@ export interface ReactorMetadata {
  * identifier. This is the TypeScript equivalent of the C# `[Reactor]` attribute.
  *
  * Reactors observe events from an event sequence and produce side effects.
- * Method dispatch is by convention: the type of the first parameter of each public method
- * determines which events it handles.
+ * Method dispatch is by convention: a handler's name is the event class name with
+ * its first letter lowercased (for example, `projectRegistered` handles `ProjectRegistered`).
  *
  * @param id - The unique identifier for the reactor. Defaults to the class name if omitted.
  * @param eventSequenceId - Optional explicit event sequence identifier.
