@@ -29,6 +29,7 @@ import { EventSequenceId } from './EventSequenceId.js';
 import { EventSequenceNumber } from './EventSequenceNumber.js';
 import { TransactionalEventSequence } from './TransactionalEventSequence.js';
 import { WaitForCompletionResult } from './WaitForCompletionResult.js';
+import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 
 /** Default timeout for {@link AppendResult.waitForCompletion}, matching the C# client's default. */
 const DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS = 5000;
@@ -725,7 +726,7 @@ export class EventSequence implements IEventSequence {
             concurrencyViolation: mappedConcurrencyViolation,
             errors: mappedErrors,
             isSuccess,
-            waitForCompletion: (timeoutMs?: number) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, timeoutMs)
+            waitForCompletion: (options?: number | WaitForCompletionOptions) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, options)
         };
     }
 
@@ -736,12 +737,17 @@ export class EventSequence implements IEventSequence {
     private async waitForObserverCompletion(
         tailSequenceNumber: EventSequenceNumber,
         appendWasSuccessful: boolean,
-        timeoutMs = DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS
+        options: number | WaitForCompletionOptions = DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS
     ): Promise<WaitForCompletionResult> {
         if (!appendWasSuccessful) {
             return { isSuccess: true, failedPartitions: [] };
         }
 
+        const timeoutMs = typeof options === 'number' ? options : options.timeoutMs ?? DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS;
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const signal = typeof options === 'number' || !options.signal
+            ? timeoutSignal
+            : AbortSignal.any([options.signal, timeoutSignal]);
         const response = await this._connection.observers.waitForCompletion(
             {
                 EventStore: this._eventStoreName,
@@ -749,7 +755,7 @@ export class EventSequence implements IEventSequence {
                 EventSequenceId: this.id.value,
                 TailEventSequenceNumber: tailSequenceNumber.value
             },
-            { signal: AbortSignal.timeout(timeoutMs) });
+            { signal });
 
         return {
             isSuccess: response.IsSuccess,

@@ -560,6 +560,35 @@ describe('EventSequence', () => {
         });
     });
 
+    describe('when a caller cancels a completion wait', () => {
+        it('should abort the underlying RPC and reject with the caller reason', async () => {
+            const waitForCompletion = vi.fn().mockImplementation((_request, { signal }: { signal: AbortSignal }) =>
+                new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true })));
+            const { eventSequence } = createEventSequence({}, { waitForCompletion });
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+            const controller = new AbortController();
+            const reason = new Error('caller canceled');
+            const pending = appendResult.waitForCompletion({ timeoutMs: 1000, signal: controller.signal });
+            const signal = waitForCompletion.mock.calls[0][1].signal as AbortSignal;
+
+            controller.abort(reason);
+
+            await expect(pending).rejects.toBe(reason);
+            expect(signal.aborted).toBe(true);
+            expect(signal.reason).toBe(reason);
+        });
+
+        it('should cancel the underlying RPC when the options timeout expires', async () => {
+            const waitForCompletion = vi.fn().mockImplementation((_request, { signal }: { signal: AbortSignal }) =>
+                new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true })));
+            const { eventSequence } = createEventSequence({}, { waitForCompletion });
+            const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            await expect(appendResult.waitForCompletion({ timeoutMs: 5 })).rejects.toMatchObject({ name: 'TimeoutError' });
+            expect(waitForCompletion.mock.calls[0][1].signal.aborted).toBe(true);
+        });
+    });
+
     describe('when waiting for completion and observers report a failed partition', () => {
         const { eventSequence } = createEventSequence(
             { append: vi.fn().mockResolvedValue({ Response: { SequenceNumber: 42n, ConstraintViolations: [], Errors: [] } }) },
@@ -577,7 +606,7 @@ describe('EventSequence', () => {
 
         it('should report failure with the failed partitions', async () => {
             const appendResult = await eventSequence.append('some-event-source', new SomethingHappened('a'));
-            const result = await appendResult.waitForCompletion();
+            const result = await appendResult.waitForCompletion({ timeoutMs: 1234 });
 
             expect(result.isSuccess).toBe(false);
             expect(result.failedPartitions).toHaveLength(1);
