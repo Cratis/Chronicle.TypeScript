@@ -17,7 +17,8 @@ import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { hasFromEventMetadata } from '../projections/modelBound/fromEvent.js';
-import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
+import { TypeDiscoverer, hasModelBoundProperties } from '../types/TypeDiscoverer.js';
+import { DecoratorType } from '../types/DecoratorType.js';
 import { isPassive } from '../projections/modelBound/passive.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
@@ -242,6 +243,11 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
+        if (readModelType && hasModelBoundProperties(readModelType)) {
+            // Standard field decorators have no class constructor until an instance is made.
+            // Explicit queries supply it, even when file discovery is disabled.
+            TypeDiscoverer.default.register(DecoratorType.ReadModel, readModelType);
+        }
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         const resolved = new Map<string, ResolvedReadModel>();
 
@@ -267,7 +273,9 @@ export class ReadModels implements IReadModels {
             });
         }
 
-        for (const modelBoundType of this._clientArtifacts.readModels) {
+        const modelBoundTypes = new Set(this._clientArtifacts.readModels);
+        if (readModelType && hasModelBoundProperties(readModelType)) modelBoundTypes.add(readModelType);
+        for (const modelBoundType of modelBoundTypes) {
             if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }

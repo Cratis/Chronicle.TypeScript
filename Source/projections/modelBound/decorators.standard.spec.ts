@@ -20,6 +20,12 @@ import { getSetFromMetadata, setFrom } from './setFrom.js';
 import { getSetValueMetadata, setValue } from './setValue.js';
 import { getSubtractFromMetadata, subtractFrom } from './subtractFrom.js';
 import { getTrackedJsonSchemaProperties, jsonSchemaProperty } from '../../schemas/jsonSchemaProperty.js';
+import { DecoratorType } from '../../types/DecoratorType.js';
+import { TypeDiscoverer } from '../../types/TypeDiscoverer.js';
+import { DefaultClientArtifactsProvider } from '../../artifacts/DefaultClientArtifactsProvider.js';
+import { ReadModels } from '../../readModels/ReadModels.js';
+import type { ChronicleConnection } from '../../connection/ChronicleConnection.js';
+import { vi } from 'vitest';
 
 class Changed {}
 
@@ -45,7 +51,30 @@ class Mappings {
     @jsonSchemaProperty() tracked!: string;
 }
 
+class StandardMappedOnly {
+    @setFrom(Changed) value = '';
+}
+
+class UnconstructedMappedOnly {
+    @setFrom(Changed) value = '';
+}
+
 describe('standard model-bound decorators', () => {
+    it('should register a standard-mapped class when constructed without file discovery', () => {
+        new StandardMappedOnly();
+        new StandardMappedOnly();
+        expect(TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.ReadModel, 'StandardMappedOnly'))
+            .toBe(StandardMappedOnly);
+        expect(DefaultClientArtifactsProvider.default.readModels.filter(type => type === StandardMappedOnly)).toHaveLength(1);
+    });
+
+    it('should resolve an explicitly queried model without constructing an instance first', async () => {
+        const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"value":"stored"}' });
+        const connection = { readModels: { getInstanceByKey } } as unknown as ChronicleConnection;
+        const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink');
+        const instance = await readModels.findInstanceById(UnconstructedMappedOnly, 'id');
+        expect(instance?.value).toBe('stored');
+    });
     it('stores class and property annotations without constructing an instance', () => {
         const target = Mappings.prototype;
         expect(isNoAutoMap(Mappings)).toBe(true);

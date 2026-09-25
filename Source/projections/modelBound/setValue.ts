@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
+import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the setValue property decorator. */
 export interface SetValueMetadata {
@@ -22,7 +23,7 @@ const METADATA_KEY = 'chronicle:projection:setValue';
  * @returns A property decorator.
  */
 export function setValue(eventType: Function, value: unknown): ChroniclePropertyDecorator {
-    return decorateProperty((target: object, propertyKey: string | symbol) => {
+    return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SetValueMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];

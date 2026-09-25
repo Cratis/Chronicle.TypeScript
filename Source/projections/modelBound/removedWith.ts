@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChronicleClassOrPropertyDecorator, decorateClassOrProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundClassOrProperty } from '../../types/modelBoundProperty.js';
+import { ChronicleClassOrPropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the removedWith class or property decorator. */
 export interface RemovedWithMetadata {
@@ -28,7 +29,7 @@ const PROPERTY_METADATA_KEY = 'chronicle:projection:removedWith:property';
  * @returns A class and property decorator.
  */
 export function removedWith(eventType: Function, key?: string, parentKey?: string): ChronicleClassOrPropertyDecorator {
-    return decorateClassOrProperty((target: object, propertyKey?: string | symbol) => {
+    return decorateModelBoundClassOrProperty((target: object, propertyKey?: string | symbol) => {
         if (propertyKey !== undefined) {
             const propKey = propertyKey.toString();
             TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
