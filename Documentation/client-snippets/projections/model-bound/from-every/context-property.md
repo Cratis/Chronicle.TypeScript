@@ -1,5 +1,6 @@
 ```typescript title="Update an audit timestamp from every event"
 import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class InventoryProductRegisteredForEvery {
@@ -14,7 +15,7 @@ export class InventoryItemsAdjustedForEvery {
 @fromEvent(InventoryProductRegisteredForEvery)
 @fromEvent(InventoryItemsAdjustedForEvery)
 export class InventoryStatusFromEvery {
-    productName = '';
+    @field(String) productName = '';
 
     @fromEvery(undefined, 'occurred')
     lastUpdated = new Date();

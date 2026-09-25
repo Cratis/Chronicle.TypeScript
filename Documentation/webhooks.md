@@ -1,18 +1,29 @@
-# Webhooks
+---
+title: Webhooks
+description: Register Chronicle webhooks from TypeScript, in code or as decorated classes.
+---
 
 See [Webhooks](/chronicle/webhooks/) for what a webhook is. Use `eventStore.webhooks` to register webhook observers for event streams.
 
 ## Register a webhook programmatically
 
 ```typescript
+import 'reflect-metadata';
 import { ChronicleClient, ChronicleOptions, eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EmployeeHired {
-    constructor(readonly firstName: string, readonly lastName: string) {}
+    @field(String) firstName: string;
+    @field(String) lastName: string;
+
+    constructor(firstName: string, lastName: string) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
-const client = new ChronicleClient(ChronicleOptions.development());
+const client = new ChronicleClient(ChronicleOptions.development({ discoveryPatterns: [] }));
 const eventStore = await client.getEventStore('MyStore');
 
 await eventStore.webhooks.register(
@@ -51,7 +62,9 @@ class EmployeeWebhook implements IWebhook {
 }
 ```
 
-When the event store registers artifacts, webhooks are discovered and registered automatically.
+`getEventStore(...)` registers every `@webhook` class whose module has been imported, together with the store's other artifacts.
+
+Chronicle sends events to the target URL from the kernel, so the URL must be reachable from the kernel, not only from your application. Use `withBearerToken`, `withBasicAuth`, or `withOAuth` rather than an unauthenticated endpoint, and keep the secrets in configuration.
 
 ## API
 

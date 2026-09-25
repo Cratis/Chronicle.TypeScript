@@ -3,7 +3,17 @@ title: Preserve existing append routes
 description: Keep writing to existing TypeScript streams when upgrading to kernel-owned append routing.
 ---
 
-The move to kernel-owned append routing is a **major change** for the TypeScript client. Previously, an append with no route options sent source type `Default`, stream type `Default`, and the event source identifier as the stream identifier. The client now omits unspecified route dimensions. A kernel supporting the new behavior resolves missing or empty dimensions to source type `Default`, stream type `All`, and stream identifier `Default`.
+The move to kernel-owned append routing is a **major change** for the TypeScript client, introduced in `@cratis/chronicle` 6.0.0. Before 6.0.0, an append with no route options sent source type `Default`, stream type `Default`, and the event source identifier as the stream identifier. From 6.0.0 the client omits unspecified route dimensions. A kernel supporting the new behavior resolves missing or empty dimensions to source type `Default`, stream type `All`, and stream identifier `Default`.
+
+This guide applies when you upgrade from a 5.x client to 6.0.0 or later and you have events that earlier clients appended. A new application with no stored events needs no action.
+
+| Area | Before 6.0.0 | 6.0.0 and later | What you do |
+| --- | --- | --- | --- |
+| Append without route options | Written to source type `Default`, stream type `Default`, stream id = event source id | Written to source type `Default`, stream type `All`, stream id `Default` | Pass the legacy route explicitly to continue an existing stream; see [Make existing routes explicit](#make-existing-routes-explicit) |
+| Route-scoped reads without route arguments | Narrowed to the legacy route | Not narrowed on the omitted dimensions | Pass the route explicitly to read one stream; see [Route-scoped reads](#route-scoped-reads) |
+| Kernel version | No check | The client refuses a kernel whose contract is incompatible | Upgrade every kernel node first; the 6.0.0 release required kernel 18.4.1 or later |
+
+The table covers appends and route-scoped reads. `getFromSequenceNumber()` and `hasEventsFor()` carry no route and are unchanged.
 
 ## Before upgrading
 

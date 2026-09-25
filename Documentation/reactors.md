@@ -1,8 +1,8 @@
 ---
+title: Reactors
+description: Where reactors are documented, and how TypeScript reactors return side effects and handle replays.
 sharedTopicBridge: true
 ---
-
-# Reactors
 
 Reactors are documented in the shared Chronicle docs with synchronized examples for C#, Kotlin, Java, Elixir, and TypeScript.
 
@@ -16,7 +16,9 @@ Use the [TypeScript get started page](/chronicle/clients/typescript/getting-star
 
 ## TypeScript client notes
 
-A reactor handler method can now return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id, stream, and subject; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
+Chronicle calls a reactor method when its name is the camelCase name of the event class: `bookBorrowed(event, context)` handles `BookBorrowed`. It does not look at the parameter type, so a method with any other name is never called.
+
+A reactor handler method can return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id, stream, and subject; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
 
 For application-owned return types, pass `reactorResultHandler` to `ChronicleOptions.fromConnectionString(connectionString, { reactorResultHandler })` (or `development({ reactorResultHandler })`). The callback receives the returned value, triggering `EventContext`, reactor class, event store name, and namespace. Return `true` only after handling the entire result; return `false` to let Chronicle append its recognized event returns. Throw on failure so the partition fails instead of acknowledging a lost side effect. The hook is installed before reactor observations begin. It does not provide a transaction across commands and events; handle mixed returns deliberately.
 

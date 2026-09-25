@@ -1,8 +1,8 @@
 ---
+title: Event type migrations
+description: Event type migrations are documented in the shared Chronicle docs, with TypeScript examples.
 sharedTopicBridge: true
 ---
-
-# Event Type Migrations
 
 Event type migrations are shared Chronicle behavior. The shared documentation owns the migration model and client-tabbed examples.
 
