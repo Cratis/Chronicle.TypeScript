@@ -101,6 +101,36 @@
         "Name": "uppercase",
         "name": "lowercase"
       }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CaseChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "case-b",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "Name": "uppercase",
+        "name": null
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CaseChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "case-c",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
+      "content": {
+        "name": null,
+        "Name": "uppercase"
+      }
     }
   ],
   "expected": [
@@ -119,6 +149,78 @@
         "case-a": {
           "id": "case-a",
           "lower": "lowercase",
+          "upper": "uppercase"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "case-a": {
+          "id": "case-a",
+          "__initialized": true,
+          "lower": "lowercase",
+          "upper": "uppercase",
+          "__subject": "case-a"
+        },
+        "case-b": {
+          "id": "case-b",
+          "__initialized": true,
+          "lower": "uppercase",
+          "upper": "uppercase",
+          "__subject": "case-b"
+        }
+      },
+      "publicRead": {
+        "case-a": {
+          "id": "case-a",
+          "lower": "lowercase",
+          "upper": "uppercase"
+        },
+        "case-b": {
+          "id": "case-b",
+          "lower": "uppercase",
+          "upper": "uppercase"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "case-a": {
+          "id": "case-a",
+          "__initialized": true,
+          "lower": "lowercase",
+          "upper": "uppercase",
+          "__subject": "case-a"
+        },
+        "case-b": {
+          "id": "case-b",
+          "__initialized": true,
+          "lower": "uppercase",
+          "upper": "uppercase",
+          "__subject": "case-b"
+        },
+        "case-c": {
+          "id": "case-c",
+          "__initialized": true,
+          "upper": "uppercase",
+          "__subject": "case-c"
+        }
+      },
+      "publicRead": {
+        "case-a": {
+          "id": "case-a",
+          "lower": "lowercase",
+          "upper": "uppercase"
+        },
+        "case-b": {
+          "id": "case-b",
+          "lower": "uppercase",
+          "upper": "uppercase"
+        },
+        "case-c": {
+          "id": "case-c",
           "upper": "uppercase"
         }
       }

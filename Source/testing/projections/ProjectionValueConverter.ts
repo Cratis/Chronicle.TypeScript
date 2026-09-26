@@ -15,9 +15,10 @@ export class ProjectionValueConverter {
         return undefined;
     }
 
-    /** Resolve exact-case properties before falling back to the kernel's case-insensitive lookup. */
+    /** A null exact-case value falls through to the first case-insensitive property in JSON order. */
     private static sourceKey(input: Record<string, unknown>, name: string): string | undefined {
-        return Object.hasOwn(input, name) ? name : Object.keys(input).find(key => key.toLowerCase() === name.toLowerCase());
+        return Object.hasOwn(input, name) && input[name] != null
+            ? name : Object.keys(input).find(key => key.toLowerCase() === name.toLowerCase());
     }
 
     /** The kernel deserializes event JSON against its registered schema before mapping. */
@@ -88,6 +89,9 @@ export class ProjectionValueConverter {
                 throw new RangeError(`Projection date-time value '${String(value)}' is outside the supported DateTime range or UTC ISO format.`);
             }
             return value;
+        }
+        if (eventContent && (schema.type === 'string' || (Array.isArray(schema.type) && schema.type[0] === 'string')) && typeof value !== 'string') {
+            throw new RangeError(`Projection event string value '${String(value)}' must be a JSON string.`);
         }
         if (schema.format === 'guid' && typeof value === 'string') {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {

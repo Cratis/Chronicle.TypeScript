@@ -39,6 +39,25 @@ describe('when converting schema-bound projection values', () => {
         expect(ProjectionValueConverter.eventContent(content, schema)).toEqual({ name: 'lowercase', Name: 'uppercase' });
         expect(ProjectionValueConverter.convert(content, schema)).toEqual({ name: 'lowercase', Name: 'uppercase' });
         expect(ProjectionValueConverter.eventContent({ NAME: 'fallback' }, schema)).toEqual({ name: 'fallback', Name: 'fallback' });
+        expect(ProjectionValueConverter.eventContent({ Name: 'uppercase', name: null }, schema)).toEqual({ name: 'uppercase', Name: 'uppercase' });
+        expect(ProjectionValueConverter.eventContent({ name: null, Name: 'uppercase' }, schema)).toEqual({ Name: 'uppercase' });
+    });
+
+    for (const [field, property] of [
+        ['text', { type: 'string' }], ['nullableText', { type: ['string', 'null'] }],
+        ['identifier', { type: 'string', format: 'guid' }]
+    ] as const) {
+        for (const value of [5, { value: 'text' }]) {
+            it(`should reject a non-string ${field} event field`, () => {
+                (() => ProjectionValueConverter.eventContent({ [field]: value }, { type: 'object', properties: {
+                    [field]: property
+                } })).should.throw(RangeError, 'must be a JSON string');
+            });
+        }
+    }
+
+    it('should retain string coercion for expression values', () => {
+        (ProjectionValueConverter.convert(5n, { type: 'string' }) as string).should.equal('5');
     });
 
     it('should admit UTC date-time boundaries and reject years or calendar dates outside DateTime', () => {
