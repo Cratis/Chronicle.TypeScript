@@ -27,7 +27,7 @@ The runner creates a real `ProjectionFactory` projection and calls the public `P
 | `remove-absent` | Removing a key that never existed does not materialize it; a later constructive event creates it. |
 | `reject-protected-fields`, `reject-protected-identifier` | `kind: oracleGuard` — records the oracle's own fail-closed boundary, not kernel semantics; evaluators must reject it. Both a mapped protected field and an unmapped protected identifier reach `EncryptChangeset` and fail closed at the compliance proxy; the expected error and unchanged sink snapshot are asserted. |
 | `guid-datetime-defaults`, `initial-scalar-defaults` | Missing GUID and date-time defaults in event content, non-empty schema-converted initial state, public reads, and lowercase GUIDs. |
-| `datetime-boundaries` | Valid minimum and maximum DateTime UTC values, with an out-of-range timestamp rejected by the kernel. |
+| `datetime-boundaries` | Mapping the minimum and maximum DateTime UTC values, then clearing the field and reading the kernel's default minimum date-time. |
 | `scalar-matrix-and-clearing` | `$value` literals and `$null` clearing for the supported scalar types, alongside `$eventSourceId` conversion. |
 | `unmapped-structures-empty`, `unmapped-structures-initial` | Empty initial state seeds an unmapped array as `[]` but omits the object; non-empty scalar initial state omits both unmapped structures. |
 | `case-insensitive-automap`, `no-automap-properties` | Case-insensitive matching and exclusions. |
