@@ -256,7 +256,7 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
                 Key: eventType,
                 Value: {
                     Key: child.usingKey ?? '$eventSourceId',
-                    ParentKey: '$eventSourceId',
+                    ParentKey: child.usingParentKey ?? '$eventSourceId',
                     Properties: {}
                 }
             });

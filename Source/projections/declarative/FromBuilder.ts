@@ -184,7 +184,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         (eventPropertyAccessorOrBuilderCallback as (value: unknown) => void)(probeProxy);
 
         this.entry.children.push(probe.usedAsBuilder
-            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty }
+            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty, usingParentKey: probe.usingParentKeyProperty }
             : { targetProperty: targetHandler.property, fromEventProperty: probe.capturedEventProperty });
         return this;
     }
