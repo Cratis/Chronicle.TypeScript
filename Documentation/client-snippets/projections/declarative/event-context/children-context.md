@@ -39,15 +39,16 @@ class DecEventContextUserActivityLogProjection implements IProjectionFor<DecEven
 
 @eventType()
 class DecEventContextOrderLineAdded {
-    @field(String) readonly lineId: string;
+    @field(String) readonly productId: string;
 
-    constructor(lineId: string) {
-        this.lineId = lineId;
+    constructor(productId: string) {
+        this.productId = productId;
     }
 }
 
 class DecEventContextOrderLine {
     lineId = '';
+    productId = '';
 }
 
 class DecEventContextOrder {
@@ -56,6 +57,7 @@ class DecEventContextOrder {
 
 // addChild can take the child key and the parent key from the event context:
 // each line is identified by the sequence number of the event that added it.
+// The event has no lineId property, so AutoMap copies productId without overwriting the key.
 @projection()
 class DecEventContextOrderProjection implements IProjectionFor<DecEventContextOrder> {
     define(builder: IProjectionBuilderFor<DecEventContextOrder>): void {
