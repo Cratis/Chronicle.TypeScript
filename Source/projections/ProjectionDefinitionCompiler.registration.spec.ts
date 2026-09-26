@@ -45,6 +45,8 @@ class ItemUpdated { name!: string; quantity!: number; }
 eventType()(ItemUpdated);
 class ItemRemoved {}
 eventType()(ItemRemoved);
+class DescriptionCleared {}
+eventType()(DescriptionCleared);
 class LineAdded { productId!: string; }
 eventType()(LineAdded);
 class Joined { name!: string; }
@@ -90,6 +92,7 @@ passive(PassiveModel);
 
 class Detail { description!: string; }
 setFrom(ItemCreated, 'name')(Detail.prototype, 'description');
+clearWith(DescriptionCleared)(Detail.prototype, 'description');
 fromEvent(ItemCreated)(Detail);
 clearWith(ItemRemoved)(Detail);
 class WithNested { id!: string; detail!: Detail; title!: string; }
@@ -250,7 +253,7 @@ const goldenUrl = new URL('./ProjectionDefinitionCompiler.registration.golden.js
 
 describe('projection registration payload', () => {
     for (const testCase of cases) {
-        it(`should preserve origin/main for ${testCase.name}`, async () => {
+        it(`should match the registration golden for ${testCase.name}`, async () => {
             const actual = await captureRegistration(artifactsFor(testCase));
             const goldens = JSON.parse(readFileSync(goldenUrl, 'utf8')) as Array<{ name: string; payload: string }>;
             actual.should.equal(goldens.find(candidate => candidate.name === testCase.name)?.payload);
