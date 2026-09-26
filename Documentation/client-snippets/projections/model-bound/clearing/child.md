@@ -1,5 +1,5 @@
 ```typescript title="Clear a member of a child item"
-import { childrenFrom, clearWith, eventType, fromEvent, Guid, setFrom } from '@cratis/chronicle';
+import { childrenFrom, eventType, fromEvent, Guid, setFrom, setValue } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
 @eventType()
@@ -11,12 +11,12 @@ class MbClearingTaskListStarted {
 
 @eventType()
 class MbClearingTaskAdded {
-    @field(String) readonly listId: string;
-    @field(String) readonly taskId: string;
+    @field(Guid) readonly listId: Guid;
+    @field(Guid) readonly taskId: Guid;
     @field(String) readonly title: string;
     @field(String) readonly due: string;
 
-    constructor(listId: string, taskId: string, title: string, due: string) {
+    constructor(listId: Guid, taskId: Guid, title: string, due: string) {
         this.listId = listId;
         this.taskId = taskId;
         this.title = title;
@@ -26,10 +26,10 @@ class MbClearingTaskAdded {
 
 @eventType()
 class MbClearingTaskDeferred {
-    @field(String) readonly listId: string;
-    @field(String) readonly taskId: string;
+    @field(Guid) readonly listId: Guid;
+    @field(Guid) readonly taskId: Guid;
 
-    constructor(listId: string, taskId: string) {
+    constructor(listId: Guid, taskId: Guid) {
         this.listId = listId;
         this.taskId = taskId;
     }
@@ -41,7 +41,7 @@ class MbClearingTask {
     @setFrom(MbClearingTaskAdded, 'title')
     title = '';
 
-    @field(String) @setFrom(MbClearingTaskAdded, 'due') @clearWith(MbClearingTaskDeferred)
+    @field(String) @setFrom(MbClearingTaskAdded, 'due') @setValue(MbClearingTaskDeferred, null)
     due: string | null = null;
 }
 

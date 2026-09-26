@@ -1,5 +1,5 @@
 ```typescript
-import { EventContext, eventType, filterEventsByTag, IEventStore, reactor, readModel, fromEvent } from '@cratis/chronicle';
+import { EventContext, eventType, filterEventsByTag, IEventStore, reactor, fromEvent } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
 @eventType()
@@ -22,7 +22,6 @@ class FilteringWithReactorOrderService {
     }
 }
 
-@readModel()
 @fromEvent(FilteringWithReactorOrderPlaced, { key: 'customerId' })
 class FilteringWithReactorOrderSummary {
     customerId = '';

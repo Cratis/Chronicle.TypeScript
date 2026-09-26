@@ -1,5 +1,5 @@
 ```typescript title="Clear one member of a nested object, or the whole object"
-import { clearWith, eventType, fromEvent, Guid, nested } from '@cratis/chronicle';
+import { clearWith, eventType, fromEvent, Guid, nested, setValue } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
 @eventType()
@@ -24,10 +24,11 @@ class MbClearingContract {
     title = '';
 
     // Clears this member of the nested object; the object itself stays.
-    @field(String) @clearWith(MbClearingNoticeWithdrawn)
+    @field(String) @setValue(MbClearingNoticeWithdrawn, null)
     noticeGiven: string | null = null;
 }
 
+@fromEvent(MbClearingContractSigned)
 class MbClearingEmployee {
     id: Guid = Guid.empty;
 

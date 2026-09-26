@@ -1,5 +1,5 @@
 ```typescript title="Clear at the root, on a child and inside a nested object"
-import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { eventType, Guid, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
 @eventType()
@@ -26,10 +26,10 @@ class MbClearingFluentSummaryNoteCleared {}
 
 @eventType()
 class MbClearingFluentTaskAdded {
-    @field(String) readonly taskId: string;
+    @field(Guid) readonly taskId: Guid;
     @field(String) readonly title: string;
     @field(String) readonly note: string;
-    constructor(taskId: string, title: string, note: string) {
+    constructor(taskId: Guid, title: string, note: string) {
         this.taskId = taskId;
         this.title = title;
         this.note = note;
@@ -38,8 +38,8 @@ class MbClearingFluentTaskAdded {
 
 @eventType()
 class MbClearingFluentTaskNoteCleared {
-    @field(String) readonly taskId: string;
-    constructor(taskId: string) { this.taskId = taskId; }
+    @field(Guid) readonly taskId: Guid;
+    constructor(taskId: Guid) { this.taskId = taskId; }
 }
 
 class MbClearingFluentSummary {
@@ -48,13 +48,13 @@ class MbClearingFluentSummary {
 }
 
 class MbClearingFluentTask {
-    id = '';
+    id: Guid = Guid.empty;
     title = '';
     note: string | null = null;
 }
 
 class MbClearingFluentProject {
-    id = '';
+    id: Guid = Guid.empty;
     note: string | null = null;
     summary: MbClearingFluentSummary | null = null;
     tasks: MbClearingFluentTask[] = [];
