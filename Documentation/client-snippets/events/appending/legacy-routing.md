@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class LegacyOrderNoteRecorded {
-    constructor(readonly note: string) {}
+    @field(String) readonly note: string;
+
+    constructor(note: string) {
+        this.note = note;
+    }
 }
 
 async function appendToExistingOrder(log: IEventLog, orderId: string, note: string) {

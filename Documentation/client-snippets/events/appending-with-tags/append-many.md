@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, EventForEventSourceId, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaggedMoneyWithdrawn {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()
 class TaggedMoneyDeposited {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 class TaggedTransferService {

@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConcurrencyAccountOpened {
-    constructor(readonly accountName: string) {}
+    @field(String) readonly accountName: string;
+
+    constructor(accountName: string) {
+        this.accountName = accountName;
+    }
 }
 
 class ConcurrencyBankAccountService {

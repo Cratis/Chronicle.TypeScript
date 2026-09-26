@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ObservingAppendsSomeEvent {
-    constructor(readonly data: string = '') {}
+    @field(String) readonly data: string;
+
+    constructor(data: string = '') {
+        this.data = data;
+    }
 }
 
 async function appendAndWait(eventLog: IEventLog, eventSourceId: string): Promise<void> {

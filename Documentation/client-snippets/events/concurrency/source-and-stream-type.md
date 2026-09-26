@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConcurrencyAccountSettingsUpdated {
-    constructor(readonly settings: string) {}
+    @field(String) readonly settings: string;
+
+    constructor(settings: string) {
+        this.settings = settings;
+    }
 }
 
 class ConcurrencyAccountManagementService {
