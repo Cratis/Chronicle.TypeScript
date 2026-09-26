@@ -57,6 +57,11 @@ internal static class Program
             {
                 var fixture = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
                 var fixtureCommit = fixture["chronicle"]?["commit"]?.GetValue<string>();
+                var kind = fixture["kind"]?.GetValue<string>();
+                if (kind is not ("kernelSemantics" or "oracleGuard"))
+                {
+                    throw new InvalidOperationException($"{path}: kind must be 'kernelSemantics' or 'oracleGuard'.");
+                }
                 if (fixture["formatVersion"]?.GetValue<int>() != 1 ||
                     (args[0] != "--probe" && (fixture["chronicle"]?["version"]?.GetValue<string>() != versionParts[0] ||
                      fixtureCommit is null || fixtureCommit.Length < 7 || !versionParts[1].StartsWith(fixtureCommit, StringComparison.OrdinalIgnoreCase))) ||

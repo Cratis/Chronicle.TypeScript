@@ -1,5 +1,6 @@
 {
   "formatVersion": 1,
+  "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
     "version": "19.8.1",
@@ -16,7 +17,7 @@
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022,\u0022status\u0022:\u0022seed\u0022}",
+    "InitialModelState": "{\"title\":\"seed\",\"status\":\"seed\"}",
     "From": [
       {
         "Key": {

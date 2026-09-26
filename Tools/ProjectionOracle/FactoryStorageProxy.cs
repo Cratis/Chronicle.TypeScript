@@ -17,7 +17,8 @@ using IEventSequenceStorage = KernelStorage::Cratis.Chronicle.Storage.EventSeque
 namespace ProjectionOracle;
 
 /// <summary>
-/// Only supplies the three storage lookups ProjectionFactory uses for flat definitions.
+/// Fail-closed dispatch proxy: supplies the storage lookups ProjectionFactory uses for flat definitions,
+/// strict stubs (<c>Strict&lt;T&gt;</c>) that throw on any call, and empty projection futures.
 /// </summary>
 public class FactoryStorageProxy : DispatchProxy
 {

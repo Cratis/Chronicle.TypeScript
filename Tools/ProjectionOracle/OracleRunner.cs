@@ -105,7 +105,7 @@ internal static class OracleRunner
             new Steps.EncryptChangeset(compliance, comparer, eventStore, @namespace),
             new Steps.StoreFutures(futures, tracker, logger.CreateLogger<Steps.StoreFutures>()),
             new Steps.ResolveFutures(futures, tracker, formats, comparer, logger.CreateLogger<Steps.ResolveFutures>()),
-            new Steps.SaveChanges(sink, changesetStorage, false, logger.CreateLogger<Steps.SaveChanges>())
+            new Steps.SaveChanges(sink, changesetStorage, true, logger.CreateLogger<Steps.SaveChanges>())
         ];
         var pipeline = new Pipelines.ProjectionPipeline(
             projection, sink, changesetStorage, comparer, steps, new Pipelines.ProjectionHandleLock(), replayCache,
