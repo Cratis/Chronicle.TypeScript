@@ -103,6 +103,16 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             'multiple generations of the same event-type id');
     });
 
+    for (const expression of ['true', 'True', 'false', 'False']) {
+        it(`should reject reserved literal ${expression} as an event property mapping`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).to(event => event.name)));
+            definition.From[0].Value.Properties.state = expression;
+            compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties![expression] = { type: 'string' };
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes(`expression '${expression}'`).and.includes('boolean literal before event content');
+        });
+    }
+
     it('should reject a literal legacy $context. wire expression as unknown with its declaration', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toEventContextProperty('eventType')));
         definition.From[0].Value.Properties.state = '$context.eventType';

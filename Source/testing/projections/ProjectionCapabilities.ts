@@ -180,6 +180,9 @@ export class ProjectionCapabilities {
         const arithmetic = operation || ['$count', '$increment', '$decrement'].includes(expression);
         if (arithmetic) fail('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
         if (/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) {
+            if (['true', 'True', 'false', 'False'].includes(expression)) {
+                fail('kernel resolves this expression as a boolean literal before event content');
+            }
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
             this.checkSchema(source, path, (_path, reason) => fail(reason));
