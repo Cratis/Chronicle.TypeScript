@@ -253,7 +253,7 @@ Import `reflect-metadata` first in your entry point. The client uses it to store
 
 ## Artifact discovery
 
-The client registers every artifact whose decorator has run, so importing a module is enough. On top of that, `ChronicleOptions` has a `discoveryPatterns` option: glob patterns for files the client imports when you create it, before `getEventStore(...)` registers artifacts. Patterns that start with `!` exclude files.
+The client registers artifacts whose class decorators have run, and legacy-decorated property-only models, when their modules are imported. Standard-decorated models with only property mappings need an exported class matched by discovery or explicit registration; see below. `ChronicleOptions` has a `discoveryPatterns` option: glob patterns for files the client imports when you create it, before `getEventStore(...)` registers artifacts. Patterns that start with `!` exclude files.
 
 The default depends on how you run your program:
 
@@ -262,7 +262,16 @@ The default depends on how you run your program:
 
 Pass your own patterns to override the default, for example `discoveryPatterns: ['dist/**/*.js']` for compiled output, or `[]` to turn scanning off. If a matched file fails to import, `getEventStore(...)` rejects with `Could not import discovered file '<path>'` and the original error as its cause.
 
-With standard decorators, a model-bound read model whose mappings are all on properties, such as `@setFrom` without a class-level `@fromEvent`, is only registered once an instance of it has been created. Querying it before that fails with `Unknown read model`. Give the class a `@fromEvent(...)` decorator so it registers when its module loads. With legacy decorators such a class registers when its module loads.
+Standard-decorated read models whose mappings are only on properties (for example `@setFrom(Event)` without `@fromEvent`) register before an instance is created when their class is exported from a module matched by `discoveryPatterns`. Legacy property decorators still register the class as soon as its module loads. If you run compiled JavaScript without discovery patterns, importing a standard-decorated property-only model does not make its class available for discovery. Add a class-level `@fromEvent(Event)`, set `discoveryPatterns: ['dist/**/*.js']` (adjust to your output directory), or register the class explicitly before calling `getEventStore(...)`:
+
+```typescript
+import { DecoratorType, TypeDiscoverer } from '@cratis/chronicle/types';
+import { Loan } from './Loan.js';
+
+TypeDiscoverer.default.register(DecoratorType.ReadModel, Loan);
+```
+
+The instance initializer remains a fallback for models constructed later, but it cannot retroactively register a projection with an existing event store. At store creation, the client emits an OpenTelemetry diagnostic warning once per process for standard-decorated property mappings it cannot associate with registered classes. The warning groups mapped properties and their event types by class metadata and suggests `@fromEvent(...)`, discovery patterns, or explicit registration. [Enable connection diagnostics](./connecting.md#connection-diagnostics) to see SDK warnings; they are silent unless you configure a diagnostic logger.
 
 ## Connecting to Chronicle
 
@@ -306,7 +315,7 @@ This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicl
 | --- | --- |
 | `getEventStore` never returns and nothing is logged | The client retries the connection with backoff until it succeeds or the client is disposed, and it logs through OpenTelemetry diagnostics, which are silent by default. Check that the kernel is running and the host, port, TLS settings, and credentials are right. [Connect to Chronicle](./connecting.md#connection-diagnostics) shows how to print the retry log and bound the wait. |
 | `Could not import discovered file '<path>'` | A `discoveryPatterns` pattern matched a file Node.js cannot load, such as a `.ts` file in a compiled program. Narrow the patterns; see [Artifact discovery](#artifact-discovery). |
-| `Unknown read model '<name>'` | The read model was not registered when the event store was created. Import its module before `getEventStore(...)`, and with standard decorators give a property-only model a class-level `@fromEvent(...)`. |
+| `Unknown read model '<name>'` | The read model was not registered when the event store was created. Add a class-level `@fromEvent(...)`, export standard-decorated property-only models from modules matched by `discoveryPatterns`, or register the class explicitly before `getEventStore(...)`; see [Artifact discovery](#artifact-discovery). |
 | `waitForCompletion()` rejects with `TimeoutError` although the read model is up to date | An observer that does not handle the appended event keeps the kernel waiting ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)). Read the read model without waiting, or wait on an append every observer handles. |
 | `Cannot register artifacts: N schema error(s).` | An event type or read model has a member whose type the client cannot determine. Add `@field(Type)`, and check that constructor parameters are named after their fields. |
 | `RejectedChronicleCredentials` | The token endpoint rejected the client id and secret, and the kernel refused the call. The client does not retry. Correct the credentials in the connection string, then create a new client. A connection string without credentials uses the development credentials, which only a development kernel accepts. |

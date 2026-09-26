@@ -167,7 +167,7 @@
         "build": "tsc -b",
         "clean": "rm -rf dist",
         "test": "vitest run",
-        "test:standard-types": "tsc --ignoreConfig --noEmit --target es2022 --module es2022 --moduleResolution bundler --lib es2022,esnext.decorators --types node --skipLibCheck --strict schemas/decorators.standard.spec.ts projections/modelBound/decorators.standard.spec.ts events/classDecorators.standard.spec.ts reactors/decorators.standard.spec.ts readModels/standardFallbacks.standard.spec.ts artifacts/validateArtifactSchemas.spec.ts",
+        "test:standard-types": "tsc --ignoreConfig --noEmit --target es2022 --module es2022 --moduleResolution bundler --lib es2022,esnext.decorators --types node --skipLibCheck --strict schemas/decorators.standard.spec.ts projections/modelBound/decorators.standard.spec.ts events/classDecorators.standard.spec.ts reactors/decorators.standard.spec.ts readModels/standardFallbacks.standard.spec.ts readModels/registration.standard.spec.ts for_ChronicleClient/when_registering_artifacts/with_standard_property_mappings.standard.spec.ts artifacts/validateArtifactSchemas.spec.ts",
         "test:native": "node ./scripts/check-native-esm.mjs"
     },
     "dependencies": {
