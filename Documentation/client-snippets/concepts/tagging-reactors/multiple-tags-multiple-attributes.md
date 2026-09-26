@@ -1,9 +1,16 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor, tag } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaggingReactorsProductStockChanged {
-    constructor(readonly productId: string, readonly newQuantity: number) {}
+    @field(String) readonly productId: string;
+    @field(Number) readonly newQuantity: number;
+
+    constructor(productId: string, newQuantity: number) {
+        this.productId = productId;
+        this.newQuantity = newQuantity;
+    }
 }
 
 interface TaggingReactorsInventoryApi {

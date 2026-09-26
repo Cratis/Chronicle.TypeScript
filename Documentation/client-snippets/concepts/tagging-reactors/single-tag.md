@@ -1,9 +1,16 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor, tag } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaggingReactorsOrderPlaced {
-    constructor(readonly customerId: string, readonly orderId: string) {}
+    @field(String) readonly customerId: string;
+    @field(String) readonly orderId: string;
+
+    constructor(customerId: string, orderId: string) {
+        this.customerId = customerId;
+        this.orderId = orderId;
+    }
 }
 
 interface TaggingReactorsEmailService {

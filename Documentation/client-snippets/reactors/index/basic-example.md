@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, onceOnly, reactor, EventContext } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReactorsIndexEmailConfirmed {
-    constructor(readonly email: string) {}
+    @field(String) readonly email: string;
+
+    constructor(email: string) {
+        this.email = email;
+    }
 }
 
 @reactor()

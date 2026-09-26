@@ -1,14 +1,27 @@
 ```typescript
 import { IEventStore, eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TransactionalOrderPlaced {
-    constructor(readonly orderId: string, readonly totalAmount: number) {}
+    @field(String) readonly orderId: string;
+    @field(Number) readonly totalAmount: number;
+
+    constructor(orderId: string, totalAmount: number) {
+        this.orderId = orderId;
+        this.totalAmount = totalAmount;
+    }
 }
 
 @eventType()
 class TransactionalInventoryReserved {
-    constructor(readonly sku: string, readonly quantity: number) {}
+    @field(String) readonly sku: string;
+    @field(Number) readonly quantity: number;
+
+    constructor(sku: string, quantity: number) {
+        this.sku = sku;
+        this.quantity = quantity;
+    }
 }
 
 async function commitOrder(store: IEventStore): Promise<void> {

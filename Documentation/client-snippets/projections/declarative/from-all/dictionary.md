@@ -1,14 +1,23 @@
 ```typescript title="Declarative FromAll with a dynamic dictionary key"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class UserRegisteredForEventCounts {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 export class OrderPlacedForEventCounts {
-    constructor(readonly orderId: string) {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string) {
+        this.orderId = orderId;
+    }
 }
 
 export class EventTypeCountsReadModel {

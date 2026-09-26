@@ -1,11 +1,15 @@
 ```typescript
 import { IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 class MaterializedPaginationProduct {
-    constructor(
-        readonly name: string,
-        readonly price: number
-    ) {}
+    @field(String) readonly name: string;
+    @field(Number) readonly price: number;
+
+    constructor(name: string, price: number) {
+        this.name = name;
+        this.price = price;
+    }
 }
 
 class MaterializedPaginationObserving {

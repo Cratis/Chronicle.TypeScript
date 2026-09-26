@@ -4,11 +4,15 @@ import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserRegisteredWithKey {
-    constructor(
-        readonly userId: string,
-        readonly name: string,
-        readonly email: string
-    ) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(userId: string, name: string, email: string) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @fromEvent(ConventionUserRegisteredWithKey, { key: 'userId' })

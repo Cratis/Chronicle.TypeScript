@@ -1,24 +1,43 @@
 ```typescript title="Complete balance projection"
 import { addFrom, eventType, fromEvent, setFrom, subtractFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class BankAccountOpened {
-    constructor(readonly accountName: string, readonly initialBalance: number) {}
+    @field(String) readonly accountName: string;
+    @field(Number) readonly initialBalance: number;
+
+    constructor(accountName: string, initialBalance: number) {
+        this.accountName = accountName;
+        this.initialBalance = initialBalance;
+    }
 }
 
 @eventType()
 export class BankAccountRenamed {
-    constructor(readonly newName: string) {}
+    @field(String) readonly newName: string;
+
+    constructor(newName: string) {
+        this.newName = newName;
+    }
 }
 
 @eventType()
 export class FundsDeposited {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()
 export class FundsWithdrawn {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @fromEvent(BankAccountOpened)

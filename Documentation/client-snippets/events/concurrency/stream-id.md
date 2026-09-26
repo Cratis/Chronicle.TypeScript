@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConcurrencyMonthlyReportGenerated {
-    constructor(readonly month: string) {}
+    @field(String) readonly month: string;
+
+    constructor(month: string) {
+        this.month = month;
+    }
 }
 
 class ConcurrencyMonthlyReportService {

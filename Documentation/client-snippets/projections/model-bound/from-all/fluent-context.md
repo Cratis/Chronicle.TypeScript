@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, Guid, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class InventoryRegisteredFromAll {
-    constructor(readonly productName: string) {}
+    @field(String) readonly productName: string;
+
+    constructor(productName: string) {
+        this.productName = productName;
+    }
 }
 
 @eventType()
 class InventoryAdjustedFromAll {
-    constructor(readonly quantity: number) {}
+    @field(Number) readonly quantity: number;
+
+    constructor(quantity: number) {
+        this.quantity = quantity;
+    }
 }
 
 class InventoryStatusFromAll {

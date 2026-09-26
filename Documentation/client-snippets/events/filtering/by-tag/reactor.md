@@ -1,10 +1,15 @@
 ```typescript
 import { EventContext, eventType, filterEventsByTag, IEventStore, reactor, tag } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 @tag('customer-lifecycle')
 class FilterByTagCustomerRegistered {
-    constructor(readonly emailAddress: string) {}
+    @field(String) readonly emailAddress: string;
+
+    constructor(emailAddress: string) {
+        this.emailAddress = emailAddress;
+    }
 }
 
 class FilterByTagCustomerRegistrationService {

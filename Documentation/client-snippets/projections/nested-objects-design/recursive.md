@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class NodRecursiveSliceCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class NodRecursiveCommandSet {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
@@ -17,7 +26,11 @@ class NodRecursiveCommandCleared {
 
 @eventType()
 class NodRecursiveValidationConfigured {
-    constructor(readonly rules: string) {}
+    @field(String) readonly rules: string;
+
+    constructor(rules: string) {
+        this.rules = rules;
+    }
 }
 
 @eventType()

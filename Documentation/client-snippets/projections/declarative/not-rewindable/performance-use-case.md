@@ -1,11 +1,12 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecNotRewindableApiRequestCompleted {
     endpoint = '';
     statusCode = 0;
-    durationMilliseconds: bigint = 0n;
+    @field(Number) durationMilliseconds: bigint = 0n;
 }
 
 class DecNotRewindablePerformanceMetric {

@@ -1,14 +1,25 @@
 ```typescript
 import { EventContext, EventForEventSourceId, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SpecificSourceBookReserved {
-    constructor(readonly isbn: string = '', readonly memberId: string = '') {}
+    @field(String) readonly isbn: string;
+    @field(String) readonly memberId: string;
+
+    constructor(isbn: string = '', memberId: string = '') {
+        this.isbn = isbn;
+        this.memberId = memberId;
+    }
 }
 
 @eventType()
 class SpecificSourceMemberActivityRecorded {
-    constructor(readonly isbn: string = '') {}
+    @field(String) readonly isbn: string;
+
+    constructor(isbn: string = '') {
+        this.isbn = isbn;
+    }
 }
 
 @reactor()

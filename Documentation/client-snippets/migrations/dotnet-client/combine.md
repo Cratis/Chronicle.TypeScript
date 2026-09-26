@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventMigrationBuilder, IEventTypeMigration } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType('dotnet-client-shipping-address-recorded', 2)
 class MigrationsDotnetClientCombineShippingAddressRecorded {
-    constructor(readonly fullAddress: string) {}
+    @field(String) readonly fullAddress: string;
+
+    constructor(fullAddress: string) {
+        this.fullAddress = fullAddress;
+    }
 }
 
 @eventType('dotnet-client-shipping-address-recorded', 1)
 class MigrationsDotnetClientCombineShippingAddressRecordedV1 {
-    constructor(readonly street: string, readonly city: string) {}
+    @field(String) readonly street: string;
+    @field(String) readonly city: string;
+
+    constructor(street: string, city: string) {
+        this.street = street;
+        this.city = city;
+    }
 }
 
 @eventTypeMigration(MigrationsDotnetClientCombineShippingAddressRecorded, MigrationsDotnetClientCombineShippingAddressRecordedV1)

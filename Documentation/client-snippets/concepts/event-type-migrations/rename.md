@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('payment-processed', 1)
 class MigrationsRenamePaymentProcessedV1 {
-    constructor(readonly oldAmount: number) {}
+    @field(Number) readonly oldAmount: number;
+
+    constructor(oldAmount: number) {
+        this.oldAmount = oldAmount;
+    }
 }
 
 @eventType('payment-processed', 2)
 class MigrationsRenamePaymentProcessed {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventTypeMigration(MigrationsRenamePaymentProcessed, MigrationsRenamePaymentProcessedV1)

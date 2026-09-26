@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TransactionalPaymentCaptured {
-    constructor(readonly paymentId: string = '', readonly amount: number = 0) {}
+    @field(String) readonly paymentId: string;
+    @field(Number) readonly amount: number;
+
+    constructor(paymentId: string = '', amount: number = 0) {
+        this.paymentId = paymentId;
+        this.amount = amount;
+    }
 }
 
 async function commitAndInspectViolations(store: IEventStore): Promise<void> {

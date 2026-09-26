@@ -4,6 +4,8 @@ import { ConceptAs } from '@cratis/fundamentals';
 
 @pii('Collected under GDPR Art. 6(1)(b) — necessary for contract performance. Retention: contract duration + 7 years.')
 class PiiConceptsLegalName extends ConceptAs<string> {
+    static readonly valueType = String;
+
     constructor(value: string) {
         super(value);
     }

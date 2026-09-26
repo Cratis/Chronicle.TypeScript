@@ -1,14 +1,23 @@
 ```typescript title="Specific context vs every event"
 import { eventType, fromEvent, fromEvery, setFromContext } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class OrderPlacedForLifecycle {
-    constructor(readonly customerName: string) {}
+    @field(String) readonly customerName: string;
+
+    constructor(customerName: string) {
+        this.customerName = customerName;
+    }
 }
 
 @eventType()
 export class OrderShippedForLifecycle {
-    constructor(readonly trackingNumber: string) {}
+    @field(String) readonly trackingNumber: string;
+
+    constructor(trackingNumber: string) {
+        this.trackingNumber = trackingNumber;
+    }
 }
 
 @fromEvent(OrderPlacedForLifecycle)
@@ -18,7 +27,7 @@ export class OrderLifecycle {
     placedAt = new Date();
 
     @setFromContext(OrderShippedForLifecycle, 'occurred')
-    shippedAt?: Date;
+    @field(Date) shippedAt?: Date;
 
     @fromEvery(undefined, 'occurred')
     lastModified = new Date();

@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaggedOrderPlaced {
-    constructor(readonly customerId: string, readonly total: number) {}
+    @field(String) readonly customerId: string;
+    @field(Number) readonly total: number;
+
+    constructor(customerId: string, total: number) {
+        this.customerId = customerId;
+        this.total = total;
+    }
 }
 
 class TaggedCheckoutService {

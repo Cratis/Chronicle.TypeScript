@@ -1,9 +1,14 @@
 ```typescript
 import { constraint, eventType, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConstraintsUniqueSeveralInvitationSent {
-    constructor(readonly emailAddress: string) {}
+    @field(String) readonly emailAddress: string;
+
+    constructor(emailAddress: string) {
+        this.emailAddress = emailAddress;
+    }
 }
 
 @eventType()

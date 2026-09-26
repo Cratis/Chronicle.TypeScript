@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, decrement, eventType, Guid, increment, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbChildrenCountersItemAddedToCart {
@@ -19,13 +20,6 @@ export class MbChildrenCountersQuantityDecreased {
     itemId: Guid = Guid.empty;
 }
 
-export class MbChildrenCountersShoppingCart {
-    id: Guid = Guid.empty;
-
-    @childrenFrom(MbChildrenCountersItemAddedToCart, 'itemId')
-    items: MbChildrenCountersCartItem[] = [];
-}
-
 // Child type with its own projection decorators
 export class MbChildrenCountersCartItem {
     id: Guid = Guid.empty;
@@ -40,5 +34,12 @@ export class MbChildrenCountersCartItem {
     @increment(MbChildrenCountersQuantityIncreased)
     @decrement(MbChildrenCountersQuantityDecreased)
     quantity = 0;
+}
+
+export class MbChildrenCountersShoppingCart {
+    id: Guid = Guid.empty;
+
+    @childrenFrom(MbChildrenCountersItemAddedToCart, 'itemId')
+    @field(Array, { genericArguments: [MbChildrenCountersCartItem] }) items: MbChildrenCountersCartItem[] = [];
 }
 ```

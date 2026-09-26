@@ -1,19 +1,34 @@
 ```typescript title="Combine specific mappings with every-event metadata"
 import { eventType, fromEvent, fromEvery, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class UserRegisteredForEvery {
-    constructor(readonly name: string, readonly email: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @eventType()
 export class UserNameChangedForEvery {
-    constructor(readonly newName: string) {}
+    @field(String) readonly newName: string;
+
+    constructor(newName: string) {
+        this.newName = newName;
+    }
 }
 
 @eventType()
 export class UserEmailChangedForEvery {
-    constructor(readonly newEmail: string) {}
+    @field(String) readonly newEmail: string;
+
+    constructor(newEmail: string) {
+        this.newEmail = newEmail;
+    }
 }
 
 @fromEvent(UserRegisteredForEvery)

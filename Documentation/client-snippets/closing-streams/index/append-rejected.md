@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ClosingStreamsInvoiceLineAdded {
-    constructor(readonly description: string = '', readonly amount: number = 0) {}
+    @field(String) readonly description: string;
+    @field(Number) readonly amount: number;
+
+    constructor(description: string = '', amount: number = 0) {
+        this.description = description;
+        this.amount = amount;
+    }
 }
 
 async function tryAppendLine(eventLog: IEventLog, invoiceId: string): Promise<boolean> {

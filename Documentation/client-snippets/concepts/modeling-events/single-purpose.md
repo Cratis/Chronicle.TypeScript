@@ -1,49 +1,82 @@
 ```typescript
 import { eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 class ModelingEventsCustomerName {
-    constructor(readonly value: string) {}
+    @field(String) readonly value: string;
+
+    constructor(value: string) {
+        this.value = value;
+    }
 }
 
 class ModelingEventsEmail {
-    constructor(readonly value: string) {}
+    @field(String) readonly value: string;
+
+    constructor(value: string) {
+        this.value = value;
+    }
 }
 
 class ModelingEventsDeactivationReason {
-    constructor(readonly value: string) {}
+    @field(String) readonly value: string;
+
+    constructor(value: string) {
+        this.value = value;
+    }
 }
 
 class ModelingEventsCustomerAddress {
-    constructor(
-        readonly street: string,
-        readonly city: string
-    ) {}
+    @field(String) readonly street: string;
+    @field(String) readonly city: string;
+
+    constructor(street: string, city: string) {
+        this.street = street;
+        this.city = city;
+    }
 }
 
 // One event trying to be everything — consumers must guess what changed
 @eventType()
 class ModelingEventsCustomerUpdated {
-    constructor(
-        readonly name?: ModelingEventsCustomerName,
-        readonly address?: ModelingEventsCustomerAddress,
-        readonly email?: ModelingEventsEmail,
-        readonly deactivated?: boolean
-    ) {}
+    @field(ModelingEventsCustomerName) readonly name?: ModelingEventsCustomerName;
+    @field(ModelingEventsCustomerAddress) readonly address?: ModelingEventsCustomerAddress;
+    @field(ModelingEventsEmail) readonly email?: ModelingEventsEmail;
+    @field(Boolean) readonly deactivated?: boolean;
+
+    constructor(name?: ModelingEventsCustomerName, address?: ModelingEventsCustomerAddress, email?: ModelingEventsEmail, deactivated?: boolean) {
+        this.name = name;
+        this.address = address;
+        this.email = email;
+        this.deactivated = deactivated;
+    }
 }
 
 // Distinct facts — each consumer subscribes to exactly what it cares about
 @eventType()
 class ModelingEventsCustomerRenamed {
-    constructor(readonly name: ModelingEventsCustomerName) {}
+    @field(ModelingEventsCustomerName) readonly name: ModelingEventsCustomerName;
+
+    constructor(name: ModelingEventsCustomerName) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class ModelingEventsCustomerAddressChanged {
-    constructor(readonly address: ModelingEventsCustomerAddress) {}
+    @field(ModelingEventsCustomerAddress) readonly address: ModelingEventsCustomerAddress;
+
+    constructor(address: ModelingEventsCustomerAddress) {
+        this.address = address;
+    }
 }
 
 @eventType()
 class ModelingEventsCustomerDeactivated {
-    constructor(readonly reason: ModelingEventsDeactivationReason) {}
+    @field(ModelingEventsDeactivationReason) readonly reason: ModelingEventsDeactivationReason;
+
+    constructor(reason: ModelingEventsDeactivationReason) {
+        this.reason = reason;
+    }
 }
 ```

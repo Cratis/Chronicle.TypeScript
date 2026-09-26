@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, EventForEventSourceId, getEventTypeFor, IEventLog } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConcurrencyMoneyWithdrawnForTransfer {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()
 class ConcurrencyMoneyDepositedForTransfer {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 class ConcurrencyTransferService {

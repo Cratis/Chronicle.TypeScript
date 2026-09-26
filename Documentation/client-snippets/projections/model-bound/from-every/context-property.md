@@ -4,12 +4,20 @@ import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class InventoryProductRegisteredForEvery {
-    constructor(readonly productName: string) {}
+    @field(String) readonly productName: string;
+
+    constructor(productName: string) {
+        this.productName = productName;
+    }
 }
 
 @eventType()
 export class InventoryItemsAdjustedForEvery {
-    constructor(readonly quantity: number) {}
+    @field(Number) readonly quantity: number;
+
+    constructor(quantity: number) {
+        this.quantity = quantity;
+    }
 }
 
 @fromEvent(InventoryProductRegisteredForEvery)

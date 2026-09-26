@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EcCqsBookCreated {
-    constructor(readonly title: string) {}
+    @field(String) readonly title: string;
+
+    constructor(title: string) {
+        this.title = title;
+    }
 }
 
 class EcCqsBook {

@@ -1,19 +1,40 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventMigrationBuilder, IEventTypeMigration } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType('dotnet-client-multi-gen-person-registered', 3)
 class MigrationsDotnetClientMultiGenPersonRegistered {
-    constructor(readonly email: string, readonly firstName: string, readonly lastName: string) {}
+    @field(String) readonly email: string;
+    @field(String) readonly firstName: string;
+    @field(String) readonly lastName: string;
+
+    constructor(email: string, firstName: string, lastName: string) {
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
 @eventType('dotnet-client-multi-gen-person-registered', 2)
 class MigrationsDotnetClientMultiGenPersonRegisteredV2 {
-    constructor(readonly email: string, readonly name: string) {}
+    @field(String) readonly email: string;
+    @field(String) readonly name: string;
+
+    constructor(email: string, name: string) {
+        this.email = email;
+        this.name = name;
+    }
 }
 
 @eventType('dotnet-client-multi-gen-person-registered', 1)
 class MigrationsDotnetClientMultiGenPersonRegisteredV1 {
-    constructor(readonly emailAddress: string, readonly name: string) {}
+    @field(String) readonly emailAddress: string;
+    @field(String) readonly name: string;
+
+    constructor(emailAddress: string, name: string) {
+        this.emailAddress = emailAddress;
+        this.name = name;
+    }
 }
 
 // Generation 1 → 2: rename emailAddress to email

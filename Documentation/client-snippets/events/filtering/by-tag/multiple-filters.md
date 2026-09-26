@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, filterEventsByTag, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class FilterByTagMultiCustomerRegistered {
-    constructor(readonly emailAddress: string) {}
+    @field(String) readonly emailAddress: string;
+
+    constructor(emailAddress: string) {
+        this.emailAddress = emailAddress;
+    }
 }
 
 @reactor()
