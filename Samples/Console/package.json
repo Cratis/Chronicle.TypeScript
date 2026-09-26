@@ -28,9 +28,9 @@
         "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {
-        "@types/node": "^26.5.1",
+        "@types/node": "^26.6.3",
         "@typescript/native": "npm:typescript@^7.0.2",
-        "tsx": "^4.23.13",
+        "tsx": "^4.23.15",
         "typescript": "npm:@typescript/typescript6@^6.0.2"
     }
 }
