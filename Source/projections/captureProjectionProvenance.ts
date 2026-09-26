@@ -20,7 +20,7 @@ export function captureProjectionProvenance(definition: Record<string, unknown>,
             const operation = expression.startsWith('$add(') ? 'addFrom' : expression.startsWith('$subtract(') ? 'subtractFrom'
                 : expression === '$count' ? 'count' : expression === '$increment' ? 'increment'
                     : expression === '$decrement' ? 'decrement' : expression === '$null' ? 'clearWith'
-                        : expression.startsWith('$value(') ? 'setValue' : expression.startsWith('$context.') ? 'setFromContext' : 'setFrom';
+                        : expression.startsWith('$value(') ? 'setValue' : expression.startsWith('$eventContext(') ? 'setFromContext' : 'setFrom';
             add(`${path}.Properties.${property}`, `${prefix}${modelBound ? operation : `from().${operation}`}`);
         }
     }

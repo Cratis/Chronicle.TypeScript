@@ -4,13 +4,13 @@
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
-import type { ChildrenDefinitionLike } from '../modelBound/childrenAndNestedBuilder.js';
+import { canonicalStringify } from '../canonicalStringify.js';
 import { ChildrenBuilder } from './ChildrenBuilder.js';
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
 import { IProjectionBuilderFor } from './IProjectionBuilderFor.js';
 import { NestedBuilder } from './NestedBuilder.js';
-import { ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
+import { ChildrenDefinitionLike, ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 
 /**
  * Concrete implementation of {@link IProjectionBuilderFor} that accumulates projection
@@ -186,12 +186,11 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
 
     /**
      * Computes a stable, deterministic ISO timestamp from the projection definition content,
-     * excluding the LastUpdated field itself. This ensures the server does not interpret
-     * a repeated registration of an unchanged definition as a definition change.
+     * excluding the LastUpdated field itself.
      */
     private computeStableLastUpdated(definition: Record<string, unknown>): string {
         const { LastUpdated: _omit, ...rest } = definition;
-        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        const content = canonicalStringify(rest);
         let hash = 5381;
         for (let i = 0; i < content.length; i++) {
             hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;

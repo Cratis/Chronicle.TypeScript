@@ -15,7 +15,6 @@ import { fromEvery } from '../../../projections/modelBound/fromEvery.js';
 import { join } from '../../../projections/modelBound/join.js';
 import { nested } from '../../../projections/modelBound/nested.js';
 import { addFrom } from '../../../projections/modelBound/addFrom.js';
-import { setFromContext } from '../../../projections/modelBound/setFromContext.js';
 import { passive } from '../../../projections/modelBound/passive.js';
 import { removedWithJoin } from '../../../projections/modelBound/removedWithJoin.js';
 import { removedWith } from '../../../projections/modelBound/removedWith.js';
@@ -73,6 +72,8 @@ describe('when rejecting unsupported operations before any event is seeded', () 
     const declarative: Array<{ name: string; define: (builder: IProjectionBuilderFor<Model>) => void; path: string }> = [
         { name: 'custom key', define: builder => { builder.from(Changed, from => from.usingKey(event => event.name)); }, path: 'From[capability-changed:1].Key (.from().usingKey)' },
         { name: 'constant key', define: builder => { builder.from(Changed, from => from.usingConstantKey('fixed')); }, path: 'From[capability-changed:1].Key (.from().usingConstantKey)' },
+        { name: 'context key', define: builder => { builder.from(Changed, from => from.usingKeyFromContext('eventSourceId')); }, path: 'From[capability-changed:1].Key (.from().usingKeyFromContext)' },
+        { name: 'context parent key', define: builder => { builder.from(Changed, from => from.usingParentKeyFromContext('eventSourceId')); }, path: 'From[capability-changed:1].ParentKey (.from().usingParentKeyFromContext)' },
         { name: 'composite key', define: builder => { builder.from(Changed, from => from.usingCompositeKey<{ name: string }>(key => key.set(target => target.name, event => event.name))); }, path: 'From[capability-changed:1].Key (.from().usingCompositeKey)' },
         { name: 'parent key', define: builder => { builder.from(Changed, from => from.usingParentKey(event => event.name)); }, path: 'From[capability-changed:1].ParentKey (.from().usingParentKey)' },
         { name: 'join', define: builder => { builder.from(Changed).join(Removed, join => join.on(model => model.id)); }, path: 'Join[capability-removed:1] (.join)' },
@@ -102,19 +103,29 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             'multiple generations of the same event-type id');
     });
 
-    it('should reject bare model-bound context names absent from the event schema', () => {
-        const { compiled, definition } = compileModelBound(model => setFromContext(Changed, 'eventType')(model.prototype, 'state'));
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('(@setFromContext)').and.includes("expression 'eventType'").and.includes('absent from the participating event schema');
-    });
-
-    it('should reject the client $context. registration bug with its declaration and expression', () => {
+    it('should reject a literal legacy $context. wire expression as unknown with its declaration', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toEventContextProperty('eventType')));
+        definition.From[0].Value.Properties.state = '$context.eventType';
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('(.from().setFromContext)').and.includes("expression '$context.eventType'").and.includes('client registration bug #119');
+            .with.property('message').that.includes('(.from().setFromContext)')
+                .and.includes("expression '$context.eventType'").and.includes('requires a kernel-backed test');
     });
 
-    for (const expression of ['$eventContext(Occurred.ISOWeek())', '$eventContext(Occurred1)', '$eventContext(_Occurred)']) {
+    it('should reject a client-emitted derived context function at the phase-one boundary', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+            from.set(model => model.state).toEventContextProperty('occurred.week()')));
+        definition.From[0].Value.Properties.state.should.equal('$eventContext(Occurred.Week())');
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('(.from().setFromContext)')
+                .and.includes("expression '$eventContext(Occurred.Week())': derived event-context functions require a kernel-backed test");
+    });
+
+    for (const expression of [
+        '$eventContext(Occurred.Date)', '$eventContext(EventSourceId.Part)', '$eventContext(CausedBy.Unknown)',
+        '$eventContext(CausedBy.OnBehalfOf.UserName)', '$eventContext(Causation.Type)', '$eventContext(Tags.Name)',
+        '$eventContext(Occurred.ISOWeek())', '$eventContext(Occurred1)', '$eventContext(_Occurred)',
+        '$eventContext(occurred)'
+    ]) {
         it(`should reject unsupported event-context expression ${expression}`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).to(event => event.name)));
             definition.From[0].Value.Properties.state = expression;

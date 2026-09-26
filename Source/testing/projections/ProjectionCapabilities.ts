@@ -5,6 +5,8 @@ import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts'
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
 import { eventContractPath } from '../../projections/eventContractPath.js';
+import { eventContextPropertyExpression } from '../../projections/eventContextPropertyExpression.js';
+import { InvalidEventContextPropertyError } from '../../projections/InvalidEventContextPropertyError.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { getEventTypeMapKey } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
@@ -132,8 +134,18 @@ export class ProjectionCapabilities {
         if (destination.includes('.') || destination.includes('$')) fail('dynamic or unknown destination paths require a kernel-backed test');
         this.checkSchema(target, path, (_path, reason) => fail(reason));
         if (expression === '$eventSourceId' || expression === '$null') return;
-        if (expression.startsWith('$context.')) fail('client registration bug #119 emits $context. instead of the kernel $eventContext(...) expression');
-        if (/^\$eventContext\([A-Za-z.]+\)$/.test(expression)) return;
+        if (expression.startsWith('$eventContext(')) {
+            if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');
+            const path = /^\$eventContext\(([^()]*)\)$/.exec(expression)?.[1];
+            if (path) {
+                try {
+                    if (eventContextPropertyExpression(path) === expression) return;
+                } catch (error) {
+                    if (!(error instanceof InvalidEventContextPropertyError)) throw error;
+                }
+            }
+            fail('event-context path is not supported by the client');
+        }
         if (/^\$value\([\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*\)$/u.test(expression)) {
             const text = expression.slice(7, -1);
             if (target.format === 'date-time') fail('$value date-time literals require a kernel-backed test');

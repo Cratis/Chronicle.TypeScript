@@ -25,7 +25,9 @@ describe('when validating the phase-one projection subset', () => {
     const modelBound = [
         { name: 'root From and schema-inferred AutoMap', configure: () => {} },
         { name: 'setFrom and event source identity', configure: (model: Function) => setFrom(Changed, 'name')(model.prototype, 'name') },
-        { name: 'setFromContext produces a valid event-content property', configure: (model: Function) => setFromContext(Changed, 'name')(model.prototype, 'state') },
+        { name: 'setFromContext maps eventType without needing it in the event schema', configure: (model: Function) => setFromContext(Changed, 'eventType')(model.prototype, 'state') },
+        { name: 'setFromContext maps the event source identity', configure: (model: Function) => setFromContext(Changed, 'eventSourceId')(model.prototype, 'state') },
+        { name: 'setFromContext maps a nested identity member', configure: (model: Function) => setFromContext(Changed, 'causedBy.subject')(model.prototype, 'state') },
         { name: 'constant text', configure: (model: Function) => setValue(Changed, 'ready')(model.prototype, 'state') },
         { name: 'scalar clearing', configure: (model: Function) => clearWith(Removed)(model.prototype, 'state') },
         { name: 'addition', configure: (model: Function) => addFrom(Changed, 'quantity')(model.prototype, 'total') },
@@ -55,10 +57,32 @@ describe('when validating the phase-one projection subset', () => {
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
-    for (const expression of ['$eventContext(Occurred)', '$eventContext(Occurred.Date)']) {
-        it(`should accept the compiled kernel context expression ${expression}`, () => {
-            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).to(event => event.name)));
-            definition.From[0].Value.Properties.state = expression;
+    for (const [property, expression] of [
+        ['sequenceNumber', '$eventContext(SequenceNumber)'],
+        ['eventSourceId', '$eventContext(EventSourceId)'],
+        ['eventStore', '$eventContext(EventStore)'],
+        ['namespace', '$eventContext(Namespace)'],
+        ['eventSourceType', '$eventContext(EventSourceType)'],
+        ['eventStreamType', '$eventContext(EventStreamType)'],
+        ['eventStreamId', '$eventContext(EventStreamId)'],
+        ['subject', '$eventContext(Subject)'],
+        ['hash', '$eventContext(Hash)'],
+        ['causedBy', '$eventContext(CausedBy)'],
+        ['observationState', '$eventContext(ObservationState)'],
+        ['eventType', '$eventContext(EventType)'],
+        ['occurred', '$eventContext(Occurred)'],
+        ['correlationId', '$eventContext(CorrelationId)'],
+        ['causation', '$eventContext(Causation)'],
+        ['tags', '$eventContext(Tags)'],
+        ['causedBy.subject', '$eventContext(CausedBy.Subject)'],
+        ['causedBy.name', '$eventContext(CausedBy.Name)'],
+        ['causedBy.userName', '$eventContext(CausedBy.UserName)'],
+        ['causedBy.onBehalfOf', '$eventContext(CausedBy.OnBehalfOf)']
+    ]) {
+        it(`should accept the client's emitted context expression ${expression}`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+                from.set(model => model.state).toEventContextProperty(property)));
+            definition.From[0].Value.Properties.state.should.equal(expression);
             (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
         });
     }

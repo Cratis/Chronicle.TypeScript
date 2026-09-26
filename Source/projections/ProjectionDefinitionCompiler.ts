@@ -13,6 +13,7 @@ import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { TypeIntrospector } from '../types/index.js';
+import { canonicalStringify } from './canonicalStringify.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
 import { captureProjectionProvenance } from './captureProjectionProvenance.js';
 import { eventContractPath } from './eventContractPath.js';
@@ -20,6 +21,9 @@ import { getProjectionBuilderProvenance } from './declarative/projectionBuilderP
 import type { ProjectionCapabilityProvenance } from './ProjectionCapabilityProvenance.js';
 import type { ProjectionEventSchema } from './ProjectionEventSchema.js';
 import { constantValueExpression } from './constantValueExpression.js';
+import { eventContextPropertyExpression } from './eventContextPropertyExpression.js';
+import { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
+import { invalidEventContextPropertyInProjection } from './invalidEventContextPropertyInProjection.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -74,8 +78,9 @@ export class ProjectionDefinitionCompiler {
      */
     compile(declarative: Iterable<Constructor>, modelBound: Iterable<Constructor>): CompiledProjectionDefinitions {
         const builtProjections: BuiltProjection[] = [
-            ...Array.from(declarative, type => this.buildDeclarativeDefinition(type)),
-            ...Array.from(modelBound, type => this.buildModelBoundDefinition(type))
+            ...Array.from(declarative, type => this.buildWithContextValidation(type, () => this.buildDeclarativeDefinition(type),
+                getProjectionMetadata(type)?.readModelType)),
+            ...Array.from(modelBound, type => this.buildWithContextValidation(type, () => this.buildModelBoundDefinition(type), type))
         ];
         // A sibling's entering event adds RemovedWith to each variant. Hash only after
         // every variant has been cross-wired, so repeated registrations remain stable.
@@ -133,6 +138,18 @@ export class ProjectionDefinitionCompiler {
         };
         collect(definition as unknown as Record<string, unknown>);
         return catalog;
+    }
+
+    private buildWithContextValidation(type: Constructor, build: () => BuiltProjection, readModelType?: Constructor): BuiltProjection {
+        try {
+            return build();
+        } catch (error) {
+            if (error instanceof InvalidEventContextPropertyError) {
+                const readModel = readModelType ? getReadModelId(readModelType) : type.name;
+                throw invalidEventContextPropertyInProjection(error, type.name, readModel);
+            }
+            throw error;
+        }
     }
 
     private buildReadModelDefinitions(projections: ProjectionDefinition[]): ReturnType<typeof buildReadModelDefinition>[] {
@@ -362,7 +379,7 @@ export class ProjectionDefinitionCompiler {
             const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
-                    ? fromEvery.contextProperty
+                    ? eventContextPropertyExpression(fromEvery.contextProperty)
                     : (fromEvery.property ?? property);
             }
         }
@@ -496,10 +513,10 @@ export class ProjectionDefinitionCompiler {
         return created;
     }
 
-    /** Hash the final wire definition, excluding LastUpdated itself, to avoid unnecessary replays. */
+    /** Hash the final wire definition, excluding LastUpdated itself, for stable metadata. */
     private computeStableLastUpdated(definition: Record<string, unknown>): string {
         const { LastUpdated: _omit, ...rest } = definition;
-        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        const content = canonicalStringify(rest);
         let hash = 5381;
         for (let i = 0; i < content.length; i++) {
             hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;

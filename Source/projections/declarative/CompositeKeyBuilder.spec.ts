@@ -101,7 +101,7 @@ describe('CompositeKeyBuilder', () => {
             expect(() => builder.join(OrderLineJoined, join => join
                 .on(model => model.id)
                 .usingParentKey(event => event.orderId)
-                .usingParentKeyFromContext('someContextProperty')
+                .usingParentKeyFromContext('eventSourceId')
                 .usingParentCompositeKey<CompositeKey>(key => key.set(target => target.orderId, event => event.orderId))
                 .usingConstantParentKey('constant')
             )).not.toThrow();

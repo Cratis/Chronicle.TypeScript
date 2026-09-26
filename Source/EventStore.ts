@@ -22,6 +22,7 @@ import { Projections } from './projections/Projections.js';
 import { IProjections } from './projections/IProjections.js';
 import { Reactors } from './reactors/Reactors.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
+import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import { IReactors } from './reactors/IReactors.js';
 import { Reducers } from './reducers/Reducers.js';
 import { IReducers } from './reducers/IReducers.js';
@@ -89,7 +90,8 @@ export class EventStore implements IEventStore {
         lifecycle: ConnectionLifecycle,
         defaultSinkTypeId: string,
         private readonly _artifacts: IClientArtifactsProvider = DefaultClientArtifactsProvider.default,
-        reactorResultHandler?: ReactorResultHandler
+        reactorResultHandler?: ReactorResultHandler,
+        artifactActivator?: ClientArtifactsActivator
     ) {
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
@@ -102,8 +104,8 @@ export class EventStore implements IEventStore {
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
-        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler);
-        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
+        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator);
+        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType));
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);

@@ -302,6 +302,17 @@ def generate_source(runtime: bool = False) -> str:
         "        throw new Error(`${path}: ${property} must map to $null, not RemovedWith.`);",
         "    }",
         "}",
+        "// The working noAutoMap examples must disable automatic mapping on their child/nested definitions.",
+        "for (const [path, model, section, member] of [",
+        "    ['projections/model-bound/children/no-automap', 'MbChildrenNoAutoMapOrder', 'Children', 'items'],",
+        "    ['projections/model-bound/nested/no-automap', 'SliceWithNestedCommandNoAutoMap', 'Nested', 'command'],",
+        "]) {",
+        "    const type = snippetClasses.find(([snippetPath, candidate]) => snippetPath === path && candidate.name === model)?.[1];",
+        "    const definition = definitions.find(candidate => candidate.Identifier === type?.name);",
+        "    if (!type || definition?.[section]?.[member]?.AutoMap !== 1) {",
+        "        throw new Error(`${path}: ${section}.${member}.AutoMap must be Disabled (1).`);",
+        "    }",
+        "}",
         "console.log(`Standard decorators: ${definitions.length} projection definitions compiled.`);",
     ] if runtime else []
     return "\n\n".join([

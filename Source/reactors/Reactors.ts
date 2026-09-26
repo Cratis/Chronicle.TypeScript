@@ -4,7 +4,7 @@
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { Constructor } from '@cratis/fundamentals';
-import { EventObservationState, ObservationState, ReactorMessage } from '@cratis/chronicle.contracts';
+import { EventObservationState, ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -21,6 +21,13 @@ import { getReactorMetadata } from './reactor.js';
 import { isOnceOnly } from './onceOnly.js';
 import { getReplayEventType } from './replay.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
+import type { ReactorServices } from './ReactorServices.js';
+import type { IEventStore } from '../IEventStore.js';
+import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
+import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
+import { ArtifactKind } from '../artifacts/ArtifactKind.js';
+import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
+import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -125,7 +132,9 @@ export class Reactors implements IReactors {
         private readonly _namespace: string,
         lifecycle: ConnectionLifecycle,
         private readonly _eventLog: IEventLog,
-        private readonly _resultHandler?: ReactorResultHandler
+        private readonly _resultHandler?: ReactorResultHandler,
+        private readonly _eventStore?: IEventStore,
+        private readonly _artifactActivator?: ClientArtifactsActivator
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -270,7 +279,10 @@ export class Reactors implements IReactors {
         });
 
         try {
-            const reactorInstance = new (reactorType as new () => Record<string, Function>)();
+            const reactorInstance = this._artifactActivator ? undefined : new (reactorType as new () => Record<string, Function>)();
+            const services: ReactorServices | undefined = this._eventStore && {
+                eventStore: this._eventStore, readModels: this._eventStore.readModels, signal: controller.signal
+            };
 
             for await (const eventsToObserve of this._connection.reactors.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
@@ -286,7 +298,18 @@ export class Reactors implements IReactors {
                 });
 
                 try {
-                    await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
+                    if (this._artifactActivator && eventsToObserve.ReplayState !== ReplayState.REPLAY_STATE_None) {
+                        if (!services) throw new Error('Reactor activation requires the owning event store.');
+                        await withActivatedArtifact(reactorType, {
+                            kind: ArtifactKind.Reactor, artifactId: id, eventStore: services.eventStore,
+                            readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
+                            signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
+                            replayState: eventsToObserve.ReplayState
+                        }, this._artifactActivator, artifact => runActivated(artifact, () =>
+                            notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition)));
+                    } else if (reactorInstance) {
+                        await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
+                    }
                 } catch (err) {
                     this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: String(err) });
                     exceptionMessages.push(String(err));
@@ -294,56 +317,92 @@ export class Reactors implements IReactors {
                     state = ObservationState.Failed;
                 }
 
-                for (const event of state === ObservationState.Failed ? [] : eventsToObserve.Events) {
-                    try {
-                        const eventTypeId = event.Context?.EventType?.Id;
-                        if (!eventTypeId) {
-                            this._logger.warn('Event missing event type context', { reactorId: id });
-                            continue;
-                        }
+                const selectHandler = (event: typeof eventsToObserve.Events[number]) => {
+                    const entry = eventTypes.find(candidate => candidate.id === event.Context?.EventType?.Id);
+                    if (!entry) return undefined;
+                    const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
+                    const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
+                    const method = methodName ? (reactorInstance?.[methodName] ?? (reactorType.prototype as Record<string, Function>)[methodName]) : undefined;
+                    return { methodName, isReplay, skipReplay: isReplay && method !== undefined && isOnceOnly(method) };
+                };
 
-                        const entry = eventTypes.find(et => et.id === eventTypeId);
-                        if (!entry) {
-                            this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId });
-                            lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                            continue;
-                        }
-
-                        const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
-                        const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
-                        if (!methodName || (isReplay && isOnceOnly(reactorInstance[methodName]))) {
-                            if (isReplay && methodName && isOnceOnly(reactorInstance[methodName])) {
-                                this._logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: methodName });
-                            } else {
-                                this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay });
+                const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
+                    for (const event of state === ObservationState.Failed ? [] : eventsToObserve.Events) {
+                        try {
+                            const eventTypeId = event.Context?.EventType?.Id;
+                            if (!eventTypeId) {
+                                this._logger.warn('Event missing event type context', { reactorId: id });
+                                continue;
                             }
+
+                            const selection = selectHandler(event);
+                            if (!selection) {
+                                this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId });
+                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                                continue;
+                            }
+
+                            const { methodName, isReplay, skipReplay } = selection;
+                            if (!methodName || skipReplay) {
+                                if (skipReplay) {
+                                    this._logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: methodName });
+                                } else {
+                                    this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay });
+                                }
+                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                                continue;
+                            }
+
+                            const content = JSON.parse(event.Content) as Record<string, unknown>;
+                            this._logger.debug('Event content', { reactorId: id, eventTypeId, contentKeys: Object.keys(content), rawContent: event.Content.substring(0, 200) });
+                            const context = toClientEventContext(event.Context!);
+
+                            this._logger.info('Invoking reactor handler', {
+                                reactorId: id,
+                                method: methodName,
+                                sequenceNumber: event.Context!.SequenceNumber.toString(),
+                                eventTypeId
+                            });
+
+                            await runActivated(artifact, async () => {
+                                const handlerResult = await artifact.instance[methodName](content, context, services);
+                                await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
+                                    this._eventStoreName, this._namespace, this._resultHandler);
+                            });
+
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                            continue;
+                        } catch (err) {
+                            this._logger.error('Error handling event in reactor', { reactorId: id, error: String(err) });
+                            exceptionMessages.push(String(err));
+                            exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                            state = ObservationState.Failed;
+                            break;
                         }
+                    }
+                };
 
-                        const content = JSON.parse(event.Content) as Record<string, unknown>;
-                        this._logger.debug('Event content', { reactorId: id, eventTypeId, contentKeys: Object.keys(content), rawContent: event.Content.substring(0, 200) });
-                        const context = toClientEventContext(event.Context!);
-
-                        this._logger.info('Invoking reactor handler', {
-                            reactorId: id,
-                            method: methodName,
-                            sequenceNumber: event.Context!.SequenceNumber.toString(),
-                            eventTypeId
-                        });
-
-                        const handlerResult = await reactorInstance[methodName](content, context);
-                        await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
-                            this._eventStoreName, this._namespace, this._resultHandler);
-
-                        lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                const firstInvocableEvent = this._artifactActivator && state === ObservationState.Success
+                    ? eventsToObserve.Events.find(event => {
+                        const selection = selectHandler(event);
+                        return !!selection?.methodName && !selection.skipReplay;
+                    }) : undefined;
+                if (firstInvocableEvent && this._artifactActivator) {
+                    try {
+                        if (!services) throw new Error('Reactor activation requires the owning event store.');
+                        await withActivatedArtifact(reactorType as new () => Record<string, Function>, {
+                            kind: ArtifactKind.Reactor, artifactId: id, eventStore: services.eventStore,
+                            readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
+                            signal: controller.signal, delivery: ArtifactDelivery.Events,
+                            eventContext: toClientEventContext(firstInvocableEvent.Context!)
+                        }, this._artifactActivator, processEvents);
                     } catch (err) {
-                        this._logger.error('Error handling event in reactor', { reactorId: id, error: String(err) });
+                        this._logger.error('Error activating reactor', { reactorId: id, error: String(err) });
                         exceptionMessages.push(String(err));
                         exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                         state = ObservationState.Failed;
-                        break;
                     }
+                } else {
+                    await processEvents({ instance: reactorInstance ?? {} });
                 }
 
                 queue.send({

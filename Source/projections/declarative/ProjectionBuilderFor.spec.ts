@@ -211,6 +211,56 @@ describe('ProjectionBuilderFor', () => {
         });
     });
 
+    describe('when hashing a projection with nested mappings', () => {
+        const hashFor = (fromEventSourceId: boolean, joinKey: string, removalKey: string): string => {
+            const builder = new ProjectionBuilderFor<Inventory>();
+            builder.from(ItemAdded, from => {
+                if (fromEventSourceId) {
+                    from.set(model => model.total).toEventSourceId();
+                } else {
+                    from.set(model => model.total).to(event => event.quantity);
+                }
+            });
+            builder.join(ItemAdded, join => join.on(model => model.id).usingConstantKey(joinKey));
+            builder.removedWith(ItemRemoved, removed => removed.usingKeyFromContext(removalKey));
+            return (builder.build('inventory', 'Inventory') as { LastUpdated: { Value: string } }).LastUpdated.Value;
+        };
+
+        it('should change the hash when a From property expression changes', () => {
+            expect(hashFor(false, 'one', 'eventSourceId')).not.toBe(hashFor(true, 'one', 'eventSourceId'));
+        });
+
+        it('should change the hash when a Join key changes', () => {
+            expect(hashFor(false, 'one', 'eventSourceId')).not.toBe(hashFor(false, 'two', 'eventSourceId'));
+        });
+
+        it('should change the hash when a RemovedWith key changes', () => {
+            expect(hashFor(false, 'one', 'eventSourceId')).not.toBe(hashFor(false, 'one', 'correlationId'));
+        });
+
+        it('should give identical definitions identical hashes', () => {
+            expect(hashFor(false, 'one', 'eventSourceId')).toBe(hashFor(false, 'one', 'eventSourceId'));
+        });
+
+        it('should give reordered property mappings the same hash', () => {
+            const hashWithOrder = (reversed: boolean): string => {
+                const builder = new ProjectionBuilderFor<Inventory>();
+                builder.from(ItemAdded, from => {
+                    if (reversed) {
+                        from.set(model => model.status).toValue('active');
+                        from.set(model => model.total).to(event => event.quantity);
+                    } else {
+                        from.set(model => model.total).to(event => event.quantity);
+                        from.set(model => model.status).toValue('active');
+                    }
+                });
+                return (builder.build('inventory', 'Inventory') as { LastUpdated: { Value: string } }).LastUpdated.Value;
+            };
+
+            expect(hashWithOrder(false)).toBe(hashWithOrder(true));
+        });
+    });
+
     describe('when using multiple fromEvery operations', () => {
         it('should produce all operations in the All.Properties definition', () => {
             const builder = new ProjectionBuilderFor<Inventory>();
