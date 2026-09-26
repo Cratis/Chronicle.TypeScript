@@ -11,6 +11,7 @@ import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifac
 import { ArtifactDelivery } from '../../../artifacts/ArtifactDelivery.js';
 import { ArtifactKind } from '../../../artifacts/ArtifactKind.js';
 import type { ArtifactActivationContext } from '../../../artifacts/ArtifactActivationContext.js';
+import type { ArtifactInvocationContext } from '../../../artifacts/ArtifactInvocationContext.js';
 import type { ClientArtifactsActivator } from '../../../artifacts/ClientArtifactsActivator.js';
 import type { IEventStore } from '../../../IEventStore.js';
 import type { IEventLog } from '../../../eventSequences/IEventLog.js';
@@ -159,10 +160,11 @@ describe('when delivering reactor batches', () => {
         observed.length = 0;
         serviceReferences.length = 0;
         const contexts: ArtifactActivationContext[] = [];
+        const invocations: ArtifactInvocationContext[] = [];
         const boundaries: string[] = [];
         const activator: ClientArtifactsActivator = (type, context) => {
             contexts.push(context);
-            return { instance: new type(), run: async callback => { boundaries.push('enter');
+            return { instance: new type(), run: async (callback, invocation) => { invocations.push(invocation!); boundaries.push('enter');
                 try { return await callback(); } finally { boundaries.push('exit'); } },
             dispose: () => { boundaries.push('dispose'); } };
         };
@@ -177,6 +179,11 @@ describe('when delivering reactor batches', () => {
         contexts[0].readModels.should.equal(result.store.readModels);
         if (contexts[0].delivery === ArtifactDelivery.Events) contexts[0].eventContext.sequenceNumber.should.equal(1n);
         boundaries.should.deep.equal(['enter', 'exit', 'enter', 'exit', 'dispose', 'enter', 'exit', 'dispose']);
+        invocations.map(invocation => invocation.delivery).should.deep.equal([ArtifactDelivery.Events, ArtifactDelivery.Events, ArtifactDelivery.Events]);
+        invocations.map(invocation => invocation.delivery === ArtifactDelivery.Events ? invocation.eventContext.sequenceNumber : 0n)
+            .should.deep.equal([1n, 2n, 3n]);
+        invocations.map(invocation => invocation.delivery === ArtifactDelivery.Events ? invocation.methodName : '')
+            .should.deep.equal(['activationEvent', 'activationEvent', 'activationEvent']);
         observed.should.deep.equal(['one:book-1', 'two:book-1', 'three:book-1']);
         serviceReferences.every(services => services.eventStore === result.store && services.readModels === result.store.readModels).should.be.true;
     });
@@ -241,9 +248,16 @@ describe('when delivering reactor batches', () => {
     it('should notify separately before processing events in the same message', async () => {
         observed.length = 0;
         const contexts: ArtifactActivationContext[] = [];
-        const activator: ClientArtifactsActivator = (type, context) => { contexts.push(context); return { instance: new type() }; };
+        const invocations: ArtifactInvocationContext[] = [];
+        const activator: ClientArtifactsActivator = (type, context) => { contexts.push(context); return { instance: new type(),
+            run: async (callback, invocation) => { invocations.push(invocation!); return callback(); } }; };
         const result = await observe(ActivationReactor, [delivery([event('live', 1n)], ReplayState.BeginReplay)], 'tenant-a', activator);
         observed.should.deep.equal(['notification', 'live:book-1']);
+        invocations.should.deep.equal([
+            { delivery: ArtifactDelivery.ReplayNotification, replayState: ReplayState.BeginReplay },
+            { delivery: ArtifactDelivery.Events, eventContext: contexts[1].delivery === ArtifactDelivery.Events ? contexts[1].eventContext : undefined,
+                methodName: 'activationEvent' }
+        ]);
         contexts.map(context => context.delivery).should.deep.equal([ArtifactDelivery.ReplayNotification, ArtifactDelivery.Events]);
         result.acknowledgements[0]?.State.should.equal(ObservationState.Success);
     });
@@ -368,6 +382,83 @@ describe('when delivering reactor batches', () => {
         contexts[1].signal.aborted.should.be.false;
         (contexts[0].signal !== contexts[1].signal).should.be.true;
         reactors.dispose();
+    });
+
+    it('should fail a replay notification when completion fails and suppress event handling', async () => {
+        observed.length = 0;
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = (type, context) => ({ instance: new type(),
+            complete: () => { steps.push('complete'); if (context.delivery === ArtifactDelivery.ReplayNotification) throw new Error('replay cleanup'); },
+            dispose: () => { steps.push('dispose'); } });
+        const result = await observe(ActivationReactor, [delivery([event('one', 1n)], ReplayState.BeginReplay)], 'tenant-a', activator);
+        observed.should.deep.equal(['notification']);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal(['ArtifactCompletionFailed: Artifact completion failed: Error: replay cleanup']);
+        result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+    });
+
+    it('should preserve both replay notification and completion errors', async () => {
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            complete: () => { steps.push('complete'); throw new Error('replay cleanup'); },
+            dispose: () => { steps.push('dispose'); } });
+        const result = await observe(FailingNotificationReactor, [delivery([event('one', 1n)], ReplayState.BeginReplay)], 'tenant-a', activator);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([
+            'Error: notification failed', 'ArtifactCompletionFailed: Artifact completion failed: Error: replay cleanup'
+        ]);
+    });
+
+    it('should complete each successful lease before acknowledgement and then dispose it', async () => {
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            complete: () => { steps.push('complete'); }, dispose: () => { steps.push('dispose'); } });
+        const result = await observe(ActivationReactor, [delivery([event('one', 1n), event('two', 2n)])], 'tenant-a', activator);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.State.should.equal(ObservationState.Success);
+    });
+
+    it('should complete after processing failure before acknowledgement and preserve the processing error', async () => {
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            complete: () => { steps.push('complete'); }, dispose: () => { steps.push('dispose'); } });
+        const result = await observe(AppendReactor, [delivery([event('one', 1n)])], 'tenant-a', activator, false);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal(['Error: append rejected']);
+    });
+
+    it('should fail completion distinctly without advancing a successful checkpoint and still dispose', async () => {
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            complete: async () => { steps.push('complete'); throw new Error('scope cleanup'); },
+            dispose: () => { steps.push('dispose'); } });
+        const result = await observe(ActivationReactor, [delivery([event('one', 1n), event('two', 2n)])], 'tenant-a', activator);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+        result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal(['ArtifactCompletionFailed: Artifact completion failed: Error: scope cleanup']);
+    });
+
+    it('should report both processing and completion errors without acknowledging earlier successful events', async () => {
+        const steps: string[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            complete: () => { steps.push('complete'); throw new Error('scope cleanup'); },
+            dispose: () => { steps.push('dispose'); } });
+        const result = await observe(AppendReactor, [delivery([event('one', 1n), event('two', 2n)])], 'tenant-a', activator, false);
+        steps.should.deep.equal(['complete', 'dispose']);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([
+            'Error: append rejected', 'ArtifactCompletionFailed: Artifact completion failed: Error: scope cleanup'
+        ]);
+        result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+    });
+
+    it('should leave a processing failure unchanged when legacy disposal also fails', async () => {
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(),
+            dispose: () => { throw new Error('legacy cleanup'); } });
+        const result = await observe(AppendReactor, [delivery([event('one', 1n)])], 'tenant-a', activator, false);
+        result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+        result.acknowledgements[0]?.ExceptionMessages.should.deep.equal(['Error: append rejected']);
     });
 
     it('should log disposal failure without changing successful acknowledgement', async () => {

@@ -4,6 +4,8 @@
 export { ArtifactKind } from './ArtifactKind.js';
 export { ArtifactDelivery } from './ArtifactDelivery.js';
 export type { ArtifactActivationContext } from './ArtifactActivationContext.js';
+export type { ArtifactInvocationContext } from './ArtifactInvocationContext.js';
+export { ArtifactCompletionFailed } from './ArtifactCompletionFailed.js';
 export type { ActivatedArtifact } from './ActivatedArtifact.js';
 export type { ClientArtifactsActivator } from './ClientArtifactsActivator.js';
 
