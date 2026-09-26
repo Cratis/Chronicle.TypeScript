@@ -1,5 +1,6 @@
 ```typescript title="Multiple convention events"
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserProfileCreated {
@@ -18,8 +19,8 @@ export class ConventionUserProfileUpdated {
 @fromEvent(ConventionUserProfileCreated)
 @fromEvent(ConventionUserProfileUpdated)
 export class ConventionUserProfile {
-    name = '';
-    email = '';
-    phone = '';
+    @field(String) name = '';
+    @field(String) email = '';
+    @field(String) phone = '';
 }
 ```

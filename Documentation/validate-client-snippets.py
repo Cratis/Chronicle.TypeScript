@@ -34,11 +34,11 @@ BODY_SNIPPETS = {
     """,
     "read-models/getting-single-instance/basic": """
         const accountId = 'account-42';
-        // The legacy method remains non-nullable for existing clients.
-        const legacy: AccountInfo = await store.readModels.getInstanceById(AccountInfo, accountId);
-        // A missing read model must be handled with the new nullable method.
+        // The canonical method remains non-nullable for existing clients.
+        const required: AccountInfo = await store.readModels.getInstanceById(AccountInfo, accountId);
+        // A missing read model can be detected with the nullable convenience method.
         // @ts-expect-error findInstanceById can return null.
-        const required: AccountInfo = await store.readModels.findInstanceById(AccountInfo, accountId);
+        const absent: AccountInfo = await store.readModels.findInstanceById(AccountInfo, accountId);
     """,
     "read-models/getting-collection-instances/basic": "",
     "read-models/getting-collection-instances/filtering": """

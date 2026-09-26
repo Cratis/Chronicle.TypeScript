@@ -4,12 +4,12 @@
 import { diag } from '@opentelemetry/api';
 import {
     AutoMap,
-    ProjectionOwner
+    ProjectionOwner,
+    ReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
@@ -19,11 +19,14 @@ import { FailedPartitions } from '../observation/FailedPartitions.js';
 import { toObserverRunningState } from '../observation/toObserverRunningState.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
+import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
+import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { TypeIntrospector } from '../types/index.js';
 import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { IProjections } from './IProjections.js';
+import { constantValueExpression } from './constantValueExpression.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -101,7 +104,7 @@ export class Projections implements IProjections {
         this._modelBound.clear();
 
         const declarativeTypes = this._clientArtifacts.projections;
-        const readModelTypes = this._clientArtifacts.readModels;
+        const readModelTypes = rootReadModelTypes(this._clientArtifacts);
         this._logger.debug('Discovering projections', { declarativeCount: declarativeTypes.length, readModelCount: readModelTypes.length });
 
         for (const type of declarativeTypes) {
@@ -143,7 +146,7 @@ export class Projections implements IProjections {
         const inferred = this._clientArtifacts.projections
             .map(type => getProjectionMetadata(type)?.readModelType)
             .filter((type): type is Constructor => type !== undefined);
-        assertUniqueReadModelIds([...this._clientArtifacts.readModels, ...inferred]);
+        assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred]);
         const builtProjections: BuiltProjection[] = [
             ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
             ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
@@ -368,47 +371,39 @@ export class Projections implements IProjections {
                 continue;
             }
 
-            byReadModel.set(readModelIdentifier, {
-                Type: {
-                    Identifier: readModelIdentifier,
-                    Generation: 1
-                },
-                ContainerName: readModelIdentifier,
-                DisplayName: readModelIdentifier,
-                Sink: {
-                    ConfigurationId: toContractsGuid(Guid.empty),
-                    // Passive projections never write to a materialized sink, so they register with
-                    // the None sink. This lets the kernel fall through to immediate projection when
-                    // resolving the instance by key instead of reading an empty sink and returning null.
-                    TypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId
-                },
-                Schema: this.getReadModelSchema(readModelIdentifier),
-                Indexes: [],
-                ObserverType: 2,
-                ObserverIdentifier: projection.Identifier,
-                Owner: 1,
-                Source: 1
-            });
+            const readModelType = this.getReadModelType(readModelIdentifier);
+            byReadModel.set(readModelIdentifier, buildReadModelDefinition({
+                identifier: readModelIdentifier,
+                type: readModelType,
+                schema: readModelType
+                    ? JSON.stringify(getReadModelMetadata(readModelType)?.schema ?? JsonSchemaGenerator.generate(readModelType))
+                    : '{}',
+                // Passive projections never write to a materialized sink, so they register with
+                // the None sink. This lets the kernel fall through to immediate projection when
+                // resolving the instance by key instead of reading an empty sink and returning null.
+                sinkTypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId,
+                observerType: ReadModelObserverType.Projection,
+                observerIdentifier: projection.Identifier
+            }));
         }
 
         return Array.from(byReadModel.values());
     }
 
-    private getReadModelSchema(readModelIdentifier: string): string {
+    private getReadModelType(readModelIdentifier: string): Constructor | undefined {
         const types = [
-            ...this._clientArtifacts.readModels,
+            ...rootReadModelTypes(this._clientArtifacts),
             ...this._clientArtifacts.projections
                 .map(projectionType => getProjectionMetadata(projectionType)?.readModelType)
                 .filter((type): type is Constructor => type !== undefined)
         ];
         for (const type of types) {
-            const metadata = getReadModelMetadata(type);
             if (getReadModelId(type) === readModelIdentifier) {
-                return JSON.stringify(metadata?.schema ?? JsonSchemaGenerator.generate(type));
+                return type;
             }
         }
 
-        return '{}';
+        return undefined;
     }
 
     private buildDeclarativeDefinition(type: Constructor): BuiltProjection {
@@ -457,7 +452,7 @@ export class Projections implements IProjections {
             return undefined;
         }
 
-        const matchingReadModels = this._clientArtifacts.readModels
+        const matchingReadModels = rootReadModelTypes(this._clientArtifacts)
             .map(type => ({ type, metadata: getReadModelMetadata(type) }))
             .filter(candidate => candidate.metadata)
             .filter(candidate => {
@@ -496,7 +491,7 @@ export class Projections implements IProjections {
                 Key: eventType,
                 Value: {
                     Properties: {},
-                    Key: fromEvent.constantKey ?? fromEvent.key ?? '$eventSourceId',
+                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
                     ParentKey: fromEvent.parentKey ?? ''
                 }
             });
@@ -525,7 +520,7 @@ export class Projections implements IProjections {
 
             for (const mapping of getJoinMetadata(prototype, property)) {
                 const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
-                entry.Value.On = mapping.on ?? entry.Value.On;
+                entry.Value.On = mapping.on ?? (entry.Value.On || property);
                 entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
             }
 
@@ -652,7 +647,7 @@ export class Projections implements IProjections {
                 Key: eventType,
                 Value: {
                     Properties: {},
-                    Key: fromEvent.constantKey ?? fromEvent.key ?? '$eventSourceId',
+                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
                     ParentKey: fromEvent.parentKey ?? ''
                 }
             });

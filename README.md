@@ -27,30 +27,29 @@ Beyond appending and observing events, the client covers the full Chronicle surf
 - **Compliance / PII** — classify event data and handle personally identifiable information
 - **OpenTelemetry** — built-in metrics and tracing instrumentation
 
-Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](Documentation/read-models.md) for preserving existing custom identifiers.
+Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with `@fromEvent(Event)` or other model-bound property mappings. Their schema comes from the model type; the default identifier is its class name. See [read models](./Documentation/read-models.md) for preserving existing custom identifiers.
 
 ## Structure
 
-```
+```text
 Source/          ← @cratis/chronicle TypeScript library
 Documentation/   ← User-facing documentation
 Samples/
   Console/       ← Plain Node.js console sample application
 ```
 
-## Prerequisite: Chronicle Running
+## Prerequisites
 
-You need a Chronicle Kernel available before running samples or application code.
-
-The easiest local setup is the development Docker image:
+- Node.js 22.19 or later. The `undici` dependency requires it, and the package fails to import on Node.js 20.
+- A running Chronicle kernel. The easiest local setup is the development Docker image, published on this machine only:
 
 ```bash
-docker run -p 35000:35000 cratis/chronicle:latest-development
+docker run -d --name chronicle -p 127.0.0.1:35000:35000 cratis/chronicle:latest-development
 ```
 
 ## Getting Started
 
-See [Documentation/getting-started.md](./Documentation/getting-started.md) for installation and usage instructions.
+[Get started with the TypeScript client](./Documentation/getting-started.md) takes you from an empty folder to a program that appends events and reads the projected read model back. Read [Connect to Chronicle](./Documentation/connecting.md) before you connect to anything other than a local development kernel: the client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`.
 
 ## Quick Example
 
@@ -77,22 +76,29 @@ console.log(`Appended at sequence number ${result.sequenceNumber.value}`);
 client.dispose();
 ```
 
+This example uses standard decorators and top-level `await`, so compile it as an ES module with TypeScript 5.2 or later. The [getting started guide](./Documentation/getting-started.md) shows a working `package.json` and `tsconfig.json`.
+
 ## Building
 
 ```bash
 yarn install
-yarn workspace @cratis/chronicle compile
+yarn build
+yarn workspace @cratis/chronicle test
 ```
+
+`yarn build` compiles the `@cratis/chronicle` library in `Source/` and the console sample. Build the library before you run the sample; the sample imports it from `Source/dist`.
 
 ## Running the Console Sample
 
+With a Chronicle kernel running on `localhost:35000`:
+
 ```bash
 yarn install
-yarn workspace @cratis/chronicle-test-console build
+yarn build
 yarn workspace @cratis/chronicle-test-console start
 ```
 
-Set the `CHRONICLE_CONNECTION` environment variable to override the default connection string (`chronicle://localhost:35000`).
+The sample connects with `ChronicleOptions.development()`. Set the `CHRONICLE_CONNECTION` environment variable to use another connection string. [Samples/Console/README.md](./Samples/Console/README.md) describes what the sample does and its keyboard commands.
 
 ## The Cratis ecosystem
 

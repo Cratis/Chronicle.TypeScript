@@ -14,6 +14,7 @@ export type { CompleteStreamResult } from './CompleteStreamResult.js';
 export type { ConcurrencyScope } from './ConcurrencyScope.js';
 export type { EventForEventSourceId } from './EventForEventSourceId.js';
 export type { WaitForCompletionResult } from './WaitForCompletionResult.js';
+export type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 export type { IEventSequence } from './IEventSequence.js';
 export type { IEventLog } from './IEventLog.js';
 export type { ITransactionalEventSequence } from './ITransactionalEventSequence.js';

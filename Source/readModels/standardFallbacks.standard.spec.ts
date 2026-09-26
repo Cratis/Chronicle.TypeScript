@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { field } from '@cratis/fundamentals';
+import { fromEvent } from '../projections/modelBound/fromEvent.js';
+import { index } from './indexDecorator.js';
 import { describe, expect, it, vi } from 'vitest';
 import { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import { ChronicleConnection } from '../connection/ChronicleConnection.js';
@@ -16,12 +18,41 @@ class UndecoratedModel {
 @reducer('undecorated-model', undefined, UndecoratedModel)
 class ModelReducer {}
 
+class IndexedEvent { value = ''; }
+
+class IndexedLine {
+    @field(String) @index() productId!: string;
+    @field(Number) quantity!: number;
+}
+
+@fromEvent(IndexedEvent)
+class IndexedOrder {
+    @field(String) id!: string;
+    @field(String) @index() customerId!: string;
+    @field(Array, { genericArguments: [IndexedLine] }) lines!: IndexedLine[];
+}
+
 const artifacts = {
     eventTypes: [], readModels: [], reactors: [], reducers: [ModelReducer], seeders: [],
     constraints: [], projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: []
 } as IClientArtifactsProvider;
 
 describe('inferred read models with standard decorators', () => {
+    it('registers model-bound indexes on fields and typed collection elements as .NET property paths', async () => {
+        const registerMany = vi.fn().mockResolvedValue({});
+        const connection = { readModels: { registerMany } } as unknown as ChronicleConnection;
+        const provider = { ...artifacts, readModels: [IndexedOrder] };
+        await new ReadModels('test', 'Default', connection, provider, 'sink').register(IndexedOrder);
+        expect(registerMany).toHaveBeenCalledWith(expect.objectContaining({
+            ReadModels: [expect.objectContaining({
+                Indexes: [
+                    { PropertyPath: 'customerId' },
+                    { PropertyPath: 'lines.productId' }
+                ]
+            })]
+        }));
+    });
+
     it('rejects an untyped array before registering a reducer read model', async () => {
         const registerMany = vi.fn();
         const connection = { readModels: { registerMany } } as unknown as ChronicleConnection;

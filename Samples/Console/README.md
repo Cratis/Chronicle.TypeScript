@@ -40,26 +40,39 @@ Select an employee with `1`–`3`, then:
 
 ## Prerequisites
 
-- Node.js 22+
-- Yarn 4+
-- A Chronicle Kernel running on `localhost:35000`
+- Node.js 22.19 or later
+- Yarn 4 or later
+- Docker, or another Chronicle kernel reachable on `localhost:35000`
 
-> **Tip:** The easiest way to run Chronicle locally is via Docker:
->
-> ```bash
-> docker run -p 35000:35000 cratis/chronicle:latest-development
-> ```
+The sample is part of this repository's Yarn workspace and imports `@cratis/chronicle` from `Source/`. Run it from a clone of this repository, not from a copied folder.
 
 ## Running
 
+Start a Chronicle kernel. Either use this folder's Compose file, which runs the kernel, MongoDB, and an Aspire dashboard for the sample's telemetry:
+
 ```bash
 cd Samples/Console
-yarn install
 docker compose up -d
-yarn start
 ```
 
-You should see output with:
+or run the development image on its own:
+
+```bash
+docker run -d --name chronicle -p 127.0.0.1:35000:35000 cratis/chronicle:latest-development
+```
+
+> [!CAUTION]
+> The Compose file publishes Chronicle, MongoDB without authentication, and the dashboard with anonymous access on every network interface. Run it only on a machine that is not reachable from shared networks.
+
+Then build the library and the sample from the repository root, and start the sample:
+
+```bash
+yarn install
+yarn build
+yarn workspace @cratis/chronicle-test-console start
+```
+
+The sample reads keyboard input, so run it in an interactive terminal. You should see:
 
 - A Chronicle connection log
 - Event appends for hire, promotion, and relocation
@@ -75,15 +88,15 @@ You should see output with:
 
 ## Configuration
 
-Override the Chronicle connection string with:
+The sample connects with `ChronicleOptions.development()`, which targets `localhost:35000` with the development credentials. Override the connection string with the `CHRONICLE_CONNECTION` environment variable:
 
 ```bash
-CHRONICLE_CONNECTION="chronicle://myserver:35000" yarn start
+CHRONICLE_CONNECTION="chronicle://<client-id>:<client-secret>@myserver:35000/?skipTlsValidation=false" yarn workspace @cratis/chronicle-test-console start
 ```
 
 ## Project structure
 
-```
+```text
 Samples/Console/
   index.ts                         # Interactive console entry point
   employees.ts                     # Shared employee data and helpers

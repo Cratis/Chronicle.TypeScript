@@ -9,9 +9,8 @@ import {
     ReadModelObserverType as ContractReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
-import { Guid, JsonSerializer } from '@cratis/fundamentals';
+import { JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
@@ -23,10 +22,13 @@ import { getReducerMetadata } from '../reducers/reducer.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { getReadModelMetadata, getReadModelId } from './readModel.js';
+import { buildReadModelDefinition } from './buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from './assertUniqueReadModelIds.js';
+import { rootReadModelTypes } from './rootReadModelTypes.js';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
+import { deserializeReadModel } from './deserializeReadModel.js';
 import type { IReadModels } from './IReadModels.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
@@ -41,6 +43,7 @@ interface ResolvedReadModel {
     readonly observerIdentifier: string;
     readonly schema: string;
     readonly isActive: boolean;
+    readonly isModelBound?: boolean;
 }
 
 /**
@@ -54,7 +57,8 @@ export class ReadModels implements IReadModels {
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _isModelBoundProjectionRegistered?: (readModelType: Constructor) => boolean
     ) {
         this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
     }
@@ -74,10 +78,7 @@ export class ReadModels implements IReadModels {
         });
     }
 
-    /**
-     * @inheritdoc
-     * @deprecated Use {@link findInstanceById} to distinguish an absent instance from a stored one.
-     */
+    /** @inheritdoc */
     async getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel> {
         const readModel = this.resolveReadModel(readModelType);
         const response = await this._connection.readModels.getInstanceByKey({
@@ -178,6 +179,10 @@ export class ReadModels implements IReadModels {
             ReadModelIdentifier: readModel.identifier,
             EventSequenceId: readModel.eventSequenceId
         })) {
+            if (changeset.Subscribed) {
+                continue;
+            }
+
             const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
             const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
                 this.schemaHasComplianceMetadata(readModel.schema);
@@ -241,7 +246,8 @@ export class ReadModels implements IReadModels {
     }
 
     private resolveReadModels<TReadModel>(readModelType?: Constructor<TReadModel>): ResolvedReadModel[] {
-        assertUniqueReadModelIds(this._clientArtifacts.readModels);
+        const rootTypes = rootReadModelTypes(this._clientArtifacts);
+        assertUniqueReadModelIds(rootTypes);
         const resolved = new Map<string, ResolvedReadModel>();
 
         for (const projectionType of this._clientArtifacts.projections) {
@@ -266,7 +272,7 @@ export class ReadModels implements IReadModels {
             });
         }
 
-        for (const modelBoundType of this._clientArtifacts.readModels) {
+        for (const modelBoundType of rootTypes) {
             if (!hasFromEventMetadata(modelBoundType) && !hasModelBoundProperties(modelBoundType)) {
                 continue;
             }
@@ -283,7 +289,8 @@ export class ReadModels implements IReadModels {
                 observerType: ContractReadModelObserverType.Projection,
                 observerIdentifier: identifier,
                 schema: this.getReadModelSchema(modelBoundType, identifier),
-                isActive: !isPassive(modelBoundType)
+                isActive: !isPassive(modelBoundType),
+                isModelBound: true
             });
         }
 
@@ -323,34 +330,27 @@ export class ReadModels implements IReadModels {
 
     private resolveReadModel<TReadModel>(readModelType: Constructor<TReadModel>): ResolvedReadModel {
         const [resolved] = this.resolveReadModels(readModelType);
-        if (!resolved) {
-            throw new Error(`Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
+        const neverRegistered = resolved?.isModelBound && this._isModelBoundProjectionRegistered && !this._isModelBoundProjectionRegistered(readModelType);
+        if (!resolved || neverRegistered) {
+            throw new Error(hasModelBoundProperties(readModelType)
+                ? `Unknown read model '${readModelType.name}'. It has model-bound property mappings but was not registered when the event store was created. With standard decorators, a class whose mappings are all on properties is only registered once an instance exists; add a class-level @fromEvent(...) decorator so it registers when its module loads.`
+                : `Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
         }
-
         return resolved;
     }
 
+
     private toDefinition(readModel: ResolvedReadModel) {
-        return {
-            Type: {
-                Identifier: readModel.identifier,
-                Generation: 1
-            },
-            ContainerName: readModel.identifier,
-            DisplayName: readModel.identifier,
-            Sink: {
-                ConfigurationId: toContractsGuid(Guid.empty),
-                // Passive read models never write to a materialized sink, so they register with the
-                // None sink and the kernel resolves them via immediate projection instead of an empty sink.
-                TypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None
-            },
-            Schema: readModel.schema,
-            Indexes: [],
-            ObserverType: readModel.observerType,
-            ObserverIdentifier: readModel.observerIdentifier,
-            Owner: 1,
-            Source: 1
-        };
+        return buildReadModelDefinition({
+            identifier: readModel.identifier,
+            type: readModel.type,
+            schema: readModel.schema,
+            // Passive read models never write to a materialized sink, so they register with the
+            // None sink and the kernel resolves them via immediate projection instead of an empty sink.
+            sinkTypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None,
+            observerType: readModel.observerType,
+            observerIdentifier: readModel.observerIdentifier
+        });
     }
 
     private getReadModelSchema(readModelType: Constructor, identifier: string): string {
@@ -363,10 +363,7 @@ export class ReadModels implements IReadModels {
     }
 
     private deserializeReadModel<TReadModel>(readModelType: Constructor<TReadModel>, json: string): TReadModel {
-        if (!json) {
-            return Object.create(readModelType.prototype) as TReadModel;
-        }
-        return JsonSerializer.deserialize(readModelType as Constructor<object>, json) as TReadModel;
+        return deserializeReadModel(readModelType, json);
     }
 
     private schemaHasComplianceMetadata(schema: string): boolean {

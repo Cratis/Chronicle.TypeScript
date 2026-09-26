@@ -33,8 +33,9 @@ export interface IReadModels {
      * @param readModelType - The read model type to retrieve.
      * @param key - The read model key.
      * @param sessionId - Optional session identifier.
-     * @returns The read model instance. When no instance exists, returns a prototype-only instance.
-     * @deprecated Use {@link findInstanceById} to distinguish an absent instance from a stored one.
+     * @returns The read model instance. When the kernel returns an empty document for a missing key,
+     * returns a prototype-only instance; a JSON `null` document may construct a model with default fields.
+     * Use {@link findInstanceById} when absence must be distinguished from stored data.
      */
     getInstanceById<TReadModel>(readModelType: Constructor<TReadModel>, key: string, sessionId?: string): Promise<TReadModel>;
 

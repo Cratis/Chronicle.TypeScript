@@ -1,5 +1,6 @@
 ```typescript
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class FilteringOrderPlaced {
@@ -15,8 +16,8 @@ export class FilteringOrderShipped {
 @fromEvent(FilteringOrderPlaced)
 @fromEvent(FilteringOrderShipped)
 export class FilteringOrderSummary {
-    customerId = '';
-    totalAmount = 0;
-    shippedAt: Date | null = null;
+    @field(String) customerId = '';
+    @field(Number) totalAmount = 0;
+    @field(Date) shippedAt: Date | null = null;
 }
 ```

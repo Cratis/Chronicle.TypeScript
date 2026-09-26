@@ -29,6 +29,7 @@ import { EventSequenceId } from './EventSequenceId.js';
 import { EventSequenceNumber } from './EventSequenceNumber.js';
 import { TransactionalEventSequence } from './TransactionalEventSequence.js';
 import { WaitForCompletionResult } from './WaitForCompletionResult.js';
+import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 
 /** Default timeout for {@link AppendResult.waitForCompletion}, matching the C# client's default. */
 const DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS = 5000;
@@ -55,7 +56,8 @@ export class EventSequence implements IEventSequence {
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
-        private readonly _unitOfWorkManager: IUnitOfWorkManager
+        private readonly _unitOfWorkManager: IUnitOfWorkManager,
+        private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -695,11 +697,14 @@ export class EventSequence implements IEventSequence {
         errors: string[],
         concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
     ): AppendResult {
-        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => ({
-            constraintId: violation.ConstraintId ?? '',
-            message: violation.Message ?? '',
-            details: violation.Details ?? {}
-        }));
+        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
+            const mapped = {
+                constraintId: violation.ConstraintId ?? '',
+                message: violation.Message ?? '',
+                details: violation.Details ?? {}
+            };
+            return this._resolveConstraintMessage?.(mapped) ?? mapped;
+        });
 
         const mappedErrors = errors.map(message => ({ message }));
 
@@ -721,7 +726,7 @@ export class EventSequence implements IEventSequence {
             concurrencyViolation: mappedConcurrencyViolation,
             errors: mappedErrors,
             isSuccess,
-            waitForCompletion: (timeoutMs?: number) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, timeoutMs)
+            waitForCompletion: (options?: number | WaitForCompletionOptions) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, options)
         };
     }
 
@@ -732,25 +737,38 @@ export class EventSequence implements IEventSequence {
     private async waitForObserverCompletion(
         tailSequenceNumber: EventSequenceNumber,
         appendWasSuccessful: boolean,
-        timeoutMs = DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS
+        options: number | WaitForCompletionOptions = DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS
     ): Promise<WaitForCompletionResult> {
         if (!appendWasSuccessful) {
             return { isSuccess: true, failedPartitions: [] };
         }
 
-        const response = await this._connection.observers.waitForCompletion(
-            {
-                EventStore: this._eventStoreName,
-                Namespace: this._namespace,
-                EventSequenceId: this.id.value,
-                TailEventSequenceNumber: tailSequenceNumber.value
-            },
-            { signal: AbortSignal.timeout(timeoutMs) });
+        const timeoutMs = typeof options === 'number' ? options : options.timeoutMs ?? DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS;
+        const callerSignal = typeof options === 'number' ? undefined : options.signal;
+        if (callerSignal?.aborted) throw callerSignal.reason;
 
-        return {
-            isSuccess: response.IsSuccess,
-            failedPartitions: (response.FailedPartitions ?? []).map(failedPartition => toClientFailedPartition(failedPartition))
-        };
+        const controller = new AbortController();
+        const forwardAbort = () => controller.abort(callerSignal?.reason);
+        callerSignal?.addEventListener('abort', forwardAbort, { once: true });
+        const timer = setTimeout(() => controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError')), timeoutMs);
+        try {
+            const response = await this._connection.observers.waitForCompletion(
+                {
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    TailEventSequenceNumber: tailSequenceNumber.value
+                },
+                { signal: controller.signal });
+
+            return {
+                isSuccess: response.IsSuccess,
+                failedPartitions: (response.FailedPartitions ?? []).map(failedPartition => toClientFailedPartition(failedPartition))
+            };
+        } finally {
+            clearTimeout(timer);
+            callerSignal?.removeEventListener('abort', forwardAbort);
+        }
     }
 
     private toContractConcurrencyScope(scope?: ConcurrencyScope) {
@@ -771,12 +789,6 @@ export class EventSequence implements IEventSequence {
         };
     }
 }
-
-/**
- * Converts a RFC 4122 Guid string into the protobuf Guid shape used by Chronicle contracts.
- * @param guid - The Guid to convert.
- * @returns The converted protobuf Guid with fixed64-safe hi/lo values.
- */
 
 /**
  * Converts an {@link Identity} into the CausedBy shape used by Chronicle contracts.

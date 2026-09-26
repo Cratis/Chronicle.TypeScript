@@ -167,6 +167,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
             const summary = definition.Nested.summary;
 
+            expect(summary.IdentifiedBy).toBe('*NotSet*');
             const updateEntry = summary.From.find(candidate => candidate.Key.Id === 'SummaryUpdated')!;
             expect(updateEntry.Value.Properties.total).toBe('total');
             expect(summary.RemovedWith.some(candidate => candidate.Key.Id === 'SummaryCleared')).toBe(true);
@@ -179,6 +180,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
             const note = definition.Nested.note;
 
+            expect(note.IdentifiedBy).toBe('*NotSet*');
             const updateEntry = note.From.find(candidate => candidate.Key.Id === 'NoteAdded')!;
             expect(updateEntry.Value.Properties.text).toBe('text');
             expect(note.RemovedWith.some(candidate => candidate.Key.Id === 'NoteCleared')).toBe(true);

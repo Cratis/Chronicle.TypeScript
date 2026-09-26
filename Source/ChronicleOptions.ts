@@ -56,7 +56,10 @@ export class ChronicleOptions {
     /**
      * Glob patterns used to discover artifact files at startup.
      * Patterns prefixed with '!' are treated as exclusions.
-     * Set to an empty array to disable automatic file discovery.
+     * By default, TypeScript entry files (.ts, .tsx, .mts, .cts) or TypeScript runtimes scan TypeScript sources;
+     * compiled JavaScript entry files do not scan (imported modules register their artifacts).
+     * Explicit patterns are used regardless of the entry file. Set to an empty array to
+     * disable automatic file discovery.
      */
     readonly discoveryPatterns: string[];
 
@@ -76,8 +79,20 @@ export class ChronicleOptions {
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
         this.softwareCommit = options.softwareCommit ?? 'Unknown';
         this.clientArtifactsProvider = options.clientArtifactsProvider ?? DefaultClientArtifactsProvider.default;
-        this.discoveryPatterns = options.discoveryPatterns ?? [
+        this.discoveryPatterns = options.discoveryPatterns ?? ChronicleOptions.defaultDiscoveryPatterns();
+        this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
+        this.reactorResultHandler = options.reactorResultHandler;
+    }
+
+    private static defaultDiscoveryPatterns(): string[] {
+        const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');
+        const typescriptLoader = process.execArgv.some(arg => /(?:tsx|ts-node|--experimental-strip-types|--experimental-transform-types)/i.test(arg));
+        // process.features.typescript is set on every Node.js 24+ process (type stripping), so it
+        // does not mean the program was started from TypeScript; it is deliberately not consulted.
+        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader) return [];
+        return [
             '**/*.ts',
+            '**/*.tsx',
             '!**/*.d.ts',
             '!**/node_modules',
             '!**/dist',
@@ -85,10 +100,10 @@ export class ChronicleOptions {
             '!**/.git',
             '!**/.vscode',
             '!**/*.spec.ts',
-            '!**/*.test.ts'
+            '!**/*.test.ts',
+            '!**/*.spec.tsx',
+            '!**/*.test.tsx'
         ];
-        this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
-        this.reactorResultHandler = options.reactorResultHandler;
     }
 
     /**

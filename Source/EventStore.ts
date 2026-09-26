@@ -80,6 +80,7 @@ export class EventStore implements IEventStore {
     readonly observers: IObservers;
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
+    private readonly _constraints: Constraints;
 
     constructor(
         readonly name: EventStoreName,
@@ -92,16 +93,18 @@ export class EventStore implements IEventStore {
     ) {
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
-        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager);
+        const artifacts = this._artifacts;
+        this._constraints = new Constraints(name.value, _connection, artifacts);
+        this.constraints = this._constraints;
+        const resolveConstraintMessage = this._constraints.resolveMessageFor.bind(this._constraints);
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
-        const artifacts = this._artifacts;
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
-        this.constraints = new Constraints(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId);
-        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId);
+        this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType));
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);
@@ -158,6 +161,12 @@ export class EventStore implements IEventStore {
         });
     }
 
+    /** Stops the store's long-lived observations when the client is disposed. */
+    disposeObservations(): void {
+        (this.reactors as Reactors).dispose();
+        (this.reducers as Reducers).dispose();
+    }
+
     /** @inheritdoc */
     getEventSequence(id: EventSequenceId): IEventSequence {
         const existing = this._sequences.get(id.value);
@@ -165,7 +174,10 @@ export class EventStore implements IEventStore {
             return existing;
         }
 
-        const sequence = new EventSequence(id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager);
+        const sequence = new EventSequence(
+            id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager,
+            this._constraints.resolveMessageFor.bind(this._constraints)
+        );
         this._sequences.set(id.value, sequence);
         return sequence;
     }

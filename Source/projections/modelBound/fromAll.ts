@@ -3,7 +3,8 @@
 
 import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
+import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the fromAll property decorator. */
 export interface FromAllMetadata {
@@ -25,7 +26,7 @@ const METADATA_KEY = 'chronicle:projection:fromAll';
  * @returns A property decorator.
  */
 export function fromAll(property?: string, contextProperty?: string): ChroniclePropertyDecorator {
-    return decorateProperty((target: object, propertyKey: string | symbol) => {
+    return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propertyKey.toString());
         const metadata: FromAllMetadata = { property, contextProperty };
         Reflect.defineMetadata(METADATA_KEY, metadata, target, propertyKey.toString());

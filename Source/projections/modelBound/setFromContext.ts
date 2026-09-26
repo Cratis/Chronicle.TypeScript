@@ -5,7 +5,8 @@ import 'reflect-metadata';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import type { EventContext } from '../../events/index.js';
 import { TypeIntrospector } from '../../types/index.js';
-import { ChroniclePropertyDecorator, decorateProperty, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
+import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
 /** Metadata stored by the setFromContext property decorator. */
 export interface SetFromContextMetadata {
@@ -29,7 +30,7 @@ export function setFromContext(
     eventType: Function,
     contextPropertyOrAccessor?: string | PropertyAccessor<EventContext>
 ): ChroniclePropertyDecorator {
-    return decorateProperty((target: object, propertyKey: string | symbol) => {
+    return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
         const existing: SetFromContextMetadata[] = Reflect.getMetadata(METADATA_KEY, target, key) ?? [];

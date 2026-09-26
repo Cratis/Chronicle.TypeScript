@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ReadModelId } from './ReadModelId.js';
+export { index } from './indexDecorator.js';
 export type { IReadModels } from './IReadModels.js';
 export type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 export { ReadModels } from './ReadModels.js';

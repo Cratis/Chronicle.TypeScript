@@ -8,8 +8,8 @@ class ChoosingStyleBookStatusReducerModel {
     borrowedBy: string | null = null;
 }
 
-// Handler methods receive only the event and the current state - there is no
-// event-context parameter, unlike the C# reducer's EventContext argument.
+// Handler methods receive the event, the current state, and an optional EventContext
+// as a third argument; this reducer does not need the context.
 // The method name must be the exact camelCase of the event's class name -
 // Chronicle discovers handlers by name, not by parameter type.
 @reducer('', undefined, ChoosingStyleBookStatusReducerModel)

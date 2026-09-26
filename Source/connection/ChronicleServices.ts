@@ -7,6 +7,7 @@ import type {
     EventSequencesClient,
     EventStoresClient,
     EventTypesClient,
+    ExternalServicesClient,
     FailedPartitionsClient,
     IdentitiesClient,
     JobsClient,
@@ -24,7 +25,6 @@ import type {
 } from '@cratis/chronicle.contracts';
 import type { ComplianceClient } from '../compliance/ComplianceContracts.js';
 import type { EventStoreSubscriptionsClient } from '../eventStoreSubscriptions/contracts.js';
-import type { ExternalServicesClient } from '../externalServices/ExternalServicesContracts.js';
 
 /**
  * Represents all Chronicle gRPC services.

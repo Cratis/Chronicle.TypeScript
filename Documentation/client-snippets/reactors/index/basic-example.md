@@ -1,5 +1,5 @@
 ```typescript
-import { eventType, reactor, EventContext } from '@cratis/chronicle';
+import { eventType, onceOnly, reactor, EventContext } from '@cratis/chronicle';
 
 @eventType()
 class ReactorsIndexEmailConfirmed {
@@ -10,6 +10,7 @@ class ReactorsIndexEmailConfirmed {
 class ReactorsIndexEmailNotificationsReactor {
     // Method name must be the exact camelCase of the event's class name -
     // Chronicle discovers handlers by name, not by parameter type.
+    @onceOnly()
     async reactorsIndexEmailConfirmed(event: ReactorsIndexEmailConfirmed, context: EventContext): Promise<void> {
         await this.sendConfirmation(event.email, context.occurred);
     }

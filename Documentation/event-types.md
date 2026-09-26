@@ -1,8 +1,8 @@
 ---
+title: Event types
+description: Where event types are documented, and how to declare TypeScript event classes so Chronicle can build their schemas.
 sharedTopicBridge: true
 ---
-
-# Event Types
 
 Event types are a shared Chronicle concept. Use the shared documentation for the model, naming rules, generations, and schema evolution flow.
 
@@ -11,7 +11,7 @@ Event types are a shared Chronicle concept. Use the shared documentation for the
 - [Event evolution](/chronicle/understanding-event-evolution/)
 - [TypeScript client setup](./getting-started.md)
 
-In standard and legacy decorator modes, use a `@field(Type)` instance field and a constructor that assigns it when you want `new Event(value)`. Do not decorate a constructor parameter: the field supplies the runtime schema type, while the constructor makes creation convenient. Keep constructors safe to call without arguments so schema inspection and deserialization can construct the class. See the [setup example](./getting-started.md#decorator-mode-and-schema-types).
+In standard and legacy decorator modes, use a `@field(Type)` instance field and a constructor that assigns it when you want `new Event(value)`. Do not decorate a constructor parameter: the field supplies the runtime schema type, while the constructor makes creation convenient. Name each constructor parameter after the field it assigns; in standard mode a differently named parameter fails schema generation. Keep constructors safe to call without arguments so schema inspection and deserialization can construct the class. See [Decorator mode and schema types](./getting-started.md#decorator-mode-and-schema-types).
 
 When you configure `ChronicleOptions` with `clientArtifactsProvider`, the store uses that catalog for discovery, registration, and schema validation instead of the global default provider.
 

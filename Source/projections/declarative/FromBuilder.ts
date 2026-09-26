@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { constantValueExpression } from '../constantValueExpression.js';
 import { AddBuilder } from './AddBuilder.js';
 import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder.js';
 import { CompositeKeyBuilder } from './CompositeKeyBuilder.js';
@@ -98,13 +99,13 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
 
     /** @inheritdoc */
     usingConstantKey(value: string): this {
-        this.entry.key = value;
+        this.entry.key = constantValueExpression(value);
         return this;
     }
 
     /** @inheritdoc */
     usingConstantParentKey(value: string): this {
-        this.entry.parentKey = value;
+        this.entry.parentKey = constantValueExpression(value);
         return this;
     }
 

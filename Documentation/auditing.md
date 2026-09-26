@@ -1,4 +1,7 @@
-# Auditing — Causation
+---
+title: Auditing — causation
+description: Add application-specific links to the causation chain the TypeScript client sends with every append.
+---
 
 See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what causation means and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. The causation chain is stored with every event and enables full audit-trail tracing.
 
@@ -59,6 +62,8 @@ const chain = causationManager.getCurrentChain();
 
 Call `add()` before performing an operation to push a new entry onto the chain:
 
+This excerpt assumes a `store`, an `eventSourceId`, and an `EmployeeHired` event type.
+
 ```typescript
 import { causationManager, CausationType } from '@cratis/chronicle';
 
@@ -68,7 +73,7 @@ causationManager.add(
 );
 
 // Now append an event — the event will carry this entry in its Causation chain
-await store.eventLog.append(eventSourceId, new EmployeeHired(...));
+await store.eventLog.append(eventSourceId, new EmployeeHired('Jane', 'Doe'));
 ```
 
 ### Defining the process root
