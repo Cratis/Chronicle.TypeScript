@@ -209,23 +209,20 @@ export function resolveNestedType(type: Function, property: string): Function | 
 
 /**
  * Discovers the child model property used to identify instances, by convention: a property
- * named `id` (case-insensitive), matching the C# client's fallback once no `[Key]` attribute
- * is present (TypeScript has no `[Key]` decorator equivalent).
+ * named `id` (case-insensitive), or a property matching the event key when no id is found.
+ * TypeScript has no `[Key]` decorator equivalent.
  * @param childType - The child/nested model type, when resolvable.
+ * @param eventKey - The configured event key, when present.
  * @returns The discovered property name, or undefined when no convention match is found.
  */
-function discoverIdentifiedBy(childType: Function | undefined): string | undefined {
+function discoverIdentifiedBy(childType: Function | undefined, eventKey: string | undefined): string | undefined {
     if (!childType) {
         return undefined;
     }
 
-    for (const name of TypeIntrospector.getMembers(childType).keys()) {
-        if (name.toLowerCase() === 'id') {
-            return name;
-        }
-    }
-
-    return undefined;
+    const members = [...TypeIntrospector.getMembers(childType).keys()];
+    return members.find(name => name.toLowerCase() === 'id') ??
+        (eventKey && members.find(name => name.toLowerCase() === eventKey.toLowerCase())) ?? undefined;
 }
 
 /**
@@ -325,7 +322,7 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
     const definition = createEmptyChildrenDefinition(type, childType);
 
     const explicitIdentifiedBy = metadataList.find(metadata => metadata.identifiedBy)?.identifiedBy;
-    definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType) ?? '$eventSourceId';
+    definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType, metadataList[0]?.key) ?? '$eventSourceId';
 
     for (const metadata of metadataList) {
         const eventType = toContractEventType(metadata.eventType);
@@ -340,6 +337,32 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
     }
 
     populateFromType(definition, childType);
+
+    // Like the .NET model-bound builder, populate an unmapped child identifier from the
+    // creating event's key. IdentifiedBy selects the child property; it is not itself a
+    // property mapping. TypeScript has no [Key] decorator, so an explicit identifiedBy
+    // plays the same role as a discovered id for this default.
+    const identifier = definition.IdentifiedBy;
+    if (childType && definition.AutoMap === AutoMap.Enabled && identifier !== '$eventSourceId') {
+        const prototype = childType.prototype;
+        const hasExplicitMapping = getSetFromMetadata(prototype, identifier).length > 0 ||
+            getSetFromContextMetadata(prototype, identifier).length > 0 ||
+            getSetValueMetadata(prototype, identifier).length > 0 ||
+            getAddFromMetadata(prototype, identifier).length > 0 ||
+            getSubtractFromMetadata(prototype, identifier).length > 0;
+        if (!hasExplicitMapping) {
+            for (const metadata of metadataList) {
+                const entry = definition.From.find(candidate => getEventTypeMapKey(candidate.Key) === getEventTypeMapKey(toContractEventType(metadata.eventType)))!;
+                const key = metadata.key ?? '$eventSourceId';
+                // When an event property is also the identifier, AutoMap can fill it directly.
+                if (key.toLowerCase() !== identifier.toLowerCase() && !(identifier in entry.Value.Properties)) {
+                    entry.Value.Properties[identifier] = key === '$eventSourceId'
+                        ? eventContextPropertyExpression('eventSourceId')
+                        : key;
+                }
+            }
+        }
+    }
     return definition;
 }
 
