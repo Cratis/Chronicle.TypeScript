@@ -4,6 +4,8 @@
 import { type Constructor } from '@cratis/fundamentals';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
+import { InvalidEventContextPropertyError } from '../projections/InvalidEventContextPropertyError.js';
+import { getReadModelId } from './readModel.js';
 import { ProjectionBuilderFor } from '../projections/declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
 import type { ChildrenDefinitionLike } from '../projections/modelBound/childrenAndNestedBuilder.js';
@@ -53,7 +55,14 @@ function inspectReadModelTypes(artifacts: IClientArtifactsProvider): { models: C
         if (!model) continue;
         inspect(model);
         const builder = new ProjectionBuilderFor<unknown>();
-        (new type() as IProjectionFor<unknown>).define(builder);
+        try {
+            (new type() as IProjectionFor<unknown>).define(builder);
+        } catch (error) {
+            if (error instanceof InvalidEventContextPropertyError) {
+                throw new Error(`Invalid event context property '${error.propertyPath}' in projection '${type.name}' (read model '${getReadModelId(model)}').`, { cause: error });
+            }
+            throw error;
+        }
         inspectDeclarative(model, builder.getSubobjectDefinitions());
     }
     for (const type of artifacts.reducers) {

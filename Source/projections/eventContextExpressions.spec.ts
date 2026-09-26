@@ -5,6 +5,8 @@ import 'reflect-metadata';
 import { Constructor, field } from '@cratis/fundamentals';
 import { chai, describe, expect, it } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
+import type { ChronicleConnection } from '../connection/index.js';
+import { InvalidEventContextPropertyError } from '../index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import { projection } from './declarative/projection.js';
@@ -14,6 +16,7 @@ import { fromEvery } from './modelBound/fromEvery.js';
 import { nested } from './modelBound/nested.js';
 import { setFromContext } from './modelBound/setFromContext.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
+import { Projections } from './Projections.js';
 
 class Recorded { reference!: string; }
 eventType()(Recorded);
@@ -66,6 +69,14 @@ function compileDeclarative(configure: (builder: ProjectionBuilderFor<Model>) =>
         reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
     };
     new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([InvalidDeclarativeProjection], []);
+}
+
+function register(projections: Constructor[], readModels: Constructor[]): Promise<void> {
+    const artifacts: IClientArtifactsProvider = {
+        projections, readModels, globalForHandlers: [], eventTypes: [Recorded],
+        reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
+    };
+    return new Projections('test-store', 'test-namespace', {} as ChronicleConnection, artifacts, 'test-sink').register();
 }
 
 chai.should();
@@ -145,11 +156,13 @@ describe('event context expressions', () => {
             .RemovedWith[0].Value.Key.should.equal('$eventContext(EventSourceId)');
     });
 
-    it('should reject an invalid model-bound context property at registration with the read model name', () => {
-        class InvalidModel { happened!: Date; }
+    it('should name the model-bound projection and read model identifier on registration failure', async () => {
+        class InvalidModel { static readonly readModelId = 'invalid-model-id'; happened!: Date; }
         setFromContext(Recorded, 'invalidProperty')(InvalidModel.prototype, 'happened');
         fromEvent(Recorded)(InvalidModel);
-        expect(() => modelBound(InvalidModel)).toThrow(/Invalid event context property 'invalidProperty'.*'InvalidModel'/);
+        const attempt = register([], [InvalidModel]);
+        await expect(attempt).rejects.toThrow("Invalid event context property 'invalidProperty' in projection 'InvalidModel' (read model 'invalid-model-id').");
+        await expect(attempt).rejects.toMatchObject({ cause: expect.any(InvalidEventContextPropertyError) });
     });
 
     it('should reject an invalid implicit model-bound context property at registration', () => {
@@ -159,10 +172,17 @@ describe('event context expressions', () => {
         expect(() => modelBound(ImplicitInvalidModel)).toThrow(/Invalid event context property 'unknown'.*'ImplicitInvalidModel'/);
     });
 
-    it('should reject an invalid declarative set context property at registration', () => {
-        expect(() => compileDeclarative(builder => builder.from(Recorded, from =>
-            from.set(model => model.happened).toEventContextProperty('unknown'))))
-            .toThrow(/Invalid event context property 'unknown'.*'InvalidDeclarativeProjection'.*'Model'/);
+    it('should name the declarative projection and read model identifier on registration failure', async () => {
+        class InvalidDeclarativeModel { static readonly readModelId = 'declarative-model-id'; happened!: Date; }
+        class InvalidDeclarativeProjection {
+            define(builder: ProjectionBuilderFor<InvalidDeclarativeModel>): void {
+                builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('unknown'));
+            }
+        }
+        projection('invalid-context', InvalidDeclarativeModel)(InvalidDeclarativeProjection);
+        const attempt = register([InvalidDeclarativeProjection], [InvalidDeclarativeModel]);
+        await expect(attempt).rejects.toThrow("Invalid event context property 'unknown' in projection 'InvalidDeclarativeProjection' (read model 'declarative-model-id').");
+        await expect(attempt).rejects.toMatchObject({ cause: expect.any(InvalidEventContextPropertyError) });
     });
 
     it('should reject an invalid declarative all-set context property at registration', () => {

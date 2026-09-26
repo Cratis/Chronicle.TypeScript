@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { EventContext } from '../events/EventContext.js';
+import { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
 
 // EventContext is an interface (erased at runtime). Keep this exhaustive against its keys so
 // additions/removals to the SDK type cannot silently leave registration validation out of date.
@@ -23,13 +24,6 @@ const contextProperties = {
     causation: true,
     tags: true
 } satisfies Record<keyof EventContext, true>;
-
-/** An invalid event-context path encountered while building a projection definition. */
-export class InvalidEventContextPropertyError extends Error {
-    constructor(readonly propertyPath: string) {
-        super(`Invalid event context property '${propertyPath}'.`);
-    }
-}
 
 /** Build the expression read by Chronicle's event-context resolver, using CLR property casing. */
 export function eventContextPropertyExpression(propertyPath: string): string {
