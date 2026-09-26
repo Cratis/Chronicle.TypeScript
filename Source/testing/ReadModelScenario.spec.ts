@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
+import { pii } from '../compliance/pii.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import type { EventContext } from '../events/EventContext.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
@@ -290,6 +291,14 @@ describe('ReadModelScenario', () => {
             message: expect.stringContaining('NumericState'),
             cause: expect.objectContaining({ message: expect.stringContaining('Projection GUID value') })
         });
+    });
+
+    it('rejects a protected identifier before any events are seeded', () => {
+        class ProtectedState { @field(String) id = ''; }
+        pii()(ProtectedState.prototype, 'id');
+        fromEvent(ItemAdded)(ProtectedState);
+        expect(() => new ReadModelScenario(ProtectedState, artifacts))
+            .toThrow(/ReadModel.Schema.id.*protected fields require a kernel-backed test/);
     });
 
     it('rejects unsupported mappings before replay even when no events are seeded', () => {

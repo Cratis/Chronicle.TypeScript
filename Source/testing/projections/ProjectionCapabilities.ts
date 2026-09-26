@@ -58,6 +58,7 @@ export class ProjectionCapabilities {
         } catch {
             reject('ReadModel.Schema', 'read-model schema is not valid JSON');
         }
+        this.checkProtection(schema!, 'ReadModel.Schema', reject);
         const identifier = schema!.properties?.id;
         if (!identifier || !((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
             (identifier.type === 'number' && identifier.format === 'double'))) {
@@ -183,6 +184,7 @@ export class ProjectionCapabilities {
             if (['true', 'True', 'false', 'False'].includes(expression)) {
                 fail('kernel resolves this expression as a boolean literal before event content');
             }
+            if (expression.includes('.')) fail('nested event property paths require a kernel-backed test');
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
             this.checkSchema(source, path, (_path, reason) => fail(reason));
@@ -241,6 +243,15 @@ export class ProjectionCapabilities {
     private static numeric(schema: JsonSchema): boolean {
         return (schema.type === 'number' && (!schema.format || schema.format === 'double')) ||
             (schema.type === 'integer' && ['int32', 'uint32'].includes(schema.format ?? ''));
+    }
+
+    private static checkProtection(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
+        if (schema.compliance?.length || schema.security?.length) reject(path, 'protected fields require a kernel-backed test');
+        for (const [name, property] of Object.entries(schema.properties ?? {})) this.checkProtection(property, `${path}.${name}`, reject);
+        if (schema.items) this.checkProtection(schema.items, `${path}.items`, reject);
+        if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+            this.checkProtection(schema.additionalProperties, `${path}.additionalProperties`, reject);
+        }
     }
 
     private static checkSchema(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {

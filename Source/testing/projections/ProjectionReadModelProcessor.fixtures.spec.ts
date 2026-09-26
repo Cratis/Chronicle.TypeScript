@@ -43,10 +43,11 @@ const guardErrors: Record<string, { type: string; message: string }> = {
     'rounded-integer-operand.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
     'int32-overflow.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
     'null-accumulator.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
-    'concept-shaped-objects.json': { type: 'UnsupportedProjectionOperation', message: 'object/array target mappings require a kernel-backed test' },
+    'concept-shaped-objects.json': { type: 'UnsupportedProjectionOperation', message: 'nested event property paths require a kernel-backed test' },
     'mapped-and-removed.json': { type: 'UnsupportedProjectionOperation', message: 'both From and RemovedWith require a kernel-backed test' },
     'mapped-id-key-wins.json': { type: 'UnsupportedProjectionOperation', message: 'identifier or case-insensitively colliding target mappings require a kernel-backed test' },
-    'reject-protected-fields.json': { type: 'UnsupportedProjectionOperation', message: 'protected fields require a kernel-backed test' }
+    'reject-protected-fields.json': { type: 'UnsupportedProjectionOperation', message: 'protected fields require a kernel-backed test' },
+    'reject-protected-identifier.json': { type: 'UnsupportedProjectionOperation', message: 'protected fields require a kernel-backed test' }
 };
 
 function setup(fixture: Fixture): { processor: ProjectionReadModelProcessor<OracleReadModel>; events: ScenarioEvent[] } {

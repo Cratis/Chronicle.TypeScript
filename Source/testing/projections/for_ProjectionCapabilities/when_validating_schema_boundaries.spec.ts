@@ -99,6 +99,21 @@ describe('when validating schema-bound projection operations', () => {
         }
     });
 
+    for (const [name, schema] of [
+        ['unmapped', { type: 'string', security: [{ metadataType: 'Secret', details: '' }] }],
+        ['nested', { type: 'object', properties: { secret: { type: 'string', compliance: [{ metadataType: 'PII', details: '' }] } } }],
+        ['array item', { type: 'array', items: { type: 'string', compliance: [{ metadataType: 'PII', details: '' }] } }],
+        ['additional property', { type: 'object', additionalProperties: { type: 'string', security: [{ metadataType: 'Encrypted', details: '' }] } }]
+    ] as const) {
+        it(`should reject protected ${name} schema members even when unmapped`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+            setModelSchema(compiled, properties => { properties.unmapped = schema as JsonSchema; });
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('ReadModel.Schema.unmapped')
+                .and.includes('protected fields require a kernel-backed test');
+        });
+    }
+
     it('should accept $null for a date destination', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toValue(null)));
         setModelSchema(compiled, properties => { properties.state = { type: 'string', format: 'date-time' }; });
