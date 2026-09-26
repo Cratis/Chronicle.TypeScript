@@ -5,7 +5,6 @@ import 'reflect-metadata';
 import { JsonSerializer } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
-import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFromEventMetadata } from '../projections/modelBound/fromEvent.js';
 import { getRemovedWithClassMetadata } from '../projections/modelBound/removedWith.js';
@@ -15,15 +14,15 @@ import { getVariantOfMetadata } from '../projections/modelBound/variantOf.js';
 import { getEntersOnMetadata } from '../projections/modelBound/entersOn.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
-import { ReducerEventDispatcher } from '../reducers/ReducerEventDispatcher.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { hasModelBoundProperties, TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { ReadModelScenarioGivenBuilder } from './ReadModelScenarioGivenBuilder.js';
+import type { IReadModelProcessor } from './IReadModelProcessor.js';
+import type { ReadModelState } from './ReadModelState.js';
+import { ReducerReadModelProcessor } from './ReducerReadModelProcessor.js';
+import type { ScenarioEvent } from './ScenarioEvent.js';
 
 type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes' | 'projections'>;
-
-type SeededEvent = { sourceId: string; content: unknown; context: EventContext };
-type ReducedState<T> = { instance: T | null; deleted: boolean };
 
 /**
  * Folds seeded events through a reducer in-process, without a Chronicle kernel.
@@ -31,15 +30,12 @@ type ReducedState<T> = { instance: T | null; deleted: boolean };
  * Supply an artifact catalog to isolate a scenario from process-wide decorator discovery.
  */
 export class ReadModelScenario<TReadModel extends object> {
-    private readonly _readModelType: Constructor<TReadModel>;
-    private readonly _reducerType: Constructor;
-    private readonly _dispatcher: ReducerEventDispatcher;
-    private readonly _events: SeededEvent[] = [];
-    private _results: Promise<Map<string, ReducedState<TReadModel>>> | undefined;
+    private readonly _processor: IReadModelProcessor<TReadModel>;
+    private readonly _events: ScenarioEvent[] = [];
+    private _results: Promise<Map<string, ReadModelState<TReadModel>>> | undefined;
 
     /** Selects the reducer associated with the read model type. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
-        this._readModelType = readModelType;
         const registered = artifacts ?? {
             reducers: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer),
             eventTypes: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType),
@@ -60,8 +56,7 @@ export class ReadModelScenario<TReadModel extends object> {
             }
             throw new Error(`No reducer found for read model '${readModelType.name}'. Pass the read model type to @reducer; projections are not supported yet (use a kernel-backed test).`);
         }
-        this._reducerType = reducerTypes[0];
-        this._dispatcher = new ReducerEventDispatcher(this._reducerType, registered.eventTypes);
+        this._processor = new ReducerReadModelProcessor(readModelType, reducerTypes[0], registered.eventTypes);
     }
 
     /** Fluent entry point for event history. */
@@ -119,33 +114,11 @@ export class ReadModelScenario<TReadModel extends object> {
         this._results = undefined;
     }
 
-    private process(): Promise<Map<string, ReducedState<TReadModel>>> {
+    private process(): Promise<Map<string, ReadModelState<TReadModel>>> {
         if (!this._results) {
             const events = [...this._events];
-            this._results = this.reduce(events);
+            this._results = this._processor.process(events);
         }
         return this._results;
-    }
-
-    private async reduce(events: readonly SeededEvent[]): Promise<Map<string, ReducedState<TReadModel>>> {
-        const results = new Map<string, ReducedState<TReadModel>>();
-        const reducer = new (this._reducerType as new () => Record<string, Function>)();
-        for (const event of events) {
-            const handler = this._dispatcher.handlerFor(event.context.eventType.id.value);
-            if (!handler) continue;
-            const prior = results.get(event.sourceId);
-            const previous = prior?.deleted ? undefined : prior?.instance;
-            let next: unknown;
-            try {
-                next = await this._dispatcher.invoke(reducer, handler, event.content, previous, event.context);
-            } catch (cause) {
-                throw new Error(`Reducer '${this._reducerType.name}' for read model '${this._readModelType.name}' failed`, { cause });
-            }
-            results.set(event.sourceId, {
-                instance: next === undefined ? null : next as TReadModel | null,
-                deleted: next === undefined
-            });
-        }
-        return results;
     }
 }
