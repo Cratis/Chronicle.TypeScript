@@ -23,6 +23,8 @@ export interface FromEntry {
     key: string;
     parentKey: string;
     children: ChildAdditionEntry[];
+    keyDeclaration?: string;
+    parentKeyDeclaration?: string;
 }
 
 /**
@@ -57,12 +59,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.key = handler.property;
+        this.entry.keyDeclaration = '.from().usingKey';
         return this;
     }
 
     /** @inheritdoc */
     usingKeyFromContext(contextPropertyName: string): this {
         this.entry.key = `$context.${contextPropertyName}`;
+        this.entry.keyDeclaration = '.from().usingKeyFromContext';
         return this;
     }
 
@@ -72,12 +76,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.parentKey = handler.property;
+        this.entry.parentKeyDeclaration = '.from().usingParentKey';
         return this;
     }
 
     /** @inheritdoc */
     usingParentKeyFromContext(contextPropertyName: string): this {
         this.entry.parentKey = `$context.${contextPropertyName}`;
+        this.entry.parentKeyDeclaration = '.from().usingParentKeyFromContext';
         return this;
     }
 
@@ -86,6 +92,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.key = compositeKeyBuilder.build();
+        this.entry.keyDeclaration = '.from().usingCompositeKey';
         return this;
     }
 
@@ -94,18 +101,21 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.parentKey = compositeKeyBuilder.build();
+        this.entry.parentKeyDeclaration = '.from().usingParentCompositeKey';
         return this;
     }
 
     /** @inheritdoc */
     usingConstantKey(value: string): this {
         this.entry.key = constantValueExpression(value);
+        this.entry.keyDeclaration = '.from().usingConstantKey';
         return this;
     }
 
     /** @inheritdoc */
     usingConstantParentKey(value: string): this {
         this.entry.parentKey = constantValueExpression(value);
+        this.entry.parentKeyDeclaration = '.from().usingConstantParentKey';
         return this;
     }
 
