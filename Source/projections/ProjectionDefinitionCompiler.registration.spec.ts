@@ -153,10 +153,12 @@ class SharedTitle { title!: string; }
 setFrom(TitleChanged, 'title')(SharedTitle.prototype, 'title');
 globalFor(Identity)(SharedTitle);
 
-class Declarative { id!: string; name!: string; quantity!: number; lines!: Line[]; }
+class Declarative { id!: string; name!: string; quantity!: number; lines!: Line[]; contextLines!: Line[]; }
 class DeclarativeProjection implements IProjectionFor<Declarative> {
     define(builder: IProjectionBuilderFor<Declarative>): void {
-        builder.from(ItemCreated, from => from.set(model => model.name).to(event => event.name))
+        builder.from(ItemCreated, from => from.set(model => model.name).to(event => event.name)
+            .addChild<Line>(model => model.contextLines, child => child.identifiedBy(line => line.productId)
+                .usingKeyFromContext('sequenceNumber').usingParentKeyFromContext('eventSourceId')))
             .join(Joined, joined => joined.on(model => model.name).set(model => model.name).to(event => event.name))
             .fromEvery(every => every.set(model => model.name).toEventContextProperty('eventType'))
             .removedWith(ItemRemoved)

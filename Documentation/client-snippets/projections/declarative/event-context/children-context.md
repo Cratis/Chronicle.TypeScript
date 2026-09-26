@@ -14,16 +14,17 @@ class DecEventContextActivityPerformed {
 }
 
 class DecEventContextActivityLogEntry {
-    activityId = '';
-    timestamp = new Date();
-    sequenceNumber = 0n;
+    @field(String) activityId = '';
+    @field(Date) timestamp = new Date();
+    @field(Number) sequenceNumber: bigint = 0n;
 }
 
 class DecEventContextUserWithActivityLog {
+    @field(Array, { genericArguments: [DecEventContextActivityLogEntry] })
     activityLog: DecEventContextActivityLogEntry[] = [];
 }
 
-@projection()
+@projection('', DecEventContextUserWithActivityLog)
 class DecEventContextUserActivityLogProjection implements IProjectionFor<DecEventContextUserWithActivityLog> {
     define(builder: IProjectionBuilderFor<DecEventContextUserWithActivityLog>): void {
         builder
@@ -34,6 +35,39 @@ class DecEventContextUserActivityLogProjection implements IProjectionFor<DecEven
                     .usingKey(e => e.activityId)
                     .set(m => m.timestamp).toEventContextProperty('occurred')
                     .set(m => m.sequenceNumber).toEventContextProperty('sequenceNumber')));
+    }
+}
+
+@eventType()
+class DecEventContextOrderLineAdded {
+    @field(String) readonly productId: string;
+
+    constructor(productId: string) {
+        this.productId = productId;
+    }
+}
+
+class DecEventContextOrderLine {
+    lineId = '';
+    productId = '';
+}
+
+class DecEventContextOrder {
+    @field(Array, { genericArguments: [DecEventContextOrderLine] })
+    lines: DecEventContextOrderLine[] = [];
+}
+
+// addChild can take the child key and the parent key from the event context:
+// each line is identified by the sequence number of the event that added it.
+// The event has no lineId property, so AutoMap copies productId without overwriting the key.
+@projection('', DecEventContextOrder)
+class DecEventContextOrderProjection implements IProjectionFor<DecEventContextOrder> {
+    define(builder: IProjectionBuilderFor<DecEventContextOrder>): void {
+        builder.from(DecEventContextOrderLineAdded, from => from
+            .addChild(model => model.lines, child => child
+                .identifiedBy(line => line.lineId)
+                .usingKeyFromContext('sequenceNumber')
+                .usingParentKeyFromContext('eventSourceId')));
     }
 }
 ```
