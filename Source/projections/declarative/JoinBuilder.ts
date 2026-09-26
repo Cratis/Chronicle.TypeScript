@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { AddBuilder } from './AddBuilder.js';
 import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder.js';
 import { CompositeKeyBuilder } from './CompositeKeyBuilder.js';
@@ -72,7 +73,7 @@ export class JoinBuilder<TReadModel, TEvent> implements IJoinBuilder<TReadModel,
 
     /** @inheritdoc */
     usingKeyFromContext(contextPropertyName: string): this {
-        this.entry.key = `$context.${contextPropertyName}`;
+        this.entry.key = eventContextPropertyExpression(contextPropertyName);
         return this;
     }
 

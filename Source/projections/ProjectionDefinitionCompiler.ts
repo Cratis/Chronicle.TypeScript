@@ -14,6 +14,7 @@ import { WellKnownSinks } from '../sinks/index.js';
 import { TypeIntrospector } from '../types/index.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
 import { constantValueExpression } from './constantValueExpression.js';
+import { eventContextPropertyExpression } from './eventContextPropertyExpression.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -270,7 +271,7 @@ export class ProjectionDefinitionCompiler {
             const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
-                    ? fromEvery.contextProperty
+                    ? eventContextPropertyExpression(fromEvery.contextProperty)
                     : (fromEvery.property ?? property);
             }
         }

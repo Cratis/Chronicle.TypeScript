@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { IAllSetBuilder } from './IAllSetBuilder.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 
 /**
  * Concrete implementation of {@link IAllSetBuilder} for fromEvery mappings.
@@ -27,7 +28,7 @@ export class AllSetBuilder<TReadModel, TParentBuilder> implements IAllSetBuilder
 
     /** @inheritdoc */
     toEventContextProperty(contextPropertyName: string): TParentBuilder {
-        this._setProperty(this._targetProperty, `$context.${contextPropertyName}`);
+        this._setProperty(this._targetProperty, eventContextPropertyExpression(contextPropertyName));
         return this._parent;
     }
 

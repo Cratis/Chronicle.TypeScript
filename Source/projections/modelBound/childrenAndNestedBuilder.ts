@@ -6,6 +6,7 @@ import { AutoMap } from '@cratis/chronicle.contracts';
 import { Constructor, Fields } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../../types/index.js';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { notSetPropertyPath } from '../notSetPropertyPath.js';
 import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
 import { getAddFromMetadata } from './addFrom.js';
@@ -107,7 +108,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
 
     for (const mapping of getSetFromContextMetadata(prototype, property)) {
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = mapping.contextPropertyName ?? property;
+        entry.Value.Properties[property] = eventContextPropertyExpression(mapping.contextPropertyName ?? property);
     }
 
     for (const mapping of getSetValueMetadata(prototype, property)) {
