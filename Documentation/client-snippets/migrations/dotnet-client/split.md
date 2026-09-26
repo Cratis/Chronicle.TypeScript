@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventMigrationBuilder, IEventTypeMigration } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType('dotnet-client-person-registered', 2)
 class MigrationsDotnetClientSplitPersonRegistered {
-    constructor(readonly firstName: string, readonly lastName: string) {}
+    @field(String) readonly firstName: string;
+    @field(String) readonly lastName: string;
+
+    constructor(firstName: string, lastName: string) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
 @eventType('dotnet-client-person-registered', 1)
 class MigrationsDotnetClientSplitPersonRegisteredV1 {
-    constructor(readonly fullName: string) {}
+    @field(String) readonly fullName: string;
+
+    constructor(fullName: string) {
+        this.fullName = fullName;
+    }
 }
 
 @eventTypeMigration(MigrationsDotnetClientSplitPersonRegistered, MigrationsDotnetClientSplitPersonRegisteredV1)

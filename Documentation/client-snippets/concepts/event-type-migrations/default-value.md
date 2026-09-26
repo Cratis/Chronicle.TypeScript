@@ -1,18 +1,27 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class MigrationsDefaultValueOrderShippedV1 {
-    constructor(readonly trackingNumber: string) {}
+    @field(String) readonly trackingNumber: string;
+
+    constructor(trackingNumber: string) {
+        this.trackingNumber = trackingNumber;
+    }
 }
 
 @eventType('order-shipped', 2)
 class MigrationsDefaultValueOrderShipped {
-    constructor(
-        readonly trackingNumber: string,
-        readonly retryCount: number,
-        readonly description: string
-    ) {}
+    @field(String) readonly trackingNumber: string;
+    @field(Number) readonly retryCount: number;
+    @field(String) readonly description: string;
+
+    constructor(trackingNumber: string, retryCount: number, description: string) {
+        this.trackingNumber = trackingNumber;
+        this.retryCount = retryCount;
+        this.description = description;
+    }
 }
 
 @eventTypeMigration(MigrationsDefaultValueOrderShipped, MigrationsDefaultValueOrderShippedV1)

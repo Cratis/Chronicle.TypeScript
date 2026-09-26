@@ -1,17 +1,25 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class MigrationsAuthorRegisteredV1 {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType('author-registered', 2)
 class MigrationsAuthorRegistered {
-    constructor(
-        readonly firstName: string,
-        readonly lastName: string
-    ) {}
+    @field(String) readonly firstName: string;
+    @field(String) readonly lastName: string;
+
+    constructor(firstName: string, lastName: string) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 }
 
 @eventTypeMigration(MigrationsAuthorRegistered, MigrationsAuthorRegisteredV1)

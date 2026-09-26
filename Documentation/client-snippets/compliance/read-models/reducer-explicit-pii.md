@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, pii, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ComplianceReadModelsPatientAdmitted {
-    constructor(readonly name: string, readonly admittedAt: Date) {}
+    @field(String) readonly name: string;
+    @field(Date) readonly admittedAt: Date;
+
+    constructor(name: string, admittedAt: Date) {
+        this.name = name;
+        this.admittedAt = admittedAt;
+    }
 }
 
 // Reducer-backed read models do not inherit PII lineage from the source event automatically -
