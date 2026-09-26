@@ -181,6 +181,9 @@ export class ProjectionCapabilities {
             this.checkSchema(source, path, (_path, reason) => fail(reason));
             return;
         }
+        if (expression.startsWith('$context.')) {
+            return fail('is a legacy expression the kernel does not resolve; event-context mappings use $eventContext(...)');
+        }
         fail('requires a kernel-backed test');
     }
 

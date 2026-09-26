@@ -108,7 +108,7 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         definition.From[0].Value.Properties.state = '$context.eventType';
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
             .with.property('message').that.includes('(.from().setFromContext)')
-                .and.includes("expression '$context.eventType'").and.includes('requires a kernel-backed test');
+                .and.includes("expression '$context.eventType'").and.includes('$eventContext(...)');
     });
 
     it('should reject a client-emitted derived context function at the phase-one boundary', () => {
