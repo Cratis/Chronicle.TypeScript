@@ -19,13 +19,17 @@ The runner creates a real `ProjectionFactory` projection and calls the public `P
 | `mapped-and-removed` | `oracleGuard` — an event registered for both mapping and removal is outside phase 1: mapping errors can occur before removal wins. |
 | `flat-set-from-automap` | Explicit `setFrom` wins for `title`, schema-based AutoMap supplies `quantity`, `$null` on an absent field adds nothing, and context expressions read identity, subject, correlation ID and occurred year. |
 | `null-vs-missing` | Mapping a content field that is absent adds no field (null compared with absent is no change); clearing a subsequently present field leaves an explicit null in engine state, omitted from the public read. |
+| `case-colliding-event-properties` | Exact-case lookup of colliding event names and null-sensitive fallback to the first case-insensitive property in JSON order, including both orders of a null member. |
 | `compatible-mappings` | Same-format strings/GUIDs, GUID to string, int32/uint32 to double, and numeric text to int32/uint32/double through the kernel expression converter. |
 | `concept-shaped-objects` | `oracleGuard` — initial `{value:5}` and nested `inner.value` retain their shapes, but object/array target mappings are outside phase 1. |
 | `mapped-id-key-wins` | `oracleGuard` — both AutoMap and explicit mappings into lowercase `id` are outside phase 1; the in-memory sink restores its key. |
 | `scalar-context-roots` | Fixture-backed scalar event-context roots and members, including omitted Subject defaulting to the event source ID. |
 | `remove-absent` | Removing a key that never existed does not materialize it; a later constructive event creates it. |
-| `reject-protected-fields` | `kind: oracleGuard` — records the oracle's own fail-closed boundary, not kernel semantics; evaluators must reject it. A protected schema reaches `EncryptChangeset` and fails closed at the compliance proxy; the expected error and unchanged sink snapshot are asserted. |
+| `reject-protected-fields`, `reject-protected-identifier` | `kind: oracleGuard` — records the oracle's own fail-closed boundary, not kernel semantics; evaluators must reject it. Both a mapped protected field and an unmapped protected identifier reach `EncryptChangeset` and fail closed at the compliance proxy; the expected error and unchanged sink snapshot are asserted. |
 | `guid-datetime-defaults`, `initial-scalar-defaults` | Missing GUID and date-time defaults in event content, non-empty schema-converted initial state, public reads, and lowercase GUIDs. |
+| `datetime-boundaries` | Valid minimum and maximum DateTime UTC values, with an out-of-range timestamp rejected by the kernel. |
+| `scalar-matrix-and-clearing` | `$value` literals and `$null` clearing for the supported scalar types, alongside `$eventSourceId` conversion. |
+| `unmapped-structures-empty`, `unmapped-structures-initial` | Empty initial state seeds an unmapped array as `[]` but omits the object; non-empty scalar initial state omits both unmapped structures. |
 | `case-insensitive-automap`, `no-automap-properties` | Case-insensitive matching and exclusions. |
 | `aggregate-only-automap`, `arithmetic` | `oracleGuard` — arithmetic and aggregate-only AutoMap suppression require a kernel-backed test. |
 | `numeric-keys`, `guid-keys-and-literals` | Canonical numeric/GUID keys and lowercase GUID `$value` literals. |
