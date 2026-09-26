@@ -71,14 +71,7 @@ export class ProjectionCapabilities {
             const target = schema!.properties?.[property]
                 ?? reject(`InitialModelState.${property}`, 'initial value has no read-model schema');
             this.checkSchema(target, `InitialModelState.${property}`, reject);
-            if (typeof value === 'number') {
-                const outsideIntegerRange = !Number.isSafeInteger(value) ||
-                    (target.format === 'int32' && (value < -2147483648 || value > 2147483647)) ||
-                    (target.format === 'uint32' && (value < 0 || value > 4294967295));
-                if (!Number.isFinite(value) || (target.type === 'integer' && outsideIntegerRange)) {
-                    reject(`InitialModelState.${property}`, 'initial numeric value is outside the supported finite/integer range');
-                }
-            }
+            this.checkInitialValue(value, target, `InitialModelState.${property}`, reject);
         }
         const generations = new Map<string, number>();
         const requireEventSchema = (eventType: ContractEventType, path: string): JsonSchema => {
@@ -208,11 +201,34 @@ export class ProjectionCapabilities {
         if (source.type === 'string' && !source.format && Array.isArray(target.type) &&
             target.type[0] === 'string' && target.type[1] === 'null') return true;
         if (source.type === 'string' && !source.format &&
-            ((target.type === 'number' && target.format === 'double') ||
+            ((target.type === 'number' && (!target.format || target.format === 'double')) ||
                 (target.type === 'integer' && ['int32', 'uint32'].includes(target.format ?? '')))) return true;
         if (source.type === 'string' && source.format === 'guid' && target.type === 'string' && !target.format) return true;
         return source.type === 'integer' && ['int32', 'uint32'].includes(source.format ?? '') &&
-            target.type === 'number' && target.format === 'double';
+            target.type === 'number' && (!target.format || target.format === 'double');
+    }
+
+    private static checkInitialValue(value: unknown, target: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
+        if (value === null && Array.isArray(target.type) && target.type.includes('null')) return;
+        if (target.type === 'object' || target.type === 'array' || target.format === 'date-time') {
+            reject(path, 'initial object, array, or date-time values require a kernel-backed test');
+        }
+        if (target.type === 'integer' || target.type === 'number') {
+            if (typeof value !== 'number') reject(path, 'initial numeric value must be a JSON number');
+            const outsideIntegerRange = !Number.isSafeInteger(value) ||
+                (target.format === 'int32' && (value < -2147483648 || value > 2147483647)) ||
+                (target.format === 'uint32' && (value < 0 || value > 4294967295));
+            if (!Number.isFinite(value) || (target.type === 'integer' && outsideIntegerRange)) {
+                reject(path, 'initial numeric value is outside the supported finite/integer range');
+            }
+        } else if (target.type === 'boolean') {
+            if (typeof value !== 'boolean') reject(path, 'initial boolean value must be a JSON boolean');
+        } else if (target.type === 'string' || Array.isArray(target.type)) {
+            if (typeof value !== 'string') reject(path, 'initial string value must be a JSON string');
+            if (target.format === 'guid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) {
+                reject(path, 'initial GUID value must be canonical lowercase text');
+            }
+        } else reject(path, 'initial value requires a kernel-backed test');
     }
 
     private static propertyAt(schema: JsonSchema, path: string): JsonSchema | undefined {
@@ -225,6 +241,7 @@ export class ProjectionCapabilities {
     }
 
     private static checkSchema(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
+        if (schema.compliance?.length || schema.security?.length) reject(path, 'protected fields require a kernel-backed test');
         if (!schema.type || schema.type === 'null' || (Array.isArray(schema.type) &&
             (schema.type.length !== 2 || schema.type[0] !== 'string' || schema.type[1] !== 'null')) ||
             (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||

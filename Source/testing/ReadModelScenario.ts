@@ -4,6 +4,7 @@
 import 'reflect-metadata';
 import { JsonSerializer } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
+import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFromEventMetadata } from '../projections/modelBound/fromEvent.js';
@@ -16,7 +17,6 @@ import { getProjectionMetadata } from '../projections/declarative/projection.js'
 import { ProjectionDefinitionCompiler } from '../projections/ProjectionDefinitionCompiler.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
-import { DecoratorType } from '../types/DecoratorType.js';
 import { hasModelBoundProperties, TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { ReadModelScenarioGivenBuilder } from './ReadModelScenarioGivenBuilder.js';
 import type { IReadModelProcessor } from './IReadModelProcessor.js';
@@ -42,12 +42,7 @@ export class ReadModelScenario<TReadModel extends object> {
     /** Selects the reducer (when present) or a single applicable compiled projection. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
         this._modelName = readModelType.name;
-        const registered = artifacts ?? {
-            reducers: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer),
-            eventTypes: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType),
-            projections: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Projection),
-            readModels: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.ReadModel)
-        };
+        const registered = artifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
         const reducerTypes = registered.reducers.filter(type => getReducerMetadata(type)?.readModel === readModelType);
         if (reducerTypes.length > 1) {
             throw new Error(`Multiple reducers found for read model '${readModelType.name}'.`);
@@ -75,7 +70,7 @@ export class ReadModelScenario<TReadModel extends object> {
         }
         const catalog: IClientArtifactsProvider = {
             eventTypes: registered.eventTypes, reducers: registered.reducers, projections: declarative,
-            readModels: registered.readModels ?? [readModelType],
+            readModels: [...new Set([...(registered.readModels ?? []), readModelType])],
             globalForHandlers: artifacts?.globalForHandlers ?? [], reactors: [], seeders: [], constraints: [],
             webhooks: [], eventTypeMigrations: []
         };

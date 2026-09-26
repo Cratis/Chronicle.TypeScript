@@ -10,7 +10,7 @@
     "version": "19.6.1",
     "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
   },
-  "definitionSource": "Hand-written against the generated 19.6.1 contract; same-format, guid-to-string, int32/uint32-to-double and text-to-int32/uint32/double mappings.",
+  "definitionSource": "Hand-written against the generated 19.6.1 contract; int32/uint32 and text to unformatted TypeScript Number fields, and decimal text to int32 rejection.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-compatible",
@@ -75,12 +75,10 @@
           "type": "string"
         },
         "doubleFromInt": {
-          "type": "number",
-          "format": "double"
+          "type": "number"
         },
         "doubleFromUint": {
-          "type": "number",
-          "format": "double"
+          "type": "number"
         },
         "intFromText": {
           "type": "integer",
@@ -91,8 +89,7 @@
           "format": "uint32"
         },
         "doubleFromText": {
-          "type": "number",
-          "format": "double"
+          "type": "number"
         }
       }
     }
@@ -146,6 +143,28 @@
         "uintSource": 42,
         "numericText": "25"
       }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Conversions",
+          "Generation": 1
+        },
+        "eventSourceId": "conversion-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "text": "hello",
+        "guidSource": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "intSource": -37,
+        "uintSource": 42,
+        "numericText": "1.0"
+      },
+      "expectedError": {
+        "type": "System.FormatException",
+        "message": "The input string '1.0' was not in a correct format."
+      }
     }
   ],
   "expected": [
@@ -178,6 +197,41 @@
           "uintFromText": 25,
           "doubleFromText": 25
         }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "__initialized": true,
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25,
+          "__subject": "conversion-a"
+        }
+      },
+      "publicRead": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25
+        }
+      },
+      "error": {
+        "type": "System.FormatException",
+        "message": "The input string '1.0' was not in a correct format."
       }
     }
   ]

@@ -200,6 +200,14 @@ describe('ReadModelScenario', () => {
         expect(await scenario.wasDeletedForEventSourceId('A')).toBe(false);
     });
 
+    it('discovers a property-only model-bound read model without an artifact catalog', async () => {
+        class PropertyOnlyState { @field(Number) count = 0; }
+        setFrom(ItemAdded, 'amount')(PropertyOnlyState.prototype, 'count');
+        const scenario = new ReadModelScenario(PropertyOnlyState);
+        scenario.given.forEventSource('A').events(new ItemAdded(5));
+        expect(await scenario.instance).toMatchObject({ count: 5 });
+    });
+
     it('defaults a projection Subject mapping to the event source when the seed has no subject', async () => {
         class SubjectState { @field(String) subject = ''; }
         fromEvent(ItemAdded)(SubjectState);
@@ -207,6 +215,15 @@ describe('ReadModelScenario', () => {
         const scenario = new ReadModelScenario(SubjectState, artifacts);
         scenario.given.forEventSource('source-a').events(new ItemAdded(1));
         expect(await scenario.instance).toMatchObject({ subject: 'source-a' });
+    });
+
+    it('defaults a projection Hash and CausedBy mapping to kernel sentinels when the seed omits them', async () => {
+        class ContextDefaults { @field(String) hash = ''; @field(String) causedByName = ''; }
+        setFromContext(ItemAdded, 'hash')(ContextDefaults.prototype, 'hash');
+        setFromContext(ItemAdded, 'causedBy.name')(ContextDefaults.prototype, 'causedByName');
+        const scenario = new ReadModelScenario(ContextDefaults, artifacts);
+        scenario.given.forEventSource('A').events(new ItemAdded(1));
+        expect(await scenario.instance).toMatchObject({ hash: '', causedByName: '[Not Set]' });
     });
 
     it('rejects a seeded generation different from the subscribed generation before mapping', async () => {

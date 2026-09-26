@@ -61,7 +61,8 @@ export class ProjectionValueConverter {
             if (eventContent && typeof value !== 'number') {
                 throw new RangeError(`Projection event numeric value '${String(value)}' must be a JSON number.`);
             }
-            if (typeof value !== 'number' && (typeof value !== 'string' || !/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value))) {
+            if (typeof value !== 'number' && (typeof value !== 'string' ||
+                !(schema.type === 'integer' ? /^[+-]?\d+$/.test(value) : /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value)))) {
                 throw new RangeError(`Projection numeric value '${String(value)}' is not supported by ${schema.type}/${schema.format ?? 'double'}.`);
             }
             const number = typeof value === 'number' ? value : Number(value);

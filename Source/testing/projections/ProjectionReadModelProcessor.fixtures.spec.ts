@@ -28,8 +28,8 @@ interface Fixture {
     wireDefinition: ProjectionDefinition;
     readModel: { schema: FixtureSchema };
     eventSchemas: Array<{ eventType: { Id: string; Generation: number }; schema: FixtureSchema }>;
-    events: Array<{ context: Record<string, unknown> & { eventType: { Id: string; Generation: number }; eventSourceId: string; sequenceNumber: string; occurred: string }; content: unknown }>;
-    expected: Array<{ sequenceNumber: string; engineState: Record<string, unknown>; publicRead: Record<string, unknown> }>;
+    events: Array<{ context: Record<string, unknown> & { eventType: { Id: string; Generation: number }; eventSourceId: string; sequenceNumber: string; occurred: string }; content: unknown; expectedError?: { type: string; message: string } }>;
+    expected: Array<{ sequenceNumber: string; engineState: Record<string, unknown>; publicRead: Record<string, unknown>; error?: { type: string; message: string } }>;
 }
 
 class OracleReadModel {}
@@ -37,45 +37,93 @@ const directory = new URL('./fixtures/', import.meta.url);
 const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json'))
     .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
 const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
+const guardErrors: Record<string, { type: string; message: string }> = {
+    'rounded-integer-operand.json': { type: 'UnsupportedProjectionOperation', message: 'same integer/number kind' },
+    'int32-overflow.json': { type: 'RangeError', message: 'outside the supported integer/int32 range' },
+    'null-accumulator.json': { type: 'RangeError', message: "Projection arithmetic on null at 'count'" },
+    'reject-protected-fields.json': { type: 'UnsupportedProjectionOperation', message: 'protected fields require a kernel-backed test' }
+};
+
+function setup(fixture: Fixture): { processor: ProjectionReadModelProcessor<OracleReadModel>; events: ScenarioEvent[] } {
+    const definition = fixture.wireDefinition;
+    const schemas = new Map<string, ProjectionEventSchema>(fixture.eventSchemas.map(entry => [
+        `${entry.eventType.Id}:${entry.eventType.Generation}:0`,
+        { eventType: { ...entry.eventType, Tombstone: false }, schema: entry.schema as JsonSchema }
+    ]));
+    const compiled: CompiledProjectionDefinitions = {
+        definitions: [definition],
+        readModels: [buildReadModelDefinition({ identifier: definition.ReadModel, schema: JSON.stringify(fixture.readModel.schema),
+            sinkTypeId: 'test', observerType: ReadModelObserverType.Projection, observerIdentifier: definition.Identifier })],
+        provenance: new Map([[definition, []]]), eventSchemas: new Map([[definition, schemas]])
+    };
+    const events: ScenarioEvent[] = fixture.events.map(({ context, content }) => ({
+        sourceId: context.eventSourceId, content,
+        context: {
+            ...context,
+            eventType: EventType.parse(`${context.eventType.Id}+${context.eventType.Generation}`),
+            sequenceNumber: BigInt(context.sequenceNumber), occurred: new Date(context.occurred),
+            causation: context.causation ?? [], tags: context.tags ?? [],
+            correlationId: context.correlationId ?? '00000000-0000-0000-0000-000000000000'
+        } as EventContext
+    }));
+    return { processor: new ProjectionReadModelProcessor(OracleReadModel, compiled, definition), events };
+}
 
 describe('when replaying committed kernel semantics fixtures', () => {
-    it('should run at least one kernel fixture and exclude oracle guards', () => {
+    it('should run kernel fixtures and assert every oracle guard', () => {
         fixtures.length.should.be.greaterThan(0);
+        allFixtures.filter(({ fixture }) => fixture.kind === 'oracleGuard').length.should.equal(Object.keys(guardErrors).length);
         allFixtures.every(({ fixture }) => fixture.kind === 'kernelSemantics' || fixture.kind === 'oracleGuard').should.be.true;
     });
 
     for (const { name, fixture } of fixtures) {
         it(`should match each engine and public read snapshot for ${name}`, async () => {
-            const definition = fixture.wireDefinition;
-            const schemas = new Map<string, ProjectionEventSchema>(fixture.eventSchemas.map(entry => [
-                `${entry.eventType.Id}:${entry.eventType.Generation}:0`,
-                { eventType: { ...entry.eventType, Tombstone: false }, schema: entry.schema as JsonSchema }
-            ]));
-            const compiled: CompiledProjectionDefinitions = {
-                definitions: [definition],
-                readModels: [buildReadModelDefinition({ identifier: definition.ReadModel, schema: JSON.stringify(fixture.readModel.schema),
-                    sinkTypeId: 'test', observerType: ReadModelObserverType.Projection, observerIdentifier: definition.Identifier })],
-                provenance: new Map([[definition, []]]), eventSchemas: new Map([[definition, schemas]])
-            };
-            const processor = new ProjectionReadModelProcessor(OracleReadModel, compiled, definition);
+            const { processor, events } = setup(fixture);
             fixture.expected.length.should.equal(fixture.events.length);
-            const events: ScenarioEvent[] = fixture.events.map(({ context, content }) => ({
-                sourceId: context.eventSourceId, content,
-                context: {
-                    ...context,
-                    eventType: EventType.parse(`${context.eventType.Id}+${context.eventType.Generation}`),
-                    sequenceNumber: BigInt(context.sequenceNumber), occurred: new Date(context.occurred),
-                    causation: context.causation ?? [], tags: context.tags ?? [],
-                    correlationId: context.correlationId ?? '00000000-0000-0000-0000-000000000000'
-                } as EventContext
-            }));
             for (let step = 0; step < events.length; step++) {
                 const expected = fixture.expected[step];
-                expected.sequenceNumber.should.equal(fixture.events[step].context.sequenceNumber);
-                await processor.process(events.slice(0, step + 1));
-                processor.engineState.should.deep.equal(expected.engineState);
-                processor.publicRead.should.deep.equal(expected.publicRead);
+                const input = fixture.events[step];
+                expected.sequenceNumber.should.equal(input.context.sequenceNumber);
+                if (input.expectedError) {
+                    expected.error!.should.deep.equal(input.expectedError);
+                    (step === events.length - 1).should.be.true;
+                    await processor.process(events.slice(0, step + 1)).then(
+                        () => { throw new Error('Evaluator accepted a kernel-rejected mapping'); },
+                        error => {
+                            (error instanceof RangeError).should.be.true;
+                            (error as Error).message.should.include('not supported by integer/int32');
+                        }
+                    );
+                } else {
+                    await processor.process(events.slice(0, step + 1));
+                    processor.engineState.should.deep.equal(expected.engineState);
+                    processor.publicRead.should.deep.equal(expected.publicRead);
+                }
             }
+        });
+    }
+
+    for (const { name, fixture } of allFixtures.filter(({ fixture }) => fixture.kind === 'oracleGuard')) {
+        it(`should reject the oracle guard ${name} rather than silently reproduce unproven behavior`, async () => {
+            const expected = guardErrors[name];
+            (expected !== undefined).should.be.true;
+            for (let index = 0; index < fixture.events.length; index++) {
+                const error = fixture.events[index].expectedError;
+                if (error) {
+                    fixture.expected[index].error!.should.deep.equal(error);
+                    (index === fixture.events.length - 1).should.be.true;
+                }
+            }
+            let actual: unknown;
+            try {
+                const { processor, events } = setup(fixture);
+                await processor.process(events);
+            } catch (error) {
+                actual = error;
+            }
+            (actual instanceof Error).should.be.true;
+            (actual as Error).name.should.equal(expected.type);
+            (actual as Error).message.should.include(expected.message);
         });
     }
 });

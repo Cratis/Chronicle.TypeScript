@@ -53,7 +53,7 @@ describe('when validating the phase-one projection subset', () => {
                 .add(model => model.total).with(event => event.quantity)
                 .subtract(model => model.total).with(event => event.quantity)
                 .increment(model => model.total).decrement(model => model.total).count(model => model.total))
-            .from(Removed).removedWith(Removed).withInitialValues(() => ({ id: '', name: '', quantity: 0, total: 0, state: 'new', labels: [], details: {} })));
+            .from(Removed).removedWith(Removed).withInitialValues(() => ({ id: '', name: '', quantity: 0, total: 0, state: 'new' })));
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
@@ -80,10 +80,10 @@ describe('when validating the phase-one projection subset', () => {
         });
     }
 
-    it('should accept declarative null clearing and an explicit null initial accumulator', () => {
+    it('should accept declarative null clearing with numeric initial state', () => {
         const { compiled, definition } = compileDeclarative(builder => builder
             .from(Changed, from => from.set(model => model.state).toValue(null).count(model => model.total))
-            .withInitialValues(() => ({ id: '', name: '', quantity: 0, total: null as unknown as number, state: '', labels: [], details: {} })));
+            .withInitialValues(() => ({ id: '', name: '', quantity: 0, total: 0, state: '' })));
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 

@@ -29,13 +29,11 @@ function setModelSchema(compiled: ReturnType<typeof compileDeclarative>['compile
 }
 
 describe('when validating schema-bound projection operations', () => {
-    it('should accept generated date, date concept, and nested date formats for pass-through and initial values', () => {
+    it('should accept generated date, date concept, and nested date formats for pass-through', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from
             .set(model => model.name).to(event => event.name)
             .set(model => model.state).to(event => event.name)
-            .set(model => model.details).to(event => event.details))
-            .withInitialValues(() => ({ id: '', name: '', quantity: 0, total: 0, state: new Date('2026-01-01') as unknown as string,
-                labels: [], details: { created: new Date('2026-01-01') } })));
+            .set(model => model.details).to(event => event.details)));
         const dates = JsonSchemaGenerator.generate(Dated).properties!;
         setModelSchema(compiled, properties => {
             properties.name = dates.created;
@@ -79,6 +77,31 @@ describe('when validating schema-bound projection operations', () => {
             });
         }
     }
+
+    for (const [property, target, value, reason] of [
+        ['state', { type: 'boolean' }, 'yes', 'initial boolean value must be a JSON boolean'],
+        ['total', { type: 'integer', format: 'int32' }, '5', 'initial numeric value must be a JSON number'],
+        ['state', { type: 'string', format: 'guid' }, 'not-a-guid', 'initial GUID value must be canonical lowercase text']
+    ] as const) {
+        it(`should reject incompatible initial value for ${property}`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+            setModelSchema(compiled, properties => { properties[property] = target; });
+            definition.InitialModelState = JSON.stringify({ [property]: value });
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes(`InitialModelState.${property} (.withInitialValues)`)
+                .and.includes(reason);
+        });
+    }
+
+    it('should reject unproven initial date-time, object and array values', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+        for (const [property, value] of [['state', '2026-01-01T00:00:00.000Z'], ['details', {}], ['labels', []]] as const) {
+            if (property === 'state') setModelSchema(compiled, properties => { properties.state = { type: 'string', format: 'date-time' }; });
+            definition.InitialModelState = JSON.stringify({ [property]: value });
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes(`InitialModelState.${property}`);
+        }
+    });
 
     it('should accept $null for a date destination', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toValue(null)));

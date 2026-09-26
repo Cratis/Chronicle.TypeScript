@@ -10,7 +10,7 @@
     "version": "19.6.1",
     "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
   },
-  "definitionSource": "Hand-written generated 19.6.1 contract; scalar context paths and Subject default when omitted.",
+  "definitionSource": "Hand-written generated 19.6.1 contract; scalar context paths, explicit metadata and omitted Subject, Hash and CausedBy defaults.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-context",
@@ -183,6 +183,23 @@
         "hash": "fixture-hash"
       },
       "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ContextChange",
+          "Generation": 1
+        },
+        "eventSourceId": "source-b",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "sequenceNumber": "1",
+        "occurred": "2025-03-04T05:06:08Z",
+        "eventStore": "oracle-store",
+        "namespace": "oracle-namespace"
+      },
+      "content": {}
     }
   ],
   "expected": [
@@ -235,6 +252,113 @@
           "causedSubject": "person",
           "causedName": "Alice",
           "causedUser": "alice",
+          "typeId": "ContextChange",
+          "generation": 1,
+          "year": 2025,
+          "month": 3,
+          "day": 4
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "source-a": {
+          "id": "source-a",
+          "__initialized": true,
+          "sequence": "0",
+          "sequenceValue": "0",
+          "source": "source-a",
+          "store": "oracle-store",
+          "ns": "oracle-namespace",
+          "sourceType": "items",
+          "streamType": "stream-type",
+          "streamId": "stream-id",
+          "subject": "source-a",
+          "subjectValue": "source-a",
+          "hash": "fixture-hash",
+          "correlation": "00000000-0000-0000-0000-000000000001",
+          "correlationValue": "00000000-0000-0000-0000-000000000001",
+          "causedSubject": "person",
+          "causedName": "Alice",
+          "causedUser": "alice",
+          "typeId": "ContextChange",
+          "generation": 1,
+          "year": 2025,
+          "month": 3,
+          "day": 4,
+          "__subject": "source-a"
+        },
+        "source-b": {
+          "id": "source-b",
+          "__initialized": true,
+          "sequence": "1",
+          "sequenceValue": "1",
+          "source": "source-b",
+          "store": "oracle-store",
+          "ns": "oracle-namespace",
+          "sourceType": "Default",
+          "streamType": "All",
+          "streamId": "Default",
+          "subject": "source-b",
+          "subjectValue": "source-b",
+          "hash": "",
+          "correlation": "00000000-0000-0000-0000-000000000000",
+          "correlationValue": "00000000-0000-0000-0000-000000000000",
+          "causedSubject": "1efc9b81-0612-4466-962c-86acc4e9a028",
+          "causedName": "[Not Set]",
+          "causedUser": "[Not Set]",
+          "typeId": "ContextChange",
+          "generation": 1,
+          "year": 2025,
+          "month": 3,
+          "day": 4,
+          "__subject": "source-b"
+        }
+      },
+      "publicRead": {
+        "source-a": {
+          "id": "source-a",
+          "sequence": "0",
+          "sequenceValue": "0",
+          "source": "source-a",
+          "store": "oracle-store",
+          "ns": "oracle-namespace",
+          "sourceType": "items",
+          "streamType": "stream-type",
+          "streamId": "stream-id",
+          "subject": "source-a",
+          "subjectValue": "source-a",
+          "hash": "fixture-hash",
+          "correlation": "00000000-0000-0000-0000-000000000001",
+          "correlationValue": "00000000-0000-0000-0000-000000000001",
+          "causedSubject": "person",
+          "causedName": "Alice",
+          "causedUser": "alice",
+          "typeId": "ContextChange",
+          "generation": 1,
+          "year": 2025,
+          "month": 3,
+          "day": 4
+        },
+        "source-b": {
+          "id": "source-b",
+          "sequence": "1",
+          "sequenceValue": "1",
+          "source": "source-b",
+          "store": "oracle-store",
+          "ns": "oracle-namespace",
+          "sourceType": "Default",
+          "streamType": "All",
+          "streamId": "Default",
+          "subject": "source-b",
+          "subjectValue": "source-b",
+          "hash": "",
+          "correlation": "00000000-0000-0000-0000-000000000000",
+          "correlationValue": "00000000-0000-0000-0000-000000000000",
+          "causedSubject": "1efc9b81-0612-4466-962c-86acc4e9a028",
+          "causedName": "[Not Set]",
+          "causedUser": "[Not Set]",
           "typeId": "ContextChange",
           "generation": 1,
           "year": 2025,

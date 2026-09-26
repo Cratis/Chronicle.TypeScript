@@ -15,6 +15,17 @@ describe('when converting schema-bound projection values', () => {
         });
     }
 
+    for (const format of ['int32', 'uint32']) {
+        it(`should reject decimal-spelled text mapped into ${format} even when the number is integral`, () => {
+            (() => ProjectionValueConverter.convert('1.0', { type: 'integer', format })).should.throw(RangeError, `not supported by integer/${format}`);
+            (ProjectionValueConverter.convert('1', { type: 'integer', format }) as number).should.equal(1);
+        });
+    }
+
+    it('should accept numeric text in an unformatted TypeScript Number field', () => {
+        (ProjectionValueConverter.convert('1.0', { type: 'number' }) as number).should.equal(1);
+    });
+
     it('should lowercase a GUID supplied as an expression literal', () => {
         (ProjectionValueConverter.convert('ABCDEFAB-ABCD-ABCD-ABCD-ABCDEFABCDEF', { type: 'string', format: 'guid' }) as string)
             .should.equal('abcdefab-abcd-abcd-abcd-abcdefabcdef');

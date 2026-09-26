@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { EventContext } from '../../events/EventContext.js';
+import { Identity } from '../../identity/Identity.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 
@@ -32,7 +33,7 @@ export class ProjectionExpressionEvaluator {
             SequenceNumber: context.sequenceNumber.toString(), EventSourceId: context.eventSourceId,
             EventStore: context.eventStore, Namespace: context.namespace, EventSourceType: context.eventSourceType,
             EventStreamType: context.eventStreamType, EventStreamId: context.eventStreamId,
-            Subject: context.subject ?? context.eventSourceId, Hash: context.hash, CausedBy: context.causedBy,
+            Subject: context.subject ?? context.eventSourceId, Hash: context.hash ?? '', CausedBy: context.causedBy ?? Identity.notSet,
             ObservationState: context.observationState, EventType: context.eventType,
             Occurred: context.occurred, CorrelationId: context.correlationId,
             Causation: context.causation, Tags: context.tags
