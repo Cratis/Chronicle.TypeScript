@@ -59,11 +59,13 @@ class OrderLine {
     quantity!: number;
 }
 setFrom(LineQuantityChanged)(OrderLine.prototype, 'quantity');
+noAutoMap(OrderLine.prototype, 'quantity');
 
 class OrderSummary {
     total!: number;
 }
 setFrom(SummaryUpdated)(OrderSummary.prototype, 'total');
+noAutoMap(OrderSummary.prototype, 'total');
 clearWith(SummaryCleared)(OrderSummary);
 
 class OrderNote {
@@ -124,6 +126,44 @@ field(OrderSummary)(OrderWithoutAutoMap.prototype, 'summary');
 noAutoMap(OrderWithoutAutoMap);
 fromEvent(OrderCreated)(OrderWithoutAutoMap);
 
+class Grandchild {
+    id!: string;
+}
+
+class ChildWithGrandchildren {
+    grandchildren!: Grandchild[];
+    detail!: Grandchild | undefined;
+}
+childrenFrom(LineAdded)(ChildWithGrandchildren.prototype, 'grandchildren');
+field(Array, { enumerable: true, genericArguments: [Grandchild] })(ChildWithGrandchildren.prototype, 'grandchildren');
+nested(ChildWithGrandchildren.prototype, 'detail');
+field(Grandchild)(ChildWithGrandchildren.prototype, 'detail');
+
+class DecoratedChildWithGrandchildren {
+    grandchildren!: Grandchild[];
+    detail!: Grandchild | undefined;
+}
+childrenFrom(LineAdded)(DecoratedChildWithGrandchildren.prototype, 'grandchildren');
+field(Array, { enumerable: true, genericArguments: [Grandchild] })(DecoratedChildWithGrandchildren.prototype, 'grandchildren');
+nested(DecoratedChildWithGrandchildren.prototype, 'detail');
+field(Grandchild)(DecoratedChildWithGrandchildren.prototype, 'detail');
+noAutoMap(DecoratedChildWithGrandchildren);
+
+class OrderWithDecoratedChild {
+    children!: DecoratedChildWithGrandchildren[];
+}
+childrenFrom(LineAdded)(OrderWithDecoratedChild.prototype, 'children');
+field(Array, { enumerable: true, genericArguments: [DecoratedChildWithGrandchildren] })(OrderWithDecoratedChild.prototype, 'children');
+fromEvent(OrderCreated)(OrderWithDecoratedChild);
+
+class DecoratedOrderWithUndecoratedChild {
+    children!: ChildWithGrandchildren[];
+}
+childrenFrom(LineAdded)(DecoratedOrderWithUndecoratedChild.prototype, 'children');
+field(Array, { enumerable: true, genericArguments: [ChildWithGrandchildren] })(DecoratedOrderWithUndecoratedChild.prototype, 'children');
+noAutoMap(DecoratedOrderWithUndecoratedChild);
+fromEvent(OrderCreated)(DecoratedOrderWithUndecoratedChild);
+
 interface FromRecord {
     Key: { Id: string };
     Value: { Properties: Record<string, string>; Key: string; ParentKey: string };
@@ -132,8 +172,11 @@ interface FromRecord {
 interface ChildrenDefinition {
     IdentifiedBy: string;
     AutoMap: AutoMap;
+    NoAutoMapProperties: string[];
     From: FromRecord[];
     RemovedWith: Array<{ Key: { Id: string } }>;
+    Children: Record<string, ChildrenDefinition>;
+    Nested: Record<string, ChildrenDefinition>;
 }
 
 interface BuiltDefinition {
@@ -182,6 +225,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
 
             expect(lines.IdentifiedBy).toBe('productId');
             expect(lines.AutoMap).toBe(AutoMap.Enabled);
+            expect(lines.NoAutoMapProperties).toEqual(['quantity']);
             const creationEntry = lines.From.find(candidate => candidate.Key.Id === 'LineAdded')!;
             expect(creationEntry.Value.Key).toBe('$eventSourceId');
             expect(creationEntry.Value.ParentKey).toBe('$eventSourceId');
@@ -199,6 +243,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
 
             expect(tags.From.some(candidate => candidate.Key.Id === 'TagAdded')).toBe(true);
             expect(tags.AutoMap).toBe(AutoMap.Enabled);
+            expect(tags.NoAutoMapProperties).toEqual([]);
         });
 
         it('should build a nested definition honoring a class-level clearWith on the nested type', async () => {
@@ -210,6 +255,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
 
             expect(summary.IdentifiedBy).toBe('*NotSet*');
             expect(summary.AutoMap).toBe(AutoMap.Enabled);
+            expect(summary.NoAutoMapProperties).toEqual(['total']);
             const updateEntry = summary.From.find(candidate => candidate.Key.Id === 'SummaryUpdated')!;
             expect(updateEntry.Value.Properties.total).toBe('total');
             expect(summary.RemovedWith.some(candidate => candidate.Key.Id === 'SummaryCleared')).toBe(true);
@@ -233,6 +279,28 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
             expect(definition.Children.lines.AutoMap).toBe(AutoMap.Disabled);
             expect(definition.Nested.summary.AutoMap).toBe(AutoMap.Disabled);
+        });
+
+        it('should disable grandchild definitions when their declaring child type is decorated', async () => {
+            const { projections, registerMock } = createProjections([OrderWithDecoratedChild]);
+            await projections.register();
+
+            const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
+            const child = definition.Children.children;
+            expect(child.AutoMap).toBe(AutoMap.Disabled);
+            expect(child.Children.grandchildren.AutoMap).toBe(AutoMap.Disabled);
+            expect(child.Nested.detail.AutoMap).toBe(AutoMap.Disabled);
+        });
+
+        it('should not cascade the decorated root policy past an undecorated child', async () => {
+            const { projections, registerMock } = createProjections([DecoratedOrderWithUndecoratedChild]);
+            await projections.register();
+
+            const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
+            const child = definition.Children.children;
+            expect(child.AutoMap).toBe(AutoMap.Disabled);
+            expect(child.Children.grandchildren.AutoMap).toBe(AutoMap.Enabled);
+            expect(child.Nested.detail.AutoMap).toBe(AutoMap.Enabled);
         });
 
         it('should build a nested definition honoring a property-level clearWith', async () => {

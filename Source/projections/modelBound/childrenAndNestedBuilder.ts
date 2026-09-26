@@ -16,7 +16,7 @@ import { getDecrementMetadata } from './decrement.js';
 import { getFromEventMetadata } from './fromEvent.js';
 import { getIncrementMetadata } from './increment.js';
 import { isNested } from './nested.js';
-import { isNoAutoMap } from './noAutoMap.js';
+import { isNoAutoMap, isPropertyNoAutoMap } from './noAutoMap.js';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith.js';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin.js';
 import { getSetFromMetadata } from './setFrom.js';
@@ -44,6 +44,7 @@ export interface ChildrenDefinitionLike {
     RemovedWithJoin: Array<{ Key: ContractEventType; Value: { Key: string } }>;
     AutoMap: AutoMap;
     Nested: Record<string, ChildrenDefinitionLike>;
+    NoAutoMapProperties: string[];
 }
 
 /**
@@ -161,7 +162,9 @@ function createEmptyChildrenDefinition(parentType: Function, childType: Function
         RemovedWith: [],
         RemovedWithJoin: [],
         AutoMap: isNoAutoMap(parentType) || (childType !== undefined && isNoAutoMap(childType)) ? AutoMap.Disabled : AutoMap.Enabled,
-        Nested: {}
+        Nested: {},
+        NoAutoMapProperties: childType === undefined ? [] : TypeIntrospector.getTrackedProperties(childType)
+            .filter(property => isPropertyNoAutoMap(childType.prototype, property))
     };
 }
 
