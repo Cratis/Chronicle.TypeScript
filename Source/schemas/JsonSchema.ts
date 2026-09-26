@@ -42,7 +42,7 @@ export type JsonSchema = {
     $schema?: string;
     title?: string;
     description?: string;
-    type?: 'null' | 'boolean' | 'object' | 'array' | 'number' | 'string' | 'integer' | readonly ['string', 'null'];
+    type?: 'null' | 'boolean' | 'object' | 'array' | 'number' | 'string' | 'integer';
     format?: string;
     properties?: Record<string, JsonSchema>;
     required?: string[];

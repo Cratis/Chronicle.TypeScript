@@ -80,7 +80,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 if (operation || ['$count', '$increment', '$decrement'].includes(expression)) {
                     const operand = operation ? ProjectionExpressionEvaluator.pathValue(content, operation[2]) : 1;
                     const before = destination in state ? state[destination] : 0;
-                    if (before === null || operand === null) throw new RangeError(`Projection arithmetic on null at '${destination}' requires a kernel-backed test.`);
+                    if (before === null || operand === null) throw new RangeError(`Projection arithmetic on null at '${destination}' is invalid in the kernel.`);
                     const left = ProjectionValueConverter.convert(before, target) as number;
                     const right = ProjectionValueConverter.convert(operand, target) as number;
                     const next = operation?.[1] === '$subtract' || expression === '$decrement' ? left - right : left + right;
@@ -112,8 +112,8 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     private initialState(key: string, event: ScenarioEvent): Record<string, unknown> {
         const initial: Record<string, unknown> = Object.create(null);
-        for (const [name, value] of Object.entries(this._initial)) {
-            if (value !== null) initial[name] = ProjectionValueConverter.convert(structuredClone(value), this._schema.properties![name]);
+        if (Object.keys(this._initial).length) {
+            Object.assign(initial, ProjectionValueConverter.convert(structuredClone(this._initial), this._schema));
         }
         if (!Object.keys(this._initial).length) {
             for (const [name, property] of Object.entries(this._schema.properties ?? {})) {
@@ -132,8 +132,10 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         for (const [name, schema] of Object.entries(this._schema.properties ?? {})) {
             const value = state[name];
             if (value !== undefined && value !== null) result[name] = value;
-            else if (schema.type === 'integer' || schema.type === 'number') result[name] = 0;
-            else if (schema.type === 'boolean') result[name] = false;
+            else {
+                const fallback = ProjectionValueConverter.defaultValue(schema);
+                if (fallback !== null && fallback !== undefined) result[name] = fallback;
+            }
         }
         return result;
     }

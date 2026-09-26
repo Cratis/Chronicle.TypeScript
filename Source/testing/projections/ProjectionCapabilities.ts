@@ -137,6 +137,7 @@ export class ProjectionCapabilities {
         this.checkSchema(target, path, (_path, reason) => fail(reason));
         if (expression === '$eventSourceId' || expression === '$null') return;
         if (expression.startsWith('$eventContext(')) {
+            if (expression === '$eventContext(Occurred)') fail('raw Occurred is converted inconsistently by the kernel; only its Year, Month and Day paths are supported');
             if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');
             const path = /^\$eventContext\(([^()]*)\)$/.exec(expression)?.[1];
             if (path) {
@@ -154,7 +155,7 @@ export class ProjectionCapabilities {
             const text = expression.slice(7, -1);
             if (target.format === 'date-time') fail('$value date-time literals require a kernel-backed test');
             if (this.numeric(target)) {
-                if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text)) ||
+                if (!(target.type === 'integer' ? /^[+-]?\d+$/.test(text) : /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text)) || !Number.isFinite(Number(text)) ||
                     (target.type === 'integer' && (!Number.isSafeInteger(Number(text)) ||
                         (target.format === 'int32' && (Number(text) < -2147483648 || Number(text) > 2147483647)) ||
                         (target.format === 'uint32' && (Number(text) < 0 || Number(text) > 4294967295))))) {
@@ -175,7 +176,9 @@ export class ProjectionCapabilities {
             if (!this.numeric(target)) fail('arithmetic requires a supported finite number/double or int32/uint32 schema (not float, decimal, duration, or int64)');
             if (operation) {
                 const operand = this.propertyAt(eventSchema, operation[2]);
-                if (!operand || !this.numeric(operand)) fail('arithmetic operand requires a supported numeric event schema');
+                if (!operand || !this.numeric(operand) || (target.type === 'integer' && operand.type !== 'integer')) {
+                    fail('arithmetic operand requires a supported numeric event schema with the same integer/number kind as the target');
+                }
             }
             return;
         }

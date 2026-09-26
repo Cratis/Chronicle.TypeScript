@@ -111,6 +111,14 @@ describe('when rejecting unsupported operations before any event is seeded', () 
                 .and.includes("expression '$context.eventType'").and.includes('$eventContext(...)');
     });
 
+    it('should reject raw Occurred until the kernel conversion is consistent', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+            from.set(model => model.state).toEventContextProperty('occurred')));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('(.from().setFromContext)')
+                .and.includes('raw Occurred is converted inconsistently by the kernel');
+    });
+
     it('should reject a client-emitted derived context function at the phase-one boundary', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
             from.set(model => model.state).toEventContextProperty('occurred.week()')));

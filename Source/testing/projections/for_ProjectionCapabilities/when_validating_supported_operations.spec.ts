@@ -70,7 +70,6 @@ describe('when validating the phase-one projection subset', () => {
         ['causedBy', '$eventContext(CausedBy)'],
         ['observationState', '$eventContext(ObservationState)'],
         ['eventType', '$eventContext(EventType)'],
-        ['occurred', '$eventContext(Occurred)'],
         ['correlationId', '$eventContext(CorrelationId)'],
         ['causation', '$eventContext(Causation)'],
         ['tags', '$eventContext(Tags)'],

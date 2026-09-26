@@ -54,6 +54,25 @@ describe('when validating the numeric capability matrix', () => {
         });
     }
 
+    it('should reject a double event operand into an integer accumulator before replay', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
+        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { total: { type: string; format?: string } } };
+        schema.properties.total = { type: 'integer', format: 'int32' };
+        compiled.readModels[0].Schema = JSON.stringify(schema);
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('same integer/number kind');
+    });
+
+    it('should reject an int32 $value literal with a fractional spelling even if its value is integral', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.total).toValue(1)));
+        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { total: { type: string; format?: string } } };
+        schema.properties.total = { type: 'integer', format: 'int32' };
+        compiled.readModels[0].Schema = JSON.stringify(schema);
+        definition.From[0].Value.Properties.total = '$value(1.0)';
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('$value numeric literal is outside');
+    });
+
     it('should reject an overflowing initial integer value', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed)
             .withInitialValues(() => ({ id: '', name: '', quantity: 0, total: 2147483648, state: '', labels: [], details: {} })));

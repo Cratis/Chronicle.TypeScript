@@ -13,6 +13,7 @@ import type { IProjectionBuilderFor } from '../projections/declarative/IProjecti
 import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
 import { projection } from '../projections/declarative/projection.js';
 import { reducer } from '../reducers/reducer.js';
+import { readModel } from '../readModels/readModel.js';
 import { ReadModelScenario, ReadModelScenarioGivenBuilder } from './index.js';
 import { readModelScenarioExample } from './ReadModelScenario.example.js';
 
@@ -209,6 +210,35 @@ describe('ReadModelScenario', () => {
         const scenario = new ReadModelScenario(FluentState, { ...artifacts, projections: [FluentProjection] });
         scenario.given.forEventSource('A').events(new ItemAdded(8));
         expect(await scenario.instance).toMatchObject({ count: 8 });
+    });
+
+    it('does not infer an unbound projection against an incomplete isolated read-model catalog', () => {
+        class AmbiguousState { @field(Number) count = 0; }
+        class AlsoMatching { @field(Number) count = 0; }
+        readModel()(AmbiguousState);
+        readModel()(AlsoMatching);
+        class UnboundProjection implements IProjectionFor<AmbiguousState> {
+            define(builder: IProjectionBuilderFor<AmbiguousState>): void {
+                builder.from(ItemAdded, from => from.set(model => model.count).to(event => event.amount));
+            }
+        }
+        projection('unbound-scenario-projection')(UnboundProjection);
+        expect(() => new ReadModelScenario(AmbiguousState, { ...artifacts, projections: [UnboundProjection] }))
+            .toThrow('No reducer or projection');
+        expect(() => new ReadModelScenario(AmbiguousState, {
+            ...artifacts, projections: [UnboundProjection], readModels: [AmbiguousState, AlsoMatching]
+        })).toThrow('found 0');
+    });
+
+    it('includes the read-model name and original error when projection replay fails', async () => {
+        class NumericState { @field(Number) id = 0; }
+        fromEvent(ItemAdded)(NumericState);
+        const scenario = new ReadModelScenario(NumericState, artifacts);
+        scenario.given.forEventSource('01').events(new ItemAdded(1));
+        await expect(scenario.instance).rejects.toMatchObject({
+            message: expect.stringContaining('NumericState'),
+            cause: expect.objectContaining({ message: expect.stringContaining('not a canonical number identifier') })
+        });
     });
 
     it('rejects unsupported mappings before replay even when no events are seeded', () => {

@@ -16,25 +16,32 @@ import { ProjectionReadModelProcessor } from './ProjectionReadModelProcessor.js'
 
 chai.should();
 
+type FixtureSchema = Omit<JsonSchema, 'type' | 'properties' | 'items' | 'additionalProperties'> & {
+    type?: JsonSchema['type'] | readonly ['string', 'null'];
+    properties?: Record<string, FixtureSchema>;
+    items?: FixtureSchema;
+    additionalProperties?: boolean | FixtureSchema;
+};
+
 interface Fixture {
     kind: 'kernelSemantics' | 'oracleGuard';
     wireDefinition: ProjectionDefinition;
-    readModel: { schema: JsonSchema };
-    eventSchemas: Array<{ eventType: { Id: string; Generation: number }; schema: JsonSchema }>;
+    readModel: { schema: FixtureSchema };
+    eventSchemas: Array<{ eventType: { Id: string; Generation: number }; schema: FixtureSchema }>;
     events: Array<{ context: Record<string, unknown> & { eventType: { Id: string; Generation: number }; eventSourceId: string; sequenceNumber: string; occurred: string }; content: unknown }>;
     expected: Array<{ sequenceNumber: string; engineState: Record<string, unknown>; publicRead: Record<string, unknown> }>;
 }
 
 class OracleReadModel {}
 const directory = new URL('./fixtures/', import.meta.url);
-const fixtures = readdirSync(directory).filter(name => name.endsWith('.json'))
-    .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }))
-    .filter(({ fixture }) => fixture.kind === 'kernelSemantics');
+const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json'))
+    .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
+const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
 
 describe('when replaying committed kernel semantics fixtures', () => {
     it('should run at least one kernel fixture and exclude oracle guards', () => {
         fixtures.length.should.be.greaterThan(0);
-        fixtures.some(({ fixture }) => fixture.kind === 'oracleGuard').should.be.false;
+        allFixtures.every(({ fixture }) => fixture.kind === 'kernelSemantics' || fixture.kind === 'oracleGuard').should.be.true;
     });
 
     for (const { name, fixture } of fixtures) {
@@ -42,7 +49,7 @@ describe('when replaying committed kernel semantics fixtures', () => {
             const definition = fixture.wireDefinition;
             const schemas = new Map<string, ProjectionEventSchema>(fixture.eventSchemas.map(entry => [
                 `${entry.eventType.Id}:${entry.eventType.Generation}:0`,
-                { eventType: { ...entry.eventType, Tombstone: false }, schema: entry.schema }
+                { eventType: { ...entry.eventType, Tombstone: false }, schema: entry.schema as JsonSchema }
             ]));
             const compiled: CompiledProjectionDefinitions = {
                 definitions: [definition],
@@ -51,6 +58,7 @@ describe('when replaying committed kernel semantics fixtures', () => {
                 provenance: new Map([[definition, []]]), eventSchemas: new Map([[definition, schemas]])
             };
             const processor = new ProjectionReadModelProcessor(OracleReadModel, compiled, definition);
+            fixture.expected.length.should.equal(fixture.events.length);
             const events: ScenarioEvent[] = fixture.events.map(({ context, content }) => ({
                 sourceId: context.eventSourceId, content,
                 context: {

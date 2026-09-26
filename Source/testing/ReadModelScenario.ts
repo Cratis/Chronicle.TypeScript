@@ -35,11 +35,13 @@ type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes
  */
 export class ReadModelScenario<TReadModel extends object> {
     private readonly _processor: IReadModelProcessor<TReadModel>;
+    private readonly _modelName: string;
     private readonly _events: ScenarioEvent[] = [];
     private _results: Promise<Map<string, ReadModelState<TReadModel>>> | undefined;
 
     /** Selects the reducer (when present) or a single applicable compiled projection. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
+        this._modelName = readModelType.name;
         const registered = artifacts ?? {
             reducers: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer),
             eventTypes: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType),
@@ -62,7 +64,8 @@ export class ReadModelScenario<TReadModel extends object> {
         // unambiguous schema inference; never guess their association from decorators here.
         const declarative = registered.projections.filter(type => {
             const metadata = getProjectionMetadata(type);
-            return metadata !== undefined && (metadata.readModelType === readModelType || metadata.readModelType === undefined);
+            return metadata !== undefined && (metadata.readModelType === readModelType ||
+                (metadata.readModelType === undefined && registered.readModels?.includes(readModelType)));
         });
         if (Number(modelBound) + declarative.filter(type => getProjectionMetadata(type)?.readModelType === readModelType).length > 1) {
             throw new Error(`Multiple projections found for read model '${readModelType.name}'.`);
@@ -72,7 +75,7 @@ export class ReadModelScenario<TReadModel extends object> {
         }
         const catalog: IClientArtifactsProvider = {
             eventTypes: registered.eventTypes, reducers: registered.reducers, projections: declarative,
-            readModels: [...new Set([readModelType, ...(registered.readModels ?? [])])],
+            readModels: registered.readModels ?? [readModelType],
             globalForHandlers: artifacts?.globalForHandlers ?? [], reactors: [], seeders: [], constraints: [],
             webhooks: [], eventTypeMigrations: []
         };
@@ -142,7 +145,10 @@ export class ReadModelScenario<TReadModel extends object> {
     private process(): Promise<Map<string, ReadModelState<TReadModel>>> {
         if (!this._results) {
             const events = [...this._events];
-            this._results = this._processor.process(events);
+            this._results = this._processor.process(events).catch(error => {
+                if (!(this._processor instanceof ProjectionReadModelProcessor)) throw error;
+                throw new Error(`Projection replay for read model '${this._modelName}' failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+            });
         }
         return this._results;
     }
