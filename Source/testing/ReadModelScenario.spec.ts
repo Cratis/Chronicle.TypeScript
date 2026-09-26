@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { ConceptAs, field } from '@cratis/fundamentals';
+import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
 import { eventType } from '../events/eventTypeDecorator.js';
 import type { EventContext } from '../events/EventContext.js';
@@ -186,6 +186,7 @@ describe('ReadModelScenario', () => {
 
     it('replays a compiled model-bound projection and recreates it after removal', async () => {
         class ProjectedState {
+            @field(String) id = '';
             @field(Number) count = 0;
         }
         fromEvent(ItemAdded)(ProjectedState);
@@ -201,7 +202,7 @@ describe('ReadModelScenario', () => {
     });
 
     it('discovers a property-only model-bound read model without an artifact catalog', async () => {
-        class PropertyOnlyState { @field(Number) count = 0; }
+        class PropertyOnlyState { @field(String) id = ''; @field(Number) count = 0; }
         setFrom(ItemAdded, 'amount')(PropertyOnlyState.prototype, 'count');
         const scenario = new ReadModelScenario(PropertyOnlyState);
         scenario.given.forEventSource('A').events(new ItemAdded(5));
@@ -209,7 +210,7 @@ describe('ReadModelScenario', () => {
     });
 
     it('defaults a projection Subject mapping to the event source when the seed has no subject', async () => {
-        class SubjectState { @field(String) subject = ''; }
+        class SubjectState { @field(String) id = ''; @field(String) subject = ''; }
         fromEvent(ItemAdded)(SubjectState);
         setFromContext(ItemAdded, 'subject')(SubjectState.prototype, 'subject');
         const scenario = new ReadModelScenario(SubjectState, artifacts);
@@ -218,7 +219,7 @@ describe('ReadModelScenario', () => {
     });
 
     it('defaults a projection Hash and CausedBy mapping to kernel sentinels when the seed omits them', async () => {
-        class ContextDefaults { @field(String) hash = ''; @field(String) causedByName = ''; }
+        class ContextDefaults { @field(String) id = ''; @field(String) hash = ''; @field(String) causedByName = ''; }
         setFromContext(ItemAdded, 'hash')(ContextDefaults.prototype, 'hash');
         setFromContext(ItemAdded, 'causedBy.name')(ContextDefaults.prototype, 'causedByName');
         const scenario = new ReadModelScenario(ContextDefaults, artifacts);
@@ -229,7 +230,7 @@ describe('ReadModelScenario', () => {
     it('rejects a seeded generation different from the subscribed generation before mapping', async () => {
         class LaterItemAdded { @field(Number) oldAmount = 42; }
         eventType('scenario-item-added', 2)(LaterItemAdded);
-        class GenerationState { @field(Number) count = 0; }
+        class GenerationState { @field(String) id = ''; @field(Number) count = 0; }
         fromEvent(ItemAdded)(GenerationState);
         setFrom(ItemAdded, 'amount')(GenerationState.prototype, 'count');
         const scenario = new ReadModelScenario(GenerationState, { ...artifacts, eventTypes: [...artifacts.eventTypes, LaterItemAdded] });
@@ -240,7 +241,7 @@ describe('ReadModelScenario', () => {
     it('rejects a seeded generation different from a removal subscription', async () => {
         class LaterItemRemoved {}
         eventType('scenario-item-removed', 2)(LaterItemRemoved);
-        class GenerationState { @field(Number) count = 0; }
+        class GenerationState { @field(String) id = ''; @field(Number) count = 0; }
         fromEvent(ItemAdded)(GenerationState);
         removedWith(ItemRemoved)(GenerationState);
         const scenario = new ReadModelScenario(GenerationState, { ...artifacts, eventTypes: [...artifacts.eventTypes, LaterItemRemoved] });
@@ -249,7 +250,7 @@ describe('ReadModelScenario', () => {
     });
 
     it('selects a declarative projection using its final compiled contract', async () => {
-        class FluentState { @field(Number) count = 0; }
+        class FluentState { @field(String) id = ''; @field(Number) count = 0; }
         class FluentProjection implements IProjectionFor<FluentState> {
             define(builder: IProjectionBuilderFor<FluentState>): void {
                 builder.from(ItemAdded, from => from.set(model => model.count).to(event => event.amount));
@@ -280,28 +281,28 @@ describe('ReadModelScenario', () => {
     });
 
     it('includes the read-model name and original error when projection replay fails', async () => {
-        class NumericState { @field(Number) id = 0; }
+        class NumericState { @field(Guid) id!: Guid; }
         fromEvent(ItemAdded)(NumericState);
         const scenario = new ReadModelScenario(NumericState, artifacts);
         scenario.given.forEventSource('01').events(new ItemAdded(1));
         await expect(scenario.instance).rejects.toMatchObject({
             message: expect.stringContaining('NumericState'),
-            cause: expect.objectContaining({ message: expect.stringContaining('not a canonical number identifier') })
+            cause: expect.objectContaining({ message: expect.stringContaining('Projection GUID value') })
         });
     });
 
     it('rejects unsupported mappings before replay even when no events are seeded', () => {
-        class CustomKeyState { @field(Number) count = 0; }
+        class CustomKeyState { @field(String) id = ''; @field(Number) count = 0; }
         fromEvent(ItemAdded, { key: 'amount' })(CustomKeyState);
         expect(() => new ReadModelScenario(CustomKeyState, artifacts)).toThrow('only $eventSourceId keys are supported');
     });
 
-    it('rejects noncanonical numeric source IDs instead of merging independent histories', async () => {
-        class NumericState { @field(Number) id = 0; }
+    it('rejects noncanonical GUID source IDs instead of merging independent histories', async () => {
+        class NumericState { @field(Guid) id!: Guid; }
         fromEvent(ItemAdded)(NumericState);
         const scenario = new ReadModelScenario(NumericState, artifacts);
         scenario.given.forEventSource('01').events(new ItemAdded(1));
-        await expect(scenario.instance).rejects.toThrow('not a canonical number identifier');
+        await expect(scenario.instance).rejects.toThrow('Projection GUID value');
     });
 
     it('keeps reducer precedence when a projection also applies', async () => {

@@ -12,16 +12,12 @@ chai.should();
 
 describe('when validating the numeric capability matrix', () => {
     for (const format of ['int32', 'uint32']) {
-        it(`should accept ${format} arithmetic with a matching event operand and literal`, () => {
+        it(`should accept a finite ${format} literal without admitting arithmetic`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from
-                .add(model => model.total).with(event => event.quantity)
                 .set(model => model.quantity).toValue(12)));
-            const modelSchema = JSON.parse(compiled.readModels[0].Schema) as { properties: { total: { type: string; format?: string }; quantity: { type: string; format?: string } } };
-            modelSchema.properties.total = { type: 'integer', format };
+            const modelSchema = JSON.parse(compiled.readModels[0].Schema) as { properties: { quantity: { type: string; format?: string } } };
             modelSchema.properties.quantity = { type: 'integer', format };
             compiled.readModels[0].Schema = JSON.stringify(modelSchema);
-            const eventSchema = compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema;
-            eventSchema.properties!.quantity = { type: 'integer', format };
             (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
         });
     }
@@ -39,8 +35,8 @@ describe('when validating the numeric capability matrix', () => {
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
-    it('should accept GUID identifiers and finite double arithmetic', () => {
-        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
+    it('should accept GUID identifiers and a finite double literal', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.total).toValue(2.5)));
         const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { id: { type: string; format?: string }; total: { format?: string } } };
         schema.properties.id.format = 'guid';
         schema.properties.total.format = 'double';
@@ -48,10 +44,10 @@ describe('when validating the numeric capability matrix', () => {
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
-    it('should accept numeric identifiers with a declared number schema', () => {
+    it('should accept numeric identifiers with the fixture-backed double schema', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
-        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { id: { type: string } } };
-        schema.properties.id.type = 'number';
+        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { id: { type: string; format?: string } } };
+        schema.properties.id = { type: 'number', format: 'double' };
         compiled.readModels[0].Schema = JSON.stringify(schema);
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
@@ -73,7 +69,7 @@ describe('when validating the numeric capability matrix', () => {
         schema.properties.total = { type: 'integer', format: 'int32' };
         compiled.readModels[0].Schema = JSON.stringify(schema);
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('same integer/number kind');
+            .with.property('message').that.includes('arithmetic requires a kernel-backed test');
     });
 
     it('should reject an int32 $value literal with a fractional spelling even if its value is integral', () => {
@@ -100,6 +96,6 @@ describe('when validating the numeric capability matrix', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
         compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.quantity.format = 'int64';
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('arithmetic operand requires a supported numeric event schema');
+            .with.property('message').that.includes('arithmetic requires a kernel-backed test');
     });
 });

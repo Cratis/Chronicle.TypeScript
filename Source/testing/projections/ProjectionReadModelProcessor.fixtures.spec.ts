@@ -38,9 +38,14 @@ const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json')
     .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
 const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
 const guardErrors: Record<string, { type: string; message: string }> = {
-    'rounded-integer-operand.json': { type: 'UnsupportedProjectionOperation', message: 'same integer/number kind' },
-    'int32-overflow.json': { type: 'RangeError', message: 'outside the supported integer/int32 range' },
-    'null-accumulator.json': { type: 'RangeError', message: "Projection arithmetic on null at 'count'" },
+    'aggregate-only-automap.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
+    'arithmetic.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
+    'rounded-integer-operand.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
+    'int32-overflow.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
+    'null-accumulator.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic requires a kernel-backed test' },
+    'concept-shaped-objects.json': { type: 'UnsupportedProjectionOperation', message: 'object/array target mappings require a kernel-backed test' },
+    'mapped-and-removed.json': { type: 'UnsupportedProjectionOperation', message: 'both From and RemovedWith require a kernel-backed test' },
+    'mapped-id-key-wins.json': { type: 'UnsupportedProjectionOperation', message: 'identifier or case-insensitively colliding target mappings require a kernel-backed test' },
     'reject-protected-fields.json': { type: 'UnsupportedProjectionOperation', message: 'protected fields require a kernel-backed test' }
 };
 

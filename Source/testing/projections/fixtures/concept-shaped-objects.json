@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "kind": "kernelSemantics",
+  "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
     "version": "19.8.1",

@@ -56,7 +56,11 @@ export class ProjectionValueConverter {
         if (schema.type === 'array' && Array.isArray(value)) {
             return value.map(item => schema.items ? this.convert(item, schema.items, eventContent, false) : structuredClone(item));
         }
-        if (schema.type === 'boolean' && typeof value === 'string' && /^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
+        if (schema.type === 'boolean') {
+            if (typeof value === 'boolean') return value;
+            if (!eventContent && typeof value === 'string' && /^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
+            throw new RangeError(`Projection boolean value '${String(value)}' requires a kernel-backed test (ChronicleKernelScenario / live kernel).`);
+        }
         if (schema.type === 'number' || schema.type === 'integer') {
             if (eventContent && typeof value !== 'number') {
                 throw new RangeError(`Projection event numeric value '${String(value)}' must be a JSON number.`);
@@ -69,7 +73,12 @@ export class ProjectionValueConverter {
             this.checkNumber(number, schema);
             return number;
         }
-        if (schema.format === 'guid' && typeof value === 'string') return value.toLowerCase();
+        if (schema.format === 'guid' && typeof value === 'string') {
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+                throw new RangeError(`Projection GUID value '${value}' requires a kernel-backed test (ChronicleKernelScenario / live kernel).`);
+            }
+            return value.toLowerCase();
+        }
         if (schema.type === 'string' && typeof value !== 'string') return String(value);
         return value;
     }

@@ -4,9 +4,7 @@
 import { field } from '@cratis/fundamentals';
 import { eventType } from '../../../../events/eventTypeDecorator.js';
 
-export class Changed { name!: string; quantity!: number; labels!: string[]; details!: object; }
+export class Changed { name!: string; quantity!: number; }
 field(String)(Changed.prototype, 'name');
 field(Number)(Changed.prototype, 'quantity');
-field(Array)(Changed.prototype, 'labels');
-field(Object)(Changed.prototype, 'details');
 eventType('capability-changed')(Changed);

@@ -75,9 +75,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             const properties = { ...from.Value.Properties };
             const schema = this._eventSchemas.get(typeId);
             const content = ProjectionValueConverter.eventContent(event.content, schema!);
-            const aggregateOnly = Object.values(properties).length > 0 && Object.values(properties).every(expression =>
-                /^(?:\$add\([^()]+\)|\$subtract\([^()]+\)|\$count|\$increment|\$decrement)$/.test(expression));
-            if (this._definition.AutoMap !== AutoMap.Disabled && schema && !aggregateOnly) {
+            if (this._definition.AutoMap !== AutoMap.Disabled && schema) {
                 const explicit = new Set(Object.keys(properties).map(name => name.toLowerCase()));
                 const excluded = new Set((this._definition.NoAutoMapProperties ?? []).map(name => name.toLowerCase()));
                 for (const source of Object.keys(schema.properties ?? {})) {
@@ -90,25 +88,12 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             }
             for (const [destination, expression] of Object.entries(properties)) {
                 const target = this._schema.properties![destination];
-                const operation = /^(\$add|\$subtract)\(([^()]+)\)$/.exec(expression);
-                if (operation || ['$count', '$increment', '$decrement'].includes(expression)) {
-                    const operand = operation ? ProjectionExpressionEvaluator.pathValue(content, operation[2]) : 1;
-                    const before = destination in state ? state[destination] : 0;
-                    if (before === null || operand === null) throw new RangeError(`Projection arithmetic on null at '${destination}' is invalid in the kernel.`);
-                    const left = ProjectionValueConverter.convert(before, target) as number;
-                    const right = ProjectionValueConverter.convert(operand, target) as number;
-                    const next = operation?.[1] === '$subtract' || expression === '$decrement' ? left - right : left + right;
-                    ProjectionValueConverter.checkNumber(next, target);
-                    state[destination] = next;
-                } else {
-                    const value = ProjectionExpressionEvaluator.value(expression, content, event.context, target);
-                    // The kernel compares old and new null values; null on an absent member is no change.
-                    if (value !== null || state[destination] !== undefined) state[destination] = value;
-                }
+                const value = ProjectionExpressionEvaluator.value(expression, content, event.context, target);
+                // The kernel compares old and new null values; null on an absent member is no change.
+                if (value !== null || state[destination] !== undefined) state[destination] = value;
             }
-            // InMemorySink.ApplyChanges restores the typed key after every mapping, including AutoMap.
-            const identifierName = this._schema.properties?.Id && !this._schema.properties.id ? 'Id' : 'id';
-            state[identifierName] = ProjectionValueConverter.convert(key, this._schema.properties?.[identifierName] ?? { type: 'string' });
+            // InMemorySink.ApplyChanges always restores lowercase id after applying mappings.
+            state.id = ProjectionValueConverter.convert(key, this._schema.properties!.id);
             engine[key] = state;
             states.set(event.sourceId, { instance: this.materialize(state), deleted: false });
         }
@@ -118,7 +103,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     }
 
     private keyFor(source: string): string {
-        const identifier = this._schema.properties?.id ?? this._schema.properties?.Id ?? { type: 'string' } as JsonSchema;
+        const identifier = this._schema.properties!.id;
         const canonical = String(ProjectionValueConverter.convert(source, identifier));
         if (identifier.format === 'guid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(source)) {
             throw new RangeError(`Projection event source '${source}' is not a canonical GUID identifier.`);
@@ -137,8 +122,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 if (property.type === 'array') initial[name] = [];
             }
         }
-        const identifierName = this._schema.properties?.Id && !this._schema.properties.id ? 'Id' : 'id';
-        initial[identifierName] = ProjectionValueConverter.convert(key, this._schema.properties?.[identifierName] ?? { type: 'string' });
+        initial.id = ProjectionValueConverter.convert(key, this._schema.properties!.id);
         initial.__subject = event.context.subject ?? event.sourceId;
         initial.__initialized = true;
         return initial;

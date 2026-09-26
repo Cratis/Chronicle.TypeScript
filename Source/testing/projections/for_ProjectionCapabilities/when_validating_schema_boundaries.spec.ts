@@ -29,20 +29,16 @@ function setModelSchema(compiled: ReturnType<typeof compileDeclarative>['compile
 }
 
 describe('when validating schema-bound projection operations', () => {
-    it('should accept generated date, date concept, and nested date formats for pass-through', () => {
+    it('should accept generated scalar date and date-concept formats for pass-through', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from
             .set(model => model.name).to(event => event.name)
-            .set(model => model.state).to(event => event.name)
-            .set(model => model.details).to(event => event.details)));
+            .set(model => model.state).to(event => event.name)));
         const dates = JsonSchemaGenerator.generate(Dated).properties!;
         setModelSchema(compiled, properties => {
             properties.name = dates.created;
             properties.state = dates.timestamp;
-            properties.details = dates.details;
         });
-        const event = compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema;
-        event.properties!.name = dates.created;
-        event.properties!.details = dates.details;
+        compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.name = dates.created;
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
@@ -73,7 +69,7 @@ describe('when validating schema-bound projection operations', () => {
                 (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
                     .with.property('message').that.includes(`From[capability-changed:1].${autoMap ? 'AutoMap' : 'Properties'}.name`)
                     .and.includes(autoMap ? '.from (AutoMap)' : '.from().set')
-                    .and.includes('requires a kernel-backed test');
+                    .and.includes('kernel-backed test');
             });
         }
     }
@@ -119,37 +115,26 @@ describe('when validating schema-bound projection operations', () => {
         });
     }
 
-    it('should use a string key when neither id nor Id exists', () => {
+    it('should reject missing or differently cased id schemas until their key behavior is fixture-backed', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
         setModelSchema(compiled, properties => { delete properties.id; });
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
-    });
-
-    it('should use Id when id is absent, but prefer id when both exist', () => {
-        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
-        setModelSchema(compiled, properties => { properties.Id = { type: 'string' }; delete properties.id; });
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
-        setModelSchema(compiled, properties => { properties.id = { type: 'boolean' }; });
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation, 'ReadModel.Schema.id');
+        setModelSchema(compiled, properties => { properties.Id = { type: 'string' }; });
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation, 'ReadModel.Schema.id');
     });
 
-    it('should not treat ID as the kernel identifier', () => {
+    it('should reject schemas whose properties collide with the lowercase id', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
-        setModelSchema(compiled, properties => { delete properties.id; properties.ID = { type: 'boolean' }; });
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
-    });
-
-    it('should skip AutoMap validation for arithmetic-only events', () => {
-        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
-        setModelSchema(compiled, properties => { properties.name.format = 'float'; });
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
+        setModelSchema(compiled, properties => { properties.Id = { type: 'string' }; });
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation,
+            'case-insensitively colliding read-model properties require a kernel-backed test');
     });
 
     for (const [expression, destination, reason] of [
         ['$value(maybe)', 'state', '$value boolean literal'],
         ['$value(not-a-guid)', 'state', '$value GUID literal'],
-        ['$value(text)', 'details', '$value object/array literals'],
-        ['$value(text)', 'labels', '$value object/array literals']
+        ['$value(text)', 'details', 'object/array target mappings require a kernel-backed test'],
+        ['$value(text)', 'labels', 'object/array target mappings require a kernel-backed test']
     ]) {
         it(`should reject invalid ${expression} for ${destination} (${reason})`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));

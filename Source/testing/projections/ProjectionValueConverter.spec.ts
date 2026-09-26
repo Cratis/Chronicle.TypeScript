@@ -22,6 +22,17 @@ describe('when converting schema-bound projection values', () => {
         });
     }
 
+    it('should reject invalid boolean text rather than materialize it as a string', () => {
+        (() => ProjectionValueConverter.convert('not-boolean', { type: 'boolean' })).should.throw(RangeError, 'requires a kernel-backed test');
+        (() => ProjectionValueConverter.eventContent({ flag: 'not-boolean' }, { type: 'object', properties: {
+            flag: { type: 'boolean' }
+        } })).should.throw(RangeError, 'requires a kernel-backed test');
+    });
+
+    it('should reject invalid GUID text at the expression boundary', () => {
+        (() => ProjectionValueConverter.convert('not-a-guid', { type: 'string', format: 'guid' })).should.throw(RangeError, 'requires a kernel-backed test');
+    });
+
     it('should accept numeric text in an unformatted TypeScript Number field', () => {
         (ProjectionValueConverter.convert('1.0', { type: 'number' }) as number).should.equal(1);
     });

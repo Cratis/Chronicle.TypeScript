@@ -58,11 +58,16 @@ export class ProjectionCapabilities {
         } catch {
             reject('ReadModel.Schema', 'read-model schema is not valid JSON');
         }
-        const identifier = schema!.properties?.id ?? schema!.properties?.Id ?? { type: 'string' };
-        if (!((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
-            (identifier.type === 'number' && (!identifier.format || identifier.format === 'double')) ||
-            (identifier.type === 'integer' && ['int32', 'uint32'].includes(identifier.format ?? '')))) {
-            reject('ReadModel.Schema.id', 'identifier schema must be string, number, or GUID (int32/uint32 identifiers are supported)');
+        const identifier = schema!.properties?.id;
+        if (!identifier || !((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
+            (identifier.type === 'number' && identifier.format === 'double'))) {
+            reject('ReadModel.Schema.id', 'only a lowercase id with a fixture-backed string, GUID, or number/double schema is supported; other identifiers require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        }
+        const names = Object.keys(schema!.properties ?? {});
+        for (const [index, name] of names.entries()) {
+            if (names.slice(index + 1).some(other => other.toLowerCase() === name.toLowerCase())) {
+                reject(`ReadModel.Schema.${name}`, 'case-insensitively colliding read-model properties require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
         }
         let initial: unknown;
         try { initial = JSON.parse(String(wire.InitialModelState ?? '{}')); } catch { reject('InitialModelState', 'initial values must be a JSON object'); }
@@ -83,6 +88,11 @@ export class ProjectionCapabilities {
         };
         const from = wire.From as FromRecord[] ?? [];
         const removedWith = wire.RemovedWith as RemovedWithRecord[] ?? [];
+        for (const entry of from) {
+            if (removedWith.some(removal => removal.Key.Id === entry.Key.Id)) {
+                reject(eventContractPath('From', entry.Key), 'events subscribed through both From and RemovedWith require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
+        }
         for (const entry of [...from, ...removedWith]) {
             const section = from.includes(entry as FromRecord) ? 'From' : 'RemovedWith';
             const path = eventContractPath(section, entry.Key);
@@ -95,10 +105,7 @@ export class ProjectionCapabilities {
                 const mappingPath = `${path}.Properties.${property}`;
                 this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject);
             }
-            const expressions = Object.values(properties);
-            const aggregateOnly = expressions.length > 0 && expressions.every(expression =>
-                /^(?:\$add\([^()]+\)|\$subtract\([^()]+\)|\$count|\$increment|\$decrement)$/.test(expression));
-            if (wire.AutoMap !== AutoMap.Disabled && !aggregateOnly) {
+            if (wire.AutoMap !== AutoMap.Disabled) {
                 this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject);
             }
         }
@@ -125,8 +132,19 @@ export class ProjectionCapabilities {
         const target = modelSchema.properties?.[destination]
             ?? fail('dynamic or unknown destination paths require a kernel-backed test');
         if (destination.includes('.') || destination.includes('$')) fail('dynamic or unknown destination paths require a kernel-backed test');
+        if (destination.toLowerCase() === 'id' || Object.keys(modelSchema.properties ?? {}).some(name =>
+            name !== destination && name.toLowerCase() === destination.toLowerCase())) {
+            fail('identifier or case-insensitively colliding target mappings require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        }
+        if (target.type === 'object' || target.type === 'array') fail('object/array target mappings require a kernel-backed test (ChronicleKernelScenario / live kernel)');
         this.checkSchema(target, path, (_path, reason) => fail(reason));
-        if (expression === '$eventSourceId' || expression === '$null') return;
+        if (expression === '$eventSourceId') {
+            if (target.type !== 'string' || (target.format && target.format !== 'guid')) {
+                fail('$eventSourceId requires a string or GUID target; other targets require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
+            return;
+        }
+        if (expression === '$null') return;
         if (expression.startsWith('$eventContext(')) {
             if (expression === '$eventContext(Occurred)') fail('raw Occurred is converted inconsistently by the kernel; only its Year, Month and Day paths are supported');
             if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');
@@ -160,16 +178,7 @@ export class ProjectionCapabilities {
         }
         const operation = /^(\$add|\$subtract)\(([^()]+)\)$/.exec(expression);
         const arithmetic = operation || ['$count', '$increment', '$decrement'].includes(expression);
-        if (arithmetic) {
-            if (!this.numeric(target)) fail('arithmetic requires a supported finite number/double or int32/uint32 schema (not float, decimal, duration, or int64)');
-            if (operation) {
-                const operand = this.propertyAt(eventSchema, operation[2]);
-                if (!operand || !this.numeric(operand) || (target.type === 'integer' && operand.type !== 'integer')) {
-                    fail('arithmetic operand requires a supported numeric event schema with the same integer/number kind as the target');
-                }
-            }
-            return;
-        }
+        if (arithmetic) fail('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
         if (/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) {
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
@@ -187,16 +196,7 @@ export class ProjectionCapabilities {
 
     private static compatible(source: JsonSchema, target: JsonSchema): boolean {
         if (JSON.stringify(source.type) === JSON.stringify(target.type) && source.format === target.format) {
-            if (source.type === 'array') return !!source.items && !!target.items && this.compatible(source.items, target.items);
-            if (source.type === 'object') {
-                // The kernel treats a single `value` member as a concept at the expression boundary.
-                if (Object.keys(source.properties ?? {}).length === 1 && source.properties?.value) return false;
-                if (Boolean(source.additionalProperties) !== Boolean(target.additionalProperties)) return false;
-                const names = Object.keys(source.properties ?? {}).sort();
-                return names.join('\0') === Object.keys(target.properties ?? {}).sort().join('\0') &&
-                    names.every(name => this.compatible(source.properties![name], target.properties![name]));
-            }
-            return true;
+            return source.type !== 'object' && source.type !== 'array';
         }
         if (source.type === 'string' && !source.format && Array.isArray(target.type) &&
             target.type[0] === 'string' && target.type[1] === 'null') return true;
