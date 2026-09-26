@@ -1,0 +1,150 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Probe p2: kernel rounds fractional double operands to int32; phase-one evaluator rejects the mismatch before replay.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-rounded-integer",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "AmountAdded",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "count": "$add(amount)"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "AmountAdded",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "AmountAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "amount": 2.5
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "AmountAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "amount": 1.5
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "count": 2,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "count": 2
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "count": 4,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "count": 4
+        }
+      }
+    }
+  ]
+}

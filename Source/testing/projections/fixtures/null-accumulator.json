@@ -1,0 +1,172 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Probe p5: clearing a present int32 accumulator before increment fails in the kernel; phase-one evaluator rejects at replay with a clear error.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-null-accumulator",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{\"count\":1}",
+    "From": [
+      {
+        "Key": {
+          "Id": "Cleared",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "count": "$null"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "Counted",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "count": "$increment"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "Cleared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "eventType": {
+        "Id": "Counted",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "Cleared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Counted",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {},
+      "expectedError": {
+        "type": "System.InvalidCastException",
+        "message": "Null object cannot be converted to a value type."
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "count": null,
+          "id": "record-a",
+          "__initialized": true,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "count": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "record-a": {
+          "count": null,
+          "id": "record-a",
+          "__initialized": true,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "count": 0
+        }
+      },
+      "error": {
+        "type": "System.InvalidCastException",
+        "message": "Null object cannot be converted to a value type."
+      }
+    }
+  ]
+}

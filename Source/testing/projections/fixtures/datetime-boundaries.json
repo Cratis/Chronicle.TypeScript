@@ -1,0 +1,202 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Probe earliest/latest UTC DateTime content and clearing against the packaged kernel.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-datetime-boundaries",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "DateChanged",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "timestamp": "occurred"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "DateCleared",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "timestamp": "$null"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "DateChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "occurred": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "DateCleared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "DateChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "date-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "occurred": "0001-01-01T00:00:00Z"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "DateChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "date-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "occurred": "9999-12-31T23:59:59.999Z"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "DateCleared",
+          "Generation": 1
+        },
+        "eventSourceId": "date-a",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "date-a": {
+          "id": "date-a",
+          "__initialized": true,
+          "timestamp": "0001-01-01T00:00:00Z",
+          "__subject": "date-a"
+        }
+      },
+      "publicRead": {
+        "date-a": {
+          "id": "date-a",
+          "timestamp": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "date-a": {
+          "id": "date-a",
+          "__initialized": true,
+          "timestamp": "9999-12-31T23:59:59.999Z",
+          "__subject": "date-a"
+        }
+      },
+      "publicRead": {
+        "date-a": {
+          "id": "date-a",
+          "timestamp": "9999-12-31T23:59:59.999Z"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "date-a": {
+          "id": "date-a",
+          "__initialized": true,
+          "timestamp": null,
+          "__subject": "date-a"
+        }
+      },
+      "publicRead": {
+        "date-a": {
+          "id": "date-a",
+          "timestamp": "0001-01-01T00:00:00"
+        }
+      }
+    }
+  ]
+}
