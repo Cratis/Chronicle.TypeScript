@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { EventContext, EventType, ReplayState, ObservationState, type ReducerMessage } from '@cratis/chronicle.contracts';
-import { chai, describe, it } from 'vitest';
+import { chai, describe, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../../../connection/index.js';
 import { ConnectionLifecycle } from '../../../connection/ConnectionLifecycle.js';
 import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifactsProvider.js';
@@ -125,6 +125,44 @@ describe('when delivering reducer batches', () => {
             notifications.should.deep.equal([]);
             result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
             result.acknowledgements[0]?.ExceptionMessages.should.deep.equal(['Error: notification failed']);
+        }
+    });
+
+    it('should fail event delivery on synchronous and asynchronous activation errors without disposing a lease', async () => {
+        for (const mode of ['sync', 'async'] as const) {
+            const dispose = vi.fn();
+            const message = `${mode} reducer activation failed`;
+            const activator: ClientArtifactsActivator = type => {
+                const lease = { instance: new type(), dispose };
+                if (mode === 'sync') throw new Error(message);
+                return Promise.reject(new Error(message)).then(() => lease);
+            };
+            const result = await observe(CountingReducer, [batch([event(1, 1n)])], activator);
+            result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+            result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([`Error: ${message}`]);
+            result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+            result.acknowledgements[0]?.ReadModelState.should.equal('');
+            dispose.mock.calls.length.should.equal(0);
+        }
+    });
+
+    it('should fail replay notification on synchronous and asynchronous activation errors without disposing a lease', async () => {
+        for (const mode of ['sync', 'async'] as const) {
+            notifications.length = 0;
+            const dispose = vi.fn();
+            const message = `${mode} reducer replay activation failed`;
+            const activator: ClientArtifactsActivator = type => {
+                const lease = { instance: new type(), dispose };
+                if (mode === 'sync') throw new Error(message);
+                return Promise.reject(new Error(message)).then(() => lease);
+            };
+            const result = await observe(CountingReducer, [batch([event(1, 1n)], ReplayState.BeginReplay)], activator);
+            result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+            result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([`Error: ${message}`]);
+            result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+            result.acknowledgements[0]?.ReadModelState.should.equal('');
+            notifications.should.deep.equal([]);
+            dispose.mock.calls.length.should.equal(0);
         }
     });
 

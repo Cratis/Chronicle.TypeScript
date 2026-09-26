@@ -7,6 +7,7 @@ interface TutorialBookTitleNotifier {
 
 @reactor()
 class WaitlistNotifierWithBookTitle {
+    // Constructor injection requires an artifactActivator in ChronicleOptions.
     constructor(private readonly notifications: TutorialBookTitleNotifier) {}
 
     async bookReturned(event: BookReturned, context: EventContext, services: ReactorServices): Promise<void> {

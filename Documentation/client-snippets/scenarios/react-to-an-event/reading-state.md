@@ -8,6 +8,7 @@ class ScenariosReactBook {
 
 @reactor()
 class ScenariosReactWaitlistNotifierWithTitle {
+    // Constructor injection requires an artifactActivator in ChronicleOptions.
     constructor(private readonly notifications: ScenariosReactNotificationService) {}
 
     async scenariosReactBookReturned(event: ScenariosReactBookReturned, context: EventContext, services: ReactorServices): Promise<void> {

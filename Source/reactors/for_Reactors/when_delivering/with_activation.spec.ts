@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { EventContext as WireContext, EventObservationState, EventType, ReplayState, ObservationState, type ReactorMessage } from '@cratis/chronicle.contracts';
+import { EventContext as WireContext, EventObservationState, EventType, ObservationState, type ReactorMessage } from '@cratis/chronicle.contracts';
+import { ReplayState } from '../../../index.js';
 import { chai, describe, it, vi } from 'vitest';
 import { diag, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
 import type { ChronicleConnection } from '../../../connection/index.js';
@@ -180,6 +181,32 @@ describe('when delivering reactor batches', () => {
         serviceReferences.every(services => services.eventStore === result.store && services.readModels === result.store.readModels).should.be.true;
     });
 
+    it('should isolate concurrent activations and handler services by owning store and namespace', async () => {
+        observed.length = 0;
+        serviceReferences.length = 0;
+        const contexts: ArtifactActivationContext[] = [];
+        let release!: () => void;
+        const bothActivated = new Promise<void>(resolve => { release = resolve; });
+        const activator: ClientArtifactsActivator = (type, context) => {
+            contexts.push(context);
+            if (contexts.length === 2) release();
+            return { instance: new type(), run: async callback => { await bothActivated; return callback(); } };
+        };
+        const [first, second] = await Promise.all([
+            observe(ActivationReactor, [delivery([event('first', 1n)])], 'tenant-a', activator),
+            observe(ActivationReactor, [delivery([event('second', 2n)])], 'tenant-b', activator)
+        ]);
+        contexts.length.should.equal(2);
+        contexts.find(context => context.eventStore.namespace.value === 'tenant-a')!.eventStore.should.equal(first.store);
+        contexts.find(context => context.eventStore.namespace.value === 'tenant-b')!.eventStore.should.equal(second.store);
+        serviceReferences.length.should.equal(2);
+        serviceReferences.find(services => services.eventStore.namespace.value === 'tenant-a')!.eventStore.should.equal(first.store);
+        serviceReferences.find(services => services.eventStore.namespace.value === 'tenant-b')!.eventStore.should.equal(second.store);
+        serviceReferences[0].readModels.should.equal(serviceReferences[0].eventStore.readModels);
+        serviceReferences[1].readModels.should.equal(serviceReferences[1].eventStore.readModels);
+        observed.sort().should.deep.equal(['first:book-1', 'second:book-1']);
+    });
+
     it('should keep returned side-effect dispatch inside the same boundary', async () => {
         const steps: string[] = [];
         const activator: ClientArtifactsActivator = type => ({ instance: new type(),
@@ -266,6 +293,44 @@ describe('when delivering reactor batches', () => {
         const result = await observe(AppendReactor, [delivery([event('one', 1n)])], 'tenant-a', activator, false);
         disposed.should.equal(1);
         result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+    });
+
+    it('should fail event delivery on synchronous and asynchronous activation errors without disposing a lease', async () => {
+        for (const mode of ['sync', 'async'] as const) {
+            observed.length = 0;
+            const dispose = vi.fn();
+            const message = `${mode} reactor activation failed`;
+            const activator: ClientArtifactsActivator = type => {
+                const lease = { instance: new type(), dispose };
+                if (mode === 'sync') throw new Error(message);
+                return Promise.reject(new Error(message)).then(() => lease);
+            };
+            const result = await observe(ActivationReactor, [delivery([event('one', 1n)])], 'tenant-a', activator);
+            result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+            result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([`Error: ${message}`]);
+            result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+            observed.should.deep.equal([]);
+            dispose.mock.calls.length.should.equal(0);
+        }
+    });
+
+    it('should fail replay notification on synchronous and asynchronous activation errors without disposing a lease', async () => {
+        for (const mode of ['sync', 'async'] as const) {
+            observed.length = 0;
+            const dispose = vi.fn();
+            const message = `${mode} reactor replay activation failed`;
+            const activator: ClientArtifactsActivator = type => {
+                const lease = { instance: new type(), dispose };
+                if (mode === 'sync') throw new Error(message);
+                return Promise.reject(new Error(message)).then(() => lease);
+            };
+            const result = await observe(ActivationReactor, [delivery([event('one', 1n)], ReplayState.BeginReplay)], 'tenant-a', activator);
+            result.acknowledgements[0]?.State.should.equal(ObservationState.Failed);
+            result.acknowledgements[0]?.ExceptionMessages.should.deep.equal([`Error: ${message}`]);
+            result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(4294967295n);
+            observed.should.deep.equal([]);
+            dispose.mock.calls.length.should.equal(0);
+        }
     });
 
     it('should use a new activation signal after reconnect rather than retaining the prior generation', async () => {

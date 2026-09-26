@@ -317,6 +317,15 @@ export class Reactors implements IReactors {
                     state = ObservationState.Failed;
                 }
 
+                const selectHandler = (event: typeof eventsToObserve.Events[number]) => {
+                    const entry = eventTypes.find(candidate => candidate.id === event.Context?.EventType?.Id);
+                    if (!entry) return undefined;
+                    const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
+                    const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
+                    const method = methodName ? (reactorInstance?.[methodName] ?? (reactorType.prototype as Record<string, Function>)[methodName]) : undefined;
+                    return { methodName, isReplay, skipReplay: isReplay && method !== undefined && isOnceOnly(method) };
+                };
+
                 const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
                     for (const event of state === ObservationState.Failed ? [] : eventsToObserve.Events) {
                         try {
@@ -326,18 +335,14 @@ export class Reactors implements IReactors {
                                 continue;
                             }
 
-                            const entry = eventTypes.find(et => et.id === eventTypeId);
-                            if (!entry) {
+                            const selection = selectHandler(event);
+                            if (!selection) {
                                 this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId });
                                 lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                                 continue;
                             }
 
-                            const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
-                            const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
-                            const method = methodName ? (reactorType.prototype as Record<string, Function>)[methodName] : undefined;
-                            const selectedMethod = reactorInstance?.[methodName ?? ''] ?? method;
-                            const skipReplay = isReplay && selectedMethod !== undefined && isOnceOnly(selectedMethod);
+                            const { methodName, isReplay, skipReplay } = selection;
                             if (!methodName || skipReplay) {
                                 if (skipReplay) {
                                     this._logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: methodName });
@@ -378,12 +383,8 @@ export class Reactors implements IReactors {
 
                 const firstInvocableEvent = this._artifactActivator && state === ObservationState.Success
                     ? eventsToObserve.Events.find(event => {
-                        const entry = eventTypes.find(candidate => candidate.id === event.Context?.EventType?.Id);
-                        if (!entry) return false;
-                        const replaying = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
-                        const methodName = replaying ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
-                        const method = methodName && (reactorType.prototype as Record<string, Function>)[methodName];
-                        return !!methodName && !(replaying && method && isOnceOnly(method));
+                        const selection = selectHandler(event);
+                        return !!selection?.methodName && !selection.skipReplay;
                     }) : undefined;
                 if (firstInvocableEvent && this._artifactActivator) {
                     try {

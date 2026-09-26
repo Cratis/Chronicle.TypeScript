@@ -27,7 +27,7 @@ For application-owned return types, pass `reactorResultHandler` to `ChronicleOpt
 
 ### Activating artifacts
 
-The SDK normally calls the zero-argument constructor **once per observation stream** and reuses that instance across deliveries and replay notifications. Set `artifactActivator` on `ChronicleOptions.development({ artifactActivator })` (or `fromConnectionString`) to resolve constructor dependencies instead. With an activator, each delivered event batch gets one lease and one shared instance; replay lifecycle notifications get **separate** leases. No lease is made for a message without events or a replay transition. A reconnect creates a new observation, and its context identifies the exact store/namespace and signal for that generation.
+The SDK normally calls the zero-argument constructor **once per observation stream** and reuses that instance across deliveries and replay notifications. Set `artifactActivator` on `ChronicleOptions.development({ artifactActivator })` (or `fromConnectionString`) to resolve constructor dependencies instead. With an activator, each delivered event batch gets one lease and one shared instance; replay lifecycle notifications get **separate** leases. No lease is made for a message without events or a replay transition. When every event in a batch is skipped, no event-batch lease is made (though a replay transition in that message still gets its separate notification lease). A reconnect creates a new observation, and its context identifies the exact store/namespace and signal for that generation.
 
 ```typescript
 import { ArtifactDelivery, ArtifactKind, ChronicleOptions, type ClientArtifactsActivator } from '@cratis/chronicle';
