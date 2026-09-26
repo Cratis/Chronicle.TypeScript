@@ -28,6 +28,7 @@ import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
 import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
+import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -306,12 +307,16 @@ export class Reactors implements IReactors {
                             signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
                             replayState: eventsToObserve.ReplayState
                         }, this._artifactActivator, artifact => runActivated(artifact, () =>
-                            notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition)));
+                            notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition),
+                            { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState }));
                     } else if (reactorInstance) {
                         await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
                     }
                 } catch (err) {
                     this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: String(err) });
+                    if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
+                        exceptionMessages.push(String(err.processingError));
+                    }
                     exceptionMessages.push(String(err));
                     exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                     state = ObservationState.Failed;
@@ -368,7 +373,7 @@ export class Reactors implements IReactors {
                                 const handlerResult = await artifact.instance[methodName](content, context, services);
                                 await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
                                     this._eventStoreName, this._namespace, this._resultHandler);
-                            });
+                            }, { delivery: ArtifactDelivery.Events, eventContext: context, methodName });
 
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {
@@ -398,8 +403,13 @@ export class Reactors implements IReactors {
                     } catch (err) {
                         this._logger.error('Error activating reactor', { reactorId: id, error: String(err) });
                         exceptionMessages.push(String(err));
-                        exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                        const completionStack = err instanceof Error ? (err.stack ?? '') : '';
+                        exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
+                            ? `${exceptionStackTrace}\n${completionStack}` : completionStack;
                         state = ObservationState.Failed;
+                        if (err instanceof ArtifactCompletionFailed) {
+                            lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
+                        }
                     }
                 } else {
                     await processEvents({ instance: reactorInstance ?? {} });

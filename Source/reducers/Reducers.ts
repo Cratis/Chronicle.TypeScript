@@ -27,6 +27,7 @@ import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
 import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
+import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -367,12 +368,16 @@ export class Reducers implements IReducers {
                             signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
                             replayState: operation.ReplayState
                         }, this._artifactActivator, artifact => runActivated(artifact, () =>
-                            notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition)));
+                            notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
+                            { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState }));
                     } else if (reducerInstance) {
                         await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
                     }
                 } catch (err) {
                     this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: String(err) });
+                    if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
+                        exceptionMessages.push(String(err.processingError));
+                    }
                     exceptionMessages.push(String(err));
                     exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                     state = ObservationState.Failed;
@@ -409,7 +414,8 @@ export class Reducers implements IReducers {
                                 hasState: currentState !== undefined
                             });
 
-                            currentState = await runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, currentState, context));
+                            currentState = await runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, currentState, context),
+                                { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName });
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {
                             this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });
@@ -437,8 +443,13 @@ export class Reducers implements IReducers {
                     } catch (err) {
                         this._logger.error('Error activating reducer', { reducerId: id, error: String(err) });
                         exceptionMessages.push(String(err));
-                        exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                        const completionStack = err instanceof Error ? (err.stack ?? '') : '';
+                        exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
+                            ? `${exceptionStackTrace}\n${completionStack}` : completionStack;
                         state = ObservationState.Failed;
+                        if (err instanceof ArtifactCompletionFailed) {
+                            lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
+                        }
                     }
                 } else {
                     await processEvents({ instance: reducerInstance ?? {} });
