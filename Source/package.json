@@ -76,6 +76,11 @@
             "import": "./dist/reducers/index.js",
             "default": "./dist/reducers/index.js"
         },
+        "./testing": {
+            "types": "./dist/testing/index.d.ts",
+            "import": "./dist/testing/index.js",
+            "default": "./dist/testing/index.js"
+        },
         "./seeding": {
             "types": "./dist/seeding/index.d.ts",
             "import": "./dist/seeding/index.js",
