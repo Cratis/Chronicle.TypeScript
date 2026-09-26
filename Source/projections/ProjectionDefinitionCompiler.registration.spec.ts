@@ -283,6 +283,21 @@ describe('projection registration payload', () => {
         });
     }
 
+    it('should hash nested model-bound mappings after compiling the final definition', () => {
+        const hashFor = (propertyExpression: string): string => {
+            class HashedProjection { id!: string; name!: string; }
+            setFrom(ItemCreated, propertyExpression)(HashedProjection.prototype, 'name');
+            fromEvent(ItemCreated)(HashedProjection);
+            const artifacts = artifactsFor(cases[0]);
+            artifacts.readModels = [HashedProjection];
+            const definition = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [HashedProjection]).definitions[0];
+            return definition.LastUpdated.Value;
+        };
+
+        hashFor('name').should.not.equal(hashFor('quantity'));
+        hashFor('name').should.equal(hashFor('name'));
+    });
+
     it('should reject multiple projections for one read model', () => {
         const artifacts = artifactsFor(cases.find(testCase => testCase.name === 'declarative')!);
         (() => new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile(
