@@ -15,13 +15,18 @@ export class ProjectionValueConverter {
         return undefined;
     }
 
+    /** Resolve exact-case properties before falling back to the kernel's case-insensitive lookup. */
+    private static sourceKey(input: Record<string, unknown>, name: string): string | undefined {
+        return Object.hasOwn(input, name) ? name : Object.keys(input).find(key => key.toLowerCase() === name.toLowerCase());
+    }
+
     /** The kernel deserializes event JSON against its registered schema before mapping. */
     static eventContent(content: unknown, schema: JsonSchema): Record<string, unknown> {
         const serialized = content !== null && typeof content === 'object' && !Array.isArray(content)
             ? content as Record<string, unknown> : {};
         const result: Record<string, unknown> = Object.create(null);
         for (const [name, property] of Object.entries(schema.properties ?? {})) {
-            const source = Object.keys(serialized).find(key => key.toLowerCase() === name.toLowerCase());
+            const source = this.sourceKey(serialized, name);
             const value = source === undefined ? null : serialized[source];
             if (value !== null && value !== undefined) result[name] = this.convert(value, property, true, false);
             else {
@@ -44,7 +49,7 @@ export class ProjectionValueConverter {
             if (schema.additionalProperties || !schema.properties) return structuredClone(input);
             const result: Record<string, unknown> = Object.create(null);
             for (const [name, property] of Object.entries(schema.properties)) {
-                const source = Object.keys(input).find(key => key.toLowerCase() === name.toLowerCase());
+                const source = this.sourceKey(input, name);
                 if (source !== undefined && input[source] != null) result[name] = this.convert(input[source], property, eventContent, false);
                 else {
                     const fallback = this.defaultValue(property);
@@ -72,6 +77,17 @@ export class ProjectionValueConverter {
             const number = typeof value === 'number' ? value : Number(value);
             this.checkNumber(number, schema);
             return number;
+        }
+        if (schema.format === 'date-time') {
+            if (value === '0001-01-01T00:00:00') return value; // Kernel default for a missing DateTime member.
+            // Bound the accepted subset to UTC ISO text with a four-digit year. Date.parse accepts
+            // years beyond DateTime.MaxValue, and silently normalizes some invalid calendar dates.
+            if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) ||
+                +value.slice(0, 4) < 1 || !Number.isFinite(Date.parse(value)) ||
+                new Date(value).toISOString().slice(0, 19) !== value.slice(0, 19)) {
+                throw new RangeError(`Projection date-time value '${String(value)}' is outside the supported DateTime range or UTC ISO format.`);
+            }
+            return value;
         }
         if (schema.format === 'guid' && typeof value === 'string') {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {

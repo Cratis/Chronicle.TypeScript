@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { chai, describe, it } from 'vitest';
+import { chai, describe, expect, it } from 'vitest';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 
 chai.should();
@@ -31,6 +31,24 @@ describe('when converting schema-bound projection values', () => {
 
     it('should reject invalid GUID text at the expression boundary', () => {
         (() => ProjectionValueConverter.convert('not-a-guid', { type: 'string', format: 'guid' })).should.throw(RangeError, 'requires a kernel-backed test');
+    });
+
+    it('should prefer exact-case event properties over case-insensitive fallbacks', () => {
+        const schema = { type: 'object', properties: { name: { type: 'string' }, Name: { type: 'string' } } };
+        const content = { Name: 'uppercase', name: 'lowercase' };
+        expect(ProjectionValueConverter.eventContent(content, schema)).toEqual({ name: 'lowercase', Name: 'uppercase' });
+        expect(ProjectionValueConverter.convert(content, schema)).toEqual({ name: 'lowercase', Name: 'uppercase' });
+        expect(ProjectionValueConverter.eventContent({ NAME: 'fallback' }, schema)).toEqual({ name: 'fallback', Name: 'fallback' });
+    });
+
+    it('should admit UTC date-time boundaries and reject years or calendar dates outside DateTime', () => {
+        const schema = { type: 'string', format: 'date-time' };
+        (ProjectionValueConverter.convert('0001-01-01T00:00:00Z', schema) as string).should.equal('0001-01-01T00:00:00Z');
+        (ProjectionValueConverter.convert('9999-12-31T23:59:59.999Z', schema) as string).should.equal('9999-12-31T23:59:59.999Z');
+        for (const value of ['+010000-01-01T00:00:00.000Z', '0000-01-01T00:00:00Z',
+            '2025-02-30T00:00:00Z', '9999-12-31T24:00:00Z', '2025-01-01T00:00:00+01:00']) {
+            (() => ProjectionValueConverter.convert(value, schema)).should.throw(RangeError, 'outside the supported DateTime range or UTC ISO format');
+        }
     });
 
     it('should accept numeric text in an unformatted TypeScript Number field', () => {
