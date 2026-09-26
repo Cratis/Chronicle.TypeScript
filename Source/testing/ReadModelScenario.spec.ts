@@ -15,7 +15,7 @@ import type { IProjectionFor } from '../projections/declarative/IProjectionFor.j
 import { projection } from '../projections/declarative/projection.js';
 import { reducer } from '../reducers/reducer.js';
 import { readModel } from '../readModels/readModel.js';
-import { ReadModelScenario, ReadModelScenarioGivenBuilder } from './index.js';
+import { ReadModelScenario, ReadModelScenarioGivenBuilder, UnsupportedProjectionOperation } from './index.js';
 import { readModelScenarioExample } from './ReadModelScenario.example.js';
 
 class ItemAdded {
@@ -235,6 +235,7 @@ describe('ReadModelScenario', () => {
         setFrom(ItemAdded, 'amount')(GenerationState.prototype, 'count');
         const scenario = new ReadModelScenario(GenerationState, { ...artifacts, eventTypes: [...artifacts.eventTypes, LaterItemAdded] });
         scenario.given.forEventSource('source-a').events(new LaterItemAdded());
+        await expect(scenario.instance).rejects.toThrow(UnsupportedProjectionOperation);
         await expect(scenario.instance).rejects.toThrow(/GenerationState.*From\[scenario-item-added:1\].*seeded event generation 2/);
     });
 

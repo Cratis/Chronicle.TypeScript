@@ -24,6 +24,7 @@ import type { ReadModelState } from './ReadModelState.js';
 import { ReducerReadModelProcessor } from './ReducerReadModelProcessor.js';
 import type { ScenarioEvent } from './ScenarioEvent.js';
 import { ProjectionReadModelProcessor } from './projections/ProjectionReadModelProcessor.js';
+import { UnsupportedProjectionOperation } from './projections/UnsupportedProjectionOperation.js';
 
 type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes' | 'projections'> &
     Partial<Pick<IClientArtifactsProvider, 'readModels' | 'globalForHandlers'>>;
@@ -141,7 +142,7 @@ export class ReadModelScenario<TReadModel extends object> {
         if (!this._results) {
             const events = [...this._events];
             this._results = this._processor.process(events).catch(error => {
-                if (!(this._processor instanceof ProjectionReadModelProcessor)) throw error;
+                if (!(this._processor instanceof ProjectionReadModelProcessor) || error instanceof UnsupportedProjectionOperation) throw error;
                 throw new Error(`Projection replay for read model '${this._modelName}' failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
             });
         }
