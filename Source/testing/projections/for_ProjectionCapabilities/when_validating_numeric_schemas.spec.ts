@@ -61,7 +61,7 @@ describe('when validating the numeric capability matrix', () => {
         schema.properties.total = { type: 'integer', format: 'int32' };
         compiled.readModels[0].Schema = JSON.stringify(schema);
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('InitialModelState.total');
+            .with.property('message').that.includes('InitialModelState.total (.withInitialValues)');
     });
 
     it('should reject unsafe int64 operands instead of losing precision', () => {

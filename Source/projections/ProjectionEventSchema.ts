@@ -6,6 +6,8 @@ import type { ContractEventType } from './declarative/ProjectionBuilderCore.js';
 
 /** Schema registered for one participating event type and generation. */
 export interface ProjectionEventSchema {
+    /** Event identifier, generation, and tombstone status. */
     readonly eventType: ContractEventType;
+    /** Isolated copy of the schema registered for this event. */
     readonly schema: JsonSchema;
 }

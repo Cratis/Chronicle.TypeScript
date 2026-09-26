@@ -14,7 +14,8 @@ import { FromEveryBuilder } from './FromEveryBuilder.js';
 import { RemovedWithBuilder } from './RemovedWithBuilder.js';
 import { RemovedWithJoinBuilder } from './RemovedWithJoinBuilder.js';
 import { ChildAdditionEntry } from './AddChildBuilder.js';
-import { eventContractPath } from '../captureProjectionProvenance.js';
+import { eventContractPath } from '../eventContractPath.js';
+import { getProjectionBuilderProvenance, recordChildDeclaration, recordFromEveryDeclaration, recordKeyDeclaration } from './projectionBuilderProvenance.js';
 
 /** The contract-level event type identifier shape used across projection definitions. */
 export type ContractEventType = { Id: string; Generation: number; Tombstone: boolean };
@@ -73,9 +74,6 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
     protected _autoMap: AutoMap = AutoMap.Inherit;
     protected _initialState: string = '{}';
     protected readonly _from: FromRecord[] = [];
-    private readonly _keyDeclarations = new Map<string, string>();
-    private readonly _childDeclarations = new Map<string, string>();
-    private _fromEveryDeclared = false;
     protected readonly _join: JoinRecord[] = [];
     private readonly _joinEventNames = new Map<JoinRecord, string>();
     protected readonly _removedWith: RemovedWithRecord[] = [];
@@ -122,9 +120,10 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
                 ParentKey: fromBuilder.entry.parentKey
             }
         });
-        if (fromBuilder.entry.keyDeclaration) this._keyDeclarations.set(`${eventContractPath('From', contractType)}.Key`, fromBuilder.entry.keyDeclaration);
-        if (fromBuilder.entry.parentKeyDeclaration) this._keyDeclarations.set(`${eventContractPath('From', contractType)}.ParentKey`, fromBuilder.entry.parentKeyDeclaration);
-        for (const child of fromBuilder.entry.children) this._childDeclarations.set(`Children.${child.targetProperty}`, '.from().addChild');
+        for (const [field, declaration] of getProjectionBuilderProvenance(fromBuilder).keys) {
+            recordKeyDeclaration(this, `${eventContractPath('From', contractType)}.${field}`, declaration);
+        }
+        for (const child of fromBuilder.entry.children) recordChildDeclaration(this, `Children.${child.targetProperty}`, '.from().addChild');
         this.mergeChildAdditions(contractType, fromBuilder.entry.children);
         return this as unknown as TBuilder;
     }
@@ -153,7 +152,7 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
 
     /** @inheritdoc */
     fromEvery(builderCallback: (builder: IFromEveryBuilder<TReadModel>) => void): TBuilder {
-        this._fromEveryDeclared = true;
+        recordFromEveryDeclaration(this);
         const builder = new FromEveryBuilder<TReadModel>();
         builderCallback(builder);
         this._all = {
@@ -200,21 +199,6 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
             }
         });
         return this as unknown as TBuilder;
-    }
-
-    /** Whether a subscribe-to-all declaration was made even if it emitted no properties. */
-    get hasFromEveryDeclaration(): boolean {
-        return this._fromEveryDeclared;
-    }
-
-    /** Origins of children introduced by a From handler rather than a children declaration. */
-    getChildDeclarations(): ReadonlyMap<string, string> {
-        return this._childDeclarations;
-    }
-
-    /** Declaration origins for key expressions not recoverable from the wire contract. */
-    getKeyDeclarations(): ReadonlyMap<string, string> {
-        return this._keyDeclarations;
     }
 
     /** Resolves join defaults once the entire projection (including identifiedBy) is configured. */

@@ -14,7 +14,9 @@ import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { TypeIntrospector } from '../types/index.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
-import { captureProjectionProvenance, eventContractPath } from './captureProjectionProvenance.js';
+import { captureProjectionProvenance } from './captureProjectionProvenance.js';
+import { eventContractPath } from './eventContractPath.js';
+import { getProjectionBuilderProvenance } from './declarative/projectionBuilderProvenance.js';
 import type { ProjectionCapabilityProvenance } from './ProjectionCapabilityProvenance.js';
 import type { ProjectionEventSchema } from './ProjectionEventSchema.js';
 import { constantValueExpression } from './constantValueExpression.js';
@@ -88,9 +90,13 @@ export class ProjectionDefinitionCompiler {
         const definitions = builtProjections.map(built => built.definition as unknown as ProjectionDefinition);
         const provenance = new Map<ProjectionDefinition, readonly ProjectionCapabilityProvenance[]>();
         const eventSchemas = new Map<ProjectionDefinition, ReadonlyMap<string, ProjectionEventSchema>>();
+        const availableEvents = new Map<string, Constructor>(this._clientArtifacts.eventTypes.map(type => {
+            const event = getEventTypeFor(type);
+            return [`${event.id.value}:${event.generation.value}`, type] as const;
+        }));
         for (let index = 0; index < definitions.length; index++) {
             provenance.set(definitions[index], builtProjections[index].provenance ?? []);
-            eventSchemas.set(definitions[index], this.buildEventSchemaCatalog(definitions[index]));
+            eventSchemas.set(definitions[index], this.buildEventSchemaCatalog(definitions[index], availableEvents));
         }
         return {
             definitions,
@@ -100,18 +106,14 @@ export class ProjectionDefinitionCompiler {
         };
     }
 
-    private buildEventSchemaCatalog(definition: ProjectionDefinition): ReadonlyMap<string, ProjectionEventSchema> {
-        const available = new Map<string, Constructor>(this._clientArtifacts.eventTypes.map(type => {
-            const event = getEventTypeFor(type);
-            return [`${event.id.value}:${event.generation.value}:0`, type] as const;
-        }));
+    private buildEventSchemaCatalog(definition: ProjectionDefinition, availableEvents: ReadonlyMap<string, Constructor>): ReadonlyMap<string, ProjectionEventSchema> {
         const catalog = new Map<string, ProjectionEventSchema>();
         const collect = (node: Record<string, unknown>) => {
-            for (const section of ['From', 'Join', 'RemovedWith', 'RemovedWithJoin', 'FromEvery'] as const) {
+            for (const section of ['From', 'Join', 'RemovedWith', 'RemovedWithJoin'] as const) {
                 for (const entry of node[section] as Array<{ Key: ContractEventType }> ?? []) {
                     const eventType = entry.Key;
                     const key = getEventTypeMapKey(eventType);
-                    const type = available.get(key);
+                    const type = availableEvents.get(`${eventType.Id}:${eventType.Generation}`);
                     if (type && !catalog.has(key)) {
                         // Registration uses this exact schema path. Clone it so a compile or consumer
                         // cannot mutate metadata or another compile's catalog.
@@ -122,7 +124,7 @@ export class ProjectionDefinitionCompiler {
             const fromEventProperty = node.FromEventProperty as { Event?: ContractEventType } | undefined;
             if (fromEventProperty?.Event) {
                 const key = getEventTypeMapKey(fromEventProperty.Event);
-                const type = available.get(key);
+                const type = availableEvents.get(`${fromEventProperty.Event.Id}:${fromEventProperty.Event.Generation}`);
                 if (type && !catalog.has(key)) catalog.set(key, { eventType: { ...fromEventProperty.Event }, schema: structuredClone(getEventTypeJsonSchemaFor(type)) });
             }
             for (const section of ['Children', 'Nested'] as const) {
@@ -201,9 +203,10 @@ export class ProjectionDefinitionCompiler {
             }
         }
 
+        const declarations = getProjectionBuilderProvenance(builder);
         const provenance = captureProjectionProvenance(definition, false,
-            new Map([...builder.getKeyDeclarations(), ...builder.getChildDeclarations()]));
-        if (builder.hasFromEveryDeclaration && !provenance.some(entry => entry.contractPath === 'All')) {
+            new Map([...declarations.keys, ...declarations.children]));
+        if (declarations.fromEvery && !provenance.some(entry => entry.contractPath === 'All')) {
             provenance.push({ contractPath: 'All', declaration: '.fromEvery' });
         }
         let variant: VariantDeclaration | undefined;

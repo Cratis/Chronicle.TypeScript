@@ -14,6 +14,8 @@ import { fromAll } from '../../../projections/modelBound/fromAll.js';
 import { fromEvery } from '../../../projections/modelBound/fromEvery.js';
 import { join } from '../../../projections/modelBound/join.js';
 import { nested } from '../../../projections/modelBound/nested.js';
+import { addFrom } from '../../../projections/modelBound/addFrom.js';
+import { setFromContext } from '../../../projections/modelBound/setFromContext.js';
 import { passive } from '../../../projections/modelBound/passive.js';
 import { removedWithJoin } from '../../../projections/modelBound/removedWithJoin.js';
 import { removedWith } from '../../../projections/modelBound/removedWith.js';
@@ -100,6 +102,36 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             'multiple generations of the same event-type id');
     });
 
+    it('should reject bare model-bound context names absent from the event schema', () => {
+        const { compiled, definition } = compileModelBound(model => setFromContext(Changed, 'eventType')(model.prototype, 'state'));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('(@setFromContext)').and.includes("expression 'eventType'").and.includes('absent from the participating event schema');
+    });
+
+    it('should reject the client $context. registration bug with its declaration and expression', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toEventContextProperty('eventType')));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('(.from().setFromContext)').and.includes("expression '$context.eventType'").and.includes('client registration bug #119');
+    });
+
+    for (const expression of ['$eventContext(Occurred.ISOWeek())', '$eventContext(Occurred1)', '$eventContext(_Occurred)']) {
+        it(`should reject unsupported event-context expression ${expression}`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).to(event => event.name)));
+            definition.From[0].Value.Properties.state = expression;
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes(`expression '${expression}'`);
+        });
+    }
+
+    it('should reject multiple generations on a declarative projection', () => {
+        class NewGeneration { name!: string; }
+        field(String)(NewGeneration.prototype, 'name');
+        eventType('capability-changed', 2)(NewGeneration);
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed).from(NewGeneration), [NewGeneration]);
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation,
+            'multiple generations of the same event-type id');
+    });
+
     for (const format of ['float', 'decimal', 'duration', 'int64']) {
         it(`should reject ${format} arithmetic rather than approximate the kernel`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
@@ -108,6 +140,17 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             compiled.readModels[0].Schema = JSON.stringify(schema);
             (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
                 .with.property('message').that.includes('From[capability-changed:1].Properties.total');
+        });
+    }
+
+    for (const format of ['float', 'decimal', 'duration', 'int64']) {
+        it(`should reject model-bound ${format} arithmetic`, () => {
+            const { compiled, definition } = compileModelBound(model => addFrom(Changed, 'quantity')(model.prototype, 'total'));
+            const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { total: { format?: string } } };
+            schema.properties.total.format = format;
+            compiled.readModels[0].Schema = JSON.stringify(schema);
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('(@addFrom)').and.includes("expression '$add(quantity)'");
         });
     }
 
@@ -120,13 +163,44 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             .with.property('message').that.includes('From[capability-changed:1].AutoMap.quantity');
     });
 
+    it('should reject declarative inferred AutoMap with its real source declaration', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { quantity: { format?: string } } };
+        schema.properties.quantity.format = 'float';
+        compiled.readModels[0].Schema = JSON.stringify(schema);
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('From[capability-changed:1].AutoMap.quantity (.from (AutoMap))');
+    });
+
+    it('should validate AutoMap against every participating event, including the second source', () => {
+        class Second { state!: string; }
+        field(String)(Second.prototype, 'state');
+        eventType('second-source')(Second);
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed).from(Second), [Second]);
+        const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { state: { format?: string } } };
+        schema.properties.state.format = 'float';
+        compiled.readModels[0].Schema = JSON.stringify(schema);
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('From[second-source:1].AutoMap.state (.from (AutoMap))');
+    });
+
+    it('should reject ambiguous AutoMap sources that differ only by case', () => {
+        class Ambiguous { name!: string; Name!: string; }
+        field(String)(Ambiguous.prototype, 'name');
+        field(String)(Ambiguous.prototype, 'Name');
+        eventType('ambiguous-source')(Ambiguous);
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Ambiguous), [Ambiguous]);
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('From[ambiguous-source:1].AutoMap.name (.from (AutoMap))').and.includes('name, Name');
+    });
+
     it('should reject identifiers with unsupported schemas', () => {
         const { compiled, definition } = compileModelBound();
         const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { id: { type: string } } };
         schema.properties.id.type = 'boolean';
         compiled.readModels[0].Schema = JSON.stringify(schema);
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('ReadModel.Schema.id');
+            .with.property('message').that.includes('ReadModel.Schema.id (@fromEvent)');
     });
 
     it('should reject dynamically addressed destinations and unsupported expressions', () => {
@@ -140,6 +214,6 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         eventType()(Undiscovered);
         const { compiled, definition } = compileDeclarative(builder => builder.from(Undiscovered));
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('participating event schema is unavailable');
+            .with.property('message').that.includes('From[').and.includes('(.from)').and.includes('participating event schema is unavailable');
     });
 });

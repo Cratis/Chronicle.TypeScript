@@ -3,11 +3,7 @@
 
 import type { ProjectionCapabilityProvenance } from './ProjectionCapabilityProvenance.js';
 import type { ContractEventType } from './declarative/ProjectionBuilderCore.js';
-
-/** Stable, generation-aware path shared by provenance and capability diagnostics. */
-export function eventContractPath(section: string, eventType: ContractEventType): string {
-    return `${section}[${eventType.Id}:${eventType.Generation}]`;
-}
+import { eventContractPath } from './eventContractPath.js';
 
 /** Captures pre-lowering declarations without changing the registration contract. */
 export function captureProjectionProvenance(definition: Record<string, unknown>, modelBound: boolean, overrides: ReadonlyMap<string, string> = new Map()): ProjectionCapabilityProvenance[] {

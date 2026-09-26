@@ -3,6 +3,8 @@
 
 /** A declaration and the contract path it produced, captured before variant lowering. */
 export interface ProjectionCapabilityProvenance {
+    /** Stable path into the compiled projection contract. */
     readonly contractPath: string;
+    /** Source declaration responsible for the contract entry. */
     readonly declaration: string;
 }

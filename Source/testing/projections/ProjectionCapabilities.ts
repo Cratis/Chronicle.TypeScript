@@ -4,7 +4,7 @@
 import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts';
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
-import { eventContractPath } from '../../projections/captureProjectionProvenance.js';
+import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { getEventTypeMapKey } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
@@ -12,12 +12,20 @@ import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation
 
 /** Validates *all* subscribed operations against the bounded scenario subset, before replay. */
 export class ProjectionCapabilities {
-    /** Throws with the original declaration and contract path for the first unsupported operation. */
+    /**
+     * Throws with the original declaration and contract path for the first unsupported operation.
+     * @param compiled - Definitions and their schema/provenance evidence.
+     * @param definition - The compiled contract to validate.
+     */
     static validate(compiled: CompiledProjectionDefinitions, definition: ProjectionDefinition): void {
         const model = String(definition.ReadModel ?? definition.Identifier ?? '<unknown>');
         const wire = definition as unknown as Record<string, unknown>;
-        const reject = (path: string, reason: string, fallback = 'contract') : never => {
-            const declaration = compiled.provenance.get(definition)?.find(entry => entry.contractPath === path)?.declaration ?? fallback;
+        const reject = (path: string, reason: string, fallback?: string) : never => {
+            const source = compiled.provenance.get(definition)?.find(entry => entry.contractPath.startsWith('From['))?.declaration ?? '.from';
+            const declaration = compiled.provenance.get(definition)?.find(entry => entry.contractPath === path)?.declaration
+                ?? fallback ?? (path.includes('.AutoMap.') ? `${source} (AutoMap)`
+                    : path.startsWith('InitialModelState') ? '.withInitialValues'
+                        : path.startsWith('ReadModel') ? source : 'contract');
             throw new UnsupportedProjectionOperation(model, path, declaration, reason);
         };
         if (!compiled.definitions.includes(definition)) reject('Definition', 'definition is not part of this compile');
@@ -49,10 +57,10 @@ export class ProjectionCapabilities {
         } catch {
             reject('ReadModel.Schema', 'read-model schema is not valid JSON');
         }
-        const identifier = Object.entries(schema!.properties ?? {}).find(([name]) => name.toLowerCase() === 'id');
-        if (!identifier || !((identifier[1].type === 'string' && (!identifier[1].format || identifier[1].format === 'guid')) ||
-            (identifier[1].type === 'number' && (!identifier[1].format || identifier[1].format === 'double')) ||
-            (identifier[1].type === 'integer' && ['int32', 'uint32'].includes(identifier[1].format ?? '')))) {
+        const identifier = schema!.properties?.id ?? schema!.properties?.Id ?? { type: 'string' };
+        if (!((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
+            (identifier.type === 'number' && (!identifier.format || identifier.format === 'double')) ||
+            (identifier.type === 'integer' && ['int32', 'uint32'].includes(identifier.format ?? '')))) {
             reject('ReadModel.Schema.id', 'identifier schema must be string, number, or GUID (int32/uint32 identifiers are supported)');
         }
         let initial: unknown;
@@ -91,8 +99,7 @@ export class ProjectionCapabilities {
             const properties = (entry as FromRecord).Value.Properties ?? {};
             for (const [property, expression] of Object.entries(properties)) {
                 const mappingPath = `${path}.Properties.${property}`;
-                this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject,
-                    provenance.find(item => item.contractPath === mappingPath)?.declaration);
+                this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject);
             }
             const expressions = Object.values(properties);
             const aggregateOnly = expressions.length > 0 && expressions.every(expression =>
@@ -110,60 +117,59 @@ export class ProjectionCapabilities {
         for (const [destination] of Object.entries(modelSchema.properties ?? {})) {
             if (destination in explicit || exclusions.includes(destination)) continue;
             const candidates = Object.keys(eventSchema.properties ?? {}).filter(source => source.toLowerCase() === destination.toLowerCase());
-            if (candidates.length > 1) reject(`${path}.AutoMap.${destination}`, 'inferred AutoMap source is ambiguous');
+            if (candidates.length > 1) reject(`${path}.AutoMap.${destination}`, `inferred AutoMap source is ambiguous: ${candidates.join(', ')}`);
             if (candidates.length) this.checkMapping(modelSchema, eventSchema, destination, candidates[0], `${path}.AutoMap.${destination}`, reject);
         }
     }
 
     private static checkMapping(
         modelSchema: JsonSchema, eventSchema: JsonSchema, destination: string, expression: string,
-        path: string, reject: (path: string, reason: string) => never, declaration?: string
+        path: string, reject: (path: string, reason: string) => never
     ): void {
+        const fail = (reason: string): never => reject(path, `expression '${expression}': ${reason}`);
         const target = modelSchema.properties?.[destination]
-            ?? reject(path, 'dynamic or unknown destination paths require a kernel-backed test');
-        if (destination.includes('.') || destination.includes('$')) reject(path, 'dynamic or unknown destination paths require a kernel-backed test');
-        this.checkSchema(target, path, reject);
-        if (declaration === '@setFromContext') {
-            if (!/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) reject(path, 'event-context path requires a kernel-backed test');
-            return;
-        }
+            ?? fail('dynamic or unknown destination paths require a kernel-backed test');
+        if (destination.includes('.') || destination.includes('$')) fail('dynamic or unknown destination paths require a kernel-backed test');
+        this.checkSchema(target, path, (_path, reason) => fail(reason));
         if (expression === '$eventSourceId' || expression === '$null') return;
+        if (expression.startsWith('$context.')) fail('client registration bug #119 emits $context. instead of the kernel $eventContext(...) expression');
+        if (/^\$eventContext\([A-Za-z.]+\)$/.test(expression)) return;
         if (/^\$value\([\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*\)$/u.test(expression)) {
             const text = expression.slice(7, -1);
+            if (target.format === 'date-time') fail('$value date-time literals require a kernel-backed test');
             if (this.numeric(target)) {
                 if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text)) ||
                     (target.type === 'integer' && (!Number.isSafeInteger(Number(text)) ||
                         (target.format === 'int32' && (Number(text) < -2147483648 || Number(text) > 2147483647)) ||
                         (target.format === 'uint32' && (Number(text) < 0 || Number(text) > 4294967295))))) {
-                    reject(path, '$value numeric literal is outside the supported finite/integer range');
+                    fail('$value numeric literal is outside the supported finite/integer range');
                 }
             } else if (target.type === 'boolean' && !/^(?:true|false)$/i.test(text)) {
-                reject(path, '$value boolean literal must be true or false');
+                fail('$value boolean literal must be true or false');
             } else if (target.format === 'guid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
-                reject(path, '$value GUID literal is not canonical');
+                fail('$value GUID literal is not canonical');
             } else if (target.type === 'object' || target.type === 'array') {
-                reject(path, '$value object/array literals require a kernel-backed test');
+                fail('$value object/array literals require a kernel-backed test');
             }
             return;
         }
-        if (/^\$(?:eventContext\([\w.]+\)|context\.[\w.]+)$/.test(expression)) return;
         const operation = /^(\$add|\$subtract)\(([^()]+)\)$/.exec(expression);
         const arithmetic = operation || ['$count', '$increment', '$decrement'].includes(expression);
         if (arithmetic) {
-            if (!this.numeric(target)) reject(path, 'arithmetic requires a supported finite number/double or int32/uint32 schema (not float, decimal, duration, or int64)');
+            if (!this.numeric(target)) fail('arithmetic requires a supported finite number/double or int32/uint32 schema (not float, decimal, duration, or int64)');
             if (operation) {
                 const operand = this.propertyAt(eventSchema, operation[2]);
-                if (!operand || !this.numeric(operand)) reject(path, 'arithmetic operand requires a supported numeric event schema');
+                if (!operand || !this.numeric(operand)) fail('arithmetic operand requires a supported numeric event schema');
             }
             return;
         }
         if (/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) {
             const source = this.propertyAt(eventSchema, expression);
-            if (!source) reject(path, `event property '${expression}' is absent from the participating event schema`);
-            this.checkSchema(source, path, reject);
+            if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
+            this.checkSchema(source, path, (_path, reason) => fail(reason));
             return;
         }
-        reject(path, `expression '${expression}' requires a kernel-backed test`);
+        fail('requires a kernel-backed test');
     }
 
     private static propertyAt(schema: JsonSchema, path: string): JsonSchema | undefined {
@@ -176,7 +182,8 @@ export class ProjectionCapabilities {
     }
 
     private static checkSchema(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
-        if (!schema.type || schema.type === 'null' || (schema.format && !['guid', 'double', 'int32', 'uint32'].includes(schema.format)) ||
+        if (!schema.type || schema.type === 'null' || (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||
+            (schema.format === 'date-time' && schema.type !== 'string') ||
             (schema.format === 'guid' && schema.type !== 'string') ||
             (schema.format === 'double' && schema.type !== 'number') ||
             (['int32', 'uint32'].includes(schema.format ?? '') && schema.type !== 'integer')) {
