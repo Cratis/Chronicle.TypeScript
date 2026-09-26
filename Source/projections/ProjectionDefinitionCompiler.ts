@@ -15,6 +15,9 @@ import { TypeIntrospector } from '../types/index.js';
 import { canonicalStringify } from './canonicalStringify.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
 import { constantValueExpression } from './constantValueExpression.js';
+import { eventContextPropertyExpression } from './eventContextPropertyExpression.js';
+import { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
+import { invalidEventContextPropertyInProjection } from './invalidEventContextPropertyInProjection.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -61,8 +64,9 @@ export class ProjectionDefinitionCompiler {
      */
     compile(declarative: Iterable<Constructor>, modelBound: Iterable<Constructor>): CompiledProjectionDefinitions {
         const builtProjections: BuiltProjection[] = [
-            ...Array.from(declarative, type => this.buildDeclarativeDefinition(type)),
-            ...Array.from(modelBound, type => this.buildModelBoundDefinition(type))
+            ...Array.from(declarative, type => this.buildWithContextValidation(type, () => this.buildDeclarativeDefinition(type),
+                getProjectionMetadata(type)?.readModelType)),
+            ...Array.from(modelBound, type => this.buildWithContextValidation(type, () => this.buildModelBoundDefinition(type), type))
         ];
         // A sibling's entering event adds RemovedWith to each variant. Hash only after
         // every variant has been cross-wired, so repeated registrations remain stable.
@@ -79,6 +83,18 @@ export class ProjectionDefinitionCompiler {
             definitions,
             readModels: this.buildReadModelDefinitions(definitions)
         };
+    }
+
+    private buildWithContextValidation(type: Constructor, build: () => BuiltProjection, readModelType?: Constructor): BuiltProjection {
+        try {
+            return build();
+        } catch (error) {
+            if (error instanceof InvalidEventContextPropertyError) {
+                const readModel = readModelType ? getReadModelId(readModelType) : type.name;
+                throw invalidEventContextPropertyInProjection(error, type.name, readModel);
+            }
+            throw error;
+        }
     }
 
     private buildReadModelDefinitions(projections: ProjectionDefinition[]): ReturnType<typeof buildReadModelDefinition>[] {
@@ -271,7 +287,7 @@ export class ProjectionDefinitionCompiler {
             const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
-                    ? fromEvery.contextProperty
+                    ? eventContextPropertyExpression(fromEvery.contextProperty)
                     : (fromEvery.property ?? property);
             }
         }

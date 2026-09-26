@@ -7,6 +7,7 @@ export { Projections } from './Projections.js';
 export type { ProjectionState } from './ProjectionState.js';
 export type { ProjectionQueryResult } from './ProjectionQueryResult.js';
 export { UnableToQueryProjection } from './UnableToQueryProjection.js';
+export { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
 export { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent.js';
 export { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant.js';
 export * from './declarative/index.js';
