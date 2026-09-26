@@ -18,7 +18,7 @@ Projections are shared Chronicle read-model behavior. Use the shared docs for pr
 The TypeScript client supports these projection capabilities, in addition to `@fromEvent`, `@setFrom`, and the declarative `.from(...)` builder:
 
 - The model-bound arithmetic decorators — `@addFrom`, `@subtractFrom`, `@increment`, `@decrement`, `@count` — and their fluent equivalents (`.add()`/`.subtract()`/`.count()` on `IFromBuilder`/`IJoinBuilder`).
-- The model-bound `@childrenFrom`, `@nested`, and class- or property-level `@clearWith` decorators, and the matching fluent `.children()`/`.nested()` builders (plus `.addChild()`/`.setThisValue()` on `IFromBuilder`/`IJoinBuilder`).
+- The model-bound `@childrenFrom`, `@nested`, and class- or property-level `@clearWith` decorators, and the matching fluent `.children()`/`.nested()` builders (plus `.addChild()`/`.setThisValue()` on `IFromBuilder`/`IJoinBuilder`). Apply `@noAutoMap` to a child or nested class to disable automatic property mapping for that definition; a decorated declaring class also disables it for its child and nested definitions. Explicit `@setFrom` mappings still apply. Fluent child and nested builders support `.noAutoMap()` and `.autoMap()`.
 - Constant values with `@setValue(Event, value)` and `.set(...).toValue(value)`, and constant keys. Earlier client versions sent these in a form the kernel did not apply, so the read model kept its previous value.
 - `.usingCompositeKey()`/`.usingParentCompositeKey()` on the fluent `IFromBuilder`/`IJoinBuilder`, for read models whose key is composed from more than one event property (see [Composite keys](/chronicle/projections/declarative/composite-keys/)).
 

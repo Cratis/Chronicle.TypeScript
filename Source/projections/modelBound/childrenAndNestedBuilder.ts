@@ -16,6 +16,7 @@ import { getDecrementMetadata } from './decrement.js';
 import { getFromEventMetadata } from './fromEvent.js';
 import { getIncrementMetadata } from './increment.js';
 import { isNested } from './nested.js';
+import { isNoAutoMap } from './noAutoMap.js';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith.js';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin.js';
 import { getSetFromMetadata } from './setFrom.js';
@@ -150,7 +151,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
     }
 }
 
-function createEmptyChildrenDefinition(): ChildrenDefinitionLike {
+function createEmptyChildrenDefinition(parentType: Function, childType: Function | undefined): ChildrenDefinitionLike {
     return {
         IdentifiedBy: '$eventSourceId',
         From: [],
@@ -159,7 +160,7 @@ function createEmptyChildrenDefinition(): ChildrenDefinitionLike {
         All: { Properties: {}, IncludeChildren: false, AutoMap: AutoMap.Inherit },
         RemovedWith: [],
         RemovedWithJoin: [],
-        AutoMap: AutoMap.Enabled,
+        AutoMap: isNoAutoMap(parentType) || (childType !== undefined && isNoAutoMap(childType)) ? AutoMap.Disabled : AutoMap.Enabled,
         Nested: {}
     };
 }
@@ -313,7 +314,7 @@ function populateFromType(definition: ChildrenDefinitionLike, childType: Functio
  */
 export function buildChildrenEntry(type: Function, property: string, metadataList: ChildrenFromMetadata[]): ChildrenDefinitionLike {
     const childType = resolveChildElementType(type, property);
-    const definition = createEmptyChildrenDefinition();
+    const definition = createEmptyChildrenDefinition(type, childType);
 
     const explicitIdentifiedBy = metadataList.find(metadata => metadata.identifiedBy)?.identifiedBy;
     definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType) ?? '$eventSourceId';
@@ -342,7 +343,7 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
  */
 export function buildNestedEntry(type: Function, property: string): ChildrenDefinitionLike {
     const nestedType = resolveNestedType(type, property);
-    const definition = createEmptyChildrenDefinition();
+    const definition = createEmptyChildrenDefinition(type, nestedType);
     definition.IdentifiedBy = notSetPropertyPath;
 
     // A @clearWith on the property carrying @nested clears this nested object, the same as a
