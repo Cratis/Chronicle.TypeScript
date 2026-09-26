@@ -1,19 +1,34 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecRemoveWithJoinBasicUserCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class DecRemoveWithJoinBasicUserAddedToGroup {
-    constructor(readonly userId: string, readonly groupId: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly groupId: string;
+
+    constructor(userId: string, groupId: string) {
+        this.userId = userId;
+        this.groupId = groupId;
+    }
 }
 
 @eventType()
 class DecRemoveWithJoinBasicGroupCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()

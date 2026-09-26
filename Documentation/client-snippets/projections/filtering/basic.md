@@ -10,7 +10,7 @@ export class FilteringOrderPlaced {
 
 @eventType()
 export class FilteringOrderShipped {
-    shippedAt: Date | null = null;
+    @field(Date) shippedAt: Date | null = null;
 }
 
 @fromEvent(FilteringOrderPlaced)

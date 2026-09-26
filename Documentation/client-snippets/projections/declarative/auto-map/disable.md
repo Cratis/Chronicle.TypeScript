@@ -1,9 +1,16 @@
 ```typescript title="Disable AutoMap"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AutoMapDisabledAccountRegistered {
-    constructor(readonly accountName: string, readonly contactEmail: string) {}
+    @field(String) readonly accountName: string;
+    @field(String) readonly contactEmail: string;
+
+    constructor(accountName: string, contactEmail: string) {
+        this.accountName = accountName;
+        this.contactEmail = contactEmail;
+    }
 }
 
 export class AutoMapDisabledAccount {

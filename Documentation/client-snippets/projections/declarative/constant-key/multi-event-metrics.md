@@ -1,19 +1,32 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecConstantKeyPageViewed {
-    constructor(readonly pageUrl: string) {}
+    @field(String) readonly pageUrl: string;
+
+    constructor(pageUrl: string) {
+        this.pageUrl = pageUrl;
+    }
 }
 
 @eventType()
 class DecConstantKeyButtonClicked {
-    constructor(readonly buttonId: string) {}
+    @field(String) readonly buttonId: string;
+
+    constructor(buttonId: string) {
+        this.buttonId = buttonId;
+    }
 }
 
 @eventType()
 class DecConstantKeyFormSubmitted {
-    constructor(readonly formId: string) {}
+    @field(String) readonly formId: string;
+
+    constructor(formId: string) {
+        this.formId = formId;
+    }
 }
 
 class DecConstantKeyEngagementMetrics {

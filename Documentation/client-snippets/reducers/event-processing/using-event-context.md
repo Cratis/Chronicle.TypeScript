@@ -1,9 +1,16 @@
 ```typescript
 import { EventContext, eventType, Guid, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingContextOrderPlaced {
-    constructor(readonly orderId: Guid, readonly amount: number) {}
+    @field(Guid) readonly orderId: Guid;
+    @field(Number) readonly amount: number;
+
+    constructor(orderId: Guid, amount: number) {
+        this.orderId = orderId;
+        this.amount = amount;
+    }
 }
 
 class EventProcessingOrderSummaryWithContext {

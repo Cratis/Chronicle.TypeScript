@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class OnceOnlyOrderPlaced {
-    constructor(readonly orderId: string = '') {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string = '') {
+        this.orderId = orderId;
+    }
 }
 
 @reactor()

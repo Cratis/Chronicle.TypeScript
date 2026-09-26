@@ -1,14 +1,27 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class GroupCreatedWithEventParentKey {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class UserAddedWithEventParentKey {
-    constructor(readonly groupId: string, readonly userId: string, readonly role: string) {}
+    @field(String) readonly groupId: string;
+    @field(String) readonly userId: string;
+    @field(String) readonly role: string;
+
+    constructor(groupId: string, userId: string, role: string) {
+        this.groupId = groupId;
+        this.userId = userId;
+        this.role = role;
+    }
 }
 
 class GroupMemberWithEventParentKey {

@@ -1,14 +1,23 @@
 ```typescript
 import { EventContext, eventType, Guid, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingAccountOpened {
-    constructor(readonly accountId: Guid) {}
+    @field(Guid) readonly accountId: Guid;
+
+    constructor(accountId: Guid) {
+        this.accountId = accountId;
+    }
 }
 
 @eventType()
 class EventProcessingDepositMade {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()

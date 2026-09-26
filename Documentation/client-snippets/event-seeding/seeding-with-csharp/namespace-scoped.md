@@ -1,19 +1,34 @@
 ```typescript
 import { eventType, ICanSeedEvents, IEventSeedingBuilder, seeder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EvtSeedingProductCreated {
-    constructor(readonly name: string, readonly price: number) {}
+    @field(String) readonly name: string;
+    @field(Number) readonly price: number;
+
+    constructor(name: string, price: number) {
+        this.name = name;
+        this.price = price;
+    }
 }
 
 @eventType()
 class EvtSeedingOrganizationCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class EvtSeedingBillingSetUp {
-    constructor(readonly billingEmail: string) {}
+    @field(String) readonly billingEmail: string;
+
+    constructor(billingEmail: string) {
+        this.billingEmail = billingEmail;
+    }
 }
 
 @seeder()

@@ -4,6 +4,8 @@ import { ConceptAs, field } from '@cratis/fundamentals';
 
 @pii()
 export class ComplianceReadModelsPersonName extends ConceptAs<string> {
+    static readonly valueType = String;
+
     constructor(value: string) {
         super(value);
     }

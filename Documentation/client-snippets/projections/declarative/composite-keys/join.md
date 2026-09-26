@@ -1,13 +1,18 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class CompositeProductUpdated {
-    constructor(
-        readonly productId: string = '',
-        readonly variant: string = '',
-        readonly productName: string = ''
-    ) {}
+    @field(String) readonly productId: string;
+    @field(String) readonly variant: string;
+    @field(String) readonly productName: string;
+
+    constructor(productId: string = '', variant: string = '', productName: string = '') {
+        this.productId = productId;
+        this.variant = variant;
+        this.productName = productName;
+    }
 }
 
 export class CompositeProductKey {

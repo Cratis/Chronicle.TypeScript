@@ -1,9 +1,16 @@
 ```typescript
 import { EventContext, eventType, pii, reducer, subject } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReleasingPiiSupportTicketOpened {
-    constructor(readonly customerId: string, readonly requesterName: string) {}
+    @field(String) readonly customerId: string;
+    @field(String) readonly requesterName: string;
+
+    constructor(customerId: string, requesterName: string) {
+        this.customerId = customerId;
+        this.requesterName = requesterName;
+    }
 }
 
 class ReleasingPiiSupportTicket {

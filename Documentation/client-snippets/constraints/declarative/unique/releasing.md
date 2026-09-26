@@ -1,9 +1,14 @@
 ```typescript
 import { constraint, eventType, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConstraintsUniqueOrderPlaced {
-    constructor(readonly reference: string) {}
+    @field(String) readonly reference: string;
+
+    constructor(reference: string) {
+        this.reference = reference;
+    }
 }
 
 @eventType()

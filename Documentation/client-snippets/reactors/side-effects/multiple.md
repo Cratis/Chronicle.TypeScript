@@ -1,19 +1,34 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class MultipleSideEffectsBookReserved {
-    constructor(readonly isbn: string = '') {}
+    @field(String) readonly isbn: string;
+
+    constructor(isbn: string = '') {
+        this.isbn = isbn;
+    }
 }
 
 @eventType()
 class MultipleSideEffectsStockDecreased {
-    constructor(readonly isbn: string = '', readonly quantity: number = 0) {}
+    @field(String) readonly isbn: string;
+    @field(Number) readonly quantity: number;
+
+    constructor(isbn: string = '', quantity: number = 0) {
+        this.isbn = isbn;
+        this.quantity = quantity;
+    }
 }
 
 @eventType()
 class MultipleSideEffectsStockLow {
-    constructor(readonly isbn: string = '') {}
+    @field(String) readonly isbn: string;
+
+    constructor(isbn: string = '') {
+        this.isbn = isbn;
+    }
 }
 
 @reactor()

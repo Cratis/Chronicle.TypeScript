@@ -1,19 +1,34 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SliceCreatedForNestedAutoMap {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class CommandSetForNestedAutoMap {
-    constructor(readonly name: string, readonly schema: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+
+    constructor(name: string, schema: string) {
+        this.name = name;
+        this.schema = schema;
+    }
 }
 
 @eventType()
 class CommandUpdatedForNestedAutoMap {
-    constructor(readonly schema: string) {}
+    @field(String) readonly schema: string;
+
+    constructor(schema: string) {
+        this.schema = schema;
+    }
 }
 
 @eventType()

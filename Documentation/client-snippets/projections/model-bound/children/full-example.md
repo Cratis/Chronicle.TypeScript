@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, Guid, removedWith, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 // Events
 @eventType()
@@ -27,17 +28,6 @@ export class MbChildrenFullLineItemRemoved {
 }
 
 // Read Models
-export class MbChildrenFullOrder {
-    id: Guid = Guid.empty;
-
-    @setFrom(MbChildrenFullOrderCreated, 'customerName')
-    customer = '';
-
-    @childrenFrom(MbChildrenFullLineItemAdded, 'itemId')
-    @removedWith(MbChildrenFullLineItemRemoved, 'itemId')
-    lines: MbChildrenFullOrderLine[] = [];
-}
-
 export class MbChildrenFullOrderLine {
     id: Guid = Guid.empty;
 
@@ -50,5 +40,16 @@ export class MbChildrenFullOrderLine {
 
     @setFrom(MbChildrenFullLineItemAdded, 'unitPrice')
     unitPrice = 0;
+}
+
+export class MbChildrenFullOrder {
+    id: Guid = Guid.empty;
+
+    @setFrom(MbChildrenFullOrderCreated, 'customerName')
+    customer = '';
+
+    @childrenFrom(MbChildrenFullLineItemAdded, 'itemId')
+    @removedWith(MbChildrenFullLineItemRemoved, 'itemId')
+    @field(Array, { genericArguments: [MbChildrenFullOrderLine] }) lines: MbChildrenFullOrderLine[] = [];
 }
 ```

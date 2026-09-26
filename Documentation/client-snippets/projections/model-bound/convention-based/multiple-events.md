@@ -4,16 +4,26 @@ import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserProfileCreated {
-    constructor(readonly name: string, readonly email: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @eventType()
 export class ConventionUserProfileUpdated {
-    constructor(
-        readonly name: string,
-        readonly email: string,
-        readonly phone: string
-    ) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+    @field(String) readonly phone: string;
+
+    constructor(name: string, email: string, phone: string) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
 }
 
 @fromEvent(ConventionUserProfileCreated)

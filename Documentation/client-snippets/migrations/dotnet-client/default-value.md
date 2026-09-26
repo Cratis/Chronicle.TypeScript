@@ -1,19 +1,29 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventMigrationBuilder, IEventTypeMigration } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType('dotnet-client-task-created', 2)
 class MigrationsDotnetClientDefaultValueTaskCreated {
-    constructor(
-        readonly title: string,
-        readonly status: string,
-        readonly retryCount: number,
-        readonly enabled: boolean
-    ) {}
+    @field(String) readonly title: string;
+    @field(String) readonly status: string;
+    @field(Number) readonly retryCount: number;
+    @field(Boolean) readonly enabled: boolean;
+
+    constructor(title: string, status: string, retryCount: number, enabled: boolean) {
+        this.title = title;
+        this.status = status;
+        this.retryCount = retryCount;
+        this.enabled = enabled;
+    }
 }
 
 @eventType('dotnet-client-task-created', 1)
 class MigrationsDotnetClientDefaultValueTaskCreatedV1 {
-    constructor(readonly title: string) {}
+    @field(String) readonly title: string;
+
+    constructor(title: string) {
+        this.title = title;
+    }
 }
 
 @eventTypeMigration(MigrationsDotnetClientDefaultValueTaskCreated, MigrationsDotnetClientDefaultValueTaskCreatedV1)

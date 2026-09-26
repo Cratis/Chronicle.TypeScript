@@ -1,14 +1,23 @@
 ```typescript
 import { EventContext, eventType, Guid, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingOrderCreated {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 @eventType()
 class EventProcessingItemAdded {
-    constructor(readonly price: number) {}
+    @field(Number) readonly price: number;
+
+    constructor(price: number) {
+        this.price = price;
+    }
 }
 
 class EventProcessingOrderSummary {

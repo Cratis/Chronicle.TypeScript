@@ -1,14 +1,25 @@
 ```typescript
 import { count, eventType, fromEvent, Guid, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AggOnlyArrangementSet {
-    constructor(readonly location: string) {}
+    @field(String) readonly location: string;
+
+    constructor(location: string) {
+        this.location = location;
+    }
 }
 
 @eventType()
 export class AggOnlyCandidateSubmitted {
-    constructor(readonly name: string, readonly location: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly location: string;
+
+    constructor(name: string, location: string) {
+        this.name = name;
+        this.location = location;
+    }
 }
 
 // AggOnlyCandidateSubmitted is subscribed only to be counted, so its identically named

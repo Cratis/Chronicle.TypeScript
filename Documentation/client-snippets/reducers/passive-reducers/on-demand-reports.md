@@ -1,9 +1,16 @@
 ```typescript
 import { EventContext, eventType, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class PassiveReducersPaymentReceived {
-    constructor(readonly category: string, readonly amount: number) {}
+    @field(String) readonly category: string;
+    @field(Number) readonly amount: number;
+
+    constructor(category: string, amount: number) {
+        this.category = category;
+        this.amount = amount;
+    }
 }
 
 class PassiveReducersMonthlyRevenueReport {

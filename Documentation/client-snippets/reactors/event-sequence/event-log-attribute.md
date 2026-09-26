@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, Guid, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventSequenceLogReactorOrderPlaced {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 // No eventSequenceId given - observes the default event log

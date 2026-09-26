@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecEventContextActivityPerformed {
-    constructor(readonly activityId: string, readonly activityType: string) {}
+    @field(String) readonly activityId: string;
+    @field(String) readonly activityType: string;
+
+    constructor(activityId: string, activityType: string) {
+        this.activityId = activityId;
+        this.activityType = activityType;
+    }
 }
 
 class DecEventContextActivityLogEntry {

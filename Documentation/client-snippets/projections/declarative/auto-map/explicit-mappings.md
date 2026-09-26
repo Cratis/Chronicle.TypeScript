@@ -1,14 +1,25 @@
 ```typescript title="AutoMap with explicit mappings"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AutoMapAccountOpened {
-    constructor(readonly name: string, readonly email: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @eventType()
 export class AutoMapAccountEmailChanged {
-    constructor(readonly email: string) {}
+    @field(String) readonly email: string;
+
+    constructor(email: string) {
+        this.email = email;
+    }
 }
 
 export class AutoMapAccount {

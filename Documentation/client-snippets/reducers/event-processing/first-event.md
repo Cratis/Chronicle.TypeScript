@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingDataRecorded {
-    constructor(readonly value: number) {}
+    @field(Number) readonly value: number;
+
+    constructor(value: number) {
+        this.value = value;
+    }
 }
 
 class EventProcessingAnalytics {

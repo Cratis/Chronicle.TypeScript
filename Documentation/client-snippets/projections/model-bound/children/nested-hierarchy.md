@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, Guid, join, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 // Events
 @eventType()
@@ -33,14 +34,12 @@ export class MbChildrenNestedTeamRenamed {
 }
 
 // Read Models - all decorators work at every nesting level
-export class MbChildrenNestedOrganization {
+export class MbChildrenNestedTeam {
     id: Guid = Guid.empty;
 
-    @setFrom(MbChildrenNestedOrganizationCreated, 'name')
+    @setFrom(MbChildrenNestedTeamAdded, 'name')
+    @join(MbChildrenNestedTeamRenamed, undefined, 'newName') // Joins work on nested children too
     name = '';
-
-    @childrenFrom(MbChildrenNestedDepartmentAdded, 'id', 'id')
-    departments: MbChildrenNestedDepartment[] = [];
 }
 
 export class MbChildrenNestedDepartment {
@@ -51,14 +50,16 @@ export class MbChildrenNestedDepartment {
     name = '';
 
     @childrenFrom(MbChildrenNestedTeamAdded, 'id', 'id', 'departmentId') // Nested children
-    teams: MbChildrenNestedTeam[] = [];
+    @field(Array, { genericArguments: [MbChildrenNestedTeam] }) teams: MbChildrenNestedTeam[] = [];
 }
 
-export class MbChildrenNestedTeam {
+export class MbChildrenNestedOrganization {
     id: Guid = Guid.empty;
 
-    @setFrom(MbChildrenNestedTeamAdded, 'name')
-    @join(MbChildrenNestedTeamRenamed, undefined, 'newName') // Joins work on nested children too
+    @setFrom(MbChildrenNestedOrganizationCreated, 'name')
     name = '';
+
+    @childrenFrom(MbChildrenNestedDepartmentAdded, 'id', 'id')
+    @field(Array, { genericArguments: [MbChildrenNestedDepartment] }) departments: MbChildrenNestedDepartment[] = [];
 }
 ```

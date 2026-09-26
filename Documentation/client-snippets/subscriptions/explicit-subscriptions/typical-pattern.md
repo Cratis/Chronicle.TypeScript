@@ -1,19 +1,38 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SubscriptionsExplicitTypicalShipmentDispatched {
-    constructor(readonly orderId: string, readonly trackingNumber: string) {}
+    @field(String) readonly orderId: string;
+    @field(String) readonly trackingNumber: string;
+
+    constructor(orderId: string, trackingNumber: string) {
+        this.orderId = orderId;
+        this.trackingNumber = trackingNumber;
+    }
 }
 
 @eventType()
 class SubscriptionsExplicitTypicalStockAdjusted {
-    constructor(readonly sku: string, readonly delta: number) {}
+    @field(String) readonly sku: string;
+    @field(Number) readonly delta: number;
+
+    constructor(sku: string, delta: number) {
+        this.sku = sku;
+        this.delta = delta;
+    }
 }
 
 @eventType()
 class SubscriptionsExplicitTypicalStockReserved {
-    constructor(readonly sku: string, readonly quantity: number) {}
+    @field(String) readonly sku: string;
+    @field(Number) readonly quantity: number;
+
+    constructor(sku: string, quantity: number) {
+        this.sku = sku;
+        this.quantity = quantity;
+    }
 }
 
 async function registerSubscriptionsExplicitTypicalPattern(eventStore: IEventStore): Promise<void> {

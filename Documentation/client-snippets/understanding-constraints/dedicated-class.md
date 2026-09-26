@@ -1,14 +1,25 @@
 ```typescript
 import { constraint, eventType, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class UcDedicatedUserRegistered {
-    constructor(readonly email: string, readonly displayName: string) {}
+    @field(String) readonly email: string;
+    @field(String) readonly displayName: string;
+
+    constructor(email: string, displayName: string) {
+        this.email = email;
+        this.displayName = displayName;
+    }
 }
 
 @eventType()
 class UcDedicatedUserEmailChanged {
-    constructor(readonly newEmail: string) {}
+    @field(String) readonly newEmail: string;
+
+    constructor(newEmail: string) {
+        this.newEmail = newEmail;
+    }
 }
 
 @eventType()

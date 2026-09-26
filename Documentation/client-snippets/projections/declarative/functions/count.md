@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecFunctionsUserLoggedIn {
-    constructor(readonly username: string) {}
+    @field(String) readonly username: string;
+
+    constructor(username: string) {
+        this.username = username;
+    }
 }
 
 @eventType()
 class DecFunctionsUserPerformedAction {
-    constructor(readonly username: string, readonly actionType: string) {}
+    @field(String) readonly username: string;
+    @field(String) readonly actionType: string;
+
+    constructor(username: string, actionType: string) {
+        this.username = username;
+        this.actionType = actionType;
+    }
 }
 
 class DecFunctionsUserActivity {

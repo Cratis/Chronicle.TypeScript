@@ -16,6 +16,8 @@ SOURCE_ROOT = REPO_ROOT / "Source"
 SNIPPET_ROOT = REPO_ROOT / "Documentation" / "client-snippets"
 GENERATED_DIR = SOURCE_ROOT / ".docs-snippets"
 GENERATED_SOURCE = GENERATED_DIR / "snippets.ts"
+GENERATED_SDK_ENTRY = GENERATED_DIR / "sdk-entry.ts"
+GENERATED_INVALID_CHECK = GENERATED_DIR / "invalid-check.mjs"
 GENERATED_TSCONFIG = GENERATED_DIR / "tsconfig.json"
 FENCE_RE = re.compile(r"```([^\s`]+)[^\n]*\n(.*?)\n```", re.DOTALL)
 NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle['\"];?\s*$")
@@ -23,7 +25,16 @@ CONTRACTS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cr
 FUNDAMENTALS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/fundamentals['\"];?\s*$")
 SIDE_EFFECT_IMPORT_RE = re.compile(r"^import\s+['\"]([^'\"]+)['\"];?\s*$")
 UNSUPPORTED_SNIPPET_MARKER = "does not support this workflow yet"
+CLASS_RE = re.compile(r"^[ \t]*(?:export\s+)?(?:(?:default|abstract)\s+)*class\s+(\w+)\b", re.MULTILINE)
 VALIDATION_EXCLUDED_PREFIXES = ("legacy/",)
+# These examples intentionally throw during decoration or schema generation.
+RUNTIME_INVALID_ERRORS = {
+    "confidentiality/encrypted/pii-and-encrypted-restriction": "PIIAndEncryptedCombinedNotSupported",
+    "compliance/pii-with-concepts/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "compliance/client/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "compliance/pii/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "confidentiality/encrypted/event-source-id-restriction": "EncryptedNotSupportedOnEventSourceId",
+}
 
 BODY_SNIPPETS = {
     "get-started/client-flow": "",
@@ -180,25 +191,30 @@ def function_name(relative_path: str) -> str:
     return "snippet_" + re.sub(r"[^A-Za-z0-9_]", "_", relative_path)
 
 
-def generate_source() -> str:
+def generate_source(runtime: bool = False) -> str:
     files = snippet_files()
     if not files:
         raise ValueError(f"No client snippets found in {SNIPPET_ROOT}")
 
     named_imports = {"IEventStore"}
+    if runtime:
+        named_imports.update({"getEventTypeMetadata", "getReadModelMetadata", "TypeDiscoverer", "hasModelBoundProperties", "DefaultClientArtifactsProvider", "validateArtifactSchemas"})
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
     declarations: list[str] = [textwrap.dedent(declaration).strip() for declaration in COMMON_DECLARATIONS]
     functions: list[str] = []
+    classes: list[tuple[str, str]] = []
 
     for path in files:
         relative_path = snippet_key(path)
         snippet = extract_snippet(path)
-        if snippet is None:
+        if snippet is None or (runtime and relative_path in RUNTIME_INVALID_ERRORS):
             continue
 
         body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+        if runtime and not CLASS_RE.search(body):
+            continue
 
         if relative_path in BODY_SNIPPETS:
             prelude = textwrap.dedent(BODY_SNIPPETS[relative_path]).strip()
@@ -207,49 +223,149 @@ def generate_source() -> str:
             functions.append(f"async function {function_name(relative_path)}(store: IEventStore): Promise<void> {{\n{function_body}\n}}")
         else:
             declarations.append(body)
+            classes.extend((relative_path, name) for name in CLASS_RE.findall(body))
 
     imports = [
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
-        f"import {{ {', '.join(sorted(named_imports))} }} from '../index';",
+        f"import {{ {', '.join(sorted(named_imports))} }} from '{'../sdk.mjs' if runtime else '../index'}';",
     ]
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
     if fundamentals_named_imports:
         imports.append(f"import {{ {', '.join(sorted(fundamentals_named_imports))} }} from '@cratis/fundamentals';")
 
+    schema_checks = [
+        "const snippetClasses = [",
+        *[f"    [{json.dumps(path)}, {name}]," for path, name in classes],
+        "] as const;",
+        "// Discovery tracks property-only models when their modules are imported.",
+        "for (const [, type] of snippetClasses) {",
+        "    if (hasModelBoundProperties(type)) TypeDiscoverer.default.trackModelBoundProperty(type);",
+        "}",
+        "const artifacts = DefaultClientArtifactsProvider.default;",
+        "const registeredReadModels = new Set(artifacts.readModels);",
+        "const schemaFailures: string[] = [];",
+        "let checkedSchemas = 0;",
+        "for (const [path, type] of snippetClasses) {",
+        "    try {",
+        "        if (getEventTypeMetadata(type)) {",
+        "            validateArtifactSchemas({ ...artifacts, eventTypes: [type], readModels: [] });",
+        "            checkedSchemas++;",
+        "        } else if (getReadModelMetadata(type) || registeredReadModels.has(type)) {",
+        "            validateArtifactSchemas({ ...artifacts, eventTypes: [], readModels: [type] });",
+        "            checkedSchemas++;",
+        "        }",
+        "    } catch (error) {",
+        "        const details = error instanceof AggregateError ? error.errors.map(String).join('; ') : String(error);",
+        "        schemaFailures.push(`${path}: ${details}`);",
+        "    }",
+        "}",
+        "if (!checkedSchemas && !schemaFailures.length) throw new Error('No event or read-model schemas were checked.');",
+        "if (schemaFailures.length) throw new Error(`${schemaFailures.length} schema error(s):\\n${schemaFailures.join('\\n')}`);",
+        "// Also exercise the complete artifact set as EventStore does at startup.",
+        "validateArtifactSchemas(artifacts);",
+        "console.log(`Standard decorators: ${checkedSchemas} event/read-model schemas validated.`);",
+    ] if runtime else []
     return "\n\n".join([
         "// This file is generated by Documentation/validate-client-snippets.py.",
         *imports,
         *declarations,
         *functions,
+        *schema_checks,
         "",
     ])
 
 
-def generate_tsconfig() -> str:
+def generate_invalid_source(path: Path) -> str:
+    snippet = extract_snippet(path)
+    if snippet is None:
+        raise ValueError(f"Expected an intentionally invalid TypeScript snippet in {path}")
+    named_imports = {"getEventTypeMetadata"}
+    contracts_named_imports: set[str] = set()
+    fundamentals_named_imports: set[str] = set()
+    side_effect_imports = {"reflect-metadata"}
+    body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+    classes = CLASS_RE.findall(body)
+    if not classes:
+        raise ValueError(f"No classes found in intentionally invalid snippet {path}")
+    imports = [
+        *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
+        f"import {{ {', '.join(sorted(named_imports))} }} from '../sdk.mjs';",
+    ]
+    if contracts_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
+    if fundamentals_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(fundamentals_named_imports))} }} from '@cratis/fundamentals';")
+    return "\n\n".join([*imports, body, *[f"void getEventTypeMetadata({name})?.schema;" for name in classes], ""])
+
+
+def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
     config = {
         "extends": "../tsconfig.json",
         "compilerOptions": {
-            "noEmit": True,
+            "noEmit": not runtime,
             "noUnusedLocals": False,
             "noUnusedParameters": False,
+            "experimentalDecorators": not standard,
+            "emitDecoratorMetadata": not standard,
         },
         "include": ["snippets.ts"],
     }
+    if runtime:
+        # Already type-checked in both modes above; emit against the bundled SDK.
+        config["compilerOptions"].update({"noCheck": True, "rootDir": ".", "outDir": "runtime"})
+        config["include"].append("invalid-*.ts")
     return json.dumps(config, indent=4) + "\n"
 
 
 def main() -> int:
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     GENERATED_SOURCE.write_text(generate_source(), encoding="utf-8")
-    GENERATED_TSCONFIG.write_text(generate_tsconfig(), encoding="utf-8")
+    files = [path for path in snippet_files() if extract_snippet(path) is not None]
 
     try:
+        for standard in (False, True):
+            GENERATED_TSCONFIG.write_text(generate_tsconfig(standard), encoding="utf-8")
+            mode = "standard" if standard else "legacy"
+            subprocess.run(["yarn", "exec", "tsc", "-p", ".docs-snippets/tsconfig.json"], cwd=SOURCE_ROOT, check=True)
+            print(f"{mode.capitalize()} decorators: {len(files)} TypeScript snippets compiled.", flush=True)
+
+        # Bundle the SDK separately; emit snippets with tsc so bundler renaming
+        # cannot change constructor parameter names introspected by the SDK.
+        GENERATED_SOURCE.write_text(generate_source(runtime=True), encoding="utf-8")
+        invalid_files = {snippet_key(path): path for path in snippet_files() if snippet_key(path) in RUNTIME_INVALID_ERRORS}
+        if invalid_files.keys() != RUNTIME_INVALID_ERRORS.keys():
+            raise ValueError(f"Missing intentionally invalid snippets: {RUNTIME_INVALID_ERRORS.keys() - invalid_files.keys()}")
+        invalid_cases = []
+        for index, (key, path) in enumerate(sorted(invalid_files.items())):
+            module = f"invalid-{index}"
+            (GENERATED_DIR / f"{module}.ts").write_text(generate_invalid_source(path), encoding="utf-8")
+            invalid_cases.append((key, RUNTIME_INVALID_ERRORS[key], module))
+        GENERATED_INVALID_CHECK.write_text("const cases = " + json.dumps(invalid_cases) + ";\n" + textwrap.dedent("""
+            for (const [path, expected, module] of cases) {
+                try {
+                    await import(`./runtime/${module}.js`);
+                } catch (error) {
+                    if (error?.name === expected) continue;
+                    throw new Error(`${path}: expected ${expected}, got ${String(error)}`, { cause: error });
+                }
+                throw new Error(`${path}: expected ${expected}, but the snippet did not throw.`);
+            }
+            console.log(`Standard decorators: ${cases.length} intentionally invalid snippets rejected with expected errors.`);
+        """), encoding="utf-8")
+        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\n", encoding="utf-8")
+        subprocess.run([
+            "yarn", "exec", "esbuild", ".docs-snippets/sdk-entry.ts", "--bundle", "--packages=external",
+            "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/sdk.mjs",
+        ], cwd=SOURCE_ROOT, check=True)
+        GENERATED_TSCONFIG.write_text(generate_tsconfig(True, runtime=True), encoding="utf-8")
         subprocess.run(["yarn", "exec", "tsc", "-p", ".docs-snippets/tsconfig.json"], cwd=SOURCE_ROOT, check=True)
+        subprocess.run(["node", ".docs-snippets/runtime/snippets.js"], cwd=SOURCE_ROOT, check=True)
+        subprocess.run(["node", ".docs-snippets/invalid-check.mjs"], cwd=SOURCE_ROOT, check=True)
     finally:
         shutil.rmtree(GENERATED_DIR, ignore_errors=True)
 
-    print("TypeScript Chronicle client snippets compiled successfully.")
+    print("TypeScript Chronicle client snippets validated successfully.")
     return 0
 
 

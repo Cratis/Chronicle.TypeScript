@@ -1,12 +1,16 @@
 ```typescript
 import { eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SubscriptionsExplicitOrderPlaced {
-    constructor(
-        readonly orderId: string,
-        readonly amount: number
-    ) {}
+    @field(String) readonly orderId: string;
+    @field(Number) readonly amount: number;
+
+    constructor(orderId: string, amount: number) {
+        this.orderId = orderId;
+        this.amount = amount;
+    }
 }
 
 @reactor()

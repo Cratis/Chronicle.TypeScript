@@ -1,12 +1,16 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SubscriptionsExplicitStockAdjusted {
-    constructor(
-        readonly itemId: string,
-        readonly delta: number
-    ) {}
+    @field(String) readonly itemId: string;
+    @field(Number) readonly delta: number;
+
+    constructor(itemId: string, delta: number) {
+        this.itemId = itemId;
+        this.delta = delta;
+    }
 }
 
 class SubscriptionsExplicitNamingConvention {

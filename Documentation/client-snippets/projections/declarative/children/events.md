@@ -1,23 +1,46 @@
 ```typescript
 import { eventType } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class GroupCreatedForChildEvents {
-    constructor(readonly name: string, readonly description: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly description: string;
+
+    constructor(name: string, description: string) {
+        this.name = name;
+        this.description = description;
+    }
 }
 
 @eventType()
 class UserAddedToGroupForChildEvents {
-    constructor(readonly userId: string, readonly role: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly role: string;
+
+    constructor(userId: string, role: string) {
+        this.userId = userId;
+        this.role = role;
+    }
 }
 
 @eventType()
 class UserRoleChangedForChildEvents {
-    constructor(readonly userId: string, readonly role: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly role: string;
+
+    constructor(userId: string, role: string) {
+        this.userId = userId;
+        this.role = role;
+    }
 }
 
 @eventType()
 class UserRemovedFromGroupForChildEvents {
-    constructor(readonly userId: string) {}
+    @field(String) readonly userId: string;
+
+    constructor(userId: string) {
+        this.userId = userId;
+    }
 }
 ```
