@@ -135,6 +135,7 @@ class IdentifiedChildren {
     byConvention!: ChildWithId[];
     byUppercaseId!: ChildWithUppercaseId[];
     byExplicitId!: ChildWithExplicitId[];
+    byExplicitIdWithoutChildType!: ChildWithId[];
     byInferredEventKey!: ChildWithMatchingEventKey[];
     byEventKey!: ChildWithId[];
     byMatchingKey!: ChildWithId[];
@@ -152,6 +153,7 @@ class IdentifiedChildren {
 childrenFrom(LineAdded, ChildWithId)(IdentifiedChildren.prototype, 'byConvention');
 childrenFrom(LineAdded, ChildWithUppercaseId)(IdentifiedChildren.prototype, 'byUppercaseId');
 childrenFrom(LineAdded, ChildWithExplicitId, 'employeeNumber')(IdentifiedChildren.prototype, 'byExplicitId');
+childrenFrom(LineAdded, undefined, 'id')(IdentifiedChildren.prototype, 'byExplicitIdWithoutChildType');
 childrenFrom(LineAdded, 'productId')(IdentifiedChildren.prototype, 'byInferredEventKey');
 childrenFrom(LineAdded, 'productId', 'id')(IdentifiedChildren.prototype, 'byEventKey');
 childrenFrom(LineAdded, 'id', 'id')(IdentifiedChildren.prototype, 'byMatchingKey');
@@ -364,6 +366,15 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             expect(children.byUppercaseId.From[0].Value.Properties).toEqual({ Id: '$eventContext(EventSourceId)' });
             expect(children.byExplicitId.IdentifiedBy).toBe('employeeNumber');
             expect(children.byExplicitId.From[0].Value.Properties).toEqual({ employeeNumber: '$eventContext(EventSourceId)' });
+        });
+
+        it('should map an explicit identifier without child-type metadata from the creating event source id', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.byExplicitIdWithoutChildType;
+            expect(child.IdentifiedBy).toBe('id');
+            expect(child.From[0].Value.Properties).toEqual({ id: '$eventContext(EventSourceId)' });
         });
 
         it('should map the child identifier from an explicit event key when it differs from the property name', async () => {

@@ -343,13 +343,14 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
     // property mapping. TypeScript has no [Key] decorator, so an explicit identifiedBy
     // plays the same role as a discovered id for this default.
     const identifier = definition.IdentifiedBy;
-    if (childType && definition.AutoMap === AutoMap.Enabled && identifier !== '$eventSourceId') {
-        const prototype = childType.prototype;
-        const hasExplicitMapping = getSetFromMetadata(prototype, identifier).length > 0 ||
+    if (definition.AutoMap === AutoMap.Enabled && identifier !== '$eventSourceId') {
+        const prototype = childType?.prototype;
+        const hasExplicitMapping = prototype !== undefined && (
+            getSetFromMetadata(prototype, identifier).length > 0 ||
             getSetFromContextMetadata(prototype, identifier).length > 0 ||
             getSetValueMetadata(prototype, identifier).length > 0 ||
             getAddFromMetadata(prototype, identifier).length > 0 ||
-            getSubtractFromMetadata(prototype, identifier).length > 0;
+            getSubtractFromMetadata(prototype, identifier).length > 0);
         if (!hasExplicitMapping) {
             for (const metadata of metadataList) {
                 const entry = definition.From.find(candidate => getEventTypeMapKey(candidate.Key) === getEventTypeMapKey(toContractEventType(metadata.eventType)))!;
