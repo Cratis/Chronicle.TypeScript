@@ -2,14 +2,16 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { Constructor } from '@cratis/fundamentals';
-import { chai, describe, it } from 'vitest';
+import { Constructor, field } from '@cratis/fundamentals';
+import { chai, describe, expect, it } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
+import { projection } from './declarative/projection.js';
 import { childrenFrom } from './modelBound/childrenFrom.js';
 import { fromEvent } from './modelBound/fromEvent.js';
 import { fromEvery } from './modelBound/fromEvery.js';
+import { nested } from './modelBound/nested.js';
 import { setFromContext } from './modelBound/setFromContext.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
 
@@ -19,11 +21,13 @@ class Removed {}
 eventType()(Removed);
 class Child { happened!: Date; }
 setFromContext(Recorded, 'occurred')(Child.prototype, 'happened');
-class Model { occurred!: Date; happened!: Date; viaAccessor!: Date; children!: Child[]; }
+class Model { occurred!: Date; happened!: Date; viaAccessor!: Date; children!: Child[]; detail!: Child; }
 setFromContext(Recorded)(Model.prototype, 'occurred');
 setFromContext(Recorded, 'occurred')(Model.prototype, 'happened');
 setFromContext(Recorded, context => context.occurred)(Model.prototype, 'viaAccessor');
 childrenFrom(Recorded, Child)(Model.prototype, 'children');
+field(Child)(Model.prototype, 'detail');
+nested(Model.prototype, 'detail');
 fromEvery(undefined, 'sequenceNumber')(Model.prototype, 'happened');
 fromEvent(Recorded)(Model);
 
@@ -35,6 +39,7 @@ interface Definition {
     All: { Properties: Record<string, string> };
     RemovedWith: Array<{ Value: { Key: string } }>;
     Children: Record<string, { From: FromRecord[] }>;
+    Nested: Record<string, { From: FromRecord[] }>;
 }
 
 function declarative(configure: (builder: ProjectionBuilderFor<Model>) => void): Definition {
@@ -43,12 +48,24 @@ function declarative(configure: (builder: ProjectionBuilderFor<Model>) => void):
     return builder.build('context-spec', 'Model') as unknown as Definition;
 }
 
-function modelBound(): Definition {
+function modelBound(readModel: Constructor = Model): Definition {
     const artifacts: IClientArtifactsProvider = {
-        projections: [], readModels: [Model as Constructor], globalForHandlers: [], eventTypes: [Recorded],
+        projections: [], readModels: [readModel], globalForHandlers: [], eventTypes: [Recorded],
         reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
     };
-    return new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [Model as Constructor]).definitions[0] as unknown as Definition;
+    return new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [readModel]).definitions[0] as unknown as Definition;
+}
+
+function compileDeclarative(configure: (builder: ProjectionBuilderFor<Model>) => void): void {
+    class InvalidDeclarativeProjection {
+        define(builder: ProjectionBuilderFor<Model>): void { configure(builder); }
+    }
+    projection('invalid-context', Model)(InvalidDeclarativeProjection);
+    const artifacts: IClientArtifactsProvider = {
+        projections: [InvalidDeclarativeProjection], readModels: [Model], globalForHandlers: [], eventTypes: [Recorded],
+        reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
+    };
+    new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([InvalidDeclarativeProjection], []);
 }
 
 chai.should();
@@ -68,6 +85,10 @@ describe('event context expressions', () => {
 
     it('should map a child model-bound context property to the kernel expression', () => {
         modelBound().Children.children.From[0].Value.Properties.happened.should.equal('$eventContext(Occurred)');
+    });
+
+    it('should map a nested model-bound context property to the kernel expression', () => {
+        modelBound().Nested.detail.From[0].Value.Properties.happened.should.equal('$eventContext(Occurred)');
     });
 
     it('should map a model-bound fromEvery context property to the kernel expression', () => {
@@ -90,8 +111,13 @@ describe('event context expressions', () => {
     });
 
     it('should preserve PascalCase and capitalize every nested context segment', () => {
-        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('CausedBy.name')))
-            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.Name)');
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('CausedBy.subject')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.Subject)');
+    });
+
+    it('should allow a kernel-derived function on a known context property', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('occurred.ISOWeek()')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(Occurred.ISOWeek())');
     });
 
     it('should use a context property as a from key', () => {
@@ -117,6 +143,50 @@ describe('event context expressions', () => {
     it('should use a context property as a removal key', () => {
         declarative(builder => builder.removedWith(Removed, removed => removed.usingKeyFromContext('eventSourceId')))
             .RemovedWith[0].Value.Key.should.equal('$eventContext(EventSourceId)');
+    });
+
+    it('should reject an invalid model-bound context property at registration with the read model name', () => {
+        class InvalidModel { happened!: Date; }
+        setFromContext(Recorded, 'invalidProperty')(InvalidModel.prototype, 'happened');
+        fromEvent(Recorded)(InvalidModel);
+        expect(() => modelBound(InvalidModel)).toThrow(/Invalid event context property 'invalidProperty'.*'InvalidModel'/);
+    });
+
+    it('should reject an invalid implicit model-bound context property at registration', () => {
+        class ImplicitInvalidModel { unknown!: string; }
+        setFromContext(Recorded)(ImplicitInvalidModel.prototype, 'unknown');
+        fromEvent(Recorded)(ImplicitInvalidModel);
+        expect(() => modelBound(ImplicitInvalidModel)).toThrow(/Invalid event context property 'unknown'.*'ImplicitInvalidModel'/);
+    });
+
+    it('should reject an invalid declarative set context property at registration', () => {
+        expect(() => compileDeclarative(builder => builder.from(Recorded, from =>
+            from.set(model => model.happened).toEventContextProperty('unknown'))))
+            .toThrow(/Invalid event context property 'unknown'.*'InvalidDeclarativeProjection'.*'Model'/);
+    });
+
+    it('should reject an invalid declarative all-set context property at registration', () => {
+        expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+            all.set(model => model.happened).toEventContextProperty('unknown'))))
+            .toThrow(/Invalid event context property 'unknown'.*'InvalidDeclarativeProjection'.*'Model'/);
+    });
+
+    it('should reject invalid context paths that the kernel cannot parse', () => {
+        expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+            all.set(model => model.happened).toEventContextProperty('causedBy.subject[0]'))))
+            .toThrow(/Invalid event context property 'causedBy.subject\[0\]'.*'InvalidDeclarativeProjection'/);
+    });
+
+    it('should reject invalid context properties in key and parent-key APIs at registration', () => {
+        const mappings = [
+            (builder: ProjectionBuilderFor<Model>) => builder.from(Recorded, from => from.usingKeyFromContext('missingKey')),
+            (builder: ProjectionBuilderFor<Model>) => builder.from(Recorded, from => from.usingParentKeyFromContext('missingParent')),
+            (builder: ProjectionBuilderFor<Model>) => builder.join(Recorded, join => join.on(model => model.occurred).usingKeyFromContext('missingJoinKey')),
+            (builder: ProjectionBuilderFor<Model>) => builder.removedWith(Removed, removed => removed.usingKeyFromContext('missingRemovalKey'))
+        ];
+        for (const configure of mappings) {
+            expect(() => compileDeclarative(configure)).toThrow(/Invalid event context property 'missing.*' in projection 'InvalidDeclarativeProjection'/);
+        }
     });
 
     it('should use a context property on a declarative child and child parent key', () => {
