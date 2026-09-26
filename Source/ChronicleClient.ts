@@ -22,6 +22,7 @@ import { ChronicleMetrics } from './Metrics.js';
 import { ChronicleTracer } from './Tracing.js';
 import { TypeDiscoverer } from './types/index.js';
 import { takeUnregisteredModelBoundMappings } from './types/modelBoundPropertyMetadata.js';
+import { reachableReadModelTypes } from './readModels/rootReadModelTypes.js';
 
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
@@ -525,7 +526,7 @@ export class ChronicleClient implements IChronicleClient {
             await this._discoveryOperation;
         }
 
-        const unregisteredMappings = takeUnregisteredModelBoundMappings(this.options.clientArtifactsProvider.readModels);
+        const unregisteredMappings = takeUnregisteredModelBoundMappings(reachableReadModelTypes(this.options.clientArtifactsProvider));
         if (unregisteredMappings.length > 0) {
             this._logger.warn(
                 `Standard-decorated model-bound properties were not registered: ${unregisteredMappings.join(', ')}. ` +

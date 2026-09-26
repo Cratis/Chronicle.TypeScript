@@ -66,6 +66,27 @@ describe('when discovering a standard-decorated property-only read model', () =>
         expect(register.mock.calls.some(call => call[0].Projections[0].ReadModel === 'ExplicitModel')).toBe(true);
     });
 
+    it('should not register the same model twice when constructed before discovery', async () => {
+        class ConstructedFirst {
+            @setFrom(Changed)
+            @field(String)
+            value = '';
+        }
+        new ConstructedFirst();
+        const discoverer = new TypeDiscoverer(async () => ['models.ts'], async () => ({ ConstructedFirst }));
+        await discoverer.discover('models.ts');
+        const provider = new DefaultClientArtifactsProvider(discoverer);
+        expect(provider.readModels.filter(type => type === ConstructedFirst)).toHaveLength(1);
+
+        const registerMany = vi.fn().mockResolvedValue({});
+        const register = vi.fn().mockResolvedValue({});
+        const connection = { readModels: { registerMany }, projections: { register } } as unknown as ChronicleConnection;
+        await new Projections('store', 'Default', connection, provider, 'sink').register();
+
+        expect(registerMany.mock.calls[0][0].ReadModels.filter((model: { Type: { Identifier: string } }) => model.Type.Identifier === 'ConstructedFirst')).toHaveLength(1);
+        expect(register.mock.calls.filter(call => call[0].Projections[0].ReadModel === 'ConstructedFirst')).toHaveLength(1);
+    });
+
     it('should not register the same model again after its first construction', async () => {
         const discoverer = new TypeDiscoverer(async () => ['models.ts'], async () => ({ PropertyOnly }));
         await discoverer.discover('models.ts');

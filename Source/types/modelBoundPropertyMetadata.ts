@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { getStandardMetadata, hasOwnStandardMetadata } from './standardDecoratorMetadata.js';
+import { getStandardMetadata } from './standardDecoratorMetadata.js';
 
 // The standard field decorator has no constructor, but its metadata object is attached to
 // the declaring class after evaluation. Discovery can match that object to a module export.
@@ -34,15 +34,21 @@ export function hasModelBoundMetadata(metadata: object): boolean {
     return mappedMetadata.has(metadata);
 }
 
-/** Returns each unresolved mapping once, dropping resolved and collected metadata from the registry. */
+/** Returns unresolved mappings grouped by class metadata, dropping resolved and collected entries. */
 export function takeUnregisteredModelBoundMappings(registeredTypes: Function[]): string[] {
-    const registeredMetadata = new Set(registeredTypes.filter(hasOwnStandardMetadata).map(getStandardMetadata));
+    const registeredMetadata = new Set<object>();
+    for (const type of registeredTypes) {
+        for (let metadata: object | null | undefined = getStandardMetadata(type); metadata; metadata = Object.getPrototypeOf(metadata) as object | null) {
+            registeredMetadata.add(metadata);
+        }
+    }
     const unmapped: string[] = [];
     for (const reference of pendingMetadata) {
         const metadata = reference.deref();
         pendingMetadata.delete(reference);
         finalizedMetadata.unregister(reference);
         if (!metadata || registeredMetadata.has(metadata)) continue;
+        const mappingsForClass = new Set<string>();
         for (const property of mappedMetadata.get(metadata) ?? []) {
             for (const key of modelBoundPropertyKeys) {
                 const value = Reflect.getOwnMetadata(key, metadata, property) as unknown;
@@ -51,10 +57,11 @@ export function takeUnregisteredModelBoundMappings(registeredTypes: Function[]):
                 for (const mapping of mappings) {
                     const eventType = mapping && typeof mapping === 'object' && 'eventType' in mapping ? mapping.eventType : undefined;
                     const eventName = typeof eventType === 'function' ? eventType.name : 'all events';
-                    unmapped.push(`${property} <- ${eventName}`);
+                    mappingsForClass.add(`${property} <- ${eventName}`);
                 }
             }
         }
+        if (mappingsForClass.size > 0) unmapped.push(`{${[...mappingsForClass].join(', ')}}`);
     }
-    return [...new Set(unmapped)];
+    return unmapped;
 }
