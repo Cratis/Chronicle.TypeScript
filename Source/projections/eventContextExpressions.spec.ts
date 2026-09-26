@@ -127,8 +127,45 @@ describe('event context expressions', () => {
     });
 
     it('should allow a kernel-derived function on a known context property', () => {
-        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('occurred.ISOWeek()')))
-            .From[0].Value.Properties.happened.should.equal('$eventContext(Occurred.ISOWeek())');
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('occurred.week()')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(Occurred.Week())');
+    });
+
+    it('should normalize a mixed-case kernel-derived function', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('occurred.WEEK()')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(Occurred.Week())');
+    });
+
+    it('should reject a derived function the kernel does not recognize', () => {
+        expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+            all.set(model => model.happened).toEventContextProperty('occurred.ISOWeek()'))))
+            .toThrow(/Invalid event context property 'occurred.ISOWeek\(\)'.*'InvalidDeclarativeProjection'/);
+    });
+
+    it('should map an identity reached through onBehalfOf recursively', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causedBy.onBehalfOf.onBehalfOf.userName')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.OnBehalfOf.OnBehalfOf.UserName)');
+    });
+
+    it('should reject unknown identity members including those nested under onBehalfOf', () => {
+        for (const path of ['causedBy.unknown', 'causedBy.onBehalfOf.unknown', 'causedBy.subject.name']) {
+            expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+                all.set(model => model.happened).toEventContextProperty(path))))
+                .toThrow(`Invalid event context property '${path}'`);
+        }
+    });
+
+    it('should allow members of the kernel causation record', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causation.type')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(Causation.Type)');
+    });
+
+    it('should reject unknown causation members and deeper paths', () => {
+        for (const path of ['causation.unknown', 'causation.properties.unknown']) {
+            expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+                all.set(model => model.happened).toEventContextProperty(path))))
+                .toThrow(`Invalid event context property '${path}'`);
+        }
     });
 
     it('should use a context property as a from key', () => {
@@ -163,6 +200,14 @@ describe('event context expressions', () => {
         const attempt = register([], [InvalidModel]);
         await expect(attempt).rejects.toThrow("Invalid event context property 'invalidProperty' in projection 'InvalidModel' (read model 'invalid-model-id').");
         await expect(attempt).rejects.toMatchObject({ cause: expect.any(InvalidEventContextPropertyError) });
+    });
+
+    it('should reject an unknown nested identity member in a model-bound projection', () => {
+        class InvalidIdentityModel { happened!: string; }
+        setFromContext(Recorded, 'causedBy.missing')(InvalidIdentityModel.prototype, 'happened');
+        fromEvent(Recorded)(InvalidIdentityModel);
+        expect(() => modelBound(InvalidIdentityModel))
+            .toThrow(/Invalid event context property 'causedBy.missing'.*'InvalidIdentityModel'/);
     });
 
     it('should reject an invalid implicit model-bound context property at registration', () => {

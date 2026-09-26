@@ -17,6 +17,7 @@ import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.j
 import { constantValueExpression } from './constantValueExpression.js';
 import { eventContextPropertyExpression } from './eventContextPropertyExpression.js';
 import { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
+import { invalidEventContextPropertyInProjection } from './invalidEventContextPropertyInProjection.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -90,7 +91,7 @@ export class ProjectionDefinitionCompiler {
         } catch (error) {
             if (error instanceof InvalidEventContextPropertyError) {
                 const readModel = readModelType ? getReadModelId(readModelType) : type.name;
-                throw new Error(`Invalid event context property '${error.propertyPath}' in projection '${type.name}' (read model '${readModel}').`, { cause: error });
+                throw invalidEventContextPropertyInProjection(error, type.name, readModel);
             }
             throw error;
         }
