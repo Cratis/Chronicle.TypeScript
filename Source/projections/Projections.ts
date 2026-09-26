@@ -2,72 +2,29 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { diag } from '@opentelemetry/api';
-import {
-    AutoMap,
-    ProjectionOwner,
-    ReadModelObserverType
-} from '@cratis/chronicle.contracts';
+import { ProjectionOwner, type ProjectionDefinition } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
-import { WellKnownSinks } from '../sinks/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
 import { JobId } from '../jobs/JobId.js';
 import { FailedPartition } from '../observation/FailedPartition.js';
 import { FailedPartitions } from '../observation/FailedPartitions.js';
 import { toObserverRunningState } from '../observation/toObserverRunningState.js';
-import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
-import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
-import { JsonSchemaGenerator } from '../schemas/index.js';
-import { TypeIntrospector } from '../types/index.js';
-import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { IProjections } from './IProjections.js';
-import { constantValueExpression } from './constantValueExpression.js';
 import { getProjectionMetadata } from './declarative/projection.js';
-import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
-import type { IProjectionFor } from './declarative/IProjectionFor.js';
-import {
-    applyPropertyMappings,
-    buildChildrenEntry,
-    buildNestedEntry,
-    ChildrenDefinitionLike,
-    ContractEventType,
-    ensureFromEntry,
-    FromRecord,
-    getEventTypeMapKey,
-    toContractEventType
-} from './modelBound/childrenAndNestedBuilder.js';
-import { getChildrenFromMetadata } from './modelBound/childrenFrom.js';
-import { getClearWithPropertyMetadata } from './modelBound/clearWith.js';
 import { getEventSequenceMetadata } from './modelBound/eventSequence.js';
-import { getFromAllMetadata } from './modelBound/fromAll.js';
-import { getFromEveryMetadata } from './modelBound/fromEvery.js';
-import { getFromEventMetadata, hasFromEventMetadata } from './modelBound/fromEvent.js';
-import { getJoinMetadata } from './modelBound/join.js';
-import { isNoAutoMap, isPropertyNoAutoMap } from './modelBound/noAutoMap.js';
+import { isModelBoundProjection } from './modelBound/isModelBoundProjection.js';
 import { ProjectionId } from './ProjectionId.js';
 import { ProjectionQueryResult } from './ProjectionQueryResult.js';
 import { ProjectionState } from './ProjectionState.js';
-import { isNested } from './modelBound/nested.js';
-import { isNotRewindable } from './modelBound/notRewindable.js';
-import { isPassive } from './modelBound/passive.js';
-import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './modelBound/removedWith.js';
-import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './modelBound/removedWithJoin.js';
-import { getVariantOfMetadata } from './modelBound/variantOf.js';
-import { getEntersOnMetadata } from './modelBound/entersOn.js';
-import { getGlobalForMetadata } from './modelBound/globalFor.js';
+import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
+import type { ResolvedModelBoundMetadata } from './ResolvedModelBoundMetadata.js';
 import { UnableToQueryProjection } from './UnableToQueryProjection.js';
-import { BuiltProjection, crossWireGroups, mergeGlobalHandlers, reclassify, VariantDeclaration } from './VariantReclassifier.js';
-
-interface ResolvedModelBoundMetadata {
-    id: ProjectionId;
-    eventSequenceId: string | undefined;
-    readModelIdentifier: string;
-}
 
 /**
  * Implements {@link IProjections}, managing discovery and registration of projections
@@ -116,7 +73,7 @@ export class Projections implements IProjections {
         }
 
         for (const type of readModelTypes) {
-            if (!hasFromEventMetadata(type) && !hasModelBoundProperties(type)) {
+            if (!isModelBoundProjection(type)) {
                 continue;
             }
 
@@ -147,27 +104,16 @@ export class Projections implements IProjections {
             .map(type => getProjectionMetadata(type)?.readModelType)
             .filter((type): type is Constructor => type !== undefined);
         assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred]);
-        const builtProjections: BuiltProjection[] = [
-            ...Array.from(this._declarative.values()).map(type => this.buildDeclarativeDefinition(type)),
-            ...Array.from(this._modelBound.values()).map(type => this.buildModelBoundDefinition(type))
-        ];
-
-        // Cross-wiring can only run once every variant in this registration call is known, so it
-        // runs here rather than as each definition is built - and LastUpdated is computed only
-        // afterward, so a RemovedWith entry it adds is reflected in the hash sent to the kernel.
-        crossWireGroups(builtProjections);
-        for (const built of builtProjections) {
-            built.definition.LastUpdated = { Value: this.computeStableLastUpdated(built.definition) };
-        }
-
-        const projections = builtProjections.map(built => built.definition);
+        const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId)
+            .compile(this._declarative.values(), this._modelBound.values());
+        const projections = compiled.definitions;
 
         if (projections.length === 0) {
             this._logger.info('No projections to register');
             return;
         }
 
-        const readModels = this.buildReadModelDefinitions(projections);
+        const readModels = compiled.readModels;
         if (readModels.length > 0) {
             await this._connection.readModels.registerMany({
                 EventStore: this._eventStore,
@@ -178,7 +124,7 @@ export class Projections implements IProjections {
         }
 
         for (const projection of projections) {
-            const identifier = String((projection as { Identifier?: unknown }).Identifier ?? '<unknown>');
+            const identifier = String(projection.Identifier ?? '<unknown>');
             await this.registerWithRetry(projection, identifier);
         }
     }
@@ -325,15 +271,15 @@ export class Projections implements IProjections {
         return EventSequenceId.eventLog.value;
     }
 
-    private async registerWithRetry(projection: unknown, identifier: string, maxAttempts = 5): Promise<void> {
+    private async registerWithRetry(projection: ProjectionDefinition, identifier: string, maxAttempts = 5): Promise<void> {
         let delay = 2000;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                this._logger.info('Registering projection', { identifier, readModel: (projection as any).ReadModel, attempt });
+                this._logger.info('Registering projection', { identifier, readModel: projection.ReadModel, attempt });
                 await this._connection.projections.register({
                     EventStore: this._eventStore,
                     Owner: ProjectionOwner.PROJECTION_OWNER_Client,
-                    Projections: [projection as any]
+                    Projections: [projection]
                 });
                 this._logger.info('Projection registered successfully', { identifier });
                 return;
@@ -355,314 +301,8 @@ export class Projections implements IProjections {
         }
     }
 
-    private buildReadModelDefinitions(projections: any[]): any[] {
-        const byReadModel = new Map<string, any>();
-
-        for (const projection of projections) {
-            const readModelIdentifier = projection.ReadModel;
-            if (!readModelIdentifier) {
-                continue;
-            }
-            const existing = byReadModel.get(readModelIdentifier);
-            if (existing) {
-                if (existing.ObserverIdentifier !== projection.Identifier) {
-                    throw new Error(`Read model id '${readModelIdentifier}' has multiple projections.`);
-                }
-                continue;
-            }
-
-            const readModelType = this.getReadModelType(readModelIdentifier);
-            byReadModel.set(readModelIdentifier, buildReadModelDefinition({
-                identifier: readModelIdentifier,
-                type: readModelType,
-                schema: readModelType
-                    ? JSON.stringify(getReadModelMetadata(readModelType)?.schema ?? JsonSchemaGenerator.generate(readModelType))
-                    : '{}',
-                // Passive projections never write to a materialized sink, so they register with
-                // the None sink. This lets the kernel fall through to immediate projection when
-                // resolving the instance by key instead of reading an empty sink and returning null.
-                sinkTypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId,
-                observerType: ReadModelObserverType.Projection,
-                observerIdentifier: projection.Identifier
-            }));
-        }
-
-        return Array.from(byReadModel.values());
-    }
-
-    private getReadModelType(readModelIdentifier: string): Constructor | undefined {
-        const types = [
-            ...rootReadModelTypes(this._clientArtifacts),
-            ...this._clientArtifacts.projections
-                .map(projectionType => getProjectionMetadata(projectionType)?.readModelType)
-                .filter((type): type is Constructor => type !== undefined)
-        ];
-        for (const type of types) {
-            if (getReadModelId(type) === readModelIdentifier) {
-                return type;
-            }
-        }
-
-        return undefined;
-    }
-
-    private buildDeclarativeDefinition(type: Constructor): BuiltProjection {
-        const metadata = getProjectionMetadata(type);
-        if (!metadata) {
-            throw new Error(`Type '${type.name}' is missing declarative projection metadata.`);
-        }
-
-        const builder = new ProjectionBuilderFor<unknown>();
-        const instance = new type() as IProjectionFor<unknown>;
-        instance.define(builder);
-        const definition = builder.build(metadata.id.value, type.name) as Record<string, unknown>;
-
-        const explicitReadModelIdentifier = definition.ReadModel as string;
-        if (explicitReadModelIdentifier === type.name) {
-            // Use explicit readModelType from decorator if provided
-            if (metadata.readModelType) {
-                definition.ReadModel = getReadModelId(metadata.readModelType);
-            } else {
-                const inferredReadModelIdentifier = this.inferReadModelIdentifier(builder.getMappedReadModelProperties());
-                if (inferredReadModelIdentifier) {
-                    definition.ReadModel = inferredReadModelIdentifier;
-                }
-            }
-        }
-
-        let variant: VariantDeclaration | undefined;
-        const variantDeclaration = builder.getVariantDeclaration();
-        if (variantDeclaration) {
-            const reclassified = reclassify(
-                type.name,
-                definition.From as any,
-                definition.Join as any,
-                variantDeclaration.enteringEventTypes,
-                variantDeclaration.key);
-            definition.From = reclassified.from;
-            definition.Join = reclassified.join;
-            variant = variantDeclaration;
-        }
-
-        return { typeName: type.name, definition, variant };
-    }
-
-    private inferReadModelIdentifier(mappedProperties: string[]): string | undefined {
-        if (mappedProperties.length === 0) {
-            return undefined;
-        }
-
-        const matchingReadModels = rootReadModelTypes(this._clientArtifacts)
-            .map(type => ({ type, metadata: getReadModelMetadata(type) }))
-            .filter(candidate => candidate.metadata)
-            .filter(candidate => {
-                const readModelProperties = Array.from(candidate.metadata!.members.keys());
-                return mappedProperties.every(property => readModelProperties.includes(property));
-            });
-
-        if (matchingReadModels.length !== 1) {
-            return undefined;
-        }
-
-        return matchingReadModels[0].metadata!.id.value;
-    }
-
-    private buildModelBoundDefinition(type: Constructor): BuiltProjection {
-        const metadata = this.resolveModelBoundMetadata(type);
-        if (!metadata) {
-            throw new Error(`Type '${type.name}' is missing model-bound projection metadata.`);
-        }
-
-        const properties = TypeIntrospector.getTrackedProperties(type);
-        const prototype = type.prototype;
-
-        const fromByEventType = new Map<string, FromRecord>();
-        const joinByEventType = new Map<string, { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } }>();
-        const removedWithByEventType = new Map<string, { Key: ContractEventType; Value: { Key: string; ParentKey: string } }>();
-        const removedWithJoinByEventType = new Map<string, { Key: ContractEventType; Value: { Key: string } }>();
-        const childrenByProperty: Record<string, ChildrenDefinitionLike> = {};
-        const nestedByProperty: Record<string, ChildrenDefinitionLike> = {};
-
-        const fromEvents = getFromEventMetadata(type);
-        for (const fromEvent of fromEvents) {
-            const eventType = toContractEventType(fromEvent.eventType);
-            const eventKey = getEventTypeMapKey(eventType);
-            fromByEventType.set(eventKey, {
-                Key: eventType,
-                Value: {
-                    Properties: {},
-                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
-                    ParentKey: fromEvent.parentKey ?? ''
-                }
-            });
-        }
-
-        const removedWithClass = getRemovedWithClassMetadata(type);
-        for (const removed of removedWithClass) {
-            const eventType = toContractEventType(removed.eventType);
-            removedWithByEventType.set(getEventTypeMapKey(eventType), {
-                Key: eventType,
-                Value: { Key: removed.key ?? '$eventSourceId', ParentKey: removed.parentKey ?? '' }
-            });
-        }
-
-        const removedWithJoinClass = getRemovedWithJoinClassMetadata(type);
-        for (const removed of removedWithJoinClass) {
-            const eventType = toContractEventType(removed.eventType);
-            removedWithJoinByEventType.set(getEventTypeMapKey(eventType), {
-                Key: eventType,
-                Value: { Key: removed.key ?? '$eventSourceId' }
-            });
-        }
-
-        for (const property of properties) {
-            applyPropertyMappings(prototype, property, fromByEventType);
-
-            for (const mapping of getJoinMetadata(prototype, property)) {
-                const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
-                entry.Value.On = mapping.on ?? (entry.Value.On || property);
-                entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
-            }
-
-            for (const removed of getRemovedWithPropertyMetadata(prototype, property)) {
-                const eventType = toContractEventType(removed.eventType);
-                removedWithByEventType.set(getEventTypeMapKey(eventType), {
-                    Key: eventType,
-                    Value: { Key: removed.key ?? '$eventSourceId', ParentKey: removed.parentKey ?? '' }
-                });
-            }
-
-            for (const removed of getRemovedWithJoinPropertyMetadata(prototype, property)) {
-                const eventType = toContractEventType(removed.eventType);
-                removedWithJoinByEventType.set(getEventTypeMapKey(eventType), {
-                    Key: eventType,
-                    Value: { Key: removed.key ?? '$eventSourceId' }
-                });
-            }
-
-            const childrenFromList = getChildrenFromMetadata(prototype, property);
-            if (childrenFromList.length > 0) {
-                childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList);
-            }
-
-            const propertyIsNested = isNested(prototype, property);
-            if (propertyIsNested) {
-                nestedByProperty[property] = buildNestedEntry(type, property);
-            }
-
-            // A scalar (non-nested, non-children-collection) root property clears back to no value
-            // every time the given event is observed. A nested single-object property's clearWith is
-            // handled by buildNestedEntry instead, which clears the whole nested object.
-            if (childrenFromList.length === 0 && !propertyIsNested) {
-                for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
-                    const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
-                    entry.Value.Properties[property] = '$null';
-                }
-            }
-        }
-
-        const allProperties: Record<string, string> = {};
-        for (const property of properties) {
-            const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
-            if (fromEvery) {
-                allProperties[property] = fromEvery.contextProperty
-                    ? fromEvery.contextProperty
-                    : (fromEvery.property ?? property);
-            }
-        }
-
-        let from = Array.from(fromByEventType.values());
-        let join = Array.from(joinByEventType.values());
-        let variant: VariantDeclaration | undefined;
-
-        const variantMetadata = getVariantOfMetadata(type);
-        if (variantMetadata) {
-            const entersOnList = getEntersOnMetadata(type);
-            const enteringEventTypes = entersOnList.map(entersOn => {
-                const contractType = toContractEventType(entersOn.eventType);
-                if (entersOn.key) {
-                    const entry = ensureFromEntry(fromByEventType, entersOn.eventType);
-                    entry.Value.Key = entersOn.key;
-                }
-                return contractType;
-            });
-            from = Array.from(fromByEventType.values());
-
-            const globalHandlers = new Map<string, FromRecord[]>();
-            for (const handlerType of this._clientArtifacts.globalForHandlers) {
-                const globalForMetadata = getGlobalForMetadata(handlerType);
-                if (globalForMetadata?.identity === variantMetadata.identity) {
-                    globalHandlers.set(handlerType.name, this.buildFromRecordsForType(handlerType));
-                }
-            }
-
-            const memberNames = new Set(getReadModelMetadata(type)?.members.keys() ?? TypeIntrospector.getMembers(type).keys());
-            const merged = mergeGlobalHandlers(type.name, memberNames, from, globalHandlers);
-            const reclassified = reclassify(type.name, merged, join, enteringEventTypes, variantMetadata.key);
-            from = reclassified.from;
-            join = reclassified.join;
-            variant = { identity: variantMetadata.identity, key: variantMetadata.key, enteringEventTypes };
-        }
-
-        const definition: Record<string, unknown> = {
-            EventSequenceId: metadata.eventSequenceId ?? EventSequenceId.eventLog.value,
-            Identifier: metadata.id.value,
-            ReadModel: metadata.readModelIdentifier,
-            IsActive: !isPassive(type),
-            IsRewindable: !isNotRewindable(type),
-            InitialModelState: '{}',
-            From: from,
-            Join: join,
-            Children: childrenByProperty,
-            FromEvery: [],
-            All: {
-                Properties: allProperties,
-                IncludeChildren: false,
-                AutoMap: AutoMap.Inherit
-            },
-            RemovedWith: Array.from(removedWithByEventType.values()),
-            RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
-            LastUpdated: { Value: '' },
-            Tags: [],
-            AutoMap: isNoAutoMap(type) ? AutoMap.Disabled : AutoMap.Enabled,
-            NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
-            Nested: nestedByProperty
-        };
-        return { typeName: type.name, definition, variant };
-    }
-
-    /**
-     * Builds the raw From records for an arbitrary type using the same property-mapping rules as
-     * a model-bound read model - used to fold a globalFor shared handler's mappings into every
-     * variant of its identity.
-     * @param type - The type to build From records for.
-     * @returns The built From records.
-     */
-    private buildFromRecordsForType(type: Constructor): FromRecord[] {
-        const fromByEventType = new Map<string, FromRecord>();
-        const fromEvents = getFromEventMetadata(type);
-        for (const fromEvent of fromEvents) {
-            const eventType = toContractEventType(fromEvent.eventType);
-            fromByEventType.set(getEventTypeMapKey(eventType), {
-                Key: eventType,
-                Value: {
-                    Properties: {},
-                    Key: fromEvent.constantKey ? constantValueExpression(fromEvent.constantKey) : (fromEvent.key ?? '$eventSourceId'),
-                    ParentKey: fromEvent.parentKey ?? ''
-                }
-            });
-        }
-
-        const prototype = type.prototype;
-        for (const property of TypeIntrospector.getTrackedProperties(type)) {
-            applyPropertyMappings(prototype, property, fromByEventType);
-        }
-
-        return Array.from(fromByEventType.values());
-    }
-
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {
-        if (hasFromEventMetadata(type) || hasModelBoundProperties(type)) {
+        if (isModelBoundProjection(type)) {
             const identifier = getReadModelId(type);
             return {
                 id: new ProjectionId(identifier),
@@ -672,44 +312,5 @@ export class Projections implements IProjections {
         }
 
         return undefined;
-    }
-
-    private ensureJoinEntry(
-        joinByEventType: Map<string, { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } }>,
-        eventTypeConstructor: Function
-    ): { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } } {
-        const eventType = toContractEventType(eventTypeConstructor);
-        const key = getEventTypeMapKey(eventType);
-        const existing = joinByEventType.get(key);
-        if (existing) {
-            return existing;
-        }
-
-        const created = {
-            Key: eventType,
-            Value: {
-                On: '',
-                Properties: {},
-                Key: '$eventSourceId'
-            }
-        };
-        joinByEventType.set(key, created);
-        return created;
-    }
-
-    /**
-     * Computes a stable, deterministic ISO timestamp from the projection definition content,
-     * excluding the LastUpdated field itself. This ensures the server does not interpret
-     * a repeated registration of an unchanged definition as a definition change, which
-     * would otherwise trigger an unnecessary auto-replay.
-     */
-    private computeStableLastUpdated(definition: Record<string, unknown>): string {
-        const { LastUpdated: _omit, ...rest } = definition;
-        const content = JSON.stringify(rest, Object.keys(rest).sort());
-        let hash = 5381;
-        for (let i = 0; i < content.length; i++) {
-            hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;
-        }
-        return new Date(hash * 1000).toISOString();
     }
 }
