@@ -1,0 +1,12 @@
+# npm-check-updates configuration for the daily "Update Packages" run.
+#
+# `peer` must stay in this list: fundamentalsPeerRange.spec.ts requires
+# peerDependencies["@cratis/fundamentals"] to equal ^devDependencies pin, and
+# ncu skips ranges that already satisfy the latest version - without `peer`
+# here it bumps the pin but leaves the peer range behind, failing that spec on
+# every within-range fundamentals release.
+dep:
+  - prod
+  - dev
+  - peer
+  - optional

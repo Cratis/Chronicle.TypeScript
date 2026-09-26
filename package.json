@@ -17,5 +17,8 @@
     "dependencies": {
         "@cratis/chronicle.contracts": "19.6.1",
         "glob": "^13.0.6"
+    },
+    "resolutions": {
+        "@grpc/grpc-js": "^1.14.5"
     }
 }
