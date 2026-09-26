@@ -8,24 +8,34 @@ import { chai, describe, it, vi } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
 import type { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
-import { EventTypes } from '../events/EventTypes.js';
 import { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
 import { IProjectionFor } from './declarative/IProjectionFor.js';
 import { projection } from './declarative/projection.js';
 import { addFrom } from './modelBound/addFrom.js';
 import { childrenFrom } from './modelBound/childrenFrom.js';
+import { clearWith } from './modelBound/clearWith.js';
 import { count } from './modelBound/count.js';
+import { decrement } from './modelBound/decrement.js';
 import { entersOn } from './modelBound/entersOn.js';
-import { fromEvent, hasFromEventMetadata } from './modelBound/fromEvent.js';
+import { eventSequence } from './modelBound/eventSequence.js';
+import { fromAll } from './modelBound/fromAll.js';
+import { fromEvent } from './modelBound/fromEvent.js';
 import { fromEvery } from './modelBound/fromEvery.js';
 import { globalFor } from './modelBound/globalFor.js';
+import { increment } from './modelBound/increment.js';
+import { isModelBoundProjection } from './modelBound/isModelBoundProjection.js';
 import { join } from './modelBound/join.js';
+import { nested } from './modelBound/nested.js';
 import { noAutoMap } from './modelBound/noAutoMap.js';
+import { notRewindable } from './modelBound/notRewindable.js';
+import { passive } from './modelBound/passive.js';
 import { removedWith } from './modelBound/removedWith.js';
+import { removedWithJoin } from './modelBound/removedWithJoin.js';
 import { setFrom } from './modelBound/setFrom.js';
+import { setFromContext } from './modelBound/setFromContext.js';
+import { setValue } from './modelBound/setValue.js';
 import { subtractFrom } from './modelBound/subtractFrom.js';
 import { variantOf } from './modelBound/variantOf.js';
-import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
 import { Projections } from './Projections.js';
 
@@ -72,6 +82,53 @@ class Every { id!: string; name!: string; }
 fromEvery('name')(Every.prototype, 'name');
 fromEvent(ItemCreated)(Every);
 
+class PassiveModel { id!: string; name!: string; }
+field(String)(PassiveModel.prototype, 'name');
+setFrom(ItemCreated, 'name')(PassiveModel.prototype, 'name');
+fromEvent(ItemCreated)(PassiveModel);
+passive(PassiveModel);
+
+class Detail { description!: string; }
+setFrom(ItemCreated, 'name')(Detail.prototype, 'description');
+fromEvent(ItemCreated)(Detail);
+clearWith(ItemRemoved)(Detail);
+class WithNested { id!: string; detail!: Detail; title!: string; }
+field(Detail)(WithNested.prototype, 'detail');
+nested(WithNested.prototype, 'detail');
+clearWith(ItemUpdated)(WithNested.prototype, 'detail');
+clearWith(ItemRemoved)(WithNested.prototype, 'title');
+fromEvent(ItemCreated)(WithNested);
+
+class WithRemovedJoin { id!: string; name!: string; }
+removedWithJoin(ItemRemoved, 'productId')(WithRemovedJoin);
+removedWithJoin(TitleChanged, 'title')(WithRemovedJoin.prototype, 'name');
+fromEvent(ItemCreated)(WithRemovedJoin);
+
+class CustomKeys { id!: string; }
+fromEvent(ItemCreated, { key: 'productId', parentKey: 'ownerId' })(CustomKeys);
+class ConstantKeys { id!: string; }
+fromEvent(ItemCreated, { constantKey: 'one', parentKey: 'ownerId' })(ConstantKeys);
+
+class NoMapping { id!: string; name!: string; }
+noAutoMap(NoMapping);
+fromEvent(ItemCreated)(NoMapping);
+class NoRewind { id!: string; }
+notRewindable(NoRewind);
+fromEvent(ItemCreated)(NoRewind);
+class OtherSequence { id!: string; }
+eventSequence('custom-sequence')(OtherSequence);
+fromEvent(ItemCreated)(OtherSequence);
+
+class MappingOptions { id!: string; context!: string; state!: string; increments!: number; decrements!: number; all!: string; }
+field(String)(MappingOptions.prototype, 'context');
+field(Number)(MappingOptions.prototype, 'increments');
+setFromContext(ItemCreated, 'eventSourceId')(MappingOptions.prototype, 'context');
+setValue(ItemUpdated, 'ready')(MappingOptions.prototype, 'state');
+increment(ItemCreated)(MappingOptions.prototype, 'increments');
+decrement(ItemUpdated)(MappingOptions.prototype, 'decrements');
+fromAll('name')(MappingOptions.prototype, 'all');
+fromEvent(ItemCreated)(MappingOptions);
+
 class Identity {}
 class Draft { id!: string; title!: string; }
 setFrom(Opened, 'title')(Draft.prototype, 'title');
@@ -85,6 +142,10 @@ variantOf(Identity, 'id')(Public);
 entersOn(Published)(Public);
 fromEvent(Published)(Public);
 fromEvent(TitleChanged)(Public);
+class KeyedVariant { id!: string; title!: string; }
+variantOf(Identity, 'id')(KeyedVariant);
+entersOn(Opened, 'productId')(KeyedVariant);
+fromEvent(Opened)(KeyedVariant);
 class SharedTitle { title!: string; }
 setFrom(TitleChanged, 'title')(SharedTitle.prototype, 'title');
 globalFor(Identity)(SharedTitle);
@@ -101,6 +162,12 @@ class DeclarativeProjection implements IProjectionFor<Declarative> {
     }
 }
 projection('Declarative', Declarative)(DeclarativeProjection);
+class AnotherDeclarativeProjection implements IProjectionFor<Declarative> {
+    define(builder: IProjectionBuilderFor<Declarative>): void {
+        builder.from(ItemUpdated);
+    }
+}
+projection('AnotherDeclarative', Declarative)(AnotherDeclarativeProjection);
 
 class DeclarativeDraft { id!: string; title!: string; }
 class DeclarativeDraftProjection implements IProjectionFor<DeclarativeDraft> {
@@ -117,8 +184,27 @@ class DeclarativePublicProjection implements IProjectionFor<DeclarativePublic> {
 }
 projection('DeclarativePublic', DeclarativePublic)(DeclarativePublicProjection);
 
+class Inferred { uniqueTitle!: string; }
+field(String)(Inferred.prototype, 'uniqueTitle');
+class InferredProjection implements IProjectionFor<Inferred> {
+    define(builder: IProjectionBuilderFor<Inferred>): void {
+        builder.from(Opened, from => from.set(model => model.uniqueTitle).to(event => event.title));
+    }
+}
+projection()(InferredProjection);
+
 const cases = [
     { name: 'flat', readModels: [Flat], projections: [], globalForHandlers: [] },
+    { name: 'passive-with-fields', readModels: [PassiveModel], projections: [], globalForHandlers: [] },
+    { name: 'nested-and-clear', readModels: [WithNested], projections: [], globalForHandlers: [] },
+    { name: 'removed-with-join', readModels: [WithRemovedJoin], projections: [], globalForHandlers: [] },
+    { name: 'custom-keys', readModels: [CustomKeys, ConstantKeys], projections: [], globalForHandlers: [] },
+    { name: 'no-auto-map', readModels: [NoMapping], projections: [], globalForHandlers: [] },
+    { name: 'not-rewindable', readModels: [NoRewind], projections: [], globalForHandlers: [] },
+    { name: 'event-sequence', readModels: [OtherSequence], projections: [], globalForHandlers: [] },
+    { name: 'mapping-options-with-fields', readModels: [MappingOptions], projections: [], globalForHandlers: [] },
+    { name: 'enters-on-key', readModels: [KeyedVariant], projections: [], globalForHandlers: [] },
+    { name: 'declarative-inferred-with-fields', readModels: [Inferred], projections: [InferredProjection], globalForHandlers: [] },
     { name: 'automap-exclusion', readModels: [AutoMapped], projections: [], globalForHandlers: [] },
     { name: 'arithmetic', readModels: [Totals], projections: [], globalForHandlers: [] },
     { name: 'removed-with', readModels: [Removable], projections: [], globalForHandlers: [] },
@@ -174,24 +260,17 @@ describe('projection registration payload', () => {
             const artifacts = artifactsFor(testCase);
             const compiled = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile(
                 artifacts.projections,
-                artifacts.readModels.filter(type => hasFromEventMetadata(type) || hasModelBoundProperties(type))
+                artifacts.readModels.filter(isModelBoundProjection)
             );
             const compiledPayload = serializeContract({ readModels: compiled.readModels, projections: compiled.definitions });
             compiledPayload.should.equal(await captureRegistration(artifacts));
         });
     }
 
-    it('should compile the same event schemas as event type registration', async () => {
-        const artifacts = artifactsFor(cases[0]);
-        const registerEventTypes = vi.fn().mockResolvedValue({ IsAuthorized: true, ValidationResults: [], ExceptionMessages: [] });
-        const connection = { eventTypes: { registerEventTypes } } as unknown as ChronicleConnection;
-        await new EventTypes('test-store', connection, artifacts).register();
-        const registrations = registerEventTypes.mock.calls[0][0].Types as Array<{
-            Type: { Id: string }; Generations: Array<{ Generation: number; Schema: string }>;
-        }>;
-        const compiled = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [Flat]);
-        const registeredSchemas = new Map(registrations.flatMap(registration => registration.Generations.map(generation =>
-            [`${registration.Type.Id}:${generation.Generation}`, generation.Schema] as const)));
-        Array.from(compiled.eventSchemas).should.deep.equal(Array.from(registeredSchemas));
+    it('should reject multiple projections for one read model', () => {
+        const artifacts = artifactsFor(cases.find(testCase => testCase.name === 'declarative')!);
+        (() => new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile(
+            [DeclarativeProjection, AnotherDeclarativeProjection], []
+        )).should.throw("Read model id 'Declarative' has multiple projections.");
     });
 });

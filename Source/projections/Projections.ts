@@ -15,11 +15,10 @@ import { toObserverRunningState } from '../observation/toObserverRunningState.js
 import { getReadModelId } from '../readModels/readModel.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
-import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { IProjections } from './IProjections.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { getEventSequenceMetadata } from './modelBound/eventSequence.js';
-import { hasFromEventMetadata } from './modelBound/fromEvent.js';
+import { isModelBoundProjection } from './modelBound/isModelBoundProjection.js';
 import { ProjectionId } from './ProjectionId.js';
 import { ProjectionQueryResult } from './ProjectionQueryResult.js';
 import { ProjectionState } from './ProjectionState.js';
@@ -74,7 +73,7 @@ export class Projections implements IProjections {
         }
 
         for (const type of readModelTypes) {
-            if (!hasFromEventMetadata(type) && !hasModelBoundProperties(type)) {
+            if (!isModelBoundProjection(type)) {
                 continue;
             }
 
@@ -125,7 +124,7 @@ export class Projections implements IProjections {
         }
 
         for (const projection of projections) {
-            const identifier = String((projection as { Identifier?: unknown }).Identifier ?? '<unknown>');
+            const identifier = String(projection.Identifier ?? '<unknown>');
             await this.registerWithRetry(projection, identifier);
         }
     }
@@ -303,7 +302,7 @@ export class Projections implements IProjections {
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {
-        if (hasFromEventMetadata(type) || hasModelBoundProperties(type)) {
+        if (isModelBoundProjection(type)) {
             const identifier = getReadModelId(type);
             return {
                 id: new ProjectionId(identifier),
