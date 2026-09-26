@@ -5,6 +5,7 @@ import type { Constructor } from '@cratis/fundamentals';
 import { TypeDiscoverer } from './TypeDiscoverer.js';
 import { ChronicleClassOrPropertyDecorator, ChroniclePropertyDecorator, decorateClassOrProperty, decorateProperty } from './propertyDecoratorMetadata.js';
 import { getStandardMetadata, hasOwnStandardMetadata } from './standardDecoratorMetadata.js';
+import { trackModelBoundMetadata } from './modelBoundPropertyMetadata.js';
 
 const registered = new WeakSet<Function>();
 
@@ -28,9 +29,10 @@ export function decorateModelBoundProperty(legacy: PropertyDecorator): Chronicle
     return (target: object | undefined, keyOrContext: string | symbol | ClassFieldDecoratorContext) => {
         decorate(target as object, keyOrContext as string);
         if (typeof keyOrContext === 'object') {
-            // Standard field decorators do not receive the class constructor. Their initializer
-            // runs when the first instance is created; direct queries can also register the type.
+            // Standard field decorators do not receive the class constructor. Discovery resolves
+            // the metadata against exported classes; the initializer remains a fallback.
             const metadata = keyOrContext.metadata;
+            if (metadata) trackModelBoundMetadata(metadata, keyOrContext.name as string);
             keyOrContext.addInitializer(function () { if (metadata) registerDeclaringClass(this as object, metadata); });
         } else {
             register((target as { constructor: Function }).constructor);
@@ -45,6 +47,7 @@ export function decorateModelBoundClassOrProperty(legacy: (target: object, prope
         decorate(target as object, keyOrContext as string);
         if (typeof keyOrContext === 'object' && keyOrContext?.kind === 'field') {
             const metadata = keyOrContext.metadata;
+            if (metadata) trackModelBoundMetadata(metadata, keyOrContext.name as string);
             keyOrContext.addInitializer(function () { if (metadata) registerDeclaringClass(this as object, metadata); });
         } else if (typeof keyOrContext === 'string' || typeof keyOrContext === 'symbol') {
             register((target as { constructor: Function }).constructor);
