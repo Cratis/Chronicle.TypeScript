@@ -9,10 +9,10 @@
     "version": "19.6.1",
     "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
   },
-  "definitionSource": "Hand-written in the generated @cratis/chronicle.contracts 19.6.1 ProjectionDefinition wire shape; converted and executed by packaged Chronicle 19.8.1 kernel.",
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verifies the protected-fields boundary fails closed.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-empty",
+    "Identifier": "oracle-reject-protected",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
@@ -24,7 +24,9 @@
           "Generation": 1
         },
         "Value": {
-          "Properties": {},
+          "Properties": {
+            "title": "title"
+          },
           "Key": "$eventSourceId",
           "ParentKey": ""
         }
@@ -54,10 +56,12 @@
         "id": {
           "type": "string"
         },
-        "optional": {
-          "type": [
-            "string",
-            "null"
+        "title": {
+          "type": "string",
+          "compliance": [
+            {
+              "metadataType": "PII"
+            }
           ]
         }
       }
@@ -71,7 +75,11 @@
       },
       "schema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
       }
     }
   ],
@@ -86,58 +94,23 @@
         "sequenceNumber": "0",
         "occurred": "2025-01-01T00:00:00Z"
       },
-      "content": {}
-    },
-    {
-      "context": {
-        "eventType": {
-          "Id": "RecordCreated",
-          "Generation": 1
-        },
-        "eventSourceId": "record-b",
-        "sequenceNumber": "1",
-        "occurred": "2025-01-01T00:00:01Z"
+      "content": {
+        "title": "protected"
       },
-      "content": {}
+      "expectedError": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IReadModelsCompliance.Apply"
+      }
     }
   ],
   "expected": [
     {
       "sequenceNumber": "0",
-      "engineState": {
-        "record-a": {
-          "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
-        }
-      },
-      "publicRead": {
-        "record-a": {
-          "id": "record-a"
-        }
-      }
-    },
-    {
-      "sequenceNumber": "1",
-      "engineState": {
-        "record-a": {
-          "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
-        },
-        "record-b": {
-          "id": "record-b",
-          "__subject": "record-b",
-          "__initialized": true
-        }
-      },
-      "publicRead": {
-        "record-a": {
-          "id": "record-a"
-        },
-        "record-b": {
-          "id": "record-b"
-        }
+      "engineState": {},
+      "publicRead": {},
+      "error": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IReadModelsCompliance.Apply"
       }
     }
   ]

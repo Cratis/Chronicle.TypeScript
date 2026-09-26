@@ -8,9 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <ChronicleVersion>19.8.1</ChronicleVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Cratis.Chronicle.Testing" Version="19.8.1" GeneratePathProperty="true" />
+    <PackageReference Include="Cratis.Chronicle.Testing" Version="$(ChronicleVersion)" GeneratePathProperty="true" />
     <!-- The packaged Core generated discovery provider refers to Cratis.Arc by assembly name. -->
     <PackageReference Include="Cratis.Arc" Version="22.23.0" />
     <!-- Cratis.Orleans enforces matching Orleans majors in Release builds. -->

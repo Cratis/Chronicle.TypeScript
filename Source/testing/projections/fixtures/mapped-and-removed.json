@@ -16,7 +16,7 @@
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022}",
+    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022,\u0022status\u0022:\u0022seed\u0022}",
     "From": [
       {
         "Key": {
@@ -39,6 +39,19 @@
         "Value": {
           "Properties": {
             "title": "title"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "RecordStatusChanged",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "status": "status"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -82,6 +95,9 @@
         },
         "title": {
           "type": "string"
+        },
+        "status": {
+          "type": "string"
         }
       }
     }
@@ -96,6 +112,20 @@
         "type": "object",
         "properties": {
           "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "RecordStatusChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
             "type": "string"
           }
         }
@@ -134,12 +164,26 @@
     {
       "context": {
         "eventType": {
-          "Id": "RecordRemoved",
+          "Id": "RecordStatusChanged",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "1",
         "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "status": "changed"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
       },
       "content": {
         "title": "last"
@@ -152,8 +196,8 @@
           "Generation": 1
         },
         "eventSourceId": "record-a",
-        "sequenceNumber": "2",
-        "occurred": "2025-01-01T00:00:02Z"
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
       },
       "content": {
         "title": "reborn"
@@ -166,35 +210,60 @@
       "engineState": {
         "record-a": {
           "title": "first",
+          "status": "seed",
           "id": "record-a",
-          "__initialized": true
+          "__initialized": true,
+          "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "first"
+          "title": "first",
+          "status": "seed"
         }
       }
     },
     {
       "sequenceNumber": "1",
-      "engineState": {},
-      "publicRead": {}
-    },
-    {
-      "sequenceNumber": "2",
       "engineState": {
         "record-a": {
-          "title": "reborn",
+          "title": "first",
+          "status": "changed",
           "id": "record-a",
-          "__initialized": true
+          "__initialized": true,
+          "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "reborn"
+          "title": "first",
+          "status": "changed"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "record-a": {
+          "title": "reborn",
+          "status": "seed",
+          "id": "record-a",
+          "__initialized": true,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "title": "reborn",
+          "status": "seed"
         }
       }
     }

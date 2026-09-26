@@ -11,7 +11,9 @@ using ProjectionOwner = KernelConcepts::Cratis.Chronicle.Concepts.Projections.Pr
 
 namespace ProjectionOracle;
 
-/// <summary>Only reflection boundary: the 19.8.1 internal wire-to-engine converter.</summary>
+/// <summary>
+/// Only reflection boundary: the packaged internal wire-to-engine converter.
+/// </summary>
 internal static class ProjectionDefinitionBridge
 {
     const string ConverterName = "Cratis.Chronicle.Services.Projections.Definitions.ProjectionDefinitionConverters";
@@ -22,7 +24,7 @@ internal static class ProjectionDefinitionBridge
         var method = type?.GetMethod("ToChronicle", BindingFlags.Public | BindingFlags.Static, [typeof(ContractDefinition), typeof(ProjectionOwner)]);
         if (type is null || !type.IsNotPublic || method is null || method.ReturnType != typeof(KernelDefinition) || method.GetParameters().Length != 2)
         {
-            throw new InvalidOperationException("Chronicle Testing 19.8.1 projection converter signature changed: expected internal static ProjectionDefinitionConverters.ToChronicle(Contracts.Projections.ProjectionDefinition, ProjectionOwner) returning Concepts.Projections.Definitions.ProjectionDefinition. Review the package pin and fixtures.");
+            throw new InvalidOperationException("Chronicle Testing projection converter signature changed: expected internal static ProjectionDefinitionConverters.ToChronicle(Contracts.Projections.ProjectionDefinition, ProjectionOwner) returning Concepts.Projections.Definitions.ProjectionDefinition. Review the package pin and fixtures.");
         }
         return method;
     }

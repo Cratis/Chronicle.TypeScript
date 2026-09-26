@@ -26,7 +26,11 @@
         "Value": {
           "Properties": {
             "title": "sourceTitle",
-            "optional": "$null"
+            "optional": "$null",
+            "creator": "$eventContext(CausedBy.Name)",
+            "subject": "$eventContext(Subject.Value)",
+            "requestId": "$eventContext(CorrelationId.Value)",
+            "createdYear": "$eventContext(Occurred.Year)"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -69,6 +73,19 @@
         "quantity": {
           "type": "integer",
           "format": "int32"
+        },
+        "creator": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "createdYear": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     }
@@ -102,7 +119,36 @@
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "0",
-        "occurred": "2025-01-01T00:00:00Z"
+        "occurred": "2025-01-01T00:00:00Z",
+        "eventStore": "oracle-store",
+        "namespace": "oracle-namespace",
+        "eventSourceType": "records",
+        "eventStreamType": "records",
+        "eventStreamId": "record-stream",
+        "correlationId": "00000000-0000-0000-0000-000000000001",
+        "causation": [
+          {
+            "occurred": "2025-01-01T00:00:00Z",
+            "type": "request",
+            "properties": {
+              "path": "/records"
+            }
+          }
+        ],
+        "causedBy": {
+          "subject": "person-a",
+          "name": "Alice",
+          "userName": "alice",
+          "onBehalfOf": {
+            "subject": "service",
+            "name": "Api"
+          }
+        },
+        "tags": [
+          "sample"
+        ],
+        "hash": "fixture-hash",
+        "subject": "person-a"
       },
       "content": {
         "sourceTitle": "first",
@@ -117,7 +163,15 @@
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "1",
-        "occurred": "2025-01-01T00:00:01Z"
+        "occurred": "2025-01-01T00:00:01Z",
+        "eventStore": "oracle-store",
+        "namespace": "oracle-namespace",
+        "correlationId": "00000000-0000-0000-0000-000000000002",
+        "causedBy": {
+          "subject": "person-a",
+          "name": "Alice"
+        },
+        "subject": "person-a"
       },
       "content": {
         "sourceTitle": "next",
@@ -133,14 +187,23 @@
           "id": "record-a",
           "__initialized": true,
           "title": "first",
-          "quantity": 7
+          "creator": "Alice",
+          "subject": "person-a",
+          "requestId": "00000000-0000-0000-0000-000000000001",
+          "createdYear": 2025,
+          "quantity": 7,
+          "__subject": "person-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
           "title": "first",
-          "quantity": 7
+          "quantity": 7,
+          "creator": "Alice",
+          "subject": "person-a",
+          "requestId": "00000000-0000-0000-0000-000000000001",
+          "createdYear": 2025
         }
       }
     },
@@ -151,14 +214,23 @@
           "id": "record-a",
           "__initialized": true,
           "title": "next",
-          "quantity": 8
+          "creator": "Alice",
+          "subject": "person-a",
+          "requestId": "00000000-0000-0000-0000-000000000002",
+          "createdYear": 2025,
+          "quantity": 8,
+          "__subject": "person-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
           "title": "next",
-          "quantity": 8
+          "quantity": 8,
+          "creator": "Alice",
+          "subject": "person-a",
+          "requestId": "00000000-0000-0000-0000-000000000002",
+          "createdYear": 2025
         }
       }
     }

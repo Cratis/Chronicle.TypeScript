@@ -28,6 +28,19 @@
           "Key": "$eventSourceId",
           "ParentKey": ""
         }
+      },
+      {
+        "Key": {
+          "Id": "TitleChanged",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "title": "title"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
       }
     ],
     "Join": [],
@@ -76,6 +89,20 @@
         "type": "object",
         "properties": {}
       }
+    },
+    {
+      "eventType": {
+        "Id": "TitleChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      }
     }
   ],
   "events": [
@@ -94,12 +121,26 @@
     {
       "context": {
         "eventType": {
+          "Id": "TitleChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "title": "changed"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
           "Id": "RecordCreated",
           "Generation": 1
         },
         "eventSourceId": "record-b",
-        "sequenceNumber": "1",
-        "occurred": "2025-01-01T00:00:01Z"
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
       },
       "content": {}
     }
@@ -111,6 +152,7 @@
         "record-a": {
           "title": "seed",
           "id": "record-a",
+          "__subject": "record-a",
           "__initialized": true
         }
       },
@@ -125,20 +167,39 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
-          "title": "seed",
+          "title": "changed",
           "id": "record-a",
-          "__initialized": true
-        },
-        "record-b": {
-          "title": "seed",
-          "id": "record-b",
+          "__subject": "record-a",
           "__initialized": true
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "seed"
+          "title": "changed"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "record-a": {
+          "title": "changed",
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        },
+        "record-b": {
+          "title": "seed",
+          "id": "record-b",
+          "__subject": "record-b",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "title": "changed"
         },
         "record-b": {
           "id": "record-b",

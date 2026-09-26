@@ -12,11 +12,11 @@
   "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verified by kernel conversion and execution.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-null",
+    "Identifier": "oracle-remove-absent",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{}",
+    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022}",
     "From": [
       {
         "Key": {
@@ -25,20 +25,7 @@
         },
         "Value": {
           "Properties": {
-            "optional": "optional"
-          },
-          "Key": "$eventSourceId",
-          "ParentKey": ""
-        }
-      },
-      {
-        "Key": {
-          "Id": "RecordCleared",
-          "Generation": 1
-        },
-        "Value": {
-          "Properties": {
-            "optional": "$null"
+            "title": "title"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -54,7 +41,18 @@
       "AutoMap": 0
     },
     "FromEventProperty": null,
-    "RemovedWith": [],
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "RecordRemoved",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
     "RemovedWithJoin": [],
     "Tags": [],
     "AutoMap": 1,
@@ -69,11 +67,8 @@
         "id": {
           "type": "string"
         },
-        "optional": {
-          "type": [
-            "string",
-            "null"
-          ]
+        "title": {
+          "type": "string"
         }
       }
     }
@@ -87,7 +82,7 @@
       "schema": {
         "type": "object",
         "properties": {
-          "optional": {
+          "title": {
             "type": "string"
           }
         }
@@ -95,7 +90,7 @@
     },
     {
       "eventType": {
-        "Id": "RecordCleared",
+        "Id": "RecordRemoved",
         "Generation": 1
       },
       "schema": {
@@ -108,10 +103,10 @@
     {
       "context": {
         "eventType": {
-          "Id": "RecordCreated",
+          "Id": "RecordRemoved",
           "Generation": 1
         },
-        "eventSourceId": "record-a",
+        "eventSourceId": "never-created",
         "sequenceNumber": "0",
         "occurred": "2025-01-01T00:00:00Z"
       },
@@ -123,73 +118,35 @@
           "Id": "RecordCreated",
           "Generation": 1
         },
-        "eventSourceId": "record-a",
+        "eventSourceId": "never-created",
         "sequenceNumber": "1",
         "occurred": "2025-01-01T00:00:01Z"
       },
       "content": {
-        "optional": "present"
+        "title": "first"
       }
-    },
-    {
-      "context": {
-        "eventType": {
-          "Id": "RecordCleared",
-          "Generation": 1
-        },
-        "eventSourceId": "record-a",
-        "sequenceNumber": "2",
-        "occurred": "2025-01-01T00:00:02Z"
-      },
-      "content": {}
     }
   ],
   "expected": [
     {
       "sequenceNumber": "0",
-      "engineState": {
-        "record-a": {
-          "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
-        }
-      },
-      "publicRead": {
-        "record-a": {
-          "id": "record-a"
-        }
-      }
+      "engineState": {},
+      "publicRead": {}
     },
     {
       "sequenceNumber": "1",
       "engineState": {
-        "record-a": {
-          "id": "record-a",
-          "__subject": "record-a",
+        "never-created": {
+          "title": "first",
+          "id": "never-created",
           "__initialized": true,
-          "optional": "present"
+          "__subject": "never-created"
         }
       },
       "publicRead": {
-        "record-a": {
-          "id": "record-a",
-          "optional": "present"
-        }
-      }
-    },
-    {
-      "sequenceNumber": "2",
-      "engineState": {
-        "record-a": {
-          "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true,
-          "optional": null
-        }
-      },
-      "publicRead": {
-        "record-a": {
-          "id": "record-a"
+        "never-created": {
+          "id": "never-created",
+          "title": "first"
         }
       }
     }

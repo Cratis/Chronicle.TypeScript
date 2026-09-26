@@ -16,7 +16,7 @@
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022}",
+    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022,\u0022status\u0022:\u0022seed\u0022}",
     "From": [
       {
         "Key": {
@@ -26,6 +26,19 @@
         "Value": {
           "Properties": {
             "title": "title"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "RecordStatusChanged",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "status": "status"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -69,6 +82,9 @@
         },
         "title": {
           "type": "string"
+        },
+        "status": {
+          "type": "string"
         }
       }
     }
@@ -83,6 +99,20 @@
         "type": "object",
         "properties": {
           "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "RecordStatusChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
             "type": "string"
           }
         }
@@ -127,19 +157,21 @@
     {
       "context": {
         "eventType": {
-          "Id": "RecordRemoved",
+          "Id": "RecordStatusChanged",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "1",
         "occurred": "2025-01-01T00:00:01Z"
       },
-      "content": {}
+      "content": {
+        "status": "changed"
+      }
     },
     {
       "context": {
         "eventType": {
-          "Id": "Unrelated",
+          "Id": "RecordRemoved",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -151,12 +183,24 @@
     {
       "context": {
         "eventType": {
-          "Id": "RecordCreated",
+          "Id": "Unrelated",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "3",
         "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:04Z"
       },
       "content": {
         "title": "again"
@@ -169,21 +213,38 @@
       "engineState": {
         "record-a": {
           "title": "first",
+          "status": "seed",
           "id": "record-a",
-          "__initialized": true
+          "__initialized": true,
+          "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "first"
+          "title": "first",
+          "status": "seed"
         }
       }
     },
     {
       "sequenceNumber": "1",
-      "engineState": {},
-      "publicRead": {}
+      "engineState": {
+        "record-a": {
+          "title": "first",
+          "status": "changed",
+          "id": "record-a",
+          "__initialized": true,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "title": "first",
+          "status": "changed"
+        }
+      }
     },
     {
       "sequenceNumber": "2",
@@ -192,17 +253,25 @@
     },
     {
       "sequenceNumber": "3",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "4",
       "engineState": {
         "record-a": {
           "title": "again",
+          "status": "seed",
           "id": "record-a",
-          "__initialized": true
+          "__initialized": true,
+          "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "again"
+          "title": "again",
+          "status": "seed"
         }
       }
     }
