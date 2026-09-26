@@ -6,17 +6,18 @@ import { DecoratorType } from './DecoratorType.js';
 import { Constructor } from '@cratis/fundamentals';
 import { TypeIntrospector } from './TypeIntrospector.js';
 import { hasPropertyMetadata } from './propertyDecoratorMetadata.js';
+import { hasModelBoundMetadata, modelBoundPropertyKeys } from './modelBoundPropertyMetadata.js';
+import { getStandardMetadata, hasOwnStandardMetadata } from './standardDecoratorMetadata.js';
 
 type GlobFunction = (pattern: string | string[], options?: { ignore: string[] }) => Promise<string[]>;
 type FileImporter = (filePath: string) => Promise<unknown>;
 
-const modelBoundPropertyKeys = [
-    'setFrom', 'setFromContext', 'setValue', 'addFrom', 'subtractFrom',
-    'increment', 'decrement', 'count', 'childrenFrom', 'join', 'fromEvery', 'fromAll'
-].map(name => `chronicle:projection:${name}`);
-
 /** Identifies models whose event mappings live on their properties rather than on @fromEvent. */
 export function hasModelBoundProperties(type: Function): boolean {
+    // A standard field decorator can mark its metadata before any instances exist. Once the
+    // class is evaluated, Symbol.metadata links that object back to the exported constructor.
+    const metadata = hasOwnStandardMetadata(type) ? getStandardMetadata(type) : undefined;
+    if (metadata && hasModelBoundMetadata(metadata)) return true;
     return TypeIntrospector.getTrackedProperties(type).some(property =>
         modelBoundPropertyKeys.some(key => hasPropertyMetadata(key, type.prototype, property)));
 }

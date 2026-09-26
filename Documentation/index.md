@@ -47,4 +47,4 @@ The TypeScript examples on those pages are compiled with legacy decorators (`exp
 ## Known limitations
 
 - `AppendResult.waitForCompletion()` can time out when an observer on the event sequence does not handle the appended event. The kernel waits for every observer on the sequence ([Cratis/Chronicle#4132](https://github.com/Cratis/Chronicle/issues/4132)).
-- With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator. See [Artifact discovery](./getting-started.md#artifact-discovery).
+- Earlier client versions registered standard-decorated property-only read models only after construction. This client discovers exported models before construction; compiled JavaScript without discovery patterns needs a class-level `@fromEvent(...)` or explicit registration. Store creation emits a diagnostic warning once per process for unresolved mappings. See [Artifact discovery](./getting-started.md#artifact-discovery).
