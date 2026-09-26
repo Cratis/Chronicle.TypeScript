@@ -56,6 +56,30 @@ describe('when validating schema-bound projection operations', () => {
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
+    const mismatches: Array<{ name: string; source: JsonSchema; target: JsonSchema }> = [
+        { name: 'date-time to string', source: { type: 'string', format: 'date-time' }, target: { type: 'string' } },
+        { name: 'boolean to string', source: { type: 'boolean' }, target: { type: 'string' } },
+        { name: 'number to integer', source: { type: 'number', format: 'double' }, target: { type: 'integer', format: 'int32' } },
+        { name: 'object to scalar', source: { type: 'object', properties: { other: { type: 'string' } } }, target: { type: 'string' } },
+        { name: 'concept-shaped object to object', source: { type: 'object', properties: { value: { type: 'integer', format: 'int32' } } },
+            target: { type: 'object', properties: { value: { type: 'integer', format: 'int32' } } } }
+    ];
+    for (const mapping of mismatches) {
+        for (const autoMap of [false, true]) {
+            it(`should reject ${mapping.name} for ${autoMap ? 'AutoMap' : 'setFrom'} with the declaration and path`, () => {
+                const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => {
+                    if (!autoMap) from.set(model => model.name).to(event => event.name);
+                }));
+                setModelSchema(compiled, properties => { properties.name = mapping.target; });
+                compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.name = mapping.source;
+                (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                    .with.property('message').that.includes(`From[capability-changed:1].${autoMap ? 'AutoMap' : 'Properties'}.name`)
+                    .and.includes(autoMap ? '.from (AutoMap)' : '.from().set')
+                    .and.includes('requires a kernel-backed test');
+            });
+        }
+    }
+
     it('should accept $null for a date destination', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toValue(null)));
         setModelSchema(compiled, properties => { properties.state = { type: 'string', format: 'date-time' }; });

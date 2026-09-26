@@ -8,6 +8,7 @@ import { eventType } from '../events/eventTypeDecorator.js';
 import type { EventContext } from '../events/EventContext.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
 import { setFrom } from '../projections/modelBound/setFrom.js';
+import { setFromContext } from '../projections/modelBound/setFromContext.js';
 import { removedWith } from '../projections/modelBound/removedWith.js';
 import type { IProjectionBuilderFor } from '../projections/declarative/IProjectionBuilderFor.js';
 import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
@@ -197,6 +198,37 @@ describe('ReadModelScenario', () => {
         scenario.given.forEventSource('A').events(new UnrelatedEvent(), new ItemAdded(7));
         expect(await scenario.instance).toMatchObject({ count: 7 });
         expect(await scenario.wasDeletedForEventSourceId('A')).toBe(false);
+    });
+
+    it('defaults a projection Subject mapping to the event source when the seed has no subject', async () => {
+        class SubjectState { @field(String) subject = ''; }
+        fromEvent(ItemAdded)(SubjectState);
+        setFromContext(ItemAdded, 'subject')(SubjectState.prototype, 'subject');
+        const scenario = new ReadModelScenario(SubjectState, artifacts);
+        scenario.given.forEventSource('source-a').events(new ItemAdded(1));
+        expect(await scenario.instance).toMatchObject({ subject: 'source-a' });
+    });
+
+    it('rejects a seeded generation different from the subscribed generation before mapping', async () => {
+        class LaterItemAdded { @field(Number) oldAmount = 42; }
+        eventType('scenario-item-added', 2)(LaterItemAdded);
+        class GenerationState { @field(Number) count = 0; }
+        fromEvent(ItemAdded)(GenerationState);
+        setFrom(ItemAdded, 'amount')(GenerationState.prototype, 'count');
+        const scenario = new ReadModelScenario(GenerationState, { ...artifacts, eventTypes: [...artifacts.eventTypes, LaterItemAdded] });
+        scenario.given.forEventSource('source-a').events(new LaterItemAdded());
+        await expect(scenario.instance).rejects.toThrow(/GenerationState.*From\[scenario-item-added:1\].*seeded event generation 2/);
+    });
+
+    it('rejects a seeded generation different from a removal subscription', async () => {
+        class LaterItemRemoved {}
+        eventType('scenario-item-removed', 2)(LaterItemRemoved);
+        class GenerationState { @field(Number) count = 0; }
+        fromEvent(ItemAdded)(GenerationState);
+        removedWith(ItemRemoved)(GenerationState);
+        const scenario = new ReadModelScenario(GenerationState, { ...artifacts, eventTypes: [...artifacts.eventTypes, LaterItemRemoved] });
+        scenario.given.forEventSource('source-a').events(new LaterItemRemoved());
+        await expect(scenario.wasDeletedForEventSourceId('source-a')).rejects.toThrow(/RemovedWith\[scenario-item-removed:1\].*seeded event generation 2/);
     });
 
     it('selects a declarative projection using its final compiled contract', async () => {

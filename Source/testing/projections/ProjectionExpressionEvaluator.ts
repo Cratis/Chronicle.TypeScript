@@ -32,7 +32,7 @@ export class ProjectionExpressionEvaluator {
             SequenceNumber: context.sequenceNumber.toString(), EventSourceId: context.eventSourceId,
             EventStore: context.eventStore, Namespace: context.namespace, EventSourceType: context.eventSourceType,
             EventStreamType: context.eventStreamType, EventStreamId: context.eventStreamId,
-            Subject: context.subject, Hash: context.hash, CausedBy: context.causedBy,
+            Subject: context.subject ?? context.eventSourceId, Hash: context.hash, CausedBy: context.causedBy,
             ObservationState: context.observationState, EventType: context.eventType,
             Occurred: context.occurred, CorrelationId: context.correlationId,
             Causation: context.causation, Tags: context.tags

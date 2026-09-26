@@ -5,8 +5,6 @@ import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts'
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
 import { eventContractPath } from '../../projections/eventContractPath.js';
-import { eventContextPropertyExpression } from '../../projections/eventContextPropertyExpression.js';
-import { InvalidEventContextPropertyError } from '../../projections/InvalidEventContextPropertyError.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { getEventTypeMapKey } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
@@ -140,16 +138,13 @@ export class ProjectionCapabilities {
             if (expression === '$eventContext(Occurred)') fail('raw Occurred is converted inconsistently by the kernel; only its Year, Month and Day paths are supported');
             if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');
             const path = /^\$eventContext\(([^()]*)\)$/.exec(expression)?.[1];
-            if (path) {
-                try {
-                    if (['Subject.Value', 'CorrelationId.Value', 'Occurred.Year', 'Occurred.Month', 'Occurred.Day',
-                        'EventType.Id.Value', 'EventType.Generation.Value', 'SequenceNumber.Value'].includes(path) ||
-                        eventContextPropertyExpression(path) === expression) return;
-                } catch (error) {
-                    if (!(error instanceof InvalidEventContextPropertyError)) throw error;
-                }
-            }
-            fail('event-context path is not supported by the client');
+            const strings = ['EventSourceId', 'EventStore', 'Namespace', 'EventSourceType', 'EventStreamType',
+                'EventStreamId', 'Subject', 'Subject.Value', 'Hash', 'CorrelationId', 'CorrelationId.Value',
+                'CausedBy.Subject', 'CausedBy.Name', 'CausedBy.UserName', 'EventType.Id.Value', 'SequenceNumber', 'SequenceNumber.Value'];
+            const integers = ['Occurred.Year', 'Occurred.Month', 'Occurred.Day', 'EventType.Generation.Value'];
+            if (path && ((strings.includes(path) && target.type === 'string' && !target.format) ||
+                (integers.includes(path) && target.type === 'integer' && target.format === 'int32'))) return;
+            fail('event-context path and target schema require a kernel-backed test');
         }
         if (/^\$value\([\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*\)$/u.test(expression)) {
             const text = expression.slice(7, -1);
@@ -186,12 +181,38 @@ export class ProjectionCapabilities {
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
             this.checkSchema(source, path, (_path, reason) => fail(reason));
+            if (!this.compatible(source, target)) {
+                fail(`source '${expression}' (${source.type}${source.format ? `/${source.format}` : ''}) to target '${destination}' (${target.type}${target.format ? `/${target.format}` : ''}) requires a kernel-backed test`);
+            }
             return;
         }
         if (expression.startsWith('$context.')) {
             return fail('is a legacy expression the kernel does not resolve; event-context mappings use $eventContext(...)');
         }
         fail('requires a kernel-backed test');
+    }
+
+    private static compatible(source: JsonSchema, target: JsonSchema): boolean {
+        if (JSON.stringify(source.type) === JSON.stringify(target.type) && source.format === target.format) {
+            if (source.type === 'array') return !!source.items && !!target.items && this.compatible(source.items, target.items);
+            if (source.type === 'object') {
+                // The kernel treats a single `value` member as a concept at the expression boundary.
+                if (Object.keys(source.properties ?? {}).length === 1 && source.properties?.value) return false;
+                if (Boolean(source.additionalProperties) !== Boolean(target.additionalProperties)) return false;
+                const names = Object.keys(source.properties ?? {}).sort();
+                return names.join('\0') === Object.keys(target.properties ?? {}).sort().join('\0') &&
+                    names.every(name => this.compatible(source.properties![name], target.properties![name]));
+            }
+            return true;
+        }
+        if (source.type === 'string' && !source.format && Array.isArray(target.type) &&
+            target.type[0] === 'string' && target.type[1] === 'null') return true;
+        if (source.type === 'string' && !source.format &&
+            ((target.type === 'number' && target.format === 'double') ||
+                (target.type === 'integer' && ['int32', 'uint32'].includes(target.format ?? '')))) return true;
+        if (source.type === 'string' && source.format === 'guid' && target.type === 'string' && !target.format) return true;
+        return source.type === 'integer' && ['int32', 'uint32'].includes(source.format ?? '') &&
+            target.type === 'number' && target.format === 'double';
     }
 
     private static propertyAt(schema: JsonSchema, path: string): JsonSchema | undefined {

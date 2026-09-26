@@ -25,7 +25,7 @@ describe('when validating the phase-one projection subset', () => {
     const modelBound = [
         { name: 'root From and schema-inferred AutoMap', configure: () => {} },
         { name: 'setFrom and event source identity', configure: (model: Function) => setFrom(Changed, 'name')(model.prototype, 'name') },
-        { name: 'setFromContext maps eventType without needing it in the event schema', configure: (model: Function) => setFromContext(Changed, 'eventType')(model.prototype, 'state') },
+        { name: 'setFromContext maps eventSourceId without needing it in the event schema', configure: (model: Function) => setFromContext(Changed, 'eventSourceId')(model.prototype, 'state') },
         { name: 'setFromContext maps the event source identity', configure: (model: Function) => setFromContext(Changed, 'eventSourceId')(model.prototype, 'state') },
         { name: 'setFromContext maps a nested identity member', configure: (model: Function) => setFromContext(Changed, 'causedBy.subject')(model.prototype, 'state') },
         { name: 'constant text', configure: (model: Function) => setValue(Changed, 'ready')(model.prototype, 'state') },
@@ -67,16 +67,10 @@ describe('when validating the phase-one projection subset', () => {
         ['eventStreamId', '$eventContext(EventStreamId)'],
         ['subject', '$eventContext(Subject)'],
         ['hash', '$eventContext(Hash)'],
-        ['causedBy', '$eventContext(CausedBy)'],
-        ['observationState', '$eventContext(ObservationState)'],
-        ['eventType', '$eventContext(EventType)'],
         ['correlationId', '$eventContext(CorrelationId)'],
-        ['causation', '$eventContext(Causation)'],
-        ['tags', '$eventContext(Tags)'],
         ['causedBy.subject', '$eventContext(CausedBy.Subject)'],
         ['causedBy.name', '$eventContext(CausedBy.Name)'],
-        ['causedBy.userName', '$eventContext(CausedBy.UserName)'],
-        ['causedBy.onBehalfOf', '$eventContext(CausedBy.OnBehalfOf)']
+        ['causedBy.userName', '$eventContext(CausedBy.UserName)']
     ]) {
         it(`should accept the client's emitted context expression ${expression}`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>

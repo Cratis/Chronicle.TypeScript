@@ -4,6 +4,7 @@
 import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
+import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { deserializeReadModel } from '../../readModels/deserializeReadModel.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
@@ -13,6 +14,7 @@ import type { ScenarioEvent } from '../ScenarioEvent.js';
 import { ProjectionCapabilities } from './ProjectionCapabilities.js';
 import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
+import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
 /** In-process interpreter of the validated, registered projection contract subset. */
 export class ProjectionReadModelProcessor<TReadModel extends object> implements IReadModelProcessor<TReadModel> {
@@ -21,6 +23,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     private readonly _from: ReadonlyMap<string, FromRecord>;
     private readonly _removed: ReadonlySet<string>;
     private readonly _eventSchemas: ReadonlyMap<string, JsonSchema>;
+    private readonly _bindings: ReadonlyMap<string, { generation: number; path: string; declaration: string }>;
     private _engineState: Record<string, Record<string, unknown>> = {};
     private _publicRead: Record<string, Record<string, unknown>> = {};
 
@@ -32,6 +35,12 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         const wire = _definition as unknown as { From: FromRecord[]; RemovedWith: RemovedWithRecord[] };
         this._from = new Map((wire.From ?? []).map(entry => [entry.Key.Id, entry]));
         this._removed = new Set((wire.RemovedWith ?? []).map(entry => entry.Key.Id));
+        this._bindings = new Map([...(wire.From ?? []), ...(wire.RemovedWith ?? [])].map(entry => {
+            const section = (wire.From ?? []).includes(entry as FromRecord) ? 'From' : 'RemovedWith';
+            const path = eventContractPath(section, entry.Key);
+            const declaration = compiled.provenance.get(_definition)?.find(provenance => provenance.contractPath === path)?.declaration ?? 'contract';
+            return [entry.Key.Id, { generation: entry.Key.Generation, path, declaration }];
+        }));
         this._eventSchemas = new Map([...(compiled.eventSchemas.get(_definition) ?? new Map()).values()]
             .map(entry => [entry.eventType.Id, entry.schema]));
     }
@@ -49,6 +58,11 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             const from = this._from.get(typeId);
             const removed = this._removed.has(typeId);
             if (!from && !removed) continue;
+            const binding = this._bindings.get(typeId)!;
+            if (event.context.eventType.generation.value !== binding.generation) {
+                throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
+                    `seeded event generation ${event.context.eventType.generation.value} differs from subscribed generation ${binding.generation}; multi-generation history requires a kernel-backed test`);
+            }
             // A root removal has the final say when an event is registered for both operations.
             const key = this.keyFor(event.sourceId);
             if (removed) {
@@ -92,6 +106,9 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                     if (value !== null || state[destination] !== undefined) state[destination] = value;
                 }
             }
+            // InMemorySink.ApplyChanges restores the typed key after every mapping, including AutoMap.
+            const identifierName = this._schema.properties?.Id && !this._schema.properties.id ? 'Id' : 'id';
+            state[identifierName] = ProjectionValueConverter.convert(key, this._schema.properties?.[identifierName] ?? { type: 'string' });
             engine[key] = state;
             states.set(event.sourceId, { instance: this.materialize(state), deleted: false });
         }
@@ -113,7 +130,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     private initialState(key: string, event: ScenarioEvent): Record<string, unknown> {
         const initial: Record<string, unknown> = Object.create(null);
         if (Object.keys(this._initial).length) {
-            Object.assign(initial, ProjectionValueConverter.convert(structuredClone(this._initial), this._schema));
+            Object.assign(initial, ProjectionValueConverter.convert(structuredClone(this._initial), this._schema, false, false));
         }
         if (!Object.keys(this._initial).length) {
             for (const [name, property] of Object.entries(this._schema.properties ?? {})) {

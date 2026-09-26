@@ -1,0 +1,236 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written against generated 19.6.1 contract; initial top-level value and nested event object must retain their schema-bound shapes.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-objects",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{\"value\":5}",
+    "From": [
+      {
+        "Key": {
+          "Id": "ObjectSeed",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {},
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "ObjectChange",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "value": "inner.value",
+            "plain": "plain",
+            "labels": "labels"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 0,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "plain": {
+          "type": "object",
+          "properties": {
+            "left": {
+              "type": "string"
+            },
+            "right": {
+              "type": "string"
+            }
+          }
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "ObjectSeed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ObjectChange",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "inner": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          "plain": {
+            "type": "object",
+            "properties": {
+              "left": {
+                "type": "string"
+              },
+              "right": {
+                "type": "string"
+              }
+            }
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "ObjectSeed",
+          "Generation": 1
+        },
+        "eventSourceId": "object-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ObjectChange",
+          "Generation": 1
+        },
+        "eventSourceId": "object-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "inner": {
+          "value": 42
+        },
+        "plain": {
+          "left": "one",
+          "right": "two"
+        },
+        "labels": [
+          "one",
+          "two"
+        ]
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "object-a": {
+          "value": 5,
+          "id": "object-a",
+          "__subject": "object-a",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "object-a": {
+          "id": "object-a",
+          "value": 5
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "object-a": {
+          "value": 42,
+          "id": "object-a",
+          "__subject": "object-a",
+          "__initialized": true,
+          "plain": {
+            "left": "one",
+            "right": "two"
+          },
+          "labels": [
+            "one",
+            "two"
+          ]
+        }
+      },
+      "publicRead": {
+        "object-a": {
+          "id": "object-a",
+          "value": 42,
+          "plain": {
+            "left": "one",
+            "right": "two"
+          },
+          "labels": [
+            "one",
+            "two"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -19,6 +19,10 @@ The runner creates a real `ProjectionFactory` projection and calls the public `P
 | `mapped-and-removed` | An event registered for both mapping and removal removes the row after a status change; recreation reapplies the initial status of `seed`. |
 | `flat-set-from-automap` | Explicit `setFrom` wins for `title`, schema-based AutoMap supplies `quantity`, `$null` on an absent field adds nothing, and context expressions read identity, subject, correlation ID and occurred year. |
 | `null-vs-missing` | Mapping a content field that is absent adds no field (null compared with absent is no change); clearing a subsequently present field leaves an explicit null in engine state, omitted from the public read. |
+| `compatible-mappings` | Same-format strings/GUIDs, GUID to string, int32/uint32 to double, and numeric text to int32/uint32/double through the kernel expression converter. |
+| `concept-shaped-objects` | An initial `{value:5}` retains its object shape; nested event `{inner:{value:42}}` remains navigable through `inner.value`; ordinary same-schema object/array mappings materialize. |
+| `mapped-id-key-wins` | Both AutoMap and explicit content mappings that write `id` lose to the in-memory sink key. |
+| `scalar-context-roots` | Fixture-backed scalar event-context roots and members, including omitted Subject defaulting to the event source ID. |
 | `remove-absent` | Removing a key that never existed does not materialize it; a later constructive event creates it. |
 | `reject-protected-fields` | `kind: oracleGuard` — records the oracle's own fail-closed boundary, not kernel semantics; evaluators must skip it. A protected schema reaches `EncryptChangeset` and fails closed at the compliance proxy; the expected error and unchanged sink snapshot are asserted. |
 | `guid-datetime-defaults`, `initial-scalar-defaults` | Missing GUID and date-time defaults in event content, non-empty schema-converted initial state, public reads, and lowercase GUIDs. |

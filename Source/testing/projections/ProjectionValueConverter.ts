@@ -23,7 +23,7 @@ export class ProjectionValueConverter {
         for (const [name, property] of Object.entries(schema.properties ?? {})) {
             const source = Object.keys(serialized).find(key => key.toLowerCase() === name.toLowerCase());
             const value = source === undefined ? null : serialized[source];
-            if (value !== null && value !== undefined) result[name] = this.convert(value, property, true);
+            if (value !== null && value !== undefined) result[name] = this.convert(value, property, true, false);
             else {
                 const fallback = this.defaultValue(property);
                 if (fallback !== null && fallback !== undefined) result[name] = fallback;
@@ -32,10 +32,12 @@ export class ProjectionValueConverter {
         return result;
     }
 
-    static convert(value: unknown, schema: JsonSchema, eventContent = false): unknown {
+    static convert(value: unknown, schema: JsonSchema, eventContent = false, expression = true): unknown {
         if (value == null) return null;
-        if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && 'value' in value) {
-            return this.convert((value as Record<string, unknown>).value, schema, eventContent);
+        // Concept conversion belongs to expression evaluation, never schema-bound input deserialization.
+        if (expression && schema.type !== 'object' && schema.type !== 'array' &&
+            typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 1 && 'value' in value) {
+            return this.convert((value as Record<string, unknown>).value, schema, eventContent, expression);
         }
         if (schema.type === 'object' && typeof value === 'object' && !Array.isArray(value)) {
             const input = value as Record<string, unknown>;
@@ -43,7 +45,7 @@ export class ProjectionValueConverter {
             const result: Record<string, unknown> = Object.create(null);
             for (const [name, property] of Object.entries(schema.properties)) {
                 const source = Object.keys(input).find(key => key.toLowerCase() === name.toLowerCase());
-                if (source !== undefined && input[source] != null) result[name] = this.convert(input[source], property, eventContent);
+                if (source !== undefined && input[source] != null) result[name] = this.convert(input[source], property, eventContent, false);
                 else {
                     const fallback = this.defaultValue(property);
                     if (fallback !== null && fallback !== undefined) result[name] = fallback;
@@ -52,7 +54,7 @@ export class ProjectionValueConverter {
             return result;
         }
         if (schema.type === 'array' && Array.isArray(value)) {
-            return value.map(item => schema.items ? this.convert(item, schema.items, eventContent) : structuredClone(item));
+            return value.map(item => schema.items ? this.convert(item, schema.items, eventContent, false) : structuredClone(item));
         }
         if (schema.type === 'boolean' && typeof value === 'string' && /^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
         if (schema.type === 'number' || schema.type === 'integer') {

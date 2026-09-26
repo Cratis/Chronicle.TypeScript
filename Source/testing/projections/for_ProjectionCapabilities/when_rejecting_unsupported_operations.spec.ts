@@ -111,6 +111,16 @@ describe('when rejecting unsupported operations before any event is seeded', () 
                 .and.includes("expression '$context.eventType'").and.includes('$eventContext(...)');
     });
 
+    for (const property of ['causedBy', 'causedBy.onBehalfOf', 'causation', 'tags', 'observationState', 'eventType']) {
+        it(`should reject unproven ${property} context mappings with provenance`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+                from.set(model => model.state).toEventContextProperty(property)));
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('From[capability-changed:1].Properties.state (.from().setFromContext)')
+                .and.includes('kernel-backed test');
+        });
+    }
+
     it('should reject raw Occurred until the kernel conversion is consistent', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
             from.set(model => model.state).toEventContextProperty('occurred')));
