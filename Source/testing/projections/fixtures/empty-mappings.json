@@ -11,7 +11,7 @@
   },
   "definitionSource": "Hand-written in the generated @cratis/chronicle.contracts 19.6.1 ProjectionDefinition wire shape; converted and executed by packaged Chronicle 19.8.1 kernel.",
   "wireDefinition": {
-    "EventSequenceId": "00000000-0000-0000-0000-000000000001",
+    "EventSequenceId": "event-log",
     "Identifier": "oracle-empty",
     "ReadModel": "OracleReadModel",
     "IsActive": true,

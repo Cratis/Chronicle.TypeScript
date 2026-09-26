@@ -11,7 +11,7 @@
   },
   "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verified by kernel conversion and execution.",
   "wireDefinition": {
-    "EventSequenceId": "00000000-0000-0000-0000-000000000001",
+    "EventSequenceId": "event-log",
     "Identifier": "oracle-both",
     "ReadModel": "OracleReadModel",
     "IsActive": true,

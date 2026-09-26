@@ -33,6 +33,10 @@ internal static class OracleRunner
     public static async Task<JsonArray> Run(JsonObject fixture)
     {
         var wire = FixtureDefinition.Read(fixture["wireDefinition"]!.AsObject());
+        if (wire.EventSequenceId != Concepts.EventSequences.EventSequenceId.Log.Value)
+        {
+            throw new NotSupportedException("The oracle's in-memory event sequence only supports the event-log wire sequence.");
+        }
         var definition = ProjectionDefinitionBridge.Convert(wire);
         var readModel = fixture["readModel"]!.AsObject();
         var readSchema = JsonSchema.FromJson(readModel["schema"]!.ToJsonString());
