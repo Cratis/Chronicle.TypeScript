@@ -5,13 +5,12 @@ import { AutoMap } from '@cratis/chronicle.contracts';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import { canonicalStringify } from '../canonicalStringify.js';
-import type { ChildrenDefinitionLike } from '../modelBound/childrenAndNestedBuilder.js';
 import { ChildrenBuilder } from './ChildrenBuilder.js';
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
 import { IProjectionBuilderFor } from './IProjectionBuilderFor.js';
 import { NestedBuilder } from './NestedBuilder.js';
-import { ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
+import { ChildrenDefinitionLike, ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 
 /**
  * Concrete implementation of {@link IProjectionBuilderFor} that accumulates projection
