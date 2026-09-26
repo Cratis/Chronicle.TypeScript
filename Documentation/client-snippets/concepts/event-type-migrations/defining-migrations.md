@@ -2,7 +2,7 @@
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('author-registered', 1)
 class MigrationsAuthorRegisteredV1 {
     @field(String) readonly name: string;
 

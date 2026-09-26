@@ -2,7 +2,7 @@
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('person-registered', 1)
 class MigrationsSplitPersonRegisteredV1 {
     @field(String) readonly fullName: string;
 

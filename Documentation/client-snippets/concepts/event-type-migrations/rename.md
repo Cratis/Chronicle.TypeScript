@@ -2,7 +2,7 @@
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('payment-processed', 1)
 class MigrationsRenamePaymentProcessedV1 {
     @field(Number) readonly oldAmount: number;
 

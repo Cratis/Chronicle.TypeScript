@@ -47,7 +47,7 @@ class ProjectTaskWithNestedAssignee {
     title = '';
 
     @nested
-    assignee: TaskAssigneeNestedChild | null = null;
+    @field(TaskAssigneeNestedChild) assignee: TaskAssigneeNestedChild | null = null;
 }
 
 class ProjectWithNestedChildren {
@@ -55,6 +55,6 @@ class ProjectWithNestedChildren {
     name = '';
 
     @childrenFrom(TaskAddedForNestedChildren, 'taskId')
-    tasks: ProjectTaskWithNestedAssignee[] = [];
+    @field(Array, { genericArguments: [ProjectTaskWithNestedAssignee] }) tasks: ProjectTaskWithNestedAssignee[] = [];
 }
 ```

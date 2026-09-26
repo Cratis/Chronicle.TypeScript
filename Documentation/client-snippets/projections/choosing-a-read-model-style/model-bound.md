@@ -1,5 +1,6 @@
 ```typescript
 import { setFrom, setValue } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 export class ChoosingStyleBookStatusModelBound {
     id = '';
@@ -16,6 +17,6 @@ export class ChoosingStyleBookStatusModelBound {
 
     @setFrom(ChoosingStyleBookBorrowed, 'memberName')
     @setValue(ChoosingStyleBookReturned, null)
-    borrowedBy: string | null = null;
+    @field(String) borrowedBy: string | null = null;
 }
 ```

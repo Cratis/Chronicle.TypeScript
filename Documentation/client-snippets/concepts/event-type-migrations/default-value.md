@@ -2,7 +2,7 @@
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('order-shipped', 1)
 class MigrationsDefaultValueOrderShippedV1 {
     @field(String) readonly trackingNumber: string;
 

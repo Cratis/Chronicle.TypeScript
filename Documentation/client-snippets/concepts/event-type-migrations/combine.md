@@ -2,7 +2,7 @@
 import { eventType, eventTypeMigration, IEventTypeMigration, IEventMigrationBuilder } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
 
-@eventType()
+@eventType('shipping-address-recorded', 1)
 class MigrationsCombineShippingAddressRecordedV1 {
     @field(String) readonly street: string;
     @field(String) readonly city: string;

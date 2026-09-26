@@ -16,6 +16,8 @@ SOURCE_ROOT = REPO_ROOT / "Source"
 SNIPPET_ROOT = REPO_ROOT / "Documentation" / "client-snippets"
 GENERATED_DIR = SOURCE_ROOT / ".docs-snippets"
 GENERATED_SOURCE = GENERATED_DIR / "snippets.ts"
+GENERATED_SDK_ENTRY = GENERATED_DIR / "sdk-entry.ts"
+GENERATED_INVALID_CHECK = GENERATED_DIR / "invalid-check.mjs"
 GENERATED_TSCONFIG = GENERATED_DIR / "tsconfig.json"
 FENCE_RE = re.compile(r"```([^\s`]+)[^\n]*\n(.*?)\n```", re.DOTALL)
 NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle['\"];?\s*$")
@@ -23,14 +25,15 @@ CONTRACTS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cr
 FUNDAMENTALS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/fundamentals['\"];?\s*$")
 SIDE_EFFECT_IMPORT_RE = re.compile(r"^import\s+['\"]([^'\"]+)['\"];?\s*$")
 UNSUPPORTED_SNIPPET_MARKER = "does not support this workflow yet"
+CLASS_RE = re.compile(r"^[ \t]*(?:export\s+)?(?:(?:default|abstract)\s+)*class\s+(\w+)\b", re.MULTILINE)
 VALIDATION_EXCLUDED_PREFIXES = ("legacy/",)
 # These examples intentionally throw during decoration or schema generation.
-RUNTIME_EXCLUDED_KEYS = {
-    "confidentiality/encrypted/pii-and-encrypted-restriction",
-    "compliance/pii-with-concepts/event-source-id-restriction",
-    "compliance/client/event-source-id-restriction",
-    "compliance/pii/event-source-id-restriction",
-    "confidentiality/encrypted/event-source-id-restriction",
+RUNTIME_INVALID_ERRORS = {
+    "confidentiality/encrypted/pii-and-encrypted-restriction": "PIIAndEncryptedCombinedNotSupported",
+    "compliance/pii-with-concepts/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "compliance/client/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "compliance/pii/event-source-id-restriction": "PIINotSupportedOnEventSourceId",
+    "confidentiality/encrypted/event-source-id-restriction": "EncryptedNotSupportedOnEventSourceId",
 }
 
 BODY_SNIPPETS = {
@@ -193,7 +196,9 @@ def generate_source(runtime: bool = False) -> str:
     if not files:
         raise ValueError(f"No client snippets found in {SNIPPET_ROOT}")
 
-    named_imports = {"IEventStore", "DecoratorType", "getEventTypeMetadata", "getReadModelMetadata", "getProjectionMetadata", "getReducerMetadata", "JsonSchemaGenerator", "TypeDiscoverer"}
+    named_imports = {"IEventStore"}
+    if runtime:
+        named_imports.update({"getEventTypeMetadata", "getReadModelMetadata", "TypeDiscoverer", "hasModelBoundProperties", "DefaultClientArtifactsProvider", "validateArtifactSchemas"})
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
@@ -204,16 +209,12 @@ def generate_source(runtime: bool = False) -> str:
     for path in files:
         relative_path = snippet_key(path)
         snippet = extract_snippet(path)
-        if snippet is None or (runtime and relative_path in RUNTIME_EXCLUDED_KEYS):
+        if snippet is None or (runtime and relative_path in RUNTIME_INVALID_ERRORS):
             continue
 
         body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
-        if runtime and not re.search(r"^(?:export\s+)?class\s+\w+\b", body, re.MULTILINE):
+        if runtime and not CLASS_RE.search(body):
             continue
-        if runtime:
-            # Migration examples can have unrelated generation gaps; schema validation
-            # only needs the event classes, not the migration registration side effect.
-            body = re.sub(r"^@eventTypeMigration\([^\n]*\)\n", "", body, flags=re.MULTILINE)
 
         if relative_path in BODY_SNIPPETS:
             prelude = textwrap.dedent(BODY_SNIPPETS[relative_path]).strip()
@@ -222,7 +223,7 @@ def generate_source(runtime: bool = False) -> str:
             functions.append(f"async function {function_name(relative_path)}(store: IEventStore): Promise<void> {{\n{function_body}\n}}")
         else:
             declarations.append(body)
-            classes.extend((relative_path, name) for name in re.findall(r"^(?:export\s+)?class\s+(\w+)\b", body, re.MULTILINE))
+            classes.extend((relative_path, name) for name in CLASS_RE.findall(body))
 
     imports = [
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
@@ -234,32 +235,37 @@ def generate_source(runtime: bool = False) -> str:
         imports.append(f"import {{ {', '.join(sorted(fundamentals_named_imports))} }} from '@cratis/fundamentals';")
 
     schema_checks = [
-        "const registeredReadModels = new Set(TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.ReadModel));",
-        "for (const projection of TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Projection)) {",
-        "    const model = getProjectionMetadata(projection)?.readModelType;",
-        "    if (model) registeredReadModels.add(model);",
+        "const snippetClasses = [",
+        *[f"    [{json.dumps(path)}, {name}]," for path, name in classes],
+        "] as const;",
+        "// Discovery tracks property-only models when their modules are imported.",
+        "for (const [, type] of snippetClasses) {",
+        "    if (hasModelBoundProperties(type)) TypeDiscoverer.default.trackModelBoundProperty(type);",
         "}",
-        "for (const reducer of TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer)) {",
-        "    const model = getReducerMetadata(reducer)?.readModel;",
-        "    if (model) registeredReadModels.add(model);",
-        "}",
+        "const artifacts = DefaultClientArtifactsProvider.default;",
+        "const registeredReadModels = new Set(artifacts.readModels);",
         "const schemaFailures: string[] = [];",
         "let checkedSchemas = 0;",
-        "for (const [path, type] of [",
-        *[f"    [{json.dumps(path)}, {name}]," for path, name in classes],
-        "] as const) {",
+        "for (const [path, type] of snippetClasses) {",
         "    try {",
-        "        const event = getEventTypeMetadata(type);",
-        "        const readModel = getReadModelMetadata(type);",
-        "        if (event) { void event.schema; checkedSchemas++; }",
-        "        else if (readModel) { void readModel.schema; checkedSchemas++; }",
-        "        else if (registeredReadModels.has(type)) { JsonSchemaGenerator.generate(type); checkedSchemas++; }",
-        "    } catch (error) { schemaFailures.push(`${path}: ${String(error)}`); }",
+        "        if (getEventTypeMetadata(type)) {",
+        "            validateArtifactSchemas({ ...artifacts, eventTypes: [type], readModels: [] });",
+        "            checkedSchemas++;",
+        "        } else if (getReadModelMetadata(type) || registeredReadModels.has(type)) {",
+        "            validateArtifactSchemas({ ...artifacts, eventTypes: [], readModels: [type] });",
+        "            checkedSchemas++;",
+        "        }",
+        "    } catch (error) {",
+        "        const details = error instanceof AggregateError ? error.errors.map(String).join('; ') : String(error);",
+        "        schemaFailures.push(`${path}: ${details}`);",
+        "    }",
         "}",
         "if (!checkedSchemas && !schemaFailures.length) throw new Error('No event or read-model schemas were checked.');",
         "if (schemaFailures.length) throw new Error(`${schemaFailures.length} schema error(s):\\n${schemaFailures.join('\\n')}`);",
+        "// Also exercise the complete artifact set as EventStore does at startup.",
+        "validateArtifactSchemas(artifacts);",
         "console.log(`Standard decorators: ${checkedSchemas} event/read-model schemas validated.`);",
-    ]
+    ] if runtime else []
     return "\n\n".join([
         "// This file is generated by Documentation/validate-client-snippets.py.",
         *imports,
@@ -268,6 +274,29 @@ def generate_source(runtime: bool = False) -> str:
         *schema_checks,
         "",
     ])
+
+
+def generate_invalid_source(path: Path) -> str:
+    snippet = extract_snippet(path)
+    if snippet is None:
+        raise ValueError(f"Expected an intentionally invalid TypeScript snippet in {path}")
+    named_imports = {"getEventTypeMetadata"}
+    contracts_named_imports: set[str] = set()
+    fundamentals_named_imports: set[str] = set()
+    side_effect_imports = {"reflect-metadata"}
+    body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+    classes = CLASS_RE.findall(body)
+    if not classes:
+        raise ValueError(f"No classes found in intentionally invalid snippet {path}")
+    imports = [
+        *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
+        f"import {{ {', '.join(sorted(named_imports))} }} from '../sdk.mjs';",
+    ]
+    if contracts_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
+    if fundamentals_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(fundamentals_named_imports))} }} from '@cratis/fundamentals';")
+    return "\n\n".join([*imports, body, *[f"void getEventTypeMetadata({name})?.schema;" for name in classes], ""])
 
 
 def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
@@ -285,6 +314,7 @@ def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
     if runtime:
         # Already type-checked in both modes above; emit against the bundled SDK.
         config["compilerOptions"].update({"noCheck": True, "rootDir": ".", "outDir": "runtime"})
+        config["include"].append("invalid-*.ts")
     return json.dumps(config, indent=4) + "\n"
 
 
@@ -303,13 +333,35 @@ def main() -> int:
         # Bundle the SDK separately; emit snippets with tsc so bundler renaming
         # cannot change constructor parameter names introspected by the SDK.
         GENERATED_SOURCE.write_text(generate_source(runtime=True), encoding="utf-8")
+        invalid_files = {snippet_key(path): path for path in snippet_files() if snippet_key(path) in RUNTIME_INVALID_ERRORS}
+        if invalid_files.keys() != RUNTIME_INVALID_ERRORS.keys():
+            raise ValueError(f"Missing intentionally invalid snippets: {RUNTIME_INVALID_ERRORS.keys() - invalid_files.keys()}")
+        invalid_cases = []
+        for index, (key, path) in enumerate(sorted(invalid_files.items())):
+            module = f"invalid-{index}"
+            (GENERATED_DIR / f"{module}.ts").write_text(generate_invalid_source(path), encoding="utf-8")
+            invalid_cases.append((key, RUNTIME_INVALID_ERRORS[key], module))
+        GENERATED_INVALID_CHECK.write_text("const cases = " + json.dumps(invalid_cases) + ";\n" + textwrap.dedent("""
+            for (const [path, expected, module] of cases) {
+                try {
+                    await import(`./runtime/${module}.js`);
+                } catch (error) {
+                    if (error?.name === expected) continue;
+                    throw new Error(`${path}: expected ${expected}, got ${String(error)}`, { cause: error });
+                }
+                throw new Error(`${path}: expected ${expected}, but the snippet did not throw.`);
+            }
+            console.log(`Standard decorators: ${cases.length} intentionally invalid snippets rejected with expected errors.`);
+        """), encoding="utf-8")
+        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\n", encoding="utf-8")
         subprocess.run([
-            "yarn", "exec", "esbuild", "index.ts", "--bundle", "--packages=external",
+            "yarn", "exec", "esbuild", ".docs-snippets/sdk-entry.ts", "--bundle", "--packages=external",
             "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/sdk.mjs",
         ], cwd=SOURCE_ROOT, check=True)
         GENERATED_TSCONFIG.write_text(generate_tsconfig(True, runtime=True), encoding="utf-8")
         subprocess.run(["yarn", "exec", "tsc", "-p", ".docs-snippets/tsconfig.json"], cwd=SOURCE_ROOT, check=True)
         subprocess.run(["node", ".docs-snippets/runtime/snippets.js"], cwd=SOURCE_ROOT, check=True)
+        subprocess.run(["node", ".docs-snippets/invalid-check.mjs"], cwd=SOURCE_ROOT, check=True)
     finally:
         shutil.rmtree(GENERATED_DIR, ignore_errors=True)
 

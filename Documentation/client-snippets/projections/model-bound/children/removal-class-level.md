@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, Guid, removedWith } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbChildrenRemovalClassLineItemAdded {
@@ -13,16 +14,16 @@ export class MbChildrenRemovalClassLineItemRemoved {
     itemId: Guid = Guid.empty;
 }
 
-export class MbChildrenRemovalClassOrder {
-    id: Guid = Guid.empty;
-
-    @childrenFrom(MbChildrenRemovalClassLineItemAdded, 'itemId')
-    lines: MbChildrenRemovalClassOrderLine[] = [];
-}
-
 @removedWith(MbChildrenRemovalClassLineItemRemoved, 'itemId', 'orderId')
 export class MbChildrenRemovalClassOrderLine {
     id: Guid = Guid.empty;
     description = '';
+}
+
+export class MbChildrenRemovalClassOrder {
+    id: Guid = Guid.empty;
+
+    @childrenFrom(MbChildrenRemovalClassLineItemAdded, 'itemId')
+    @field(Array, { genericArguments: [MbChildrenRemovalClassOrderLine] }) lines: MbChildrenRemovalClassOrderLine[] = [];
 }
 ```

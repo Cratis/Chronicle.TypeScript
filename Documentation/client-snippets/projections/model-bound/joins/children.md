@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, Guid, join, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbJoinsLineItemAdded {
@@ -11,13 +12,6 @@ export class MbJoinsLineItemAdded {
 export class MbJoinsProductUpdated {
     productName = '';
     currentPrice = 0;
-}
-
-export class MbJoinsOrder {
-    id: Guid = Guid.empty;
-
-    @childrenFrom(MbJoinsLineItemAdded, 'productId')
-    lines: MbJoinsOrderLine[] = [];
 }
 
 // The line's key is the product id, so the join to ProductUpdated (raised on that
@@ -33,5 +27,12 @@ export class MbJoinsOrderLine {
 
     @join(MbJoinsProductUpdated, undefined, 'currentPrice')
     price = 0;
+}
+
+export class MbJoinsOrder {
+    id: Guid = Guid.empty;
+
+    @childrenFrom(MbJoinsLineItemAdded, 'productId')
+    @field(Array, { genericArguments: [MbJoinsOrderLine] }) lines: MbJoinsOrderLine[] = [];
 }
 ```
