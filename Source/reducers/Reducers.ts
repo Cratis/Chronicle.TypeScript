@@ -4,7 +4,7 @@
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { Constructor } from '@cratis/fundamentals';
-import { ObservationState, ReadModelObserverType, ReducerMessage } from '@cratis/chronicle.contracts';
+import { ObservationState, ReadModelObserverType, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -21,6 +21,12 @@ import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
+import type { IEventStore } from '../IEventStore.js';
+import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
+import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
+import { ArtifactKind } from '../artifacts/ArtifactKind.js';
+import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
+import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -117,7 +123,9 @@ export class Reducers implements IReducers {
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
         lifecycle: ConnectionLifecycle,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _eventStore?: IEventStore,
+        private readonly _artifactActivator?: ClientArtifactsActivator
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -333,7 +341,7 @@ export class Reducers implements IReducers {
         });
 
         try {
-            const reducerInstance = new (reducerType as new () => Record<string, Function>)();
+            const reducerInstance = this._artifactActivator ? undefined : new (reducerType as new () => Record<string, Function>)();
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
@@ -351,7 +359,18 @@ export class Reducers implements IReducers {
                 });
 
                 try {
-                    await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
+                    if (this._artifactActivator && operation.ReplayState !== ReplayState.REPLAY_STATE_None) {
+                        if (!this._eventStore) throw new Error('Reducer activation requires the owning event store.');
+                        await withActivatedArtifact(reducerType, {
+                            kind: ArtifactKind.Reducer, artifactId: id, eventStore: this._eventStore,
+                            readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
+                            signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
+                            replayState: operation.ReplayState
+                        }, this._artifactActivator, artifact => runActivated(artifact, () =>
+                            notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition)));
+                    } else if (reducerInstance) {
+                        await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
+                    }
                 } catch (err) {
                     this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: String(err) });
                     exceptionMessages.push(String(err));
@@ -363,41 +382,66 @@ export class Reducers implements IReducers {
                     ? JSON.parse(operation.InitialState) as unknown
                     : undefined;
 
-                for (const event of state === ObservationState.Failed ? [] : operation.Events) {
-                    try {
-                        const eventTypeId = event.Context?.EventType?.Id;
-                        if (!eventTypeId) {
-                            this._logger.warn('Event missing event type context', { reducerId: id });
-                            continue;
-                        }
+                const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
+                    for (const event of state === ObservationState.Failed ? [] : operation.Events) {
+                        try {
+                            const eventTypeId = event.Context?.EventType?.Id;
+                            if (!eventTypeId) {
+                                this._logger.warn('Event missing event type context', { reducerId: id });
+                                continue;
+                            }
 
-                        const entry = dispatcher.handlerFor(eventTypeId);
-                        if (!entry) {
-                            this._logger.debug('No handler registered for event type — skipping', { reducerId: id, eventTypeId });
+                            const entry = dispatcher.handlerFor(eventTypeId);
+                            if (!entry) {
+                                this._logger.debug('No handler registered for event type — skipping', { reducerId: id, eventTypeId });
+                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                                continue;
+                            }
+
+                            const content = JSON.parse(event.Content) as Record<string, unknown>;
+                            const context = toClientEventContext(event.Context!);
+
+                            this._logger.info('Invoking reducer handler', {
+                                reducerId: id,
+                                method: entry.methodName,
+                                sequenceNumber: event.Context!.SequenceNumber.toString(),
+                                eventTypeId,
+                                hasState: currentState !== undefined
+                            });
+
+                            currentState = await runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, currentState, context));
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                            continue;
+                        } catch (err) {
+                            this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });
+                            exceptionMessages.push(String(err));
+                            exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
+                            state = ObservationState.Failed;
+                            break;
                         }
+                    }
+                };
 
-                        const content = JSON.parse(event.Content) as Record<string, unknown>;
-                        const context = toClientEventContext(event.Context!);
-
-                        this._logger.info('Invoking reducer handler', {
-                            reducerId: id,
-                            method: entry.methodName,
-                            sequenceNumber: event.Context!.SequenceNumber.toString(),
-                            eventTypeId,
-                            hasState: currentState !== undefined
-                        });
-
-                        currentState = await dispatcher.invoke(reducerInstance, entry, content, currentState, context);
-                        lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+                const firstInvocableEvent = this._artifactActivator && state === ObservationState.Success
+                    ? operation.Events.find(event =>
+                        !!event.Context?.EventType?.Id && !!dispatcher.handlerFor(event.Context.EventType.Id))
+                    : undefined;
+                if (firstInvocableEvent && this._artifactActivator) {
+                    try {
+                        if (!this._eventStore) throw new Error('Reducer activation requires the owning event store.');
+                        await withActivatedArtifact(reducerType as new () => Record<string, Function>, {
+                            kind: ArtifactKind.Reducer, artifactId: id, eventStore: this._eventStore,
+                            readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
+                            signal: controller.signal, delivery: ArtifactDelivery.Events,
+                            eventContext: toClientEventContext(firstInvocableEvent.Context!)
+                        }, this._artifactActivator, processEvents);
                     } catch (err) {
-                        this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });
+                        this._logger.error('Error activating reducer', { reducerId: id, error: String(err) });
                         exceptionMessages.push(String(err));
                         exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                         state = ObservationState.Failed;
-                        break;
                     }
+                } else {
+                    await processEvents({ instance: reducerInstance ?? {} });
                 }
 
                 if (state === ObservationState.Success && currentState !== undefined) {
