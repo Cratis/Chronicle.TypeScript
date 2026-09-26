@@ -27,3 +27,5 @@ Earlier client versions rejected these with a `not implemented yet.` error at re
 Under runtimes that emit no type metadata, such as `tsx`, name the child type of a children collection in `@childrenFrom(ItemAdded, Item, 'itemId')`: the second argument can be the child class instead of the key. The client then excludes `Item` from the root read models and restores the collection as `Item` instances.
 
 With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.
+
+Projection registration computes `LastUpdated` from the full definition, including nested mappings. After upgrading, this value changes once for every projection. The kernel compares definitions structurally and treats `LastUpdated` as metadata only, so the new value alone does not trigger a replay.

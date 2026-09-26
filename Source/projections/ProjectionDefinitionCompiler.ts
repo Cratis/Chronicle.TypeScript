@@ -12,6 +12,7 @@ import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { TypeIntrospector } from '../types/index.js';
+import { canonicalStringify } from './canonicalStringify.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
 import { constantValueExpression } from './constantValueExpression.js';
 import { getProjectionMetadata } from './declarative/projection.js';
@@ -373,10 +374,10 @@ export class ProjectionDefinitionCompiler {
         return created;
     }
 
-    /** Hash the final wire definition, excluding LastUpdated itself, to avoid unnecessary replays. */
+    /** Hash the final wire definition, excluding LastUpdated itself, for stable metadata. */
     private computeStableLastUpdated(definition: Record<string, unknown>): string {
         const { LastUpdated: _omit, ...rest } = definition;
-        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        const content = canonicalStringify(rest);
         let hash = 5381;
         for (let i = 0; i < content.length; i++) {
             hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;
