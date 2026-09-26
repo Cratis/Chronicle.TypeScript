@@ -48,6 +48,8 @@ export interface ChildrenDefinitionLike {
     NoAutoMapProperties: string[];
 }
 
+const aggregateExpressions = ['$count', '$increment', '$decrement', '$add', '$subtract'];
+
 /**
  * Resolves the contract event type for a decorated event constructor.
  * @param eventTypeConstructor - The event class constructor.
@@ -338,9 +340,9 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
 
     populateFromType(definition, childType);
 
-    // Like the .NET model-bound builder, populate an unmapped child identifier from the
-    // creating event's key. IdentifiedBy selects the child property; it is not itself a
-    // property mapping. TypeScript has no [Key] decorator, so an explicit identifiedBy
+    // For non-aggregate-only creating events, populate an unmapped child identifier from
+    // the creating event's key. IdentifiedBy selects the child property; it is not itself
+    // a property mapping. TypeScript has no [Key] decorator, so an explicit identifiedBy
     // plays the same role as a discovered id for this default.
     const identifier = definition.IdentifiedBy;
     if (definition.AutoMap === AutoMap.Enabled && identifier !== '$eventSourceId') {
@@ -354,6 +356,13 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
         if (!hasExplicitMapping) {
             for (const metadata of metadataList) {
                 const entry = definition.From.find(candidate => getEventTypeMapKey(candidate.Key) === getEventTypeMapKey(toContractEventType(metadata.eventType)))!;
+                const mappings = Object.values(entry.Value.Properties);
+                // Preserve the kernel's aggregate-only AutoMap exemption: Changeset.AddChild already
+                // initializes the child identifier from the resolved key before applying property mappers.
+                if (mappings.length > 0 && mappings.every(expression =>
+                    aggregateExpressions.some(aggregate => expression.startsWith(aggregate)))) {
+                    continue;
+                }
                 // Child property mappings may replace the creating key (for example, a constant-key count).
                 const key = entry.Value.Key;
                 // When an event property is also the identifier, AutoMap can fill it directly.
