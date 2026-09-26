@@ -8,6 +8,7 @@ import { chai, describe, it, vi } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
 import type { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
+import { EventTypes } from '../events/EventTypes.js';
 import { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
 import { IProjectionFor } from './declarative/IProjectionFor.js';
 import { projection } from './declarative/projection.js';
@@ -15,7 +16,7 @@ import { addFrom } from './modelBound/addFrom.js';
 import { childrenFrom } from './modelBound/childrenFrom.js';
 import { count } from './modelBound/count.js';
 import { entersOn } from './modelBound/entersOn.js';
-import { fromEvent } from './modelBound/fromEvent.js';
+import { fromEvent, hasFromEventMetadata } from './modelBound/fromEvent.js';
 import { fromEvery } from './modelBound/fromEvery.js';
 import { globalFor } from './modelBound/globalFor.js';
 import { join } from './modelBound/join.js';
@@ -24,6 +25,8 @@ import { removedWith } from './modelBound/removedWith.js';
 import { setFrom } from './modelBound/setFrom.js';
 import { subtractFrom } from './modelBound/subtractFrom.js';
 import { variantOf } from './modelBound/variantOf.js';
+import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
+import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
 import { Projections } from './Projections.js';
 
 class ItemCreated { name!: string; quantity!: number; }
@@ -127,25 +130,32 @@ const cases = [
     { name: 'declarative-variants', readModels: [DeclarativeDraft, DeclarativePublic], projections: [DeclarativeDraftProjection, DeclarativePublicProjection], globalForHandlers: [] }
 ];
 
-async function captureRegistration(testCase: typeof cases[number]): Promise<string> {
-    const registerMock = vi.fn().mockResolvedValue(undefined);
-    const registerManyMock = vi.fn().mockResolvedValue(undefined);
-    const connection = {
-        projections: { register: registerMock },
-        readModels: { registerMany: registerManyMock }
-    } as unknown as ChronicleConnection;
-    const artifacts: IClientArtifactsProvider = {
+function artifactsFor(testCase: typeof cases[number]): IClientArtifactsProvider {
+    return {
         projections: testCase.projections as Constructor[],
         readModels: testCase.readModels as Constructor[],
         globalForHandlers: testCase.globalForHandlers as Constructor[],
         eventTypes: [ItemCreated, ItemUpdated, ItemRemoved, LineAdded, Joined, Opened, Published, TitleChanged],
         reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
     };
+}
+
+function serializeContract(value: unknown): string {
+    return JSON.stringify(value, (_key, member: unknown) => typeof member === 'bigint' ? member.toString() : member);
+}
+
+async function captureRegistration(artifacts: IClientArtifactsProvider): Promise<string> {
+    const registerMock = vi.fn().mockResolvedValue(undefined);
+    const registerManyMock = vi.fn().mockResolvedValue(undefined);
+    const connection = {
+        projections: { register: registerMock },
+        readModels: { registerMany: registerManyMock }
+    } as unknown as ChronicleConnection;
     await new Projections('test-store', 'test-namespace', connection, artifacts, 'test-sink').register();
-    return JSON.stringify({
+    return serializeContract({
         readModels: registerManyMock.mock.calls.map(call => call[0].ReadModels).flat(),
         projections: registerMock.mock.calls.map(call => call[0].Projections).flat()
-    }, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value);
+    });
 }
 
 chai.should();
@@ -155,9 +165,33 @@ const goldenUrl = new URL('./ProjectionDefinitionCompiler.registration.golden.js
 describe('projection registration payload', () => {
     for (const testCase of cases) {
         it(`should preserve origin/main for ${testCase.name}`, async () => {
-            const actual = await captureRegistration(testCase);
+            const actual = await captureRegistration(artifactsFor(testCase));
             const goldens = JSON.parse(readFileSync(goldenUrl, 'utf8')) as Array<{ name: string; payload: string }>;
             actual.should.equal(goldens.find(candidate => candidate.name === testCase.name)?.payload);
         });
+
+        it(`should send the compiler's definitions and read-model schemas for ${testCase.name}`, async () => {
+            const artifacts = artifactsFor(testCase);
+            const compiled = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile(
+                artifacts.projections,
+                artifacts.readModels.filter(type => hasFromEventMetadata(type) || hasModelBoundProperties(type))
+            );
+            const compiledPayload = serializeContract({ readModels: compiled.readModels, projections: compiled.definitions });
+            compiledPayload.should.equal(await captureRegistration(artifacts));
+        });
     }
+
+    it('should compile the same event schemas as event type registration', async () => {
+        const artifacts = artifactsFor(cases[0]);
+        const registerEventTypes = vi.fn().mockResolvedValue({ IsAuthorized: true, ValidationResults: [], ExceptionMessages: [] });
+        const connection = { eventTypes: { registerEventTypes } } as unknown as ChronicleConnection;
+        await new EventTypes('test-store', connection, artifacts).register();
+        const registrations = registerEventTypes.mock.calls[0][0].Types as Array<{
+            Type: { Id: string }; Generations: Array<{ Generation: number; Schema: string }>;
+        }>;
+        const compiled = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [Flat]);
+        const registeredSchemas = new Map(registrations.flatMap(registration => registration.Generations.map(generation =>
+            [`${registration.Type.Id}:${generation.Generation}`, generation.Schema] as const)));
+        Array.from(compiled.eventSchemas).should.deep.equal(Array.from(registeredSchemas));
+    });
 });
