@@ -249,6 +249,17 @@ describe('when delivering reactor batches', () => {
         result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(1n);
     });
 
+    it('should use the first handled event context when earlier events are skipped', async () => {
+        const contexts: ArtifactActivationContext[] = [];
+        const activator: ClientArtifactsActivator = (type, context) => { contexts.push(context); return { instance: new type() }; };
+        const result = await observe(AppendReactor, [delivery([
+            event('replay', 1n, EventObservationState.Replay), event('live', 2n)
+        ])], 'tenant-a', activator);
+        contexts.length.should.equal(1);
+        if (contexts[0].delivery === ArtifactDelivery.Events) contexts[0].eventContext.sequenceNumber.should.equal(2n);
+        result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(2n);
+    });
+
     it('should dispose after a failed handler execution without acknowledging the failed event', async () => {
         let disposed = 0;
         const activator: ClientArtifactsActivator = type => ({ instance: new type(), dispose: () => { disposed++; } });

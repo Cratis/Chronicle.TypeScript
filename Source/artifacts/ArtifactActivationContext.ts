@@ -27,7 +27,7 @@ export type ArtifactActivationContext = {
 } & ({
     /** Identifies an event delivery (one activation for the whole batch). */
     readonly delivery: ArtifactDelivery.Events;
-    /** Context of the first event in the batch; later events can have different contexts. */
+    /** Context of the first handled event in the batch; later events can have different contexts. */
     readonly eventContext: EventContext;
 } | {
     /** Identifies a separate replay lifecycle notification. */
