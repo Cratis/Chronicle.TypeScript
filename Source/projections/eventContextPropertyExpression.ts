@@ -34,15 +34,15 @@ function lower(segment: string): string {
     return segment.charAt(0).toLowerCase() + segment.slice(1);
 }
 
-// Accept only paths the kernel can resolve: a root property, an identity member of causedBy (one
-// onBehalfOf level at most, since the kernel constructs missing identities recursively), and nothing
-// inside the causation or tags collections, which a dotted path cannot traverse.
+// Accept only paths the kernel can resolve: a root property or an identity member of causedBy.
+// causedBy.onBehalfOf is allowed only as a whole value: traversing it when it is missing makes the
+// kernel construct identities recursively. Nothing inside the causation or tags collections, which a
+// dotted path cannot traverse.
 function validNestedPath(root: string, segments: string[]): boolean {
     if (segments.length === 0) return true;
     if (root !== 'causedBy') return false;
     const members = segments.map(lower);
-    if (members.length === 1) return identityProperties.has(members[0]) || members[0] === 'onBehalfOf';
-    return members.length === 2 && members[0] === 'onBehalfOf' && identityProperties.has(members[1]);
+    return members.length === 1 && (identityProperties.has(members[0]) || members[0] === 'onBehalfOf');
 }
 
 /** Build the expression read by Chronicle's event-context resolver, using CLR property casing. */

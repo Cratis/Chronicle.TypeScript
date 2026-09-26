@@ -150,14 +150,14 @@ describe('event context expressions', () => {
             .toThrow(/Invalid event context property 'occurred.ISOWeek\(\)'.*'InvalidDeclarativeProjection'/);
     });
 
-    it('should map an identity member reached through one onBehalfOf level', () => {
-        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causedBy.onBehalfOf.userName')))
-            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.OnBehalfOf.UserName)');
+    it('should map the on-behalf-of identity as a whole', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causedBy.onBehalfOf')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.OnBehalfOf)');
     });
 
     it('should reject unknown identity members and deeper onBehalfOf chains', () => {
         for (const path of ['causedBy.unknown', 'causedBy.onBehalfOf.unknown', 'causedBy.subject.name',
-            'causedBy.onBehalfOf.onBehalfOf.userName', 'causedBy.onBehalfOf.onBehalfOf']) {
+            'causedBy.onBehalfOf.userName', 'causedBy.onBehalfOf.onBehalfOf.userName', 'causedBy.onBehalfOf.onBehalfOf']) {
             expect(() => compileDeclarative(builder => builder.fromEvery(all =>
                 all.set(model => model.happened).toEventContextProperty(path))))
                 .toThrow(`Invalid event context property '${path}'`);
