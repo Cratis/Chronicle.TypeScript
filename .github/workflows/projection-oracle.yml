@@ -1,0 +1,90 @@
+# Copyright (c) Cratis. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for full license information.
+name: Projection oracle
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Tools/ProjectionOracle/**'
+      - 'Source/testing/projections/**'
+      - 'Source/projections/**'
+      - 'Source/events/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'global.json'
+      - '.github/workflows/projection-oracle.yml'
+  schedule:
+    - cron: '27 5 * * 2'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: corepack enable && yarn install --immutable
+      - run: yarn oracle:check
+
+  latest-probe:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: corepack enable && yarn install --immutable
+      - name: Find latest stable Chronicle release
+        id: release
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          pin = ET.parse('Tools/ProjectionOracle/ProjectionOracle.csproj').findtext('.//ChronicleVersion')
+          if not pin:
+              raise SystemExit('Missing ChronicleVersion pin')
+          url = 'https://api.nuget.org/v3-flatcontainer/cratis.chronicle.testing/index.json'
+          with urllib.request.urlopen(url, timeout=15) as response:
+              releases = [v for v in json.load(response)['versions'] if re.fullmatch(r'\d+\.\d+\.\d+', v)]
+          if not releases:
+              raise SystemExit('No stable Chronicle releases in NuGet index')
+          latest = max(releases, key=lambda v: tuple(map(int, v.split('.'))))
+          print(f'Pinned Chronicle: {pin}; latest stable: {latest}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              print(f'version={latest}', file=output)
+          PY
+      - name: Run fixtures against latest stable package (report only)
+        if: steps.release.outputs.version != ''
+        continue-on-error: true
+        env:
+          LATEST: ${{ steps.release.outputs.version }}
+        run: |
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          cp Tools/ProjectionOracle/*.cs Tools/ProjectionOracle/ProjectionOracle.csproj "$temp_dir/"
+          dotnet restore "$temp_dir/ProjectionOracle.csproj" -p:ChronicleVersion="$LATEST"
+          dotnet build "$temp_dir/ProjectionOracle.csproj" --no-restore -p:ChronicleVersion="$LATEST"
+          dotnet run --project "$temp_dir/ProjectionOracle.csproj" --no-build --no-restore -- --probe "$LATEST"

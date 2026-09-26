@@ -30,6 +30,9 @@ class LineQuantityChanged {
 }
 eventType()(LineQuantityChanged);
 
+class LineQuantityCleared {}
+eventType()(LineQuantityCleared);
+
 class SummaryUpdated {
     total!: number;
 }
@@ -38,6 +41,9 @@ eventType()(SummaryUpdated);
 class SummaryCleared {}
 eventType()(SummaryCleared);
 
+class SummaryTotalCleared {}
+eventType()(SummaryTotalCleared);
+
 class NoteAdded {
     text!: string;
 }
@@ -45,6 +51,9 @@ eventType()(NoteAdded);
 
 class NoteCleared {}
 eventType()(NoteCleared);
+
+class OrderLabelCleared {}
+eventType()(OrderLabelCleared);
 
 class TagAdded {
     name!: string;
@@ -60,12 +69,14 @@ class OrderLine {
 }
 setFrom(LineQuantityChanged)(OrderLine.prototype, 'quantity');
 noAutoMap(OrderLine.prototype, 'quantity');
+clearWith(LineQuantityCleared)(OrderLine.prototype, 'quantity');
 
 class OrderSummary {
     total!: number;
 }
 setFrom(SummaryUpdated)(OrderSummary.prototype, 'total');
 noAutoMap(OrderSummary.prototype, 'total');
+clearWith(SummaryTotalCleared)(OrderSummary.prototype, 'total');
 clearWith(SummaryCleared)(OrderSummary);
 
 class OrderNote {
@@ -79,7 +90,9 @@ class Order {
     summary!: OrderSummary | undefined;
     note!: OrderNote | undefined;
     tags!: string[];
+    label?: string;
 }
+clearWith(OrderLabelCleared)(Order.prototype, 'label');
 childrenFrom(LineAdded, undefined, 'productId', undefined)(Order.prototype, 'lines');
 field(Array, { enumerable: true, genericArguments: [OrderLine] })(Order.prototype, 'lines');
 nested(Order.prototype, 'summary');
@@ -174,12 +187,13 @@ interface ChildrenDefinition {
     AutoMap: AutoMap;
     NoAutoMapProperties: string[];
     From: FromRecord[];
-    RemovedWith: Array<{ Key: { Id: string } }>;
+    RemovedWith: Array<{ Key: { Id: string }; Value: { Key: string; ParentKey: string } }>;
     Children: Record<string, ChildrenDefinition>;
     Nested: Record<string, ChildrenDefinition>;
 }
 
 interface BuiltDefinition {
+    From: FromRecord[];
     Children: Record<string, ChildrenDefinition>;
     Nested: Record<string, ChildrenDefinition>;
 }
@@ -234,6 +248,16 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             expect(updateEntry.Value.Properties.quantity).toBe('quantity');
         });
 
+        it('should clear only the child member through a From mapping', async () => {
+            const { projections, registerMock } = createProjections([Order]);
+            await projections.register();
+
+            const lines = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.lines;
+            const clearEntry = lines.From.find(candidate => candidate.Key.Id === 'LineQuantityCleared')!;
+            expect(clearEntry.Value).toEqual({ Properties: { quantity: '$null' }, Key: '$eventSourceId', ParentKey: '' });
+            expect(lines.RemovedWith.some(candidate => candidate.Key.Id === 'LineQuantityCleared')).toBe(false);
+        });
+
         it('should build a children definition even when the child element type cannot be resolved', async () => {
             const { projections, registerMock } = createProjections([Order]);
             await projections.register();
@@ -258,7 +282,18 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             expect(summary.NoAutoMapProperties).toEqual(['total']);
             const updateEntry = summary.From.find(candidate => candidate.Key.Id === 'SummaryUpdated')!;
             expect(updateEntry.Value.Properties.total).toBe('total');
-            expect(summary.RemovedWith.some(candidate => candidate.Key.Id === 'SummaryCleared')).toBe(true);
+            expect(summary.RemovedWith).toContainEqual({ Key: expect.objectContaining({ Id: 'SummaryCleared' }), Value: { Key: '$eventSourceId', ParentKey: '' } });
+            expect(summary.From.some(candidate => candidate.Key.Id === 'SummaryCleared')).toBe(false);
+        });
+
+        it('should clear only the nested type member through a From mapping', async () => {
+            const { projections, registerMock } = createProjections([Order]);
+            await projections.register();
+
+            const summary = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Nested.summary;
+            const clearEntry = summary.From.find(candidate => candidate.Key.Id === 'SummaryTotalCleared')!;
+            expect(clearEntry.Value).toEqual({ Properties: { total: '$null' }, Key: '$eventSourceId', ParentKey: '' });
+            expect(summary.RemovedWith.some(candidate => candidate.Key.Id === 'SummaryTotalCleared')).toBe(false);
         });
 
         it('should disable AutoMap on decorated child and nested types while retaining explicit mappings', async () => {
@@ -314,6 +349,16 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const updateEntry = note.From.find(candidate => candidate.Key.Id === 'NoteAdded')!;
             expect(updateEntry.Value.Properties.text).toBe('text');
             expect(note.RemovedWith.some(candidate => candidate.Key.Id === 'NoteCleared')).toBe(true);
+            expect(note.From.some(candidate => candidate.Key.Id === 'NoteCleared')).toBe(false);
+        });
+
+        it('should keep root scalar clearWith as a From mapping', async () => {
+            const { projections, registerMock } = createProjections([Order]);
+            await projections.register();
+
+            const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
+            const clearEntry = definition.From.find(candidate => candidate.Key.Id === 'OrderLabelCleared')!;
+            expect(clearEntry.Value).toEqual({ Properties: { label: '$null' }, Key: '$eventSourceId', ParentKey: '' });
         });
     });
 });

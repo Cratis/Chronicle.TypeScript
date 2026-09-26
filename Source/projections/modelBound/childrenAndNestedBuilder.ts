@@ -278,9 +278,13 @@ function populateFromType(definition: ChildrenDefinitionLike, childType: Functio
     for (const property of TypeIntrospector.getTrackedProperties(childType)) {
         applyPropertyMappings(prototype, property, fromByEventType);
 
-        for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
-            const eventType = toContractEventType(clearWith.eventType);
-            removedWithByEventType.set(getEventTypeMapKey(eventType), { Key: eventType, Value: { Key: '$eventSourceId', ParentKey: '' } });
+        // A clear on the member carrying @nested removes that nested object; a clear on
+        // any other member maps the member to null in this child/nested definition.
+        if (!isNested(prototype, property)) {
+            for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
+                const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
+                entry.Value.Properties[property] = '$null';
+            }
         }
 
         for (const removed of getRemovedWithPropertyMetadata(prototype, property)) {

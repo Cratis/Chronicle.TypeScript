@@ -1,0 +1,118 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verifies the protected-fields boundary fails closed.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-reject-protected",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "title": "title"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "compliance": [
+            {
+              "metadataType": "PII"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "RecordCreated",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "title": "protected"
+      },
+      "expectedError": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IReadModelsCompliance.Apply"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {},
+      "publicRead": {},
+      "error": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IReadModelsCompliance.Apply"
+      }
+    }
+  ]
+}
