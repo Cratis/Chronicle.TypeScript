@@ -36,6 +36,7 @@ export class ProjectionCapabilities {
         const variant = provenance.find(entry => entry.contractPath === 'Variant');
         if (variant) reject('Variant', 'variants require a kernel-backed test');
         if (wire.IsActive === false) reject('IsActive', 'passive projections require a kernel-backed test');
+        if (wire.SubscribesToAllEvents === true) reject('SubscribesToAllEvents', 'subscribe-to-all projections require a kernel-backed test');
         if (wire.EventSequenceId !== EventSequenceId.eventLog.value) reject('EventSequenceId', 'non-default event sequences require a kernel-backed test');
         for (const section of ['Join', 'Children', 'Nested', 'RemovedWithJoin'] as const) {
             const value = wire[section];
@@ -106,7 +107,7 @@ export class ProjectionCapabilities {
             const expressions = Object.values(properties);
             const aggregateOnly = expressions.length > 0 && expressions.every(expression =>
                 /^(?:\$add\([^()]+\)|\$subtract\([^()]+\)|\$count|\$increment|\$decrement)$/.test(expression));
-            if (wire.AutoMap === AutoMap.Enabled && !aggregateOnly) {
+            if (wire.AutoMap !== AutoMap.Disabled && !aggregateOnly) {
                 this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject);
             }
         }
@@ -117,7 +118,8 @@ export class ProjectionCapabilities {
         path: string, reject: (path: string, reason: string) => never
     ): void {
         for (const [destination] of Object.entries(modelSchema.properties ?? {})) {
-            if (destination in explicit || exclusions.includes(destination)) continue;
+            if (Object.keys(explicit).some(name => name.toLowerCase() === destination.toLowerCase()) ||
+                exclusions.some(name => name.toLowerCase() === destination.toLowerCase())) continue;
             const candidates = Object.keys(eventSchema.properties ?? {}).filter(source => source.toLowerCase() === destination.toLowerCase());
             if (candidates.length > 1) reject(`${path}.AutoMap.${destination}`, `inferred AutoMap source is ambiguous: ${candidates.join(', ')}`);
             if (candidates.length) this.checkMapping(modelSchema, eventSchema, destination, candidates[0], `${path}.AutoMap.${destination}`, reject);
@@ -139,7 +141,9 @@ export class ProjectionCapabilities {
             const path = /^\$eventContext\(([^()]*)\)$/.exec(expression)?.[1];
             if (path) {
                 try {
-                    if (eventContextPropertyExpression(path) === expression) return;
+                    if (['Subject.Value', 'CorrelationId.Value', 'Occurred.Year', 'Occurred.Month', 'Occurred.Day',
+                        'EventType.Id.Value', 'EventType.Generation.Value', 'SequenceNumber.Value'].includes(path) ||
+                        eventContextPropertyExpression(path) === expression) return;
                 } catch (error) {
                     if (!(error instanceof InvalidEventContextPropertyError)) throw error;
                 }
@@ -197,7 +201,9 @@ export class ProjectionCapabilities {
     }
 
     private static checkSchema(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
-        if (!schema.type || schema.type === 'null' || (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||
+        if (!schema.type || schema.type === 'null' || (Array.isArray(schema.type) &&
+            (schema.type.length !== 2 || schema.type[0] !== 'string' || schema.type[1] !== 'null')) ||
+            (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||
             (schema.format === 'date-time' && schema.type !== 'string') ||
             (schema.format === 'guid' && schema.type !== 'string') ||
             (schema.format === 'double' && schema.type !== 'number') ||

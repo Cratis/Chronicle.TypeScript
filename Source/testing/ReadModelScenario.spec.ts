@@ -7,13 +7,18 @@ import type { Constructor } from '@cratis/fundamentals';
 import { eventType } from '../events/eventTypeDecorator.js';
 import type { EventContext } from '../events/EventContext.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
+import { setFrom } from '../projections/modelBound/setFrom.js';
+import { removedWith } from '../projections/modelBound/removedWith.js';
+import type { IProjectionBuilderFor } from '../projections/declarative/IProjectionBuilderFor.js';
+import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
 import { projection } from '../projections/declarative/projection.js';
 import { reducer } from '../reducers/reducer.js';
 import { ReadModelScenario, ReadModelScenarioGivenBuilder } from './index.js';
 import { readModelScenarioExample } from './ReadModelScenario.example.js';
 
 class ItemAdded {
-    constructor(readonly amount: number) {}
+    @field(Number) amount: number;
+    constructor(amount: number) { this.amount = amount; }
 }
 eventType('scenario-item-added')(ItemAdded);
 class ItemRemoved {}
@@ -177,15 +182,66 @@ describe('ReadModelScenario', () => {
         await expect(scenario.instance).rejects.toThrow('FailingReducer');
     });
 
-    it('rejects model-bound and declarative projections rather than silently returning null', () => {
-        class ProjectedState {}
+    it('replays a compiled model-bound projection and recreates it after removal', async () => {
+        class ProjectedState {
+            @field(Number) count = 0;
+        }
         fromEvent(ItemAdded)(ProjectedState);
-        expect(() => new ReadModelScenario(ProjectedState, artifacts)).toThrow('not supported yet; use a kernel-backed test');
+        setFrom(ItemAdded, 'amount')(ProjectedState.prototype, 'count');
+        removedWith(ItemRemoved)(ProjectedState);
+        const scenario = new ReadModelScenario(ProjectedState, artifacts);
+        scenario.given.forEventSource('A').events(new ItemAdded(3), new ItemRemoved());
+        expect(await scenario.instanceForEventSourceId('A')).toBeNull();
+        expect(await scenario.wasDeletedForEventSourceId('A')).toBe(true);
+        scenario.given.forEventSource('A').events(new UnrelatedEvent(), new ItemAdded(7));
+        expect(await scenario.instance).toMatchObject({ count: 7 });
+        expect(await scenario.wasDeletedForEventSourceId('A')).toBe(false);
+    });
 
-        class FluentState {}
-        class FluentProjection {}
+    it('selects a declarative projection using its final compiled contract', async () => {
+        class FluentState { @field(Number) count = 0; }
+        class FluentProjection implements IProjectionFor<FluentState> {
+            define(builder: IProjectionBuilderFor<FluentState>): void {
+                builder.from(ItemAdded, from => from.set(model => model.count).to(event => event.amount));
+            }
+        }
         projection('scenario-fluent-projection', FluentState)(FluentProjection);
-        expect(() => new ReadModelScenario(FluentState, { ...artifacts, projections: [FluentProjection] }))
-            .toThrow('not supported yet; use a kernel-backed test');
+        const scenario = new ReadModelScenario(FluentState, { ...artifacts, projections: [FluentProjection] });
+        scenario.given.forEventSource('A').events(new ItemAdded(8));
+        expect(await scenario.instance).toMatchObject({ count: 8 });
+    });
+
+    it('rejects unsupported mappings before replay even when no events are seeded', () => {
+        class CustomKeyState { @field(Number) count = 0; }
+        fromEvent(ItemAdded, { key: 'amount' })(CustomKeyState);
+        expect(() => new ReadModelScenario(CustomKeyState, artifacts)).toThrow('only $eventSourceId keys are supported');
+    });
+
+    it('rejects noncanonical numeric source IDs instead of merging independent histories', async () => {
+        class NumericState { @field(Number) id = 0; }
+        fromEvent(ItemAdded)(NumericState);
+        const scenario = new ReadModelScenario(NumericState, artifacts);
+        scenario.given.forEventSource('01').events(new ItemAdded(1));
+        await expect(scenario.instance).rejects.toThrow('not a canonical number identifier');
+    });
+
+    it('keeps reducer precedence when a projection also applies', async () => {
+        class DualState { @field(Number) count = 0; }
+        class DualReducer { itemAdded(event: ItemAdded): DualState { return { count: event.amount }; } }
+        reducer('scenario-dual-reducer', undefined, DualState)(DualReducer);
+        fromEvent(ItemAdded)(DualState);
+        const scenario = new ReadModelScenario(DualState, { ...artifacts, reducers: [DualReducer] });
+        scenario.given.forEventSource('A').events(new ItemAdded(4));
+        expect(await scenario.instance).toEqual({ count: 4 });
+    });
+
+    it('rejects multiple applicable projections before replay', () => {
+        class FluentState { @field(Number) count = 0; }
+        class FirstProjection implements IProjectionFor<FluentState> { define(): void {} }
+        class SecondProjection implements IProjectionFor<FluentState> { define(): void {} }
+        projection('first-projection', FluentState)(FirstProjection);
+        projection('second-projection', FluentState)(SecondProjection);
+        expect(() => new ReadModelScenario(FluentState, { ...artifacts, projections: [FirstProjection, SecondProjection] }))
+            .toThrow('Multiple projections found');
     });
 });
