@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SubscriptionsExplicitShipmentDispatched {
-    constructor(readonly orderId: string) {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string) {
+        this.orderId = orderId;
+    }
 }
 
 class SubscriptionsExplicitBasic {

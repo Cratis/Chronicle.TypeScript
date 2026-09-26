@@ -1,14 +1,27 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class GettingEventsOrderPlaced {
-    constructor(readonly orderId: string = '', readonly total: number = 0) {}
+    @field(String) readonly orderId: string;
+    @field(Number) readonly total: number;
+
+    constructor(orderId: string = '', total: number = 0) {
+        this.orderId = orderId;
+        this.total = total;
+    }
 }
 
 @eventType()
 class GettingEventsOrderCancelled {
-    constructor(readonly orderId: string = '', readonly reason: string = '') {}
+    @field(String) readonly orderId: string;
+    @field(String) readonly reason: string;
+
+    constructor(orderId: string = '', reason: string = '') {
+        this.orderId = orderId;
+        this.reason = reason;
+    }
 }
 
 async function getOrderEvents(store: IEventStore, orderId: string): Promise<void> {

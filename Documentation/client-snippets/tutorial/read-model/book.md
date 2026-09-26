@@ -1,5 +1,6 @@
 ```typescript
 import { fromEvent, Guid, setFrom, setValue } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @fromEvent(BookAdded)
 export class Book {
@@ -17,6 +18,6 @@ export class Book {
     onLoan = false;
 
     @setFrom(BookBorrowed, 'memberName')
-    borrowedBy: string | null = null;
+    @field(String) borrowedBy: string | null = null;
 }
 ```

@@ -1,11 +1,15 @@
 ```typescript
 import { IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 class DesigningReadModelsCustomerDetail {
-    constructor(
-        readonly id: string,
-        readonly name: string
-    ) {}
+    @field(String) readonly id: string;
+    @field(String) readonly name: string;
+
+    constructor(id: string, name: string) {
+        this.id = id;
+        this.name = name;
+    }
 }
 
 class DesigningReadModelsCustomerDetailService {

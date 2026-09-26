@@ -1,12 +1,16 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SubscriptionsExplicitStockReserved {
-    constructor(
-        readonly itemId: string,
-        readonly quantity: number
-    ) {}
+    @field(String) readonly itemId: string;
+    @field(Number) readonly quantity: number;
+
+    constructor(itemId: string, quantity: number) {
+        this.itemId = itemId;
+        this.quantity = quantity;
+    }
 }
 
 class SubscriptionsExplicitFiltering {

@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DeclAggArrangementSet {
-    constructor(readonly location: string) {}
+    @field(String) readonly location: string;
+
+    constructor(location: string) {
+        this.location = location;
+    }
 }
 
 @eventType()
 class DeclAggCandidateSubmitted {
-    constructor(readonly name: string, readonly location: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly location: string;
+
+    constructor(name: string, location: string) {
+        this.name = name;
+        this.location = location;
+    }
 }
 
 class DeclAggAssignmentSummary {

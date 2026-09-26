@@ -1,14 +1,23 @@
 ```typescript
 import { eventType, eventTypeMigration, IEventMigrationBuilder, IEventTypeMigration } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType('dotnet-client-customer-registered', 2)
 class MigrationsDotnetClientRenamedFromCustomerRegistered {
-    constructor(readonly email: string) {}
+    @field(String) readonly email: string;
+
+    constructor(email: string) {
+        this.email = email;
+    }
 }
 
 @eventType('dotnet-client-customer-registered', 1)
 class MigrationsDotnetClientRenamedFromCustomerRegisteredV1 {
-    constructor(readonly emailAddress: string) {}
+    @field(String) readonly emailAddress: string;
+
+    constructor(emailAddress: string) {
+        this.emailAddress = emailAddress;
+    }
 }
 
 @eventTypeMigration(MigrationsDotnetClientRenamedFromCustomerRegistered, MigrationsDotnetClientRenamedFromCustomerRegisteredV1)

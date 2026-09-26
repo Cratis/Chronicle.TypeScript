@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, filterEventsByTag, IEventStore, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReducersFilteringByTagOrderPlaced {
-    constructor(readonly totalAmount: number) {}
+    @field(Number) readonly totalAmount: number;
+
+    constructor(totalAmount: number) {
+        this.totalAmount = totalAmount;
+    }
 }
 
 class ReducersFilteringPriorityOrderTotals {

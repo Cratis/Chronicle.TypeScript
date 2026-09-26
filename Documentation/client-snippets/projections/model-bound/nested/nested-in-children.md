@@ -1,19 +1,38 @@
 ```typescript
 import { childrenFrom, clearWith, eventType, fromEvent, Guid, nested } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaskAddedForNestedChildren {
-    constructor(readonly taskId: Guid, readonly title: string) {}
+    @field(Guid) readonly taskId: Guid;
+    @field(String) readonly title: string;
+
+    constructor(taskId: Guid, title: string) {
+        this.taskId = taskId;
+        this.title = title;
+    }
 }
 
 @eventType()
 class TaskAssignedForNestedChildren {
-    constructor(readonly taskId: Guid, readonly name: string, readonly email: string) {}
+    @field(Guid) readonly taskId: Guid;
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(taskId: Guid, name: string, email: string) {
+        this.taskId = taskId;
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @eventType()
 class TaskUnassignedForNestedChildren {
-    constructor(readonly taskId: Guid) {}
+    @field(Guid) readonly taskId: Guid;
+
+    constructor(taskId: Guid) {
+        this.taskId = taskId;
+    }
 }
 
 @fromEvent(TaskAssignedForNestedChildren)
@@ -28,7 +47,7 @@ class ProjectTaskWithNestedAssignee {
     title = '';
 
     @nested
-    assignee: TaskAssigneeNestedChild | null = null;
+    @field(TaskAssigneeNestedChild) assignee: TaskAssigneeNestedChild | null = null;
 }
 
 class ProjectWithNestedChildren {
@@ -36,6 +55,6 @@ class ProjectWithNestedChildren {
     name = '';
 
     @childrenFrom(TaskAddedForNestedChildren, 'taskId')
-    tasks: ProjectTaskWithNestedAssignee[] = [];
+    @field(Array, { genericArguments: [ProjectTaskWithNestedAssignee] }) tasks: ProjectTaskWithNestedAssignee[] = [];
 }
 ```

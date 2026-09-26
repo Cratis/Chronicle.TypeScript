@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReducersAsyncSignaturesOrderPlaced {
-    constructor(readonly orderId: string) {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string) {
+        this.orderId = orderId;
+    }
 }
 
 class ReducersAsyncSignaturesOrderSummary {

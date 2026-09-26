@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, fromEvent, Guid } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbChildrenChildFromEventConfigurationAdded {
@@ -15,17 +16,17 @@ export class MbChildrenChildFromEventConfigurationRenamed {
     name = '';
 }
 
+@fromEvent(MbChildrenChildFromEventConfigurationRenamed, { parentKey: 'dashboardId' })
+export class MbChildrenChildFromEventConfiguration {
+    id: Guid = Guid.empty;
+    name = '';
+}
+
 export class MbChildrenChildFromEventDashboard {
     id: Guid = Guid.empty;
     name = '';
 
     @childrenFrom(MbChildrenChildFromEventConfigurationAdded, 'configurationId', undefined, 'dashboardId')
-    configurations: MbChildrenChildFromEventConfiguration[] = [];
-}
-
-@fromEvent(MbChildrenChildFromEventConfigurationRenamed, { parentKey: 'dashboardId' })
-export class MbChildrenChildFromEventConfiguration {
-    id: Guid = Guid.empty;
-    name = '';
+    @field(Array, { genericArguments: [MbChildrenChildFromEventConfiguration] }) configurations: MbChildrenChildFromEventConfiguration[] = [];
 }
 ```

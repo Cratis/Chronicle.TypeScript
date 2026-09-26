@@ -1,5 +1,6 @@
 ```typescript title="Business defaults"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 enum InitialValuesOrderStatus {
     Draft = 'Draft',
@@ -8,7 +9,13 @@ enum InitialValuesOrderStatus {
 
 @eventType()
 export class InitialValuesOrderSubmitted {
-    constructor(readonly customerName: string, readonly totalAmount: number) {}
+    @field(String) readonly customerName: string;
+    @field(Number) readonly totalAmount: number;
+
+    constructor(customerName: string, totalAmount: number) {
+        this.customerName = customerName;
+        this.totalAmount = totalAmount;
+    }
 }
 
 export class InitialValuesOrderSummary {

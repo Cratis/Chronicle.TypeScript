@@ -1,5 +1,6 @@
 ```typescript
 import { childrenFrom, eventType, Guid, join, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 // Events
 @eventType()
@@ -37,6 +38,22 @@ export class MbJoinsFullProductPriceChanged {
 }
 
 // Read Models
+// Keyed by product id, so the joins below resolve implicitly through the child's own key.
+export class MbJoinsFullLineItemDetails {
+    id: Guid = Guid.empty;
+
+    @setFrom(MbJoinsFullLineItemAdded, 'quantity')
+    quantity = 0;
+
+    // Join product information
+    @join(MbJoinsFullProductCreated, undefined, 'name')
+    productName = '';
+
+    @join(MbJoinsFullProductCreated, undefined, 'price')
+    @join(MbJoinsFullProductPriceChanged, undefined, 'newPrice')
+    price = 0;
+}
+
 export class MbJoinsFullOrderDetails {
     id: Guid = Guid.empty;
 
@@ -57,22 +74,6 @@ export class MbJoinsFullOrderDetails {
     customerPhone = '';
 
     @childrenFrom(MbJoinsFullLineItemAdded, 'productId')
-    items: MbJoinsFullLineItemDetails[] = [];
-}
-
-// Keyed by product id, so the joins below resolve implicitly through the child's own key.
-export class MbJoinsFullLineItemDetails {
-    id: Guid = Guid.empty;
-
-    @setFrom(MbJoinsFullLineItemAdded, 'quantity')
-    quantity = 0;
-
-    // Join product information
-    @join(MbJoinsFullProductCreated, undefined, 'name')
-    productName = '';
-
-    @join(MbJoinsFullProductCreated, undefined, 'price')
-    @join(MbJoinsFullProductPriceChanged, undefined, 'newPrice')
-    price = 0;
+    @field(Array, { genericArguments: [MbJoinsFullLineItemDetails] }) items: MbJoinsFullLineItemDetails[] = [];
 }
 ```

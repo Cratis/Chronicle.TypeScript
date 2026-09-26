@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, reactor, replay } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReplayAwareOrderPlaced {
-    constructor(readonly orderId: string = '') {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string = '') {
+        this.orderId = orderId;
+    }
 }
 
 @reactor()

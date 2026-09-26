@@ -1,15 +1,23 @@
 ```typescript
-import { Constructor } from '@cratis/fundamentals';
+import { field, Constructor } from '@cratis/fundamentals';
 import { eventType, IClientArtifactsProvider, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 
 @eventType()
 class StructuralDepsBookBorrowed {
-    constructor(readonly bookId: string) {}
+    @field(String) readonly bookId: string;
+
+    constructor(bookId: string) {
+        this.bookId = bookId;
+    }
 }
 
 @eventType()
 class StructuralDepsBookReturned {
-    constructor(readonly bookId: string) {}
+    @field(String) readonly bookId: string;
+
+    constructor(bookId: string) {
+        this.bookId = bookId;
+    }
 }
 
 class StructuralDepsBorrowedBook {

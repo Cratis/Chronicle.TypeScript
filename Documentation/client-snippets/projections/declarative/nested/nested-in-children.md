@@ -1,24 +1,47 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ProjectCreatedWithNestedChildren {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class TaskAddedWithNestedChild {
-    constructor(readonly taskId: string, readonly title: string) {}
+    @field(String) readonly taskId: string;
+    @field(String) readonly title: string;
+
+    constructor(taskId: string, title: string) {
+        this.taskId = taskId;
+        this.title = title;
+    }
 }
 
 @eventType()
 class TaskAssignedWithNestedChild {
-    constructor(readonly taskId: string, readonly name: string, readonly email: string) {}
+    @field(String) readonly taskId: string;
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(taskId: string, name: string, email: string) {
+        this.taskId = taskId;
+        this.name = name;
+        this.email = email;
+    }
 }
 
 @eventType()
 class TaskUnassignedWithNestedChild {
-    constructor(readonly taskId: string) {}
+    @field(String) readonly taskId: string;
+
+    constructor(taskId: string) {
+        this.taskId = taskId;
+    }
 }
 
 class AssigneeForNestedChild {

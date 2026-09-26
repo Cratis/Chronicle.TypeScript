@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, filterEventsByTag, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReactorsFilteringMultiTagOrderPlaced {
-    constructor(readonly totalAmount: number) {}
+    @field(Number) readonly totalAmount: number;
+
+    constructor(totalAmount: number) {
+        this.totalAmount = totalAmount;
+    }
 }
 
 @reactor()

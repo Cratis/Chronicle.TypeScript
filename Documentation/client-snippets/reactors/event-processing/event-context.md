@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ReactorAccountClosed {
-    constructor(readonly accountId: string) {}
+    @field(String) readonly accountId: string;
+
+    constructor(accountId: string) {
+        this.accountId = accountId;
+    }
 }
 
 @reactor()

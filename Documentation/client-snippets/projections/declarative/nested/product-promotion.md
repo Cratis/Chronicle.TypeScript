@@ -1,14 +1,29 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ProductListedWithNestedPromotion {
-    constructor(readonly name: string, readonly basePrice: number) {}
+    @field(String) readonly name: string;
+    @field(Number) readonly basePrice: number;
+
+    constructor(name: string, basePrice: number) {
+        this.name = name;
+        this.basePrice = basePrice;
+    }
 }
 
 @eventType()
 class PromotionAppliedWithNestedPromotion {
-    constructor(readonly label: string, readonly discountPercent: number, readonly validUntil: Date) {}
+    @field(String) readonly label: string;
+    @field(Number) readonly discountPercent: number;
+    @field(Date) readonly validUntil: Date;
+
+    constructor(label: string, discountPercent: number, validUntil: Date) {
+        this.label = label;
+        this.discountPercent = discountPercent;
+        this.validUntil = validUntil;
+    }
 }
 
 @eventType()

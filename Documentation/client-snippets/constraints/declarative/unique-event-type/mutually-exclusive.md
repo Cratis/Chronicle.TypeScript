@@ -1,9 +1,14 @@
 ```typescript
 import { constraint, eventType, IConstraint, IConstraintBuilder, Guid } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConstraintsPersonAliasedTo {
-    constructor(readonly target: Guid) {}
+    @field(Guid) readonly target: Guid;
+
+    constructor(target: Guid) {
+        this.target = target;
+    }
 }
 
 @eventType()

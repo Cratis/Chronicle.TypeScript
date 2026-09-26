@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventSequenceReactorShipmentDispatched {
-    constructor(readonly trackingNumber: string) {}
+    @field(String) readonly trackingNumber: string;
+
+    constructor(trackingNumber: string) {
+        this.trackingNumber = trackingNumber;
+    }
 }
 
 @reactor('', 'fulfillment-events')

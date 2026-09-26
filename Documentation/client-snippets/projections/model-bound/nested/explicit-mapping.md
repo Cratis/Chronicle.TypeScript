@@ -1,14 +1,25 @@
 ```typescript
 import { clearWith, eventType, fromEvent, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class CommandSetForNestedExplicit {
-    constructor(readonly commandName: string, readonly jsonSchema: string) {}
+    @field(String) readonly commandName: string;
+    @field(String) readonly jsonSchema: string;
+
+    constructor(commandName: string, jsonSchema: string) {
+        this.commandName = commandName;
+        this.jsonSchema = jsonSchema;
+    }
 }
 
 @eventType()
 class CommandSchemaUpdatedForNestedExplicit {
-    constructor(readonly updatedSchema: string) {}
+    @field(String) readonly updatedSchema: string;
+
+    constructor(updatedSchema: string) {
+        this.updatedSchema = updatedSchema;
+    }
 }
 
 @eventType()

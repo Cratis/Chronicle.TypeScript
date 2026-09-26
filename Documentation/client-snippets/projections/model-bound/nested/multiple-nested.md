@@ -1,9 +1,16 @@
 ```typescript
 import { clearWith, eventType, fromEvent, nested } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class CommandSetForNestedMultiple {
-    constructor(readonly name: string, readonly schema: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+
+    constructor(name: string, schema: string) {
+        this.name = name;
+        this.schema = schema;
+    }
 }
 
 @eventType()
@@ -12,7 +19,13 @@ class CommandClearedForNestedMultiple {
 
 @eventType()
 class ValidationConfiguredForNestedMultiple {
-    constructor(readonly rules: string, readonly isStrict: boolean) {}
+    @field(String) readonly rules: string;
+    @field(Boolean) readonly isStrict: boolean;
+
+    constructor(rules: string, isStrict: boolean) {
+        this.rules = rules;
+        this.isStrict = isStrict;
+    }
 }
 
 @eventType()

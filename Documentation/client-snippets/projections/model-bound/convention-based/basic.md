@@ -4,11 +4,15 @@ import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class ConventionUserRegistered {
-    constructor(
-        readonly name: string,
-        readonly email: string,
-        readonly registeredAt: Date
-    ) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+    @field(Date) readonly registeredAt: Date;
+
+    constructor(name: string, email: string, registeredAt: Date) {
+        this.name = name;
+        this.email = email;
+        this.registeredAt = registeredAt;
+    }
 }
 
 @fromEvent(ConventionUserRegistered)

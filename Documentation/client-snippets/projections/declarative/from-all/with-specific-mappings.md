@@ -1,14 +1,23 @@
 ```typescript title="Combine FromAll with event-specific mappings"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class OrderCreatedDeclarativeAll {
-    constructor(readonly orderNumber: string) {}
+    @field(String) readonly orderNumber: string;
+
+    constructor(orderNumber: string) {
+        this.orderNumber = orderNumber;
+    }
 }
 
 @eventType()
 export class OrderShippedDeclarativeAll {
-    constructor(readonly trackingNumber: string) {}
+    @field(String) readonly trackingNumber: string;
+
+    constructor(trackingNumber: string) {
+        this.trackingNumber = trackingNumber;
+    }
 }
 
 export class OrderDeclarativeAll {

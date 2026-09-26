@@ -1,9 +1,14 @@
 ```typescript title="Map context fields with FromAll"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AccountTouchedDeclarativeAll {
-    constructor(readonly reason: string) {}
+    @field(String) readonly reason: string;
+
+    constructor(reason: string) {
+        this.reason = reason;
+    }
 }
 
 export class AccountAuditDeclarativeAll {

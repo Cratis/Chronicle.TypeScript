@@ -1,9 +1,14 @@
 ```typescript
 import { constraint, eventType, IConstraint, IConstraintBuilder } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ConstraintsUniqueEventTypeScopedLoanCheckedOut {
-    constructor(readonly title: string) {}
+    @field(String) readonly title: string;
+
+    constructor(title: string) {
+        this.title = title;
+    }
 }
 
 @constraint()

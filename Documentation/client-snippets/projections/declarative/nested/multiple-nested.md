@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SliceCreatedWithMultipleNested {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class CommandSetWithMultipleNested {
-    constructor(readonly name: string, readonly schema: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+
+    constructor(name: string, schema: string) {
+        this.name = name;
+        this.schema = schema;
+    }
 }
 
 @eventType()
@@ -17,7 +28,11 @@ class CommandClearedWithMultipleNested {
 
 @eventType()
 class ValidationConfiguredWithMultipleNested {
-    constructor(readonly ruleName: string) {}
+    @field(String) readonly ruleName: string;
+
+    constructor(ruleName: string) {
+        this.ruleName = ruleName;
+    }
 }
 
 @eventType()

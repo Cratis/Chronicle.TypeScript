@@ -1,14 +1,25 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SideEffectsBookReserved {
-    constructor(readonly isbn: string = '') {}
+    @field(String) readonly isbn: string;
+
+    constructor(isbn: string = '') {
+        this.isbn = isbn;
+    }
 }
 
 @eventType()
 class SideEffectsStockDecreased {
-    constructor(readonly isbn: string = '', readonly quantity: number = 0) {}
+    @field(String) readonly isbn: string;
+    @field(Number) readonly quantity: number;
+
+    constructor(isbn: string = '', quantity: number = 0) {
+        this.isbn = isbn;
+        this.quantity = quantity;
+    }
 }
 
 @reactor()

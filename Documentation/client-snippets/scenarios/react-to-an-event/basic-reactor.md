@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, onceOnly, reactor } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class ScenariosReactBookReturned {
-    constructor(readonly isbn: string) {}
+    @field(String) readonly isbn: string;
+
+    constructor(isbn: string) {
+        this.isbn = isbn;
+    }
 }
 
 interface ScenariosReactNotificationService {

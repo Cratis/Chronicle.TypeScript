@@ -4,6 +4,8 @@ import { ConceptAs } from '@cratis/fundamentals';
 
 @pii('Full legal name — required for contract identification')
 class PiiAttrLegalName extends ConceptAs<string> {
+    static readonly valueType = String;
+
     constructor(value: string) {
         super(value);
     }

@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, Guid, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingReuseItemAdded {
-    constructor(readonly itemId: Guid, readonly name: string) {}
+    @field(Guid) readonly itemId: Guid;
+    @field(String) readonly name: string;
+
+    constructor(itemId: Guid, name: string) {
+        this.itemId = itemId;
+        this.name = name;
+    }
 }
 
 class EventProcessingItem {

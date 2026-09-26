@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class TaggingDynamicTagsEventOccurred {
-    constructor(readonly data: string) {}
+    @field(String) readonly data: string;
+
+    constructor(data: string) {
+        this.data = data;
+    }
 }
 
 class TaggingDynamicTagsService {
