@@ -29,7 +29,7 @@ export class SliceWithNestedCommandBasic {
     id: Guid = Guid.empty;
     name = '';
 
-    @nested
+    @field(CommandItemNestedBasic) @nested
     command: CommandItemNestedBasic | null = null;
 }
 ```

@@ -21,11 +21,11 @@ export class MbClearingShift {
     // Optional, so "nobody is assigned" is a state the member can actually hold.
     @setFrom(MbClearingShiftPlanned, 'assignee')
     @clearWith(MbClearingShiftReleased)
-    assignee: string | undefined = undefined;
+    @field(String) assignee: string | undefined = undefined;
 
     // Optional for the same reason: 0 hours is a number of hours, not the absence of one.
     @setFrom(MbClearingShiftPlanned, 'hours')
     @clearWith(MbClearingShiftReleased)
-    hours: number | undefined = undefined;
+    @field(Number) hours: number | undefined = undefined;
 }
 ```

@@ -53,7 +53,7 @@ export class ConventionCustomer {
 @fromEvent(ConventionOrderCreated)
 export class ConventionOrder {
     customerEmail = '';
-    items: ConventionLineItem[] = [];
-    tags: string[] = [];
+    @field(Array, { genericArguments: [ConventionLineItem] }) items: ConventionLineItem[] = [];
+    @field(Array, { genericArguments: [String] }) tags: string[] = [];
 }
 ```

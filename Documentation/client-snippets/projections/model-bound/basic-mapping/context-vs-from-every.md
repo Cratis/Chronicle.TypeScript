@@ -27,7 +27,7 @@ export class OrderLifecycle {
     placedAt = new Date();
 
     @setFromContext(OrderShippedForLifecycle, 'occurred')
-    shippedAt?: Date;
+    @field(Date) shippedAt?: Date;
 
     @fromEvery(undefined, 'occurred')
     lastModified = new Date();

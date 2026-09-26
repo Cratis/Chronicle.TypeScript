@@ -88,7 +88,7 @@ export class SliceNestedComplete {
     id: Guid = Guid.empty;
     name = '';
 
-    @nested
+    @field(CommandItemNestedComplete) @nested
     command: CommandItemNestedComplete | null = null;
 }
 ```

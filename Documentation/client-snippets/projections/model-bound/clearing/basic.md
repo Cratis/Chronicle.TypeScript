@@ -1,5 +1,6 @@
 ```typescript title="Clear a scalar member"
 import { clearWith, eventType, fromEvent, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbClearingProjectNoted {
@@ -13,6 +14,6 @@ export class MbClearingProjectNoteCleared {}
 export class MbClearingProjectNotes {
     @setFrom(MbClearingProjectNoted, 'note')
     @clearWith(MbClearingProjectNoteCleared)
-    note: string | undefined = undefined;
+    @field(String) note: string | undefined = undefined;
 }
 ```

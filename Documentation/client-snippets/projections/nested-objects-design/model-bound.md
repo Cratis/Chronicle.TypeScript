@@ -38,7 +38,7 @@ export class NodSlice {
     id: Guid = Guid.empty;
     name = '';
 
-    @nested
+    @field(NodCommandItem) @nested
     command: NodCommandItem | null = null;
 }
 ```

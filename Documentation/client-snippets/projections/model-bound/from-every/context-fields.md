@@ -17,7 +17,7 @@ export class AuditableInventoryStatusFromEvery {
     lastModified = new Date();
 
     @fromEvery(undefined, 'sequenceNumber')
-    lastEventSequence = 0n;
+    @field(Number) lastEventSequence = 0n;
 
     @fromEvery(undefined, 'correlationId')
     lastCorrelationId = '';

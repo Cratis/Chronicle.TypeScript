@@ -20,6 +20,6 @@ export class MbClearingInvoice {
     id: Guid = Guid.empty;
 
     @setValue(MbClearingInvoiceVoided, null)
-    reference: string | null = null;
+    @field(String) reference: string | null = null;
 }
 ```
