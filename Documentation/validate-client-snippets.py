@@ -24,8 +24,9 @@ FUNDAMENTALS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]
 SIDE_EFFECT_IMPORT_RE = re.compile(r"^import\s+['\"]([^'\"]+)['\"];?\s*$")
 UNSUPPORTED_SNIPPET_MARKER = "does not support this workflow yet"
 VALIDATION_EXCLUDED_PREFIXES = ("legacy/",)
-# These examples intentionally throw while the class decorators execute.
+# These examples intentionally throw during decoration or schema generation.
 RUNTIME_EXCLUDED_KEYS = {
+    "confidentiality/encrypted/pii-and-encrypted-restriction",
     "compliance/pii-with-concepts/event-source-id-restriction",
     "compliance/client/event-source-id-restriction",
     "compliance/pii/event-source-id-restriction",
@@ -192,7 +193,7 @@ def generate_source(runtime: bool = False) -> str:
     if not files:
         raise ValueError(f"No client snippets found in {SNIPPET_ROOT}")
 
-    named_imports = {"IEventStore", "DecoratorType", "getEventTypeMetadata", "getReadModelMetadata", "JsonSchemaGenerator", "TypeDiscoverer"}
+    named_imports = {"IEventStore", "DecoratorType", "getEventTypeMetadata", "getReadModelMetadata", "getProjectionMetadata", "getReducerMetadata", "JsonSchemaGenerator", "TypeDiscoverer"}
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
@@ -207,7 +208,7 @@ def generate_source(runtime: bool = False) -> str:
             continue
 
         body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
-        if runtime and not re.search(r"^class\s+\w+\b", body, re.MULTILINE):
+        if runtime and not re.search(r"^(?:export\s+)?class\s+\w+\b", body, re.MULTILINE):
             continue
         if runtime:
             # Migration examples can have unrelated generation gaps; schema validation
@@ -221,11 +222,11 @@ def generate_source(runtime: bool = False) -> str:
             functions.append(f"async function {function_name(relative_path)}(store: IEventStore): Promise<void> {{\n{function_body}\n}}")
         else:
             declarations.append(body)
-            classes.extend((relative_path, name) for name in re.findall(r"^class\s+(\w+)\b", body, re.MULTILINE))
+            classes.extend((relative_path, name) for name in re.findall(r"^(?:export\s+)?class\s+(\w+)\b", body, re.MULTILINE))
 
     imports = [
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
-        f"import {{ {', '.join(sorted(named_imports))} }} from '../index';",
+        f"import {{ {', '.join(sorted(named_imports))} }} from '{'../sdk.mjs' if runtime else '../index'}';",
     ]
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
@@ -234,13 +235,21 @@ def generate_source(runtime: bool = False) -> str:
 
     schema_checks = [
         "const registeredReadModels = new Set(TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.ReadModel));",
+        "for (const projection of TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Projection)) {",
+        "    const model = getProjectionMetadata(projection)?.readModelType;",
+        "    if (model) registeredReadModels.add(model);",
+        "}",
+        "for (const reducer of TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer)) {",
+        "    const model = getReducerMetadata(reducer)?.readModel;",
+        "    if (model) registeredReadModels.add(model);",
+        "}",
         "const schemaFailures: string[] = [];",
         "let checkedSchemas = 0;",
         "for (const [path, type] of [",
         *[f"    [{json.dumps(path)}, {name}]," for path, name in classes],
         "] as const) {",
         "    try {",
-        "        const event = getEventTypeMetadata(type);"
+        "        const event = getEventTypeMetadata(type);",
         "        const readModel = getReadModelMetadata(type);",
         "        if (event) { void event.schema; checkedSchemas++; }",
         "        else if (readModel) { void readModel.schema; checkedSchemas++; }",
@@ -261,11 +270,11 @@ def generate_source(runtime: bool = False) -> str:
     ])
 
 
-def generate_tsconfig(standard: bool) -> str:
+def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
     config = {
         "extends": "../tsconfig.json",
         "compilerOptions": {
-            "noEmit": True,
+            "noEmit": not runtime,
             "noUnusedLocals": False,
             "noUnusedParameters": False,
             "experimentalDecorators": not standard,
@@ -273,6 +282,9 @@ def generate_tsconfig(standard: bool) -> str:
         },
         "include": ["snippets.ts"],
     }
+    if runtime:
+        # Already type-checked in both modes above; emit against the bundled SDK.
+        config["compilerOptions"].update({"noCheck": True, "rootDir": ".", "outDir": "runtime"})
     return json.dumps(config, indent=4) + "\n"
 
 
@@ -288,14 +300,16 @@ def main() -> int:
             subprocess.run(["yarn", "exec", "tsc", "-p", ".docs-snippets/tsconfig.json"], cwd=SOURCE_ROOT, check=True)
             print(f"{mode.capitalize()} decorators: {len(files)} TypeScript snippets compiled.", flush=True)
 
-        # Bundle the same generated source with standard decorators, then resolve schemas
-        # without a running Kernel. Type checking alone cannot detect missing runtime types.
+        # Bundle the SDK separately; emit snippets with tsc so bundler renaming
+        # cannot change constructor parameter names introspected by the SDK.
         GENERATED_SOURCE.write_text(generate_source(runtime=True), encoding="utf-8")
         subprocess.run([
-            "yarn", "exec", "esbuild", ".docs-snippets/snippets.ts", "--bundle", "--packages=external",
-            "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/snippets.mjs",
+            "yarn", "exec", "esbuild", "index.ts", "--bundle", "--packages=external",
+            "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/sdk.mjs",
         ], cwd=SOURCE_ROOT, check=True)
-        subprocess.run(["node", ".docs-snippets/snippets.mjs"], cwd=SOURCE_ROOT, check=True)
+        GENERATED_TSCONFIG.write_text(generate_tsconfig(True, runtime=True), encoding="utf-8")
+        subprocess.run(["yarn", "exec", "tsc", "-p", ".docs-snippets/tsconfig.json"], cwd=SOURCE_ROOT, check=True)
+        subprocess.run(["node", ".docs-snippets/runtime/snippets.js"], cwd=SOURCE_ROOT, check=True)
     finally:
         shutil.rmtree(GENERATED_DIR, ignore_errors=True)
 
