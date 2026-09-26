@@ -353,7 +353,8 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
         if (!hasExplicitMapping) {
             for (const metadata of metadataList) {
                 const entry = definition.From.find(candidate => getEventTypeMapKey(candidate.Key) === getEventTypeMapKey(toContractEventType(metadata.eventType)))!;
-                const key = metadata.key ?? '$eventSourceId';
+                // Child property mappings may replace the creating key (for example, a constant-key count).
+                const key = entry.Value.Key;
                 // When an event property is also the identifier, AutoMap can fill it directly.
                 if (key.toLowerCase() !== identifier.toLowerCase() && !(identifier in entry.Value.Properties)) {
                     entry.Value.Properties[identifier] = key === '$eventSourceId'

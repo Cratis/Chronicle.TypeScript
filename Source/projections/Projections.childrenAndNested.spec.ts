@@ -10,7 +10,10 @@ import { ChronicleConnection } from '../connection/index.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { childrenFrom } from './modelBound/childrenFrom.js';
 import { clearWith } from './modelBound/clearWith.js';
+import { count } from './modelBound/count.js';
+import { decrement } from './modelBound/decrement.js';
 import { fromEvent } from './modelBound/fromEvent.js';
+import { increment } from './modelBound/increment.js';
 import { nested } from './modelBound/nested.js';
 import { noAutoMap } from './modelBound/noAutoMap.js';
 import { setFrom } from './modelBound/setFrom.js';
@@ -102,6 +105,26 @@ class ChildWithNoAutoMappedId {
     id = '';
 }
 noAutoMap(ChildWithNoAutoMappedId.prototype, 'id');
+class ChildWithConstantCount {
+    id = '';
+    total = 0;
+}
+count(LineAdded, 'all')(ChildWithConstantCount.prototype, 'total');
+class ChildWithConstantIncrement {
+    id = '';
+    total = 0;
+}
+increment(LineAdded, 'all')(ChildWithConstantIncrement.prototype, 'total');
+class ChildWithConstantDecrement {
+    id = '';
+    total = 0;
+}
+decrement(LineAdded, 'all')(ChildWithConstantDecrement.prototype, 'total');
+class ChildWithPlainCount {
+    id = '';
+    total = 0;
+}
+count(LineAdded)(ChildWithPlainCount.prototype, 'total');
 class ChildWithEmptyKey {
     [''] = '';
 }
@@ -119,6 +142,10 @@ class IdentifiedChildren {
     withoutAutoMap!: ChildWithoutAutoMap[];
     withNoAutoMappedId!: ChildWithNoAutoMappedId[];
     withDifferentEventKeys!: ChildWithId[];
+    withConstantCount!: ChildWithConstantCount[];
+    withConstantIncrement!: ChildWithConstantIncrement[];
+    withConstantDecrement!: ChildWithConstantDecrement[];
+    withPlainCount!: ChildWithPlainCount[];
     withEmptyEventKey!: ChildWithEmptyKey[];
     withoutMatchingEmptyKey!: ChildWithoutMatchingEmptyKey[];
 }
@@ -133,6 +160,11 @@ childrenFrom(LineAdded, ChildWithoutAutoMap)(IdentifiedChildren.prototype, 'with
 childrenFrom(LineAdded, ChildWithNoAutoMappedId)(IdentifiedChildren.prototype, 'withNoAutoMappedId');
 childrenFrom(LineAdded, 'productId')(IdentifiedChildren.prototype, 'withDifferentEventKeys');
 childrenFrom(AlternateLineAdded, 'alternateId')(IdentifiedChildren.prototype, 'withDifferentEventKeys');
+childrenFrom(LineAdded, ChildWithConstantCount)(IdentifiedChildren.prototype, 'withConstantCount');
+childrenFrom(LineAdded, 'productId')(IdentifiedChildren.prototype, 'withConstantIncrement');
+field(Array, { enumerable: true, genericArguments: [ChildWithConstantIncrement] })(IdentifiedChildren.prototype, 'withConstantIncrement');
+childrenFrom(LineAdded, ChildWithConstantDecrement)(IdentifiedChildren.prototype, 'withConstantDecrement');
+childrenFrom(LineAdded, ChildWithPlainCount)(IdentifiedChildren.prototype, 'withPlainCount');
 childrenFrom(LineAdded, '')(IdentifiedChildren.prototype, 'withEmptyEventKey');
 childrenFrom(LineAdded, '')(IdentifiedChildren.prototype, 'withoutMatchingEmptyKey');
 field(Array, { enumerable: true, genericArguments: [ChildWithMatchingEventKey] })(IdentifiedChildren.prototype, 'byInferredEventKey');
@@ -377,6 +409,35 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             });
             expect(child.From.find(candidate => candidate.Key.Id === 'AlternateLineAdded')?.Value).toEqual({
                 Key: 'alternateId', ParentKey: '$eventSourceId', Properties: { id: 'alternateId' }
+            });
+        });
+
+        it('should map identifiers from the finalized constant key for child count, increment and decrement', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const children = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children;
+            for (const [name, operation] of [
+                ['withConstantCount', '$count'],
+                ['withConstantIncrement', '$increment'],
+                ['withConstantDecrement', '$decrement']
+            ]) {
+                const child = children[name];
+                expect(child.IdentifiedBy).toBe('id');
+                expect(child.From[0].Value).toEqual({
+                    Key: '$value(all)', ParentKey: '$eventSourceId', Properties: { total: operation, id: '$value(all)' }
+                });
+            }
+        });
+
+        it('should keep the event source identifier mapping for a child count without a constant key', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.withPlainCount;
+            expect(child.IdentifiedBy).toBe('id');
+            expect(child.From[0].Value).toEqual({
+                Key: '$eventSourceId', ParentKey: '$eventSourceId', Properties: { total: '$count', id: '$eventContext(EventSourceId)' }
             });
         });
 
