@@ -271,7 +271,7 @@ import { Loan } from './Loan.js';
 TypeDiscoverer.default.register(DecoratorType.ReadModel, Loan);
 ```
 
-The instance initializer remains a fallback for models constructed later, but it cannot retroactively register a projection with an existing event store.
+The instance initializer remains a fallback for models constructed later, but it cannot retroactively register a projection with an existing event store. At store creation, the client emits one OpenTelemetry diagnostic warning for standard-decorated property mappings it cannot associate with a registered class. The warning lists the mapped properties and their event types and suggests `@fromEvent(...)`, discovery patterns, or explicit registration. [Enable connection diagnostics](./connecting.md#connection-diagnostics) to see SDK warnings; they are silent unless you configure a diagnostic logger.
 
 ## Connecting to Chronicle
 

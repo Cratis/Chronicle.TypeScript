@@ -21,6 +21,7 @@ import { IEventStore } from './IEventStore.js';
 import { ChronicleMetrics } from './Metrics.js';
 import { ChronicleTracer } from './Tracing.js';
 import { TypeDiscoverer } from './types/index.js';
+import { takeUnregisteredModelBoundMappings } from './types/modelBoundPropertyMetadata.js';
 
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
@@ -522,6 +523,15 @@ export class ChronicleClient implements IChronicleClient {
 
         if (this._discoveryOperation) {
             await this._discoveryOperation;
+        }
+
+        const unregisteredMappings = takeUnregisteredModelBoundMappings(this.options.clientArtifactsProvider.readModels);
+        if (unregisteredMappings.length > 0) {
+            this._logger.warn(
+                `Standard-decorated model-bound properties were not registered: ${unregisteredMappings.join(', ')}. ` +
+                'Add a class-level @fromEvent(...), enable discoveryPatterns, or register the class explicitly before getEventStore(...).',
+                { eventStore: store.name.value, namespace: store.namespace.value }
+            );
         }
 
         await store.registerArtifacts();
