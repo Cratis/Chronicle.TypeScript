@@ -80,7 +80,7 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         { name: 'children', define: builder => { builder.from(Changed).children(model => model.labels, child => child.from(Removed)); }, path: 'Children.labels (.children)' },
         { name: 'nested', define: builder => { builder.from(Changed).nested(model => model.details, child => child.clearWith(Removed)); }, path: 'Nested.details (.nested)' },
         { name: 'removedWithJoin', define: builder => { builder.from(Changed).removedWithJoin(Removed); }, path: 'RemovedWithJoin[capability-removed:1] (.removedWithJoin)' },
-        { name: 'removal key', define: builder => { builder.from(Changed).removedWith(Changed, removal => removal.usingKey(event => event.name)); }, path: 'RemovedWith[capability-changed:1].Key (.removedWith)' },
+        { name: 'removal key', define: builder => { builder.from(Removed).removedWith(Changed, removal => removal.usingKey(event => event.name)); }, path: 'RemovedWith[capability-changed:1].Key (.removedWith)' },
         { name: 'fromEvery', define: builder => { builder.from(Changed).fromEvery(all => all.set(model => model.name).toEventSourceId()); }, path: 'All (.fromEvery)' },
         { name: 'empty fromEvery', define: builder => { builder.from(Changed).fromEvery(all => all.excludeChildProjections()); }, path: 'All (.fromEvery)' },
         { name: 'passive', define: builder => { builder.from(Changed).passive(); }, path: 'IsActive (.passive)' },
@@ -103,12 +103,92 @@ describe('when rejecting unsupported operations before any event is seeded', () 
             'multiple generations of the same event-type id');
     });
 
+    it('should reject dotted event-content source paths before replay', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+            from.set(model => model.state).to(event => event.name)));
+        definition.From[0].Value.Properties.state = 'inner.value';
+        compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.inner = {
+            type: 'object', properties: { value: { type: 'string' } }
+        };
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('From[capability-changed:1].Properties.state')
+            .and.includes('nested event property paths require a kernel-backed test');
+    });
+
+    for (const expression of ['true', 'True', 'false', 'False']) {
+        it(`should reject reserved literal ${expression} as an event property mapping`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).to(event => event.name)));
+            definition.From[0].Value.Properties.state = expression;
+            compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties![expression] = { type: 'string' };
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes(`expression '${expression}'`).and.includes('boolean literal before event content');
+        });
+    }
+
     it('should reject a literal legacy $context. wire expression as unknown with its declaration', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toEventContextProperty('eventType')));
         definition.From[0].Value.Properties.state = '$context.eventType';
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
             .with.property('message').that.includes('(.from().setFromContext)')
                 .and.includes("expression '$context.eventType'").and.includes('$eventContext(...)');
+    });
+
+    for (const property of ['causedBy', 'causedBy.onBehalfOf', 'causation', 'tags', 'observationState', 'eventType']) {
+        it(`should reject unproven ${property} context mappings with provenance`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+                from.set(model => model.state).toEventContextProperty(property)));
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('From[capability-changed:1].Properties.state (.from().setFromContext)')
+                .and.includes('kernel-backed test');
+        });
+    }
+
+    it('should reject an event subscribed through both From and RemovedWith', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed).removedWith(Changed));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('From[capability-changed:1]')
+                .and.includes('both From and RemovedWith require a kernel-backed test');
+    });
+
+    for (const expression of ['$add(quantity)', '$subtract(quantity)', '$count', '$increment', '$decrement']) {
+        it(`should reject all arithmetic ${expression} before replay`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.total).toValue(0)));
+            definition.From[0].Value.Properties.total = expression;
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        });
+    }
+
+    it('should reject explicit mappings into the sink-managed id', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.id).toEventSourceId()));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('identifier or case-insensitively colliding target mappings require a kernel-backed test');
+    });
+
+    it('should reject AutoMap into the sink-managed id', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+        compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.id = { type: 'string' };
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('AutoMap.id').and.includes('identifier or case-insensitively colliding target mappings');
+    });
+
+    for (const target of [{ type: 'boolean' }, { type: 'integer', format: 'int32' }, { type: 'string', format: 'date-time' }]) {
+        it(`should reject $eventSourceId mapped into ${target.type}/${target.format ?? 'unformatted'}`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.state).toEventSourceId()));
+            const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { state: typeof target } };
+            schema.properties.state = target;
+            compiled.readModels[0].Schema = JSON.stringify(schema);
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                .with.property('message').that.includes('$eventSourceId requires a string or GUID target');
+        });
+    }
+
+    it('should reject raw Occurred until the kernel conversion is consistent', () => {
+        const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from =>
+            from.set(model => model.state).toEventContextProperty('occurred')));
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('(.from().setFromContext)')
+                .and.includes('raw Occurred is converted inconsistently by the kernel');
     });
 
     it('should reject a client-emitted derived context function at the phase-one boundary', () => {

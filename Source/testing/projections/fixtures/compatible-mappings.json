@@ -1,0 +1,238 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written against the generated 19.6.1 contract; int32/uint32 and text to unformatted TypeScript Number fields, and decimal text to int32 rejection.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-compatible",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "Conversions",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "text": "text",
+            "guid": "guidSource",
+            "guidText": "guidSource",
+            "doubleFromInt": "intSource",
+            "doubleFromUint": "uintSource",
+            "intFromText": "numericText",
+            "uintFromText": "numericText",
+            "doubleFromText": "numericText"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 0,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "guid": {
+          "type": "string",
+          "format": "guid"
+        },
+        "guidText": {
+          "type": "string"
+        },
+        "doubleFromInt": {
+          "type": "number"
+        },
+        "doubleFromUint": {
+          "type": "number"
+        },
+        "intFromText": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "uintFromText": {
+          "type": "integer",
+          "format": "uint32"
+        },
+        "doubleFromText": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "Conversions",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "guidSource": {
+            "type": "string",
+            "format": "guid"
+          },
+          "intSource": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uintSource": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "numericText": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "Conversions",
+          "Generation": 1
+        },
+        "eventSourceId": "conversion-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "text": "hello",
+        "guidSource": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "intSource": -37,
+        "uintSource": 42,
+        "numericText": "25"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Conversions",
+          "Generation": 1
+        },
+        "eventSourceId": "conversion-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "text": "hello",
+        "guidSource": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "intSource": -37,
+        "uintSource": 42,
+        "numericText": "1.0"
+      },
+      "expectedError": {
+        "type": "System.FormatException",
+        "message": "The input string '1.0' was not in a correct format."
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "__initialized": true,
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25,
+          "__subject": "conversion-a"
+        }
+      },
+      "publicRead": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "__initialized": true,
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25,
+          "__subject": "conversion-a"
+        }
+      },
+      "publicRead": {
+        "conversion-a": {
+          "id": "conversion-a",
+          "text": "hello",
+          "guid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "guidText": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "doubleFromInt": -37,
+          "doubleFromUint": 42,
+          "intFromText": 25,
+          "uintFromText": 25,
+          "doubleFromText": 25
+        }
+      },
+      "error": {
+        "type": "System.FormatException",
+        "message": "The input string '1.0' was not in a correct format."
+      }
+    }
+  ]
+}

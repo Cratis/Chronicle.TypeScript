@@ -1,0 +1,358 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Probe scalar content, literal and event-source mappings; clear populated nullable and nonnullable properties, then read.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-scalar-matrix-and-clearing",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "ScalarsSet",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "number": "rawNumber",
+            "uint": "rawUint",
+            "boolean": "rawBool",
+            "int": "rawInt",
+            "literalNumber": "$value(3.5)",
+            "literalInt": "$value(-7)",
+            "literalUint": "$value(42)",
+            "literalBool": "$value(true)",
+            "literalString": "$value(hello)",
+            "literalNullable": "$value(world)",
+            "sourceString": "$eventSourceId",
+            "sourceGuid": "$eventSourceId",
+            "clearNumber": "rawNumber",
+            "clearBool": "rawBool",
+            "clearGuid": "rawGuid",
+            "clearString": "rawString",
+            "clearInt": "rawInt",
+            "clearUint": "rawUint",
+            "clearNullable": "rawNullable"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "ScalarsCleared",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "clearNumber": "$null",
+            "clearBool": "$null",
+            "clearGuid": "$null",
+            "clearString": "$null",
+            "clearInt": "$null",
+            "clearUint": "$null",
+            "clearNullable": "$null"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "number": {
+          "type": "number"
+        },
+        "uint": {
+          "type": "integer",
+          "format": "uint32"
+        },
+        "boolean": {
+          "type": "boolean"
+        },
+        "int": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "literalNumber": {
+          "type": "number"
+        },
+        "literalInt": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "literalUint": {
+          "type": "integer",
+          "format": "uint32"
+        },
+        "literalBool": {
+          "type": "boolean"
+        },
+        "literalString": {
+          "type": "string"
+        },
+        "literalNullable": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceString": {
+          "type": "string"
+        },
+        "sourceGuid": {
+          "type": "string",
+          "format": "guid"
+        },
+        "clearNumber": {
+          "type": "number"
+        },
+        "clearBool": {
+          "type": "boolean"
+        },
+        "clearGuid": {
+          "type": "string",
+          "format": "guid"
+        },
+        "clearString": {
+          "type": "string"
+        },
+        "clearInt": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "clearUint": {
+          "type": "integer",
+          "format": "uint32"
+        },
+        "clearNullable": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "ScalarsSet",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rawNumber": {
+            "type": "number"
+          },
+          "rawUint": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "rawBool": {
+            "type": "boolean"
+          },
+          "rawInt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rawGuid": {
+            "type": "string",
+            "format": "guid"
+          },
+          "rawString": {
+            "type": "string"
+          },
+          "rawNullable": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ScalarsCleared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "ScalarsSet",
+          "Generation": 1
+        },
+        "eventSourceId": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "rawNumber": 2.5,
+        "rawUint": 4294967295,
+        "rawBool": true,
+        "rawInt": -2147483648,
+        "rawGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "rawString": "previous",
+        "rawNullable": "previous"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ScalarsCleared",
+          "Generation": 1
+        },
+        "eventSourceId": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "abcdefab-abcd-abcd-abcd-abcdefabcdef": {
+          "id": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "__initialized": true,
+          "number": 2.5,
+          "uint": 4294967295,
+          "boolean": true,
+          "int": -2147483648,
+          "literalNumber": 3.5,
+          "literalInt": -7,
+          "literalUint": 42,
+          "literalBool": true,
+          "literalString": "hello",
+          "literalNullable": "world",
+          "sourceString": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "sourceGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearNumber": 2.5,
+          "clearBool": true,
+          "clearGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearString": "previous",
+          "clearInt": -2147483648,
+          "clearUint": 4294967295,
+          "clearNullable": "previous",
+          "__subject": "abcdefab-abcd-abcd-abcd-abcdefabcdef"
+        }
+      },
+      "publicRead": {
+        "abcdefab-abcd-abcd-abcd-abcdefabcdef": {
+          "id": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "number": 2.5,
+          "uint": 4294967295,
+          "boolean": true,
+          "int": -2147483648,
+          "literalNumber": 3.5,
+          "literalInt": -7,
+          "literalUint": 42,
+          "literalBool": true,
+          "literalString": "hello",
+          "literalNullable": "world",
+          "sourceString": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "sourceGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearNumber": 2.5,
+          "clearBool": true,
+          "clearGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearString": "previous",
+          "clearInt": -2147483648,
+          "clearUint": 4294967295,
+          "clearNullable": "previous"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "abcdefab-abcd-abcd-abcd-abcdefabcdef": {
+          "id": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "__initialized": true,
+          "number": 2.5,
+          "uint": 4294967295,
+          "boolean": true,
+          "int": -2147483648,
+          "literalNumber": 3.5,
+          "literalInt": -7,
+          "literalUint": 42,
+          "literalBool": true,
+          "literalString": "hello",
+          "literalNullable": "world",
+          "sourceString": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "sourceGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearNumber": null,
+          "clearBool": null,
+          "clearGuid": null,
+          "clearString": null,
+          "clearInt": null,
+          "clearUint": null,
+          "clearNullable": null,
+          "__subject": "abcdefab-abcd-abcd-abcd-abcdefabcdef"
+        }
+      },
+      "publicRead": {
+        "abcdefab-abcd-abcd-abcd-abcdefabcdef": {
+          "id": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "number": 2.5,
+          "uint": 4294967295,
+          "boolean": true,
+          "int": -2147483648,
+          "literalNumber": 3.5,
+          "literalInt": -7,
+          "literalUint": 42,
+          "literalBool": true,
+          "literalString": "hello",
+          "literalNullable": "world",
+          "sourceString": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "sourceGuid": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
+          "clearNumber": 0,
+          "clearBool": false,
+          "clearGuid": "00000000-0000-0000-0000-000000000000",
+          "clearInt": 0,
+          "clearUint": 0
+        }
+      }
+    }
+  ]
+}

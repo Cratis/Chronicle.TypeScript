@@ -4,8 +4,8 @@
 import 'reflect-metadata';
 import { JsonSerializer } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
+import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
-import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFromEventMetadata } from '../projections/modelBound/fromEvent.js';
 import { getRemovedWithClassMetadata } from '../projections/modelBound/removedWith.js';
@@ -14,54 +14,73 @@ import { getClearWithClassMetadata } from '../projections/modelBound/clearWith.j
 import { getVariantOfMetadata } from '../projections/modelBound/variantOf.js';
 import { getEntersOnMetadata } from '../projections/modelBound/entersOn.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
+import { ProjectionDefinitionCompiler } from '../projections/ProjectionDefinitionCompiler.js';
+import { getReadModelId } from '../readModels/readModel.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
-import { ReducerEventDispatcher } from '../reducers/ReducerEventDispatcher.js';
-import { DecoratorType } from '../types/DecoratorType.js';
 import { hasModelBoundProperties, TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { ReadModelScenarioGivenBuilder } from './ReadModelScenarioGivenBuilder.js';
+import type { IReadModelProcessor } from './IReadModelProcessor.js';
+import type { ReadModelState } from './ReadModelState.js';
+import { ReducerReadModelProcessor } from './ReducerReadModelProcessor.js';
+import type { ScenarioEvent } from './ScenarioEvent.js';
+import { ProjectionReadModelProcessor } from './projections/ProjectionReadModelProcessor.js';
+import { UnsupportedProjectionOperation } from './projections/UnsupportedProjectionOperation.js';
 
-type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes' | 'projections'>;
-
-type SeededEvent = { sourceId: string; content: unknown; context: EventContext };
-type ReducedState<T> = { instance: T | null; deleted: boolean };
+type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes' | 'projections'> &
+    Partial<Pick<IClientArtifactsProvider, 'readModels' | 'globalForHandlers'>>;
 
 /**
- * Folds seeded events through a reducer in-process, without a Chronicle kernel.
- * Projections, observer scheduling, storage, migrations, and compliance are not simulated.
+ * Folds seeded events through a reducer or a validated flat projection, without a Chronicle kernel.
+ * Observer scheduling, storage, migrations, and compliance are not simulated.
  * Supply an artifact catalog to isolate a scenario from process-wide decorator discovery.
  */
 export class ReadModelScenario<TReadModel extends object> {
-    private readonly _readModelType: Constructor<TReadModel>;
-    private readonly _reducerType: Constructor;
-    private readonly _dispatcher: ReducerEventDispatcher;
-    private readonly _events: SeededEvent[] = [];
-    private _results: Promise<Map<string, ReducedState<TReadModel>>> | undefined;
+    private readonly _processor: IReadModelProcessor<TReadModel>;
+    private readonly _modelName: string;
+    private readonly _events: ScenarioEvent[] = [];
+    private _results: Promise<Map<string, ReadModelState<TReadModel>>> | undefined;
 
-    /** Selects the reducer associated with the read model type. */
+    /** Selects the reducer (when present) or a single applicable compiled projection. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
-        this._readModelType = readModelType;
-        const registered = artifacts ?? {
-            reducers: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer),
-            eventTypes: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType),
-            projections: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Projection)
-        };
+        this._modelName = readModelType.name;
+        const registered = artifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
         const reducerTypes = registered.reducers.filter(type => getReducerMetadata(type)?.readModel === readModelType);
         if (reducerTypes.length > 1) {
             throw new Error(`Multiple reducers found for read model '${readModelType.name}'.`);
         }
-        if (reducerTypes.length === 0) {
-            const projected = getFromEventMetadata(readModelType).length > 0 || hasModelBoundProperties(readModelType) ||
-                getRemovedWithClassMetadata(readModelType).length > 0 || getRemovedWithJoinClassMetadata(readModelType).length > 0 ||
-                getClearWithClassMetadata(readModelType).length > 0 || getVariantOfMetadata(readModelType) !== undefined ||
-                getEntersOnMetadata(readModelType).length > 0 ||
-                registered.projections.some(type => getProjectionMetadata(type)?.readModelType === readModelType);
-            if (projected) {
-                throw new Error(`Projection-backed read model '${readModelType.name}' is not supported yet; use a kernel-backed test.`);
-            }
-            throw new Error(`No reducer found for read model '${readModelType.name}'. Pass the read model type to @reducer; projections are not supported yet (use a kernel-backed test).`);
+        if (reducerTypes.length) {
+            this._processor = new ReducerReadModelProcessor(readModelType, reducerTypes[0], registered.eventTypes);
+            return;
         }
-        this._reducerType = reducerTypes[0];
-        this._dispatcher = new ReducerEventDispatcher(this._reducerType, registered.eventTypes);
+        const modelBound = getFromEventMetadata(readModelType).length > 0 || hasModelBoundProperties(readModelType) ||
+            getRemovedWithClassMetadata(readModelType).length > 0 || getRemovedWithJoinClassMetadata(readModelType).length > 0 ||
+            getClearWithClassMetadata(readModelType).length > 0 || getVariantOfMetadata(readModelType) !== undefined ||
+            getEntersOnMetadata(readModelType).length > 0;
+        // Definitions without a declared model can be associated by the registration compiler's
+        // unambiguous schema inference; never guess their association from decorators here.
+        const declarative = registered.projections.filter(type => {
+            const metadata = getProjectionMetadata(type);
+            return metadata !== undefined && (metadata.readModelType === readModelType ||
+                (metadata.readModelType === undefined && registered.readModels?.includes(readModelType)));
+        });
+        if (Number(modelBound) + declarative.filter(type => getProjectionMetadata(type)?.readModelType === readModelType).length > 1) {
+            throw new Error(`Multiple projections found for read model '${readModelType.name}'.`);
+        }
+        if (!modelBound && !declarative.length) {
+            throw new Error(`No reducer or projection found for read model '${readModelType.name}'.`);
+        }
+        const catalog: IClientArtifactsProvider = {
+            eventTypes: registered.eventTypes, reducers: registered.reducers, projections: declarative,
+            readModels: [...new Set([...(registered.readModels ?? []), readModelType])],
+            globalForHandlers: artifacts?.globalForHandlers ?? [], reactors: [], seeders: [], constraints: [],
+            webhooks: [], eventTypeMigrations: []
+        };
+        const compiled = new ProjectionDefinitionCompiler(catalog, 'scenario').compile(declarative, modelBound ? [readModelType] : []);
+        const definitions = compiled.definitions.filter(definition => definition.ReadModel === getReadModelId(readModelType));
+        if (definitions.length !== 1) {
+            throw new Error(`Expected one projection for read model '${readModelType.name}', found ${definitions.length}.`);
+        }
+        this._processor = new ProjectionReadModelProcessor(readModelType, compiled, definitions[0]);
     }
 
     /** Fluent entry point for event history. */
@@ -119,33 +138,14 @@ export class ReadModelScenario<TReadModel extends object> {
         this._results = undefined;
     }
 
-    private process(): Promise<Map<string, ReducedState<TReadModel>>> {
+    private process(): Promise<Map<string, ReadModelState<TReadModel>>> {
         if (!this._results) {
             const events = [...this._events];
-            this._results = this.reduce(events);
-        }
-        return this._results;
-    }
-
-    private async reduce(events: readonly SeededEvent[]): Promise<Map<string, ReducedState<TReadModel>>> {
-        const results = new Map<string, ReducedState<TReadModel>>();
-        const reducer = new (this._reducerType as new () => Record<string, Function>)();
-        for (const event of events) {
-            const handler = this._dispatcher.handlerFor(event.context.eventType.id.value);
-            if (!handler) continue;
-            const prior = results.get(event.sourceId);
-            const previous = prior?.deleted ? undefined : prior?.instance;
-            let next: unknown;
-            try {
-                next = await this._dispatcher.invoke(reducer, handler, event.content, previous, event.context);
-            } catch (cause) {
-                throw new Error(`Reducer '${this._reducerType.name}' for read model '${this._readModelType.name}' failed`, { cause });
-            }
-            results.set(event.sourceId, {
-                instance: next === undefined ? null : next as TReadModel | null,
-                deleted: next === undefined
+            this._results = this._processor.process(events).catch(error => {
+                if (!(this._processor instanceof ProjectionReadModelProcessor) || error instanceof UnsupportedProjectionOperation) throw error;
+                throw new Error(`Projection replay for read model '${this._modelName}' failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
             });
         }
-        return results;
+        return this._results;
     }
 }

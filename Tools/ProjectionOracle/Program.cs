@@ -3,8 +3,10 @@
 
 extern alias KernelConcepts;
 
+using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using KernelDefinition = KernelConcepts::Cratis.Chronicle.Concepts.Projections.Definitions.ProjectionDefinition;
@@ -15,6 +17,10 @@ internal static class Program
 {
     static async Task<int> Main(string[] args)
     {
+        Environment.SetEnvironmentVariable("TZ", "UTC");
+        TimeZoneInfo.ClearCachedData();
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
         try
         {
             ProjectionDefinitionBridge.SmokeTest();
@@ -74,7 +80,7 @@ internal static class Program
                 if (args[0] == "--update")
                 {
                     fixture["expected"] = actual;
-                    await File.WriteAllTextAsync(path, fixture.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n");
+                    await File.WriteAllTextAsync(path, fixture.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n");
                 }
                 else if (!JsonNode.DeepEquals(fixture["expected"], actual))
                 {

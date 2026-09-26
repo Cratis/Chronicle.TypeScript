@@ -10,23 +10,25 @@
     "version": "19.6.1",
     "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
   },
-  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verified by kernel conversion and execution.",
+  "definitionSource": "Phase-one arithmetic contract, generated expectations from the pinned production kernel.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-both",
+    "Identifier": "oracle-arithmetic",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\"title\":\"seed\",\"status\":\"seed\"}",
+    "InitialModelState": "{}",
     "From": [
       {
         "Key": {
-          "Id": "RecordCreated",
+          "Id": "AmountAdded",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "title": "title"
+            "total": "$add(amount)",
+            "count": "$count",
+            "increments": "$increment"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -34,25 +36,13 @@
       },
       {
         "Key": {
-          "Id": "RecordRemoved",
+          "Id": "AmountRemoved",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "title": "title"
-          },
-          "Key": "$eventSourceId",
-          "ParentKey": ""
-        }
-      },
-      {
-        "Key": {
-          "Id": "RecordStatusChanged",
-          "Generation": 1
-        },
-        "Value": {
-          "Properties": {
-            "status": "status"
+            "total": "$subtract(amount)",
+            "increments": "$decrement"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -68,18 +58,7 @@
       "AutoMap": 0
     },
     "FromEventProperty": null,
-    "RemovedWith": [
-      {
-        "Key": {
-          "Id": "RecordRemoved",
-          "Generation": 1
-        },
-        "Value": {
-          "Key": "$eventSourceId",
-          "ParentKey": ""
-        }
-      }
-    ],
+    "RemovedWith": [],
     "RemovedWithJoin": [],
     "Tags": [],
     "AutoMap": 1,
@@ -94,11 +73,17 @@
         "id": {
           "type": "string"
         },
-        "title": {
-          "type": "string"
+        "total": {
+          "type": "number",
+          "format": "double"
         },
-        "status": {
-          "type": "string"
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "increments": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     }
@@ -106,42 +91,30 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "RecordCreated",
+        "Id": "AmountAdded",
         "Generation": 1
       },
       "schema": {
         "type": "object",
         "properties": {
-          "title": {
-            "type": "string"
+          "amount": {
+            "type": "number",
+            "format": "double"
           }
         }
       }
     },
     {
       "eventType": {
-        "Id": "RecordStatusChanged",
+        "Id": "AmountRemoved",
         "Generation": 1
       },
       "schema": {
         "type": "object",
         "properties": {
-          "status": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    {
-      "eventType": {
-        "Id": "RecordRemoved",
-        "Generation": 1
-      },
-      "schema": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
+          "amount": {
+            "type": "number",
+            "format": "double"
           }
         }
       }
@@ -151,7 +124,7 @@
     {
       "context": {
         "eventType": {
-          "Id": "RecordCreated",
+          "Id": "AmountAdded",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -159,13 +132,13 @@
         "occurred": "2025-01-01T00:00:00Z"
       },
       "content": {
-        "title": "first"
+        "amount": 2.5
       }
     },
     {
       "context": {
         "eventType": {
-          "Id": "RecordStatusChanged",
+          "Id": "AmountAdded",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -173,13 +146,13 @@
         "occurred": "2025-01-01T00:00:01Z"
       },
       "content": {
-        "status": "changed"
+        "amount": 3
       }
     },
     {
       "context": {
         "eventType": {
-          "Id": "RecordRemoved",
+          "Id": "AmountRemoved",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -187,21 +160,7 @@
         "occurred": "2025-01-01T00:00:02Z"
       },
       "content": {
-        "title": "last"
-      }
-    },
-    {
-      "context": {
-        "eventType": {
-          "Id": "RecordCreated",
-          "Generation": 1
-        },
-        "eventSourceId": "record-a",
-        "sequenceNumber": "3",
-        "occurred": "2025-01-01T00:00:03Z"
-      },
-      "content": {
-        "title": "reborn"
+        "amount": 1
       }
     }
   ],
@@ -210,18 +169,20 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
-          "title": "first",
-          "status": "seed",
           "id": "record-a",
           "__initialized": true,
+          "total": 2.5,
+          "count": 1,
+          "increments": 1,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "first",
-          "status": "seed"
+          "total": 2.5,
+          "count": 1,
+          "increments": 1
         }
       }
     },
@@ -229,42 +190,41 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
-          "title": "first",
-          "status": "changed",
           "id": "record-a",
           "__initialized": true,
+          "total": 5.5,
+          "count": 2,
+          "increments": 2,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "first",
-          "status": "changed"
+          "total": 5.5,
+          "count": 2,
+          "increments": 2
         }
       }
     },
     {
       "sequenceNumber": "2",
-      "engineState": {},
-      "publicRead": {}
-    },
-    {
-      "sequenceNumber": "3",
       "engineState": {
         "record-a": {
-          "title": "reborn",
-          "status": "seed",
           "id": "record-a",
           "__initialized": true,
+          "total": 4.5,
+          "count": 2,
+          "increments": 1,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "title": "reborn",
-          "status": "seed"
+          "total": 4.5,
+          "count": 2,
+          "increments": 1
         }
       }
     }

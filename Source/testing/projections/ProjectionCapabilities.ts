@@ -5,8 +5,6 @@ import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts'
 import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
 import { eventContractPath } from '../../projections/eventContractPath.js';
-import { eventContextPropertyExpression } from '../../projections/eventContextPropertyExpression.js';
-import { InvalidEventContextPropertyError } from '../../projections/InvalidEventContextPropertyError.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { getEventTypeMapKey } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
@@ -36,6 +34,7 @@ export class ProjectionCapabilities {
         const variant = provenance.find(entry => entry.contractPath === 'Variant');
         if (variant) reject('Variant', 'variants require a kernel-backed test');
         if (wire.IsActive === false) reject('IsActive', 'passive projections require a kernel-backed test');
+        if (wire.SubscribesToAllEvents === true) reject('SubscribesToAllEvents', 'subscribe-to-all projections require a kernel-backed test');
         if (wire.EventSequenceId !== EventSequenceId.eventLog.value) reject('EventSequenceId', 'non-default event sequences require a kernel-backed test');
         for (const section of ['Join', 'Children', 'Nested', 'RemovedWithJoin'] as const) {
             const value = wire[section];
@@ -59,11 +58,17 @@ export class ProjectionCapabilities {
         } catch {
             reject('ReadModel.Schema', 'read-model schema is not valid JSON');
         }
-        const identifier = schema!.properties?.id ?? schema!.properties?.Id ?? { type: 'string' };
-        if (!((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
-            (identifier.type === 'number' && (!identifier.format || identifier.format === 'double')) ||
-            (identifier.type === 'integer' && ['int32', 'uint32'].includes(identifier.format ?? '')))) {
-            reject('ReadModel.Schema.id', 'identifier schema must be string, number, or GUID (int32/uint32 identifiers are supported)');
+        this.checkProtection(schema!, 'ReadModel.Schema', reject);
+        const identifier = schema!.properties?.id;
+        if (!identifier || !((identifier.type === 'string' && (!identifier.format || identifier.format === 'guid')) ||
+            (identifier.type === 'number' && identifier.format === 'double'))) {
+            reject('ReadModel.Schema.id', 'only a lowercase id with a fixture-backed string, GUID, or number/double schema is supported; other identifiers require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        }
+        const names = Object.keys(schema!.properties ?? {});
+        for (const [index, name] of names.entries()) {
+            if (names.slice(index + 1).some(other => other.toLowerCase() === name.toLowerCase())) {
+                reject(`ReadModel.Schema.${name}`, 'case-insensitively colliding read-model properties require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
         }
         let initial: unknown;
         try { initial = JSON.parse(String(wire.InitialModelState ?? '{}')); } catch { reject('InitialModelState', 'initial values must be a JSON object'); }
@@ -72,14 +77,7 @@ export class ProjectionCapabilities {
             const target = schema!.properties?.[property]
                 ?? reject(`InitialModelState.${property}`, 'initial value has no read-model schema');
             this.checkSchema(target, `InitialModelState.${property}`, reject);
-            if (typeof value === 'number') {
-                const outsideIntegerRange = !Number.isSafeInteger(value) ||
-                    (target.format === 'int32' && (value < -2147483648 || value > 2147483647)) ||
-                    (target.format === 'uint32' && (value < 0 || value > 4294967295));
-                if (!Number.isFinite(value) || (target.type === 'integer' && outsideIntegerRange)) {
-                    reject(`InitialModelState.${property}`, 'initial numeric value is outside the supported finite/integer range');
-                }
-            }
+            this.checkInitialValue(value, target, `InitialModelState.${property}`, reject);
         }
         const generations = new Map<string, number>();
         const requireEventSchema = (eventType: ContractEventType, path: string): JsonSchema => {
@@ -91,6 +89,11 @@ export class ProjectionCapabilities {
         };
         const from = wire.From as FromRecord[] ?? [];
         const removedWith = wire.RemovedWith as RemovedWithRecord[] ?? [];
+        for (const entry of from) {
+            if (removedWith.some(removal => removal.Key.Id === entry.Key.Id)) {
+                reject(eventContractPath('From', entry.Key), 'events subscribed through both From and RemovedWith require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
+        }
         for (const entry of [...from, ...removedWith]) {
             const section = from.includes(entry as FromRecord) ? 'From' : 'RemovedWith';
             const path = eventContractPath(section, entry.Key);
@@ -103,10 +106,7 @@ export class ProjectionCapabilities {
                 const mappingPath = `${path}.Properties.${property}`;
                 this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject);
             }
-            const expressions = Object.values(properties);
-            const aggregateOnly = expressions.length > 0 && expressions.every(expression =>
-                /^(?:\$add\([^()]+\)|\$subtract\([^()]+\)|\$count|\$increment|\$decrement)$/.test(expression));
-            if (wire.AutoMap === AutoMap.Enabled && !aggregateOnly) {
+            if (wire.AutoMap !== AutoMap.Disabled) {
                 this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject);
             }
         }
@@ -117,7 +117,8 @@ export class ProjectionCapabilities {
         path: string, reject: (path: string, reason: string) => never
     ): void {
         for (const [destination] of Object.entries(modelSchema.properties ?? {})) {
-            if (destination in explicit || exclusions.includes(destination)) continue;
+            if (Object.keys(explicit).some(name => name.toLowerCase() === destination.toLowerCase()) ||
+                exclusions.some(name => name.toLowerCase() === destination.toLowerCase())) continue;
             const candidates = Object.keys(eventSchema.properties ?? {}).filter(source => source.toLowerCase() === destination.toLowerCase());
             if (candidates.length > 1) reject(`${path}.AutoMap.${destination}`, `inferred AutoMap source is ambiguous: ${candidates.join(', ')}`);
             if (candidates.length) this.checkMapping(modelSchema, eventSchema, destination, candidates[0], `${path}.AutoMap.${destination}`, reject);
@@ -132,25 +133,36 @@ export class ProjectionCapabilities {
         const target = modelSchema.properties?.[destination]
             ?? fail('dynamic or unknown destination paths require a kernel-backed test');
         if (destination.includes('.') || destination.includes('$')) fail('dynamic or unknown destination paths require a kernel-backed test');
+        if (destination.toLowerCase() === 'id' || Object.keys(modelSchema.properties ?? {}).some(name =>
+            name !== destination && name.toLowerCase() === destination.toLowerCase())) {
+            fail('identifier or case-insensitively colliding target mappings require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        }
+        if (target.type === 'object' || target.type === 'array') fail('object/array target mappings require a kernel-backed test (ChronicleKernelScenario / live kernel)');
         this.checkSchema(target, path, (_path, reason) => fail(reason));
-        if (expression === '$eventSourceId' || expression === '$null') return;
+        if (expression === '$eventSourceId') {
+            if (target.type !== 'string' || (target.format && target.format !== 'guid')) {
+                fail('$eventSourceId requires a string or GUID target; other targets require a kernel-backed test (ChronicleKernelScenario / live kernel)');
+            }
+            return;
+        }
+        if (expression === '$null') return;
         if (expression.startsWith('$eventContext(')) {
+            if (expression === '$eventContext(Occurred)') fail('raw Occurred is converted inconsistently by the kernel; only its Year, Month and Day paths are supported');
             if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');
             const path = /^\$eventContext\(([^()]*)\)$/.exec(expression)?.[1];
-            if (path) {
-                try {
-                    if (eventContextPropertyExpression(path) === expression) return;
-                } catch (error) {
-                    if (!(error instanceof InvalidEventContextPropertyError)) throw error;
-                }
-            }
-            fail('event-context path is not supported by the client');
+            const strings = ['EventSourceId', 'EventStore', 'Namespace', 'EventSourceType', 'EventStreamType',
+                'EventStreamId', 'Subject', 'Subject.Value', 'Hash', 'CorrelationId', 'CorrelationId.Value',
+                'CausedBy.Subject', 'CausedBy.Name', 'CausedBy.UserName', 'EventType.Id.Value', 'SequenceNumber', 'SequenceNumber.Value'];
+            const integers = ['Occurred.Year', 'Occurred.Month', 'Occurred.Day', 'EventType.Generation.Value'];
+            if (path && ((strings.includes(path) && target.type === 'string' && !target.format) ||
+                (integers.includes(path) && target.type === 'integer' && target.format === 'int32'))) return;
+            fail('event-context path and target schema require a kernel-backed test');
         }
         if (/^\$value\([\p{L}\p{Mn}\p{Nd}\p{Pc} ._/:*+-]*\)$/u.test(expression)) {
             const text = expression.slice(7, -1);
             if (target.format === 'date-time') fail('$value date-time literals require a kernel-backed test');
             if (this.numeric(target)) {
-                if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text)) ||
+                if (!(target.type === 'integer' ? /^[+-]?\d+$/.test(text) : /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text)) || !Number.isFinite(Number(text)) ||
                     (target.type === 'integer' && (!Number.isSafeInteger(Number(text)) ||
                         (target.format === 'int32' && (Number(text) < -2147483648 || Number(text) > 2147483647)) ||
                         (target.format === 'uint32' && (Number(text) < 0 || Number(text) > 4294967295))))) {
@@ -167,24 +179,61 @@ export class ProjectionCapabilities {
         }
         const operation = /^(\$add|\$subtract)\(([^()]+)\)$/.exec(expression);
         const arithmetic = operation || ['$count', '$increment', '$decrement'].includes(expression);
-        if (arithmetic) {
-            if (!this.numeric(target)) fail('arithmetic requires a supported finite number/double or int32/uint32 schema (not float, decimal, duration, or int64)');
-            if (operation) {
-                const operand = this.propertyAt(eventSchema, operation[2]);
-                if (!operand || !this.numeric(operand)) fail('arithmetic operand requires a supported numeric event schema');
-            }
-            return;
-        }
+        if (arithmetic) fail('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
         if (/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) {
+            if (['true', 'True', 'false', 'False'].includes(expression)) {
+                fail('kernel resolves this expression as a boolean literal before event content');
+            }
+            if (expression.includes('.')) fail('nested event property paths require a kernel-backed test');
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
             this.checkSchema(source, path, (_path, reason) => fail(reason));
+            if (!this.compatible(source, target)) {
+                fail(`source '${expression}' (${source.type}${source.format ? `/${source.format}` : ''}) to target '${destination}' (${target.type}${target.format ? `/${target.format}` : ''}) requires a kernel-backed test`);
+            }
             return;
         }
         if (expression.startsWith('$context.')) {
             return fail('is a legacy expression the kernel does not resolve; event-context mappings use $eventContext(...)');
         }
         fail('requires a kernel-backed test');
+    }
+
+    private static compatible(source: JsonSchema, target: JsonSchema): boolean {
+        if (JSON.stringify(source.type) === JSON.stringify(target.type) && source.format === target.format) {
+            return source.type !== 'object' && source.type !== 'array';
+        }
+        if (source.type === 'string' && !source.format && Array.isArray(target.type) &&
+            target.type[0] === 'string' && target.type[1] === 'null') return true;
+        if (source.type === 'string' && !source.format &&
+            ((target.type === 'number' && (!target.format || target.format === 'double')) ||
+                (target.type === 'integer' && ['int32', 'uint32'].includes(target.format ?? '')))) return true;
+        if (source.type === 'string' && source.format === 'guid' && target.type === 'string' && !target.format) return true;
+        return source.type === 'integer' && ['int32', 'uint32'].includes(source.format ?? '') &&
+            target.type === 'number' && (!target.format || target.format === 'double');
+    }
+
+    private static checkInitialValue(value: unknown, target: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
+        if (value === null && Array.isArray(target.type) && target.type.includes('null')) return;
+        if (target.type === 'object' || target.type === 'array' || target.format === 'date-time') {
+            reject(path, 'initial object, array, or date-time values require a kernel-backed test');
+        }
+        if (target.type === 'integer' || target.type === 'number') {
+            if (typeof value !== 'number') reject(path, 'initial numeric value must be a JSON number');
+            const outsideIntegerRange = !Number.isSafeInteger(value) ||
+                (target.format === 'int32' && (value < -2147483648 || value > 2147483647)) ||
+                (target.format === 'uint32' && (value < 0 || value > 4294967295));
+            if (!Number.isFinite(value) || (target.type === 'integer' && outsideIntegerRange)) {
+                reject(path, 'initial numeric value is outside the supported finite/integer range');
+            }
+        } else if (target.type === 'boolean') {
+            if (typeof value !== 'boolean') reject(path, 'initial boolean value must be a JSON boolean');
+        } else if (target.type === 'string' || Array.isArray(target.type)) {
+            if (typeof value !== 'string') reject(path, 'initial string value must be a JSON string');
+            if (target.format === 'guid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value)) {
+                reject(path, 'initial GUID value must be canonical lowercase text');
+            }
+        } else reject(path, 'initial value requires a kernel-backed test');
     }
 
     private static propertyAt(schema: JsonSchema, path: string): JsonSchema | undefined {
@@ -196,8 +245,20 @@ export class ProjectionCapabilities {
             (schema.type === 'integer' && ['int32', 'uint32'].includes(schema.format ?? ''));
     }
 
+    private static checkProtection(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
+        if (schema.compliance?.length || schema.security?.length) reject(path, 'protected fields require a kernel-backed test');
+        for (const [name, property] of Object.entries(schema.properties ?? {})) this.checkProtection(property, `${path}.${name}`, reject);
+        if (schema.items) this.checkProtection(schema.items, `${path}.items`, reject);
+        if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+            this.checkProtection(schema.additionalProperties, `${path}.additionalProperties`, reject);
+        }
+    }
+
     private static checkSchema(schema: JsonSchema, path: string, reject: (path: string, reason: string) => never): void {
-        if (!schema.type || schema.type === 'null' || (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||
+        if (schema.compliance?.length || schema.security?.length) reject(path, 'protected fields require a kernel-backed test');
+        if (!schema.type || schema.type === 'null' || (Array.isArray(schema.type) &&
+            (schema.type.length !== 2 || schema.type[0] !== 'string' || schema.type[1] !== 'null')) ||
+            (schema.format && !['guid', 'date-time', 'double', 'int32', 'uint32'].includes(schema.format)) ||
             (schema.format === 'date-time' && schema.type !== 'string') ||
             (schema.format === 'guid' && schema.type !== 'string') ||
             (schema.format === 'double' && schema.type !== 'number') ||
