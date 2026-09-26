@@ -82,7 +82,7 @@ describe('when discovering read models from observers', () => {
         setFrom(Event)(RegisteredLate.prototype, 'value');
         const { connection } = createConnection();
         const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink', () => false);
-        await expect(readModels.findInstanceById(RegisteredLate, 'key')).rejects.toThrow(/add a class-level @fromEvent/);
+        await expect(readModels.findInstanceById(RegisteredLate, 'key')).rejects.toThrow(/register it explicitly before creating the event store/);
     });
 
     it('should explain how to register an unregistered property-bound model', async () => {
@@ -91,7 +91,7 @@ describe('when discovering read models from observers', () => {
         Reflect.defineMetadata('chronicle:typeIntrospection:properties', ['value'], NeverRegistered);
         const { connection } = createConnection();
         await expect(new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink').findInstanceById(NeverRegistered, 'key'))
-            .rejects.toThrow(/add a class-level @fromEvent/);
+            .rejects.toThrow(/register it explicitly before creating the event store/);
     });
 
     it('should deduplicate inferred types and retain custom identifiers', async () => {

@@ -84,11 +84,11 @@ describe('standard model-bound decorators', () => {
         }
     });
 
-    it('should explain that an unconstructed property-only model was never registered', async () => {
+    it('should explain how to register an unconstructed model not exported for discovery', async () => {
         const getInstanceByKey = vi.fn().mockResolvedValue({ ReadModel: '{"value":"stored"}' });
         const connection = { readModels: { getInstanceByKey } } as unknown as ChronicleConnection;
         const readModels = new ReadModels('store', 'Default', connection, DefaultClientArtifactsProvider.default, 'sink');
-        await expect(readModels.findInstanceById(UnconstructedMappedOnly, 'id')).rejects.toThrow(/add a class-level @fromEvent/);
+        await expect(readModels.findInstanceById(UnconstructedMappedOnly, 'id')).rejects.toThrow(/register it explicitly before creating the event store/);
         expect(getInstanceByKey).not.toHaveBeenCalled();
     });
     it('stores class and property annotations without constructing an instance', () => {

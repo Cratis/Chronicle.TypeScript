@@ -13,8 +13,7 @@ import { isNested } from '../projections/modelBound/nested.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { TypeIntrospector } from '../types/TypeIntrospector.js';
 
-/** Excludes models used as children or nested objects from root projection registration. */
-export function rootReadModelTypes(artifacts: IClientArtifactsProvider): Constructor[] {
+function inspectReadModelTypes(artifacts: IClientArtifactsProvider): { models: Constructor[]; usedAsChildren: Set<Function>; visited: Set<Function> } {
     const models = artifacts.readModels;
     const usedAsChildren = new Set<Function>();
     const visited = new Set<Function>();
@@ -61,5 +60,16 @@ export function rootReadModelTypes(artifacts: IClientArtifactsProvider): Constru
         const model = getReducerMetadata(type)?.readModel;
         if (model) inspect(model);
     }
+    return { models, usedAsChildren, visited };
+}
+
+/** Excludes models used as children or nested objects from root projection registration. */
+export function rootReadModelTypes(artifacts: IClientArtifactsProvider): Constructor[] {
+    const { models, usedAsChildren } = inspectReadModelTypes(artifacts);
     return models.filter(type => !usedAsChildren.has(type));
+}
+
+/** Includes all read-model types reached from registered roots, including children and nested models. */
+export function reachableReadModelTypes(artifacts: IClientArtifactsProvider): Function[] {
+    return [...inspectReadModelTypes(artifacts).visited];
 }

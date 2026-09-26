@@ -333,7 +333,7 @@ export class ReadModels implements IReadModels {
         const neverRegistered = resolved?.isModelBound && this._isModelBoundProjectionRegistered && !this._isModelBoundProjectionRegistered(readModelType);
         if (!resolved || neverRegistered) {
             throw new Error(hasModelBoundProperties(readModelType)
-                ? `Unknown read model '${readModelType.name}'. It has model-bound property mappings but was not registered when the event store was created. With standard decorators, a class whose mappings are all on properties is only registered once an instance exists; add a class-level @fromEvent(...) decorator so it registers when its module loads.`
+                ? `Unknown read model '${readModelType.name}'. It has model-bound property mappings but was not registered when the event store was created. Export the class from a module matched by discoveryPatterns, or register it explicitly before creating the event store.`
                 : `Unknown read model '${readModelType.name}'. Make sure it is discoverable through a projection, reducer, or model-bound mapping.`);
         }
         return resolved;
