@@ -170,6 +170,9 @@ export class JoinBuilder<TReadModel, TEvent> implements IJoinBuilder<TReadModel,
     }
 
     /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | undefined, builderCallback: (builder: IAddChildBuilder<TChildModel, TEvent> & TEvent) => void): this;
+    /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | undefined, eventPropertyAccessor: PropertyAccessor<TEvent>): this;
     addChild<TChildModel>(
         targetPropertyAccessor: PropertyAccessor<TReadModel>,
         eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
