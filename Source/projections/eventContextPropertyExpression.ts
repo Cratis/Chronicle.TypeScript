@@ -28,7 +28,6 @@ const contextProperties = {
 // Mirror the kernel's DerivedPropertyFunctions registry and nested record members.
 const derivedFunctions: Record<string, string> = { week: 'Week' };
 const identityProperties = new Set(['subject', 'name', 'userName', 'onBehalfOf']);
-const causationProperties = new Set(['occurred', 'type', 'properties']);
 
 function validNestedPath(root: string, segments: string[]): boolean {
     if (root === 'causedBy') {
@@ -37,10 +36,8 @@ function validNestedPath(root: string, segments: string[]): boolean {
             if (!identityProperties.has(member) || (member !== 'onBehalfOf' && index !== segments.length - 1)) return false;
         }
     }
-    if (root === 'causation' && segments.length > 0) {
-        const member = segments[0].charAt(0).toLowerCase() + segments[0].slice(1);
-        if (!causationProperties.has(member) || segments.length > 1) return false;
-    }
+    // The kernel's Causation is a collection; a dotted path cannot select one of its entries.
+    if (root === 'causation' && segments.length > 0) return false;
     return true;
 }
 

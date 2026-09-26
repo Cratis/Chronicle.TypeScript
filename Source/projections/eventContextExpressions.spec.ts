@@ -155,13 +155,13 @@ describe('event context expressions', () => {
         }
     });
 
-    it('should allow members of the kernel causation record', () => {
-        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causation.type')))
-            .From[0].Value.Properties.happened.should.equal('$eventContext(Causation.Type)');
+    it('should map the whole causation collection', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causation')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(Causation)');
     });
 
-    it('should reject unknown causation members and deeper paths', () => {
-        for (const path of ['causation.unknown', 'causation.properties.unknown']) {
+    it('should reject paths into the causation collection', () => {
+        for (const path of ['causation.type', 'causation.unknown', 'causation.properties.unknown']) {
             expect(() => compileDeclarative(builder => builder.fromEvery(all =>
                 all.set(model => model.happened).toEventContextProperty(path))))
                 .toThrow(`Invalid event context property '${path}'`);
