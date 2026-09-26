@@ -1,0 +1,58 @@
+# Copyright (c) Cratis. All rights reserved.
+# Licensed under the MIT license. See LICENSE file in the project root for full license information.
+name: Projection oracle
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Tools/ProjectionOracle/**'
+      - 'Source/testing/projections/**'
+      - 'Source/projections/**'
+      - 'Source/events/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/projection-oracle.yml'
+  schedule:
+    - cron: '27 5 * * 2'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - run: corepack enable && yarn install --immutable
+      - run: yarn oracle:check
+
+  latest-probe:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report upstream version without updating the fixture pin
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+          url = 'https://api.nuget.org/v3-flatcontainer/cratis.chronicle.testing/index.json'
+          with urllib.request.urlopen(url, timeout=15) as response:
+              latest = json.load(response)['versions'][-1]
+          print(f'Pinned Chronicle: 19.8.1; latest published: {latest}')
+          if latest != '19.8.1':
+              print(f'::warning::Review projection-oracle fixtures against Chronicle {latest}; pin remains 19.8.1')
+          PY
