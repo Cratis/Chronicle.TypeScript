@@ -30,6 +30,11 @@ class LineQuantityChanged {
 }
 eventType()(LineQuantityChanged);
 
+class AlternateLineAdded {
+    alternateId!: string;
+}
+eventType()(AlternateLineAdded);
+
 class LineQuantityCleared {}
 eventType()(LineQuantityCleared);
 
@@ -93,6 +98,16 @@ class ChildWithoutAutoMap {
     id = '';
 }
 noAutoMap(ChildWithoutAutoMap);
+class ChildWithNoAutoMappedId {
+    id = '';
+}
+noAutoMap(ChildWithNoAutoMappedId.prototype, 'id');
+class ChildWithEmptyKey {
+    [''] = '';
+}
+class ChildWithoutMatchingEmptyKey {
+    label = '';
+}
 class IdentifiedChildren {
     byConvention!: ChildWithId[];
     byUppercaseId!: ChildWithUppercaseId[];
@@ -102,6 +117,10 @@ class IdentifiedChildren {
     byMatchingKey!: ChildWithId[];
     withExplicitMapping!: ChildWithMappedId[];
     withoutAutoMap!: ChildWithoutAutoMap[];
+    withNoAutoMappedId!: ChildWithNoAutoMappedId[];
+    withDifferentEventKeys!: ChildWithId[];
+    withEmptyEventKey!: ChildWithEmptyKey[];
+    withoutMatchingEmptyKey!: ChildWithoutMatchingEmptyKey[];
 }
 childrenFrom(LineAdded, ChildWithId)(IdentifiedChildren.prototype, 'byConvention');
 childrenFrom(LineAdded, ChildWithUppercaseId)(IdentifiedChildren.prototype, 'byUppercaseId');
@@ -111,9 +130,17 @@ childrenFrom(LineAdded, 'productId', 'id')(IdentifiedChildren.prototype, 'byEven
 childrenFrom(LineAdded, 'id', 'id')(IdentifiedChildren.prototype, 'byMatchingKey');
 childrenFrom(LineAdded, ChildWithMappedId)(IdentifiedChildren.prototype, 'withExplicitMapping');
 childrenFrom(LineAdded, ChildWithoutAutoMap)(IdentifiedChildren.prototype, 'withoutAutoMap');
+childrenFrom(LineAdded, ChildWithNoAutoMappedId)(IdentifiedChildren.prototype, 'withNoAutoMappedId');
+childrenFrom(LineAdded, 'productId')(IdentifiedChildren.prototype, 'withDifferentEventKeys');
+childrenFrom(AlternateLineAdded, 'alternateId')(IdentifiedChildren.prototype, 'withDifferentEventKeys');
+childrenFrom(LineAdded, '')(IdentifiedChildren.prototype, 'withEmptyEventKey');
+childrenFrom(LineAdded, '')(IdentifiedChildren.prototype, 'withoutMatchingEmptyKey');
 field(Array, { enumerable: true, genericArguments: [ChildWithMatchingEventKey] })(IdentifiedChildren.prototype, 'byInferredEventKey');
 field(Array, { enumerable: true, genericArguments: [ChildWithId] })(IdentifiedChildren.prototype, 'byEventKey');
 field(Array, { enumerable: true, genericArguments: [ChildWithId] })(IdentifiedChildren.prototype, 'byMatchingKey');
+field(Array, { enumerable: true, genericArguments: [ChildWithId] })(IdentifiedChildren.prototype, 'withDifferentEventKeys');
+field(Array, { enumerable: true, genericArguments: [ChildWithEmptyKey] })(IdentifiedChildren.prototype, 'withEmptyEventKey');
+field(Array, { enumerable: true, genericArguments: [ChildWithoutMatchingEmptyKey] })(IdentifiedChildren.prototype, 'withoutMatchingEmptyKey');
 fromEvent(OrderCreated)(IdentifiedChildren);
 
 class OrderSummary {
@@ -185,10 +212,11 @@ noAutoMap(OrderWithoutAutoMap);
 fromEvent(OrderCreated)(OrderWithoutAutoMap);
 
 class Grandchild {
-    id!: string;
+    id = '';
 }
 
 class ChildWithGrandchildren {
+    id = '';
     grandchildren!: Grandchild[];
     detail!: Grandchild | undefined;
 }
@@ -317,13 +345,58 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             expect(children.byMatchingKey.From[0].Value.Properties).toEqual({});
         });
 
-        it('should leave explicitly mapped identifiers and disabled auto-mapping unchanged', async () => {
+        it('should leave explicitly mapped identifiers and class-level disabled auto-mapping unchanged', async () => {
             const { projections, registerMock } = createProjections([IdentifiedChildren]);
             await projections.register();
 
             const children = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children;
             expect(children.withExplicitMapping.From[0].Value.Properties).toEqual({ id: 'productId' });
+            expect(children.withoutAutoMap.AutoMap).toBe(AutoMap.Disabled);
             expect(children.withoutAutoMap.From[0].Value.Properties).toEqual({});
+        });
+
+        it('should map an identifier with property-level noAutoMap from the creating event source id', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.withNoAutoMappedId;
+            expect(child.AutoMap).toBe(AutoMap.Enabled);
+            expect(child.NoAutoMapProperties).toContain('id');
+            expect(child.From[0].Value.Properties.id).toBe('$eventContext(EventSourceId)');
+        });
+
+        it('should map each creating event using its own key on a shared children collection', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.withDifferentEventKeys;
+            expect(child.IdentifiedBy).toBe('id');
+            expect(child.From).toHaveLength(2);
+            expect(child.From.find(candidate => candidate.Key.Id === 'LineAdded')?.Value).toEqual({
+                Key: 'productId', ParentKey: '$eventSourceId', Properties: { id: 'productId' }
+            });
+            expect(child.From.find(candidate => candidate.Key.Id === 'AlternateLineAdded')?.Value).toEqual({
+                Key: 'alternateId', ParentKey: '$eventSourceId', Properties: { id: 'alternateId' }
+            });
+        });
+
+        it('should discover a child property matching an explicitly empty event key', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.withEmptyEventKey;
+            expect(child.IdentifiedBy).toBe('');
+            expect(child.From[0].Value.Key).toBe('');
+            expect(child.From[0].Value.Properties).toEqual({});
+        });
+
+        it('should not infer an identifier from an empty event key without a matching child property', async () => {
+            const { projections, registerMock } = createProjections([IdentifiedChildren]);
+            await projections.register();
+
+            const child = (registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition).Children.withoutMatchingEmptyKey;
+            expect(child.IdentifiedBy).toBe('$eventSourceId');
+            expect(child.From[0].Value.Key).toBe('');
         });
 
         it('should clear only the child member through a From mapping', async () => {
@@ -402,6 +475,7 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const child = definition.Children.children;
             expect(child.AutoMap).toBe(AutoMap.Disabled);
             expect(child.Children.grandchildren.AutoMap).toBe(AutoMap.Disabled);
+            expect(child.Children.grandchildren.From[0].Value.Properties).toEqual({});
             expect(child.Nested.detail.AutoMap).toBe(AutoMap.Disabled);
         });
 
@@ -412,7 +486,10 @@ describe('Projections with childrenFrom, nested and clearWith', () => {
             const definition = registerMock.mock.calls[0][0].Projections[0] as BuiltDefinition;
             const child = definition.Children.children;
             expect(child.AutoMap).toBe(AutoMap.Disabled);
+            expect(child.From[0].Value.Properties).toEqual({});
             expect(child.Children.grandchildren.AutoMap).toBe(AutoMap.Enabled);
+            expect(child.Children.grandchildren.IdentifiedBy).toBe('id');
+            expect(child.Children.grandchildren.From[0].Value.Properties.id).toBe('$eventContext(EventSourceId)');
             expect(child.Nested.detail.AutoMap).toBe(AutoMap.Enabled);
         });
 

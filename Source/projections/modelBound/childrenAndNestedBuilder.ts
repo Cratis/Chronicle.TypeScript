@@ -222,7 +222,7 @@ function discoverIdentifiedBy(childType: Function | undefined, eventKey: string 
 
     const members = [...TypeIntrospector.getMembers(childType).keys()];
     return members.find(name => name.toLowerCase() === 'id') ??
-        (eventKey && members.find(name => name.toLowerCase() === eventKey.toLowerCase())) ?? undefined;
+        (eventKey !== undefined ? members.find(name => name.toLowerCase() === eventKey.toLowerCase()) : undefined);
 }
 
 /**

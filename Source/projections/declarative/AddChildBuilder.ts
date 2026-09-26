@@ -41,7 +41,7 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
     private _usingKeyProperty: string | undefined;
     private _usingParentKeyProperty: string | undefined;
 
-    /** Whether any builder member (`identifiedBy`/`usingKey`) was invoked on the probe. */
+    /** Whether any builder member (`identifiedBy`, `usingKey`, `usingKeyFromContext`, or `usingParentKeyFromContext`) was invoked on the probe. */
     get usedAsBuilder(): boolean {
         return this._usedAsBuilder;
     }
