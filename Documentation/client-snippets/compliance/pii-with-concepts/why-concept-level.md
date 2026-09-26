@@ -17,6 +17,8 @@ class PiiConceptsComparisonEmployeeNameChanged {
 // ✅ Concept-level: declare once, apply everywhere automatically
 @pii()
 class PiiConceptsComparisonPersonName extends ConceptAs<string> {
+    static readonly valueType = String;
+
     constructor(value: string) {
         super(value);
     }
