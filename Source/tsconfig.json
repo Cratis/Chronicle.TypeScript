@@ -30,6 +30,7 @@
         "node_modules",
         "dist",
         "**/*.spec.ts",
+        "**/*.example.ts",
         "**/*.fixture.ts",
         "vitest.config.ts"
     ]

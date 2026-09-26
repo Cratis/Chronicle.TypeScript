@@ -8,7 +8,6 @@ import { ObservationState, ReadModelObserverType, ReducerMessage } from '@cratis
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
-import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
@@ -16,6 +15,7 @@ import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
+import { ReducerEventDispatcher } from './ReducerEventDispatcher.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
@@ -27,12 +27,6 @@ const EVENT_SOURCE_ID_KEY = '$eventSourceId';
 
 /** Sentinel sequence number sent back when no event was successfully processed. */
 const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
-
-interface EventTypeEntry {
-    readonly id: string;
-    readonly generation: number;
-    readonly methodName: string;
-}
 
 /**
  * A push-based async queue that implements {@link AsyncIterable} for use with nice-grpc
@@ -229,29 +223,29 @@ export class Reducers implements IReducers {
         if (this._disposed) return;
         const metadata = getReducerMetadata(reducerType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const eventTypes = this.getEventTypesFor(reducerType);
+        const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
         const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
         this._logger.info('Starting reducer observation', {
             reducerId: id,
             eventSequenceId,
             readModel: readModelName,
-            handlerCount: eventTypes.length,
-            handlers: eventTypes.map(e => e.methodName)
+            handlerCount: dispatcher.handlers.length,
+            handlers: dispatcher.handlers.map(e => e.methodName)
         });
 
-        void this.runObservation(id, reducerType, eventSequenceId, eventTypes, readModelName);
+        void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
     }
 
     private async runObservation(
         id: string,
         reducerType: Constructor,
         eventSequenceId: string,
-        eventTypes: EventTypeEntry[],
-        readModelName: string
+        readModelName: string,
+        dispatcher: ReducerEventDispatcher
     ): Promise<void> {
         try {
-            await this.observeReducer(id, reducerType, eventSequenceId, eventTypes, readModelName);
+            await this.observeReducer(id, reducerType, eventSequenceId, readModelName, dispatcher);
         } catch (error) {
             this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(error) });
         }
@@ -301,8 +295,8 @@ export class Reducers implements IReducers {
         id: string,
         reducerType: Constructor,
         eventSequenceId: string,
-        eventTypes: EventTypeEntry[],
-        readModelName: string
+        readModelName: string,
+        dispatcher: ReducerEventDispatcher
     ): Promise<void> {
         const queue = new AsyncQueue<ReducerMessage>();
         const controller = new AbortController();
@@ -319,7 +313,7 @@ export class Reducers implements IReducers {
                     Reducer: {
                         ReducerId: id,
                         EventSequenceId: eventSequenceId,
-                        EventTypes: eventTypes.map(et => ({
+                        EventTypes: dispatcher.handlers.map(et => ({
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),
@@ -377,7 +371,7 @@ export class Reducers implements IReducers {
                             continue;
                         }
 
-                        const entry = eventTypes.find(et => et.id === eventTypeId);
+                        const entry = dispatcher.handlerFor(eventTypeId);
                         if (!entry) {
                             this._logger.debug('No handler registered for event type — skipping', { reducerId: id, eventTypeId });
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
@@ -395,7 +389,7 @@ export class Reducers implements IReducers {
                             hasState: currentState !== undefined
                         });
 
-                        currentState = await reducerInstance[entry.methodName](content, currentState, context);
+                        currentState = await dispatcher.invoke(reducerInstance, entry, content, currentState, context);
                         lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                     } catch (err) {
                         this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });
@@ -440,29 +434,6 @@ export class Reducers implements IReducers {
             }
             queue.complete();
         }
-    }
-
-    private getEventTypesFor(reducerType: Constructor): EventTypeEntry[] {
-        const proto = reducerType.prototype as Record<string, unknown>;
-        const entries: EventTypeEntry[] = [];
-
-        for (const eventTypeClass of this._clientArtifacts.eventTypes) {
-            const eventTypeMeta = getEventTypeMetadata(eventTypeClass);
-            if (!eventTypeMeta) continue;
-
-            const className = (eventTypeClass as Function).name;
-            const methodName = className.charAt(0).toLowerCase() + className.slice(1);
-
-            if (typeof proto[methodName] === 'function') {
-                entries.push({
-                    id: eventTypeMeta.eventType.id.value,
-                    generation: eventTypeMeta.eventType.generation.value,
-                    methodName
-                });
-            }
-        }
-
-        return entries;
     }
 
     private disconnectAll(): void {
