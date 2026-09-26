@@ -16,7 +16,6 @@ import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
 import { ReducerEventDispatcher } from './ReducerEventDispatcher.js';
-import type { ReducerEventHandler } from './ReducerEventHandler.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
@@ -225,30 +224,28 @@ export class Reducers implements IReducers {
         const metadata = getReducerMetadata(reducerType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
         const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
-        const eventTypes = dispatcher.handlers;
         const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
         this._logger.info('Starting reducer observation', {
             reducerId: id,
             eventSequenceId,
             readModel: readModelName,
-            handlerCount: eventTypes.length,
-            handlers: eventTypes.map(e => e.methodName)
+            handlerCount: dispatcher.handlers.length,
+            handlers: dispatcher.handlers.map(e => e.methodName)
         });
 
-        void this.runObservation(id, reducerType, eventSequenceId, eventTypes, readModelName, dispatcher);
+        void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
     }
 
     private async runObservation(
         id: string,
         reducerType: Constructor,
         eventSequenceId: string,
-        eventTypes: ReducerEventHandler[],
         readModelName: string,
         dispatcher: ReducerEventDispatcher
     ): Promise<void> {
         try {
-            await this.observeReducer(id, reducerType, eventSequenceId, eventTypes, readModelName, dispatcher);
+            await this.observeReducer(id, reducerType, eventSequenceId, readModelName, dispatcher);
         } catch (error) {
             this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(error) });
         }
@@ -298,7 +295,6 @@ export class Reducers implements IReducers {
         id: string,
         reducerType: Constructor,
         eventSequenceId: string,
-        eventTypes: ReducerEventHandler[],
         readModelName: string,
         dispatcher: ReducerEventDispatcher
     ): Promise<void> {
@@ -317,7 +313,7 @@ export class Reducers implements IReducers {
                     Reducer: {
                         ReducerId: id,
                         EventSequenceId: eventSequenceId,
-                        EventTypes: eventTypes.map(et => ({
+                        EventTypes: dispatcher.handlers.map(et => ({
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),

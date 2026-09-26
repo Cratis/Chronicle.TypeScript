@@ -3,3 +3,4 @@
 
 export { ReadModelScenario } from './ReadModelScenario.js';
 export { ReadModelScenarioGiven } from './ReadModelScenarioGiven.js';
+export { ReadModelScenarioGivenBuilder } from './ReadModelScenarioGivenBuilder.js';

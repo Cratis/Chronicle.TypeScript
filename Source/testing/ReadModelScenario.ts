@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { JsonSerializer } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import type { EventContext } from '../events/EventContext.js';
@@ -17,7 +18,7 @@ import { getReducerMetadata } from '../reducers/reducer.js';
 import { ReducerEventDispatcher } from '../reducers/ReducerEventDispatcher.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { hasModelBoundProperties, TypeDiscoverer } from '../types/TypeDiscoverer.js';
-import { ReadModelScenarioGiven } from './ReadModelScenarioGiven.js';
+import { ReadModelScenarioGivenBuilder } from './ReadModelScenarioGivenBuilder.js';
 
 type ScenarioArtifacts = Pick<IClientArtifactsProvider, 'reducers' | 'eventTypes' | 'projections'>;
 
@@ -30,6 +31,7 @@ type ReducedState<T> = { instance: T | null; deleted: boolean };
  * Supply an artifact catalog to isolate a scenario from process-wide decorator discovery.
  */
 export class ReadModelScenario<TReadModel extends object> {
+    private readonly _readModelType: Constructor<TReadModel>;
     private readonly _reducerType: Constructor;
     private readonly _dispatcher: ReducerEventDispatcher;
     private readonly _events: SeededEvent[] = [];
@@ -37,6 +39,7 @@ export class ReadModelScenario<TReadModel extends object> {
 
     /** Selects the reducer associated with the read model type. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
+        this._readModelType = readModelType;
         const registered = artifacts ?? {
             reducers: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.Reducer),
             eventTypes: TypeDiscoverer.default.getTypesByDecoratorType(DecoratorType.EventType),
@@ -62,8 +65,8 @@ export class ReadModelScenario<TReadModel extends object> {
     }
 
     /** Fluent entry point for event history. */
-    get given(): { forEventSource: (id: string) => ReadModelScenarioGiven<TReadModel> } {
-        return { forEventSource: id => new ReadModelScenarioGiven(this, id) };
+    get given(): ReadModelScenarioGivenBuilder<TReadModel> {
+        return new ReadModelScenarioGivenBuilder(this);
     }
 
     /** Returns the sole materialized model, or null when no model exists. */
@@ -93,12 +96,17 @@ export class ReadModelScenario<TReadModel extends object> {
             const metadata = getEventTypeMetadata(event.constructor);
             if (!metadata) throw new Error(`Event '${event.constructor.name}' has no @eventType metadata.`);
             // The kernel delivers JSON objects, not instances of decorated event classes.
-            const content: unknown = JSON.parse(JSON.stringify(event));
+            const content: unknown = JSON.parse(JsonSerializer.serialize(event));
             this._events.push({
                 sourceId: id,
                 content,
                 context: {
                     eventSourceId: id,
+                    eventSourceType: 'Default',
+                    eventStreamType: 'All',
+                    eventStreamId: 'Default',
+                    eventStore: '[NotSet]',
+                    namespace: '[NotSet]',
                     sequenceNumber: BigInt(this._events.length),
                     eventType: metadata.eventType,
                     occurred: new Date(),
@@ -125,10 +133,16 @@ export class ReadModelScenario<TReadModel extends object> {
         for (const event of events) {
             const handler = this._dispatcher.handlerFor(event.context.eventType.id.value);
             if (!handler) continue;
-            const previous = results.get(event.sourceId)?.instance ?? undefined;
-            const next = await this._dispatcher.invoke(reducer, handler, event.content, previous, event.context);
+            const prior = results.get(event.sourceId);
+            const previous = prior?.deleted ? undefined : prior?.instance;
+            let next: unknown;
+            try {
+                next = await this._dispatcher.invoke(reducer, handler, event.content, previous, event.context);
+            } catch (cause) {
+                throw new Error(`Reducer '${this._reducerType.name}' for read model '${this._readModelType.name}' failed`, { cause });
+            }
             results.set(event.sourceId, {
-                instance: next === undefined ? null : next as TReadModel,
+                instance: next === undefined ? null : next as TReadModel | null,
                 deleted: next === undefined
             });
         }
