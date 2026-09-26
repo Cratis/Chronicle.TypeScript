@@ -104,6 +104,8 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
      * Proxy `get` trap: known builder members dispatch to the real implementation above;
      * anything else (a plain event property accessed by the accessor overload) falls through
      * to path-capturing so the accessor overload keeps working against the same probe.
+     * The builder member names are therefore reserved: an event property with one of these names
+     * cannot be selected through the accessor overload.
      * @param _target - The proxy's (unused) empty target object.
      * @param prop - The accessed property name.
      * @returns The resolved member.
