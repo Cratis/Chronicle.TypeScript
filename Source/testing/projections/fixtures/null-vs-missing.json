@@ -1,0 +1,168 @@
+{
+  "formatVersion": 1,
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verified by kernel conversion and execution.",
+  "wireDefinition": {
+    "EventSequenceId": "00000000-0000-0000-0000-000000000001",
+    "Identifier": "oracle-null",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "optional": "optional"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "RecordCleared",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "optional": "$null"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "optional": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "RecordCreated",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "optional": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "RecordCleared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "optional": "present"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCleared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {}
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "optional": "present"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "optional": "present"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "optional": null
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a"
+        }
+      }
+    }
+  ]
+}

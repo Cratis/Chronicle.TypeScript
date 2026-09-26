@@ -1,0 +1,23 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+
+# Projection materialization oracle (increment 2a)
+
+From the repository root, run `yarn install --immutable`, then `yarn oracle:check`. This requires the .NET 10 SDK. Ordinary `yarn test` does not require .NET. To inspect the compatibility boundary alone, run `dotnet run --project Tools/ProjectionOracle -- --smoke`. To intentionally replace committed expectations **after reviewing an engine upgrade or fixture change**, run `dotnet run --project Tools/ProjectionOracle -- --update` and inspect the diff. CI never updates them. The weekly NuGet probe reports a newer version but does not update the pin.
+
+The oracle pins `Cratis.Chronicle.Testing` **19.8.1** (Chronicle commit `8fe5d30`), the latest version in NuGet's published index when this tool was written. The package contains Core, Concepts, Contracts, Grpc, Infrastructure, Storage and Storage.InMemory under `lib/net10.0`, but only Testing is exposed under `ref/net10.0`. The project adds aliased compile references to **those same packaged DLLs** using `GeneratePathProperty` and a lockfile, not to a separate kernel checkout. The one internal access is `ProjectionDefinitionBridge`: it reflects the package's transport-to-kernel `ToChronicle` converter and asserts its exact parameter/return signature on every run. This is version-fragile; do not silently fall back to a copied converter. The packaged Core's generated type discovery also requires the matching `Cratis.Arc` runtime assembly. The package embeds Roslyn 5.9 while a transitive dependency exposes a Roslyn 5.0 compile asset, so the project excludes that older compile asset.
+
+The fixtures use the generated `@cratis/chronicle.contracts` 19.6.1 wire layout, including key/value **arrays** for event-type dictionaries. Their definitions were hand-written against that generated contract (the shared `ProjectionDefinitionCompiler` is not on `main` yet), then converted by the packaged Grpc converter and executed by the packaged engine; see `definitionSource` in each fixture. The descriptor SHA-256 of the installed generated `projections.ts` file detects TS contract drift. Each fixture records its format version, engine version/commit, contract version/hash, read-model and participating event schemas, explicit ordered event contexts (lossless string sequence numbers), wire definition and per-event expectations.
+
+The runner creates a real `ProjectionFactory` projection and uses the production `ResolveKey → SetInitialState → HandleEvent → SaveChanges` steps with an in-memory event sequence and sink. Only the factory's three storage lookups are supplied by a strict proxy. It skips unrelated events as the production subscription filter does. Snapshots contain the sink's **engine state**, including `__initialized` and explicit nulls, alongside the schema-normalized **public read** produced by the same `ExpandoObjectConverter.ToJsonObject` used by `ReadModels.GetInstanceById`. Keys absent from `publicRead` mean no materialized instance; missing fields and explicit null fields remain distinguishable in `engineState`. The separate `ProjectionReadModelProcessor` replay loop in Chronicle.Testing is never called.
+
+| Fixture | Kernel behavior captured |
+| --- | --- |
+| `empty-mappings` | A subscribed event materializes an identifier-only document; two source IDs stay independent. |
+| `initial-values` | Each new key gets definition defaults and its own key; a null default is not retained in state. |
+| `remove-recreate` | Removal deletes the row, an unrelated event does not resurrect it, and a later constructive event recreates it. |
+| `mapped-and-removed` | An event registered for both mapping and removal removes the row; a subsequent event recreates it. |
+| `flat-set-from-automap` | Explicit `setFrom` wins for `title`, schema-based AutoMap supplies `quantity`, and `$null` on an absent field does not add a field. |
+| `null-vs-missing` | Clearing a previously present field leaves an explicit null in engine state; the schema-normalized public read omits it. |
+
+This is a **materialization proof**, not a live-kernel storage oracle: no Orleans scheduling, compliance/decryption, future resolution, joins, child projections, MongoDB BSON conversion or Docker-backed keyed read is exercised. In particular, the in-memory sink writes its own `id` property, whereas a persistent sink can use `_id`. Live-kernel differential coverage for storage-sensitive cases, and the TS compiler/provenance and evaluator, belong to later increments. Keep the package pin and expectations together when upgrading.

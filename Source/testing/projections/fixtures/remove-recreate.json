@@ -1,0 +1,210 @@
+{
+  "formatVersion": 1,
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.6.1 generated ProjectionDefinition; verified by kernel conversion and execution.",
+  "wireDefinition": {
+    "EventSequenceId": "00000000-0000-0000-0000-000000000001",
+    "Identifier": "oracle-recreate",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{\u0022title\u0022:\u0022seed\u0022}",
+    "From": [
+      {
+        "Key": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "title": "title"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "RecordRemoved",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "RecordCreated",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "RecordRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "eventType": {
+        "Id": "Unrelated",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "title": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Unrelated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {
+        "title": "again"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "title": "first",
+          "id": "record-a",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "title": "first"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "record-a": {
+          "title": "again",
+          "id": "record-a",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "title": "again"
+        }
+      }
+    }
+  ]
+}

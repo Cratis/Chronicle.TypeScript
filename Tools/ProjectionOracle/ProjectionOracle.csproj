@@ -1,0 +1,33 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Cratis.Chronicle.Testing" Version="19.8.1" GeneratePathProperty="true" />
+    <!-- The packaged Core generated discovery provider refers to Cratis.Arc by assembly name. -->
+    <PackageReference Include="Cratis.Arc" Version="22.23.0" />
+    <!-- Cratis.Orleans enforces matching Orleans majors in Release builds. -->
+    <PackageReference Include="Microsoft.Orleans.Reminders" Version="10.3.1" />
+    <!-- The transitive Roslyn 5.0 compile asset conflicts with the embedded engine's Roslyn 5.9 binary. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" ExcludeAssets="compile" />
+    <!-- Testing deliberately hides its engine from ref/net10.0. These are the *packaged* runtime DLLs,
+         not a second NuGet version or a source checkout. Aliases prevent client/kernel type collisions. -->
+    <Reference Include="Cratis.Chronicle.Concepts" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Concepts.dll" Aliases="KernelConcepts" Private="true" />
+    <Reference Include="Cratis.Chronicle.Contracts" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Contracts.dll" Aliases="KernelContracts" Private="true" />
+    <Reference Include="Cratis.Chronicle.Core" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Core.dll" Aliases="KernelCore" Private="true" />
+    <Reference Include="Cratis.Chronicle.Grpc" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Grpc.dll" Aliases="KernelGrpc" Private="true" />
+    <Reference Include="Cratis.Chronicle.Infrastructure" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Infrastructure.dll" Aliases="KernelInfrastructure" Private="true" />
+    <Reference Include="Cratis.Chronicle.Storage" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Storage.dll" Aliases="KernelStorage" Private="true" />
+    <Reference Include="Cratis.Chronicle.Storage.InMemory" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Cratis.Chronicle.Storage.InMemory.dll" Aliases="KernelInMemory" Private="true" />
+    <!-- The embedded engine was compiled against the packaged Roslyn runtime, not the older transitive SDK version. -->
+    <Reference Include="Microsoft.CodeAnalysis" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Microsoft.CodeAnalysis.dll" Private="true" />
+    <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="$(PkgCratis_Chronicle_Testing)/lib/net10.0/Microsoft.CodeAnalysis.CSharp.dll" Private="true" />
+  </ItemGroup>
+</Project>
