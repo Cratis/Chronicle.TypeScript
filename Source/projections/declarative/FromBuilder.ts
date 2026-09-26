@@ -171,6 +171,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, builderCallback: (builder: IAddChildBuilder<TChildModel, TEvent> & TEvent) => void): this;
+    /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, eventPropertyAccessor: PropertyAccessor<TEvent>): this;
+    /** @inheritdoc */
+    addChild<TChildModel>(
+        targetPropertyAccessor: PropertyAccessor<TReadModel>,
+        eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
+    ): this;
     addChild<TChildModel>(
         targetPropertyAccessor: PropertyAccessor<TReadModel>,
         eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
@@ -184,7 +192,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         (eventPropertyAccessorOrBuilderCallback as (value: unknown) => void)(probeProxy);
 
         this.entry.children.push(probe.usedAsBuilder
-            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty }
+            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty, usingParentKey: probe.usingParentKeyProperty }
             : { targetProperty: targetHandler.property, fromEventProperty: probe.capturedEventProperty });
         return this;
     }

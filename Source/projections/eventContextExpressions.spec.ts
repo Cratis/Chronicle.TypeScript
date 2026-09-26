@@ -182,6 +182,24 @@ describe('event context expressions', () => {
             .From[0].Value.Key.should.equal('$eventContext(EventSourceId)');
     });
 
+    it('should use context properties as addChild keys in a from clause', () => {
+        const child = declarative(builder => builder.from(Recorded, from => from.addChild<Child>(model => model.children, added => added
+            .identifiedBy(model => model.happened)
+            .usingKeyFromContext('sequenceNumber')
+            .usingParentKeyFromContext('eventSourceId'))));
+        child.Children.children.From[0].Value.Key.should.equal('$eventContext(SequenceNumber)');
+        child.Children.children.From[0].Value.ParentKey.should.equal('$eventContext(EventSourceId)');
+    });
+
+    it('should use context properties as addChild keys in a join clause', () => {
+        const child = declarative(builder => builder.join(Recorded, join => join.on(model => model.occurred)
+            .addChild<Child>(model => model.children, added => added
+                .usingKeyFromContext('eventSourceId')
+                .usingParentKeyFromContext('sequenceNumber'))));
+        child.Children.children.From[0].Value.Key.should.equal('$eventContext(EventSourceId)');
+        child.Children.children.From[0].Value.ParentKey.should.equal('$eventContext(SequenceNumber)');
+    });
+
     it('should use a context property as a from parent key', () => {
         declarative(builder => builder.from(Recorded, from => from.usingParentKeyFromContext('eventSourceId')))
             .From[0].Value.ParentKey.should.equal('$eventContext(EventSourceId)');
@@ -255,6 +273,8 @@ describe('event context expressions', () => {
         const mappings = [
             (builder: ProjectionBuilderFor<Model>) => builder.from(Recorded, from => from.usingKeyFromContext('missingKey')),
             (builder: ProjectionBuilderFor<Model>) => builder.from(Recorded, from => from.usingParentKeyFromContext('missingParent')),
+            (builder: ProjectionBuilderFor<Model>) => builder.from(Recorded, from => from.addChild<Child>(model => model.children, child => child.usingKeyFromContext('missingChildKey'))),
+            (builder: ProjectionBuilderFor<Model>) => builder.join(Recorded, join => join.on(model => model.occurred).addChild<Child>(model => model.children, child => child.usingParentKeyFromContext('missingChildParent'))),
             (builder: ProjectionBuilderFor<Model>) => builder.join(Recorded, join => join.on(model => model.occurred).usingKeyFromContext('missingJoinKey')),
             (builder: ProjectionBuilderFor<Model>) => builder.removedWith(Removed, removed => removed.usingKeyFromContext('missingRemovalKey'))
         ];

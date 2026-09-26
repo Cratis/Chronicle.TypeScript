@@ -22,4 +22,18 @@ export interface IAddChildBuilder<TChildModel, TEvent> {
      * @returns This builder for fluent chaining.
      */
     usingKey(eventPropertyAccessor: PropertyAccessor<TEvent>): IAddChildBuilder<TChildModel, TEvent>;
+
+    /**
+     * Specifies an event context property used as the key when adding a child.
+     * @param contextPropertyName - Property path on EventContext, using TypeScript casing.
+     * @returns This builder for fluent chaining.
+     */
+    usingKeyFromContext(contextPropertyName: string): IAddChildBuilder<TChildModel, TEvent>;
+
+    /**
+     * Specifies an event context property used as the parent key when adding a child.
+     * @param contextPropertyName - Property path on EventContext, using TypeScript casing.
+     * @returns This builder for fluent chaining.
+     */
+    usingParentKeyFromContext(contextPropertyName: string): IAddChildBuilder<TChildModel, TEvent>;
 }
