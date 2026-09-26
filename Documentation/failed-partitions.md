@@ -69,4 +69,6 @@ if (!completion.isSuccess) {
 }
 ```
 
-See [Event Log](./event-log.md) for more on `waitForCompletion`.
+See [Event Log](./event-log.md) for more on `waitForCompletion`, and [Observers](./observers.md)
+for the observer's own state — including removing one whose declaring code is gone, which also
+clears any failed partitions kept for it.

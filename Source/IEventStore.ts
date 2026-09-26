@@ -21,6 +21,7 @@ import { IExternalServices } from './externalServices/IExternalServices.js';
 import { IIdentityManager } from './identities/IIdentityManager.js';
 import { IPIIManager } from './compliance/IPIIManager.js';
 import { IFailedPartitions } from './observation/IFailedPartitions.js';
+import { IObservers } from './observation/IObservers.js';
 
 /**
  * Defines the API surface for an event store.
@@ -80,6 +81,12 @@ export interface IEventStore {
 
     /** The failed partitions manager for this event store. */
     readonly failedPartitions: IFailedPartitions;
+
+    /**
+     * The observers registered in the event store, for operating on them - listing what is registered, and
+     * removing one whose declaring code is gone.
+     */
+    readonly observers: IObservers;
 
     /**
      * Gets an event sequence by its identifier.

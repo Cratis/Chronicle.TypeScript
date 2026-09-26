@@ -167,7 +167,7 @@
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.15.0",
-        "@cratis/chronicle.contracts": "19.4.0",
+        "@cratis/chronicle.contracts": "19.6.1",
         "@grpc/grpc-js": "^1.14.4",
         "@opentelemetry/api": "^1.9.1",
         "glob": "^13.0.6",
