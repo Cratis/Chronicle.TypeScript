@@ -25,20 +25,24 @@ const contextProperties = {
     tags: true
 } satisfies Record<keyof EventContext, true>;
 
-// Mirror the kernel's DerivedPropertyFunctions registry and nested record members.
+// Mirror the kernel's DerivedPropertyFunctions registry: Week() applies to dates only.
 const derivedFunctions: Record<string, string> = { week: 'Week' };
-const identityProperties = new Set(['subject', 'name', 'userName', 'onBehalfOf']);
+const dateProperties = new Set(['occurred']);
+const identityProperties = new Set(['subject', 'name', 'userName']);
 
+function lower(segment: string): string {
+    return segment.charAt(0).toLowerCase() + segment.slice(1);
+}
+
+// Accept only paths the kernel can resolve: a root property, an identity member of causedBy (one
+// onBehalfOf level at most, since the kernel constructs missing identities recursively), and nothing
+// inside the causation or tags collections, which a dotted path cannot traverse.
 function validNestedPath(root: string, segments: string[]): boolean {
-    if (root === 'causedBy') {
-        for (let index = 0; index < segments.length; index++) {
-            const member = segments[index].charAt(0).toLowerCase() + segments[index].slice(1);
-            if (!identityProperties.has(member) || (member !== 'onBehalfOf' && index !== segments.length - 1)) return false;
-        }
-    }
-    // The kernel's Causation is a collection; a dotted path cannot select one of its entries.
-    if (root === 'causation' && segments.length > 0) return false;
-    return true;
+    if (segments.length === 0) return true;
+    if (root !== 'causedBy') return false;
+    const members = segments.map(lower);
+    if (members.length === 1) return identityProperties.has(members[0]) || members[0] === 'onBehalfOf';
+    return members.length === 2 && members[0] === 'onBehalfOf' && identityProperties.has(members[1]);
 }
 
 /** Build the expression read by Chronicle's event-context resolver, using CLR property casing. */
@@ -52,14 +56,15 @@ export function eventContextPropertyExpression(propertyPath: string): string {
         throw new InvalidEventContextPropertyError(propertyPath);
     }
     const lastIndex = segments.length - 1;
-    if (segments[lastIndex].endsWith('()')) {
+    const isFunction = segments[lastIndex].endsWith('()');
+    if (isFunction) {
         const functionName = segments[lastIndex].slice(0, -2).toLowerCase();
-        if (!Object.hasOwn(derivedFunctions, functionName)) {
+        if (!Object.hasOwn(derivedFunctions, functionName) || lastIndex !== 1 || !dateProperties.has(contextProperty)) {
             throw new InvalidEventContextPropertyError(propertyPath);
         }
         segments[lastIndex] = derivedFunctions[functionName];
-    }
-    if (!validNestedPath(contextProperty, segments.slice(1))) {
+    } else if (segments.some(segment => Object.hasOwn(derivedFunctions, segment.toLowerCase())) ||
+        !validNestedPath(contextProperty, segments.slice(1))) {
         throw new InvalidEventContextPropertyError(propertyPath);
     }
     const clrPath = segments.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('.');

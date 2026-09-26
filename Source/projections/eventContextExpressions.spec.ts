@@ -136,19 +136,28 @@ describe('event context expressions', () => {
             .From[0].Value.Properties.happened.should.equal('$eventContext(Occurred.Week())');
     });
 
+    it('should reject the week function on a non-date property, in a nonterminal position, or without parentheses', () => {
+        for (const path of ['eventSourceId.week()', 'occurred.week.day', 'occurred.week', 'causedBy.subject.week()']) {
+            expect(() => compileDeclarative(builder => builder.fromEvery(all =>
+                all.set(model => model.happened).toEventContextProperty(path))))
+                .toThrow(`Invalid event context property '${path}'`);
+        }
+    });
+
     it('should reject a derived function the kernel does not recognize', () => {
         expect(() => compileDeclarative(builder => builder.fromEvery(all =>
             all.set(model => model.happened).toEventContextProperty('occurred.ISOWeek()'))))
             .toThrow(/Invalid event context property 'occurred.ISOWeek\(\)'.*'InvalidDeclarativeProjection'/);
     });
 
-    it('should map an identity reached through onBehalfOf recursively', () => {
-        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causedBy.onBehalfOf.onBehalfOf.userName')))
-            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.OnBehalfOf.OnBehalfOf.UserName)');
+    it('should map an identity member reached through one onBehalfOf level', () => {
+        declarative(builder => builder.from(Recorded, from => from.set(model => model.happened).toEventContextProperty('causedBy.onBehalfOf.userName')))
+            .From[0].Value.Properties.happened.should.equal('$eventContext(CausedBy.OnBehalfOf.UserName)');
     });
 
-    it('should reject unknown identity members including those nested under onBehalfOf', () => {
-        for (const path of ['causedBy.unknown', 'causedBy.onBehalfOf.unknown', 'causedBy.subject.name']) {
+    it('should reject unknown identity members and deeper onBehalfOf chains', () => {
+        for (const path of ['causedBy.unknown', 'causedBy.onBehalfOf.unknown', 'causedBy.subject.name',
+            'causedBy.onBehalfOf.onBehalfOf.userName', 'causedBy.onBehalfOf.onBehalfOf']) {
             expect(() => compileDeclarative(builder => builder.fromEvery(all =>
                 all.set(model => model.happened).toEventContextProperty(path))))
                 .toThrow(`Invalid event context property '${path}'`);
@@ -160,8 +169,8 @@ describe('event context expressions', () => {
             .From[0].Value.Properties.happened.should.equal('$eventContext(Causation)');
     });
 
-    it('should reject paths into the causation collection', () => {
-        for (const path of ['causation.type', 'causation.unknown', 'causation.properties.unknown']) {
+    it('should reject paths into the causation and tags collections', () => {
+        for (const path of ['causation.type', 'causation.unknown', 'causation.properties.unknown', 'tags.name']) {
             expect(() => compileDeclarative(builder => builder.fromEvery(all =>
                 all.set(model => model.happened).toEventContextProperty(path))))
                 .toThrow(`Invalid event context property '${path}'`);
