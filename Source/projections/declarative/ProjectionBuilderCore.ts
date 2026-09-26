@@ -14,6 +14,8 @@ import { FromEveryBuilder } from './FromEveryBuilder.js';
 import { RemovedWithBuilder } from './RemovedWithBuilder.js';
 import { RemovedWithJoinBuilder } from './RemovedWithJoinBuilder.js';
 import { ChildAdditionEntry } from './AddChildBuilder.js';
+import { eventContractPath } from '../eventContractPath.js';
+import { getProjectionBuilderProvenance, recordChildDeclaration, recordFromEveryDeclaration, recordKeyDeclaration } from './projectionBuilderProvenance.js';
 
 /** The contract-level event type identifier shape used across projection definitions. */
 export type ContractEventType = { Id: string; Generation: number; Tombstone: boolean };
@@ -118,6 +120,10 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
                 ParentKey: fromBuilder.entry.parentKey
             }
         });
+        for (const [field, declaration] of getProjectionBuilderProvenance(fromBuilder).keys) {
+            recordKeyDeclaration(this, `${eventContractPath('From', contractType)}.${field}`, declaration);
+        }
+        for (const child of fromBuilder.entry.children) recordChildDeclaration(this, `Children.${child.targetProperty}`, '.from().addChild');
         this.mergeChildAdditions(contractType, fromBuilder.entry.children);
         return this as unknown as TBuilder;
     }
@@ -146,6 +152,7 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
 
     /** @inheritdoc */
     fromEvery(builderCallback: (builder: IFromEveryBuilder<TReadModel>) => void): TBuilder {
+        recordFromEveryDeclaration(this);
         const builder = new FromEveryBuilder<TReadModel>();
         builderCallback(builder);
         this._all = {

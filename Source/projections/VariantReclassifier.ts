@@ -3,6 +3,7 @@
 
 import { ContractEventType, FromRecord, JoinRecord } from './declarative/ProjectionBuilderCore.js';
 import { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant.js';
+import type { ProjectionCapabilityProvenance } from './ProjectionCapabilityProvenance.js';
 import { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEvent.js';
 
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -28,6 +29,7 @@ export interface BuiltProjection {
     readonly typeName: string;
     readonly definition: Record<string, unknown>;
     readonly variant?: VariantDeclaration;
+    readonly provenance?: ProjectionCapabilityProvenance[];
 }
 
 function eventTypeKey(eventType: ContractEventType): string {

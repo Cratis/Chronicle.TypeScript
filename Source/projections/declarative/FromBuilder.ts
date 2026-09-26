@@ -15,6 +15,7 @@ import { ISetBuilder } from './ISetBuilder.js';
 import { ISubtractBuilder } from './ISubtractBuilder.js';
 import { SetBuilder } from './SetBuilder.js';
 import { SubtractBuilder } from './SubtractBuilder.js';
+import { recordKeyDeclaration } from './projectionBuilderProvenance.js';
 
 /**
  * Accumulated property mapping for a from clause.
@@ -58,12 +59,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.key = handler.property;
+        recordKeyDeclaration(this, 'Key', '.from().usingKey');
         return this;
     }
 
     /** @inheritdoc */
     usingKeyFromContext(contextPropertyName: string): this {
         this.entry.key = eventContextPropertyExpression(contextPropertyName);
+        recordKeyDeclaration(this, 'Key', '.from().usingKeyFromContext');
         return this;
     }
 
@@ -73,12 +76,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.parentKey = handler.property;
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentKey');
         return this;
     }
 
     /** @inheritdoc */
     usingParentKeyFromContext(contextPropertyName: string): this {
         this.entry.parentKey = eventContextPropertyExpression(contextPropertyName);
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentKeyFromContext');
         return this;
     }
 
@@ -87,6 +92,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.key = compositeKeyBuilder.build();
+        recordKeyDeclaration(this, 'Key', '.from().usingCompositeKey');
         return this;
     }
 
@@ -95,18 +101,21 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.parentKey = compositeKeyBuilder.build();
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentCompositeKey');
         return this;
     }
 
     /** @inheritdoc */
     usingConstantKey(value: string): this {
         this.entry.key = constantValueExpression(value);
+        recordKeyDeclaration(this, 'Key', '.from().usingConstantKey');
         return this;
     }
 
     /** @inheritdoc */
     usingConstantParentKey(value: string): this {
         this.entry.parentKey = constantValueExpression(value);
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingConstantParentKey');
         return this;
     }
 
