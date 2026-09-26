@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, fromEvent, Guid, setValue } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbClearingInvoiceIssued {
-    constructor(readonly reference: string) {}
+    @field(String) readonly reference: string;
+
+    constructor(reference: string) {
+        this.reference = reference;
+    }
 }
 
 @eventType()

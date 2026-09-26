@@ -1,9 +1,14 @@
 ```typescript title="Multiple fromEvery declarations"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class UserChangedDeclarativeEveryMultiple {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 export class UserAuditDeclarativeEveryMultiple {

@@ -1,24 +1,43 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecRemoveWithJoinExplicitEmployeeHired {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class DecRemoveWithJoinExplicitEmployeeAssignedToProject {
-    constructor(readonly employeeId: string, readonly projectId: string) {}
+    @field(String) readonly employeeId: string;
+    @field(String) readonly projectId: string;
+
+    constructor(employeeId: string, projectId: string) {
+        this.employeeId = employeeId;
+        this.projectId = projectId;
+    }
 }
 
 @eventType()
 class DecRemoveWithJoinExplicitProjectCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class DecRemoveWithJoinExplicitProjectCancelled {
-    constructor(readonly projectId: string) {}
+    @field(String) readonly projectId: string;
+
+    constructor(projectId: string) {
+        this.projectId = projectId;
+    }
 }
 
 class DecRemoveWithJoinExplicitEmployeeProject {

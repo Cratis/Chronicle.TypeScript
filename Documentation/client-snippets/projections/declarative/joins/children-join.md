@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecJoinsChildTaskAssigned {
-    constructor(readonly taskId: string, readonly projectId: string) {}
+    @field(String) readonly taskId: string;
+    @field(String) readonly projectId: string;
+
+    constructor(taskId: string, projectId: string) {
+        this.taskId = taskId;
+        this.projectId = projectId;
+    }
 }
 
 @eventType()
 class DecJoinsChildProjectCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 class DecJoinsChildTask {

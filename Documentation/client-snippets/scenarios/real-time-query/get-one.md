@@ -1,11 +1,15 @@
 ```typescript
 import { IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 class ScenariosQueryBook {
-    constructor(
-        readonly title: string,
-        readonly onLoan: boolean
-    ) {}
+    @field(String) readonly title: string;
+    @field(Boolean) readonly onLoan: boolean;
+
+    constructor(title: string, onLoan: boolean) {
+        this.title = title;
+        this.onLoan = onLoan;
+    }
 }
 
 class ScenariosQueryBookService {

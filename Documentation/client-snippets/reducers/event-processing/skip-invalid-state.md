@@ -1,9 +1,14 @@
 ```typescript
 import { EventContext, eventType, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingSkipItemAdded {
-    constructor(readonly price: number) {}
+    @field(Number) readonly price: number;
+
+    constructor(price: number) {
+        this.price = price;
+    }
 }
 
 class EventProcessingSkipOrderSummary {

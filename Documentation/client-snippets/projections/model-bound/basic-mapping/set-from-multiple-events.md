@@ -1,14 +1,23 @@
 ```typescript title="Multiple set mappings"
 import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AccountOpenedForRename {
-    constructor(readonly accountName: string) {}
+    @field(String) readonly accountName: string;
+
+    constructor(accountName: string) {
+        this.accountName = accountName;
+    }
 }
 
 @eventType()
 export class AccountRenamedForRename {
-    constructor(readonly newName: string) {}
+    @field(String) readonly newName: string;
+
+    constructor(newName: string) {
+        this.newName = newName;
+    }
 }
 
 @fromEvent(AccountOpenedForRename)

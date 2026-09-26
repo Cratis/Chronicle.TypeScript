@@ -1,9 +1,16 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecConstantKeyUserJoined {
-    constructor(readonly userId: string, readonly userName: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly userName: string;
+
+    constructor(userId: string, userName: string) {
+        this.userId = userId;
+        this.userName = userName;
+    }
 }
 
 class DecConstantKeyTeamMember {

@@ -1,24 +1,43 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class SliceCreatedForNestedUpdates {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class CommandSetForNestedUpdates {
-    constructor(readonly name: string, readonly schema: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+
+    constructor(name: string, schema: string) {
+        this.name = name;
+        this.schema = schema;
+    }
 }
 
 @eventType()
 class CommandRenamedForNestedUpdates {
-    constructor(readonly newName: string) {}
+    @field(String) readonly newName: string;
+
+    constructor(newName: string) {
+        this.newName = newName;
+    }
 }
 
 @eventType()
 class CommandSchemaUpdatedForNestedUpdates {
-    constructor(readonly updatedSchema: string) {}
+    @field(String) readonly updatedSchema: string;
+
+    constructor(updatedSchema: string) {
+        this.updatedSchema = updatedSchema;
+    }
 }
 
 @eventType()

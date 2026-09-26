@@ -1,5 +1,6 @@
 ```typescript title="Initial values"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 enum InitialValuesUserStatus {
     Inactive = 'Inactive',
@@ -8,7 +9,13 @@ enum InitialValuesUserStatus {
 
 @eventType()
 export class InitialValuesUserCreated {
-    constructor(readonly name: string, readonly email: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly email: string;
+
+    constructor(name: string, email: string) {
+        this.name = name;
+        this.email = email;
+    }
 }
 
 export class InitialValuesUserProfile {

@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class AutoMapTeamFormed {
-    constructor(readonly teamName: string) {}
+    @field(String) readonly teamName: string;
+
+    constructor(teamName: string) {
+        this.teamName = teamName;
+    }
 }
 
 @eventType()
 class AutoMapMemberJoinedTeam {
-    constructor(readonly memberId: string, readonly displayName: string) {}
+    @field(String) readonly memberId: string;
+    @field(String) readonly displayName: string;
+
+    constructor(memberId: string, displayName: string) {
+        this.memberId = memberId;
+        this.displayName = displayName;
+    }
 }
 
 class AutoMapTeamMember {

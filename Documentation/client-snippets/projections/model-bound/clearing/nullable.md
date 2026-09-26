@@ -1,12 +1,16 @@
 ```typescript title="A member has to be able to hold no value"
 import { clearWith, eventType, fromEvent, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class MbClearingShiftPlanned {
-    constructor(
-        readonly assignee: string,
-        readonly hours: number
-    ) {}
+    @field(String) readonly assignee: string;
+    @field(Number) readonly hours: number;
+
+    constructor(assignee: string, hours: number) {
+        this.assignee = assignee;
+        this.hours = hours;
+    }
 }
 
 @eventType()

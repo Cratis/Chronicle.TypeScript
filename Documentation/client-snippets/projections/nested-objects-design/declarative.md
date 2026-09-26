@@ -1,14 +1,25 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class NodDeclarativeSliceCreated {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 class NodDeclarativeCommandSet {
-    constructor(readonly name: string, readonly schema: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+
+    constructor(name: string, schema: string) {
+        this.name = name;
+        this.schema = schema;
+    }
 }
 
 @eventType()

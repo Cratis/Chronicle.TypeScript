@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class WebhooksIndexAccountOpened {
-    constructor(readonly ownerName: string) {}
+    @field(String) readonly ownerName: string;
+
+    constructor(ownerName: string) {
+        this.ownerName = ownerName;
+    }
 }
 
 class WebhooksIndexRegister {

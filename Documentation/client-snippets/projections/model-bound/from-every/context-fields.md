@@ -1,9 +1,14 @@
 ```typescript title="Track audit metadata from every event"
 import { eventType, fromEvent, fromEvery } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AuditableInventoryChangedForEvery {
-    constructor(readonly reason: string) {}
+    @field(String) readonly reason: string;
+
+    constructor(reason: string) {
+        this.reason = reason;
+    }
 }
 
 @fromEvent(AuditableInventoryChangedForEvery)

@@ -1,35 +1,57 @@
 ```typescript
 import { clearWith, eventType, fromEvent, Guid, nested, setFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class SliceCreatedForNestedComplete {
-    constructor(readonly name: string) {}
+    @field(String) readonly name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
 }
 
 @eventType()
 export class CommandSetForNestedComplete {
-    constructor(
-        readonly commandId: Guid,
-        readonly name: string,
-        readonly schema: string,
-        readonly rules: string,
-        readonly stateSchema: string
-    ) {}
+    @field(Guid) readonly commandId: Guid;
+    @field(String) readonly name: string;
+    @field(String) readonly schema: string;
+    @field(String) readonly rules: string;
+    @field(String) readonly stateSchema: string;
+
+    constructor(commandId: Guid, name: string, schema: string, rules: string, stateSchema: string) {
+        this.commandId = commandId;
+        this.name = name;
+        this.schema = schema;
+        this.rules = rules;
+        this.stateSchema = stateSchema;
+    }
 }
 
 @eventType()
 export class CommandRenamedForNestedComplete {
-    constructor(readonly commandId: Guid, readonly name: string) {}
+    @field(Guid) readonly commandId: Guid;
+    @field(String) readonly name: string;
+
+    constructor(commandId: Guid, name: string) {
+        this.commandId = commandId;
+        this.name = name;
+    }
 }
 
 @eventType()
 export class CommandDefinitionUpdatedForNestedComplete {
-    constructor(
-        readonly commandId: Guid,
-        readonly schema: string,
-        readonly rules: string,
-        readonly stateSchema: string
-    ) {}
+    @field(Guid) readonly commandId: Guid;
+    @field(String) readonly schema: string;
+    @field(String) readonly rules: string;
+    @field(String) readonly stateSchema: string;
+
+    constructor(commandId: Guid, schema: string, rules: string, stateSchema: string) {
+        this.commandId = commandId;
+        this.schema = schema;
+        this.rules = rules;
+        this.stateSchema = stateSchema;
+    }
 }
 
 @eventType()

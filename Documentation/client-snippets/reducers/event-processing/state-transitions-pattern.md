@@ -1,29 +1,50 @@
 ```typescript
 import { EventContext, eventType, Guid, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingOrderCreatedForStatus {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 @eventType()
 class EventProcessingOrderPaid {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 @eventType()
 class EventProcessingOrderShipped {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 @eventType()
 class EventProcessingOrderDelivered {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 @eventType()
 class EventProcessingOrderCancelled {
-    constructor(readonly orderId: Guid) {}
+    @field(Guid) readonly orderId: Guid;
+
+    constructor(orderId: Guid) {
+        this.orderId = orderId;
+    }
 }
 
 class EventProcessingOrderStatus {

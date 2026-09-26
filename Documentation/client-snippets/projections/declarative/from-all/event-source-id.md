@@ -1,9 +1,14 @@
 ```typescript title="Map event source id with FromAll"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class AccountOpenedDeclarativeAll {
-    constructor(readonly ownerName: string) {}
+    @field(String) readonly ownerName: string;
+
+    constructor(ownerName: string) {
+        this.ownerName = ownerName;
+    }
 }
 
 export class AccountSummaryDeclarativeAll {

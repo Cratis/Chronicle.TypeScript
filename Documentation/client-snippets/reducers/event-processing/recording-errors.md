@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, reducer } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class EventProcessingInvalidDataDetected {
-    constructor(readonly reason: string) {}
+    @field(String) readonly reason: string;
+
+    constructor(reason: string) {
+        this.reason = reason;
+    }
 }
 
 class EventProcessingValidationResult {

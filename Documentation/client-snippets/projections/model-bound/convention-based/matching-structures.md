@@ -1,5 +1,6 @@
 ```typescript title="Matching nested structures and collections"
 import { eventType, fromEvent } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 export class ConventionAddress {
     street = '';
@@ -15,21 +16,30 @@ export class ConventionLineItem {
 
 @eventType()
 export class ConventionCustomerRegistered {
-    constructor(
-        readonly firstName: string,
-        readonly lastName: string,
-        readonly billingAddress: ConventionAddress,
-        readonly shippingAddress: ConventionAddress
-    ) {}
+    @field(String) readonly firstName: string;
+    @field(String) readonly lastName: string;
+    @field(ConventionAddress) readonly billingAddress: ConventionAddress;
+    @field(ConventionAddress) readonly shippingAddress: ConventionAddress;
+
+    constructor(firstName: string, lastName: string, billingAddress: ConventionAddress, shippingAddress: ConventionAddress) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.billingAddress = billingAddress;
+        this.shippingAddress = shippingAddress;
+    }
 }
 
 @eventType()
 export class ConventionOrderCreated {
-    constructor(
-        readonly customerEmail: string,
-        readonly items: ConventionLineItem[],
-        readonly tags: string[]
-    ) {}
+    @field(String) readonly customerEmail: string;
+    @field(Array, { genericArguments: [ConventionLineItem] }) readonly items: ConventionLineItem[];
+    @field(Array, { genericArguments: [String] }) readonly tags: string[];
+
+    constructor(customerEmail: string, items: ConventionLineItem[], tags: string[]) {
+        this.customerEmail = customerEmail;
+        this.items = items;
+        this.tags = tags;
+    }
 }
 
 @fromEvent(ConventionCustomerRegistered)

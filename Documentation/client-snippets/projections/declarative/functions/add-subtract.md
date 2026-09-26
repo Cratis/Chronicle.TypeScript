@@ -1,19 +1,32 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecFunctionsAccountOpened {
-    constructor(readonly number: string) {}
+    @field(String) readonly number: string;
+
+    constructor(number: string) {
+        this.number = number;
+    }
 }
 
 @eventType()
 class DecFunctionsMoneyDeposited {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()
 class DecFunctionsMoneyWithdrawn {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 class DecFunctionsAccount {

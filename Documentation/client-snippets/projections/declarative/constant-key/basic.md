@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class DecConstantKeyOrderPlaced {
-    constructor(readonly total: number) {}
+    @field(Number) readonly total: number;
+
+    constructor(total: number) {
+        this.total = total;
+    }
 }
 
 class DecConstantKeyGlobalCounter {

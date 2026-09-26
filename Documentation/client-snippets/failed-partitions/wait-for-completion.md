@@ -1,9 +1,14 @@
 ```typescript
 import { eventType, IEventStore } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class FailedPartitionsOrderShipped {
-    constructor(readonly orderId: string = '') {}
+    @field(String) readonly orderId: string;
+
+    constructor(orderId: string = '') {
+        this.orderId = orderId;
+    }
 }
 
 async function appendAndCheckFailures(store: IEventStore, orderId: string): Promise<void> {

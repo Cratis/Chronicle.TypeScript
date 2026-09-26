@@ -1,24 +1,47 @@
 ```typescript
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 class GroupCreatedForChildren {
-    constructor(readonly name: string, readonly description: string) {}
+    @field(String) readonly name: string;
+    @field(String) readonly description: string;
+
+    constructor(name: string, description: string) {
+        this.name = name;
+        this.description = description;
+    }
 }
 
 @eventType()
 class UserAddedToGroupForChildren {
-    constructor(readonly userId: string, readonly role: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly role: string;
+
+    constructor(userId: string, role: string) {
+        this.userId = userId;
+        this.role = role;
+    }
 }
 
 @eventType()
 class UserRoleChangedForChildren {
-    constructor(readonly userId: string, readonly role: string) {}
+    @field(String) readonly userId: string;
+    @field(String) readonly role: string;
+
+    constructor(userId: string, role: string) {
+        this.userId = userId;
+        this.role = role;
+    }
 }
 
 @eventType()
 class UserRemovedFromGroupForChildren {
-    constructor(readonly userId: string) {}
+    @field(String) readonly userId: string;
+
+    constructor(userId: string) {
+        this.userId = userId;
+    }
 }
 
 class GroupMemberForChildren {

@@ -1,19 +1,32 @@
 ```typescript title="Subtract from an event"
 import { addFrom, eventType, fromEvent, setFrom, subtractFrom } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
 @eventType()
 export class BalanceAccountOpened {
-    constructor(readonly initialBalance: number) {}
+    @field(Number) readonly initialBalance: number;
+
+    constructor(initialBalance: number) {
+        this.initialBalance = initialBalance;
+    }
 }
 
 @eventType()
 export class BalanceDepositMade {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @eventType()
 export class BalanceWithdrawalMade {
-    constructor(readonly amount: number) {}
+    @field(Number) readonly amount: number;
+
+    constructor(amount: number) {
+        this.amount = amount;
+    }
 }
 
 @fromEvent(BalanceAccountOpened)
