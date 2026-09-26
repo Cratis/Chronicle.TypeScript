@@ -5,6 +5,7 @@ import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './arti
 import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
+import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;
@@ -15,6 +16,7 @@ type ChronicleOptionsConstructorParams = {
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
+    artifactActivator?: ClientArtifactsActivator;
 };
 
 type ChronicleOptionsFactoryParams = {
@@ -22,6 +24,7 @@ type ChronicleOptionsFactoryParams = {
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
+    artifactActivator?: ClientArtifactsActivator;
 };
 
 /**
@@ -73,6 +76,9 @@ export class ChronicleOptions {
     /** Optional handler for application-owned reactor returns, installed before observations begin. */
     readonly reactorResultHandler?: ReactorResultHandler;
 
+    /** Optional per-delivery reactor/reducer activator; absent means one instance per observation stream. */
+    readonly artifactActivator?: ClientArtifactsActivator;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -82,6 +88,7 @@ export class ChronicleOptions {
         this.discoveryPatterns = options.discoveryPatterns ?? ChronicleOptions.defaultDiscoveryPatterns();
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
         this.reactorResultHandler = options.reactorResultHandler;
+        this.artifactActivator = options.artifactActivator;
     }
 
     private static defaultDiscoveryPatterns(): string[] {
@@ -123,7 +130,8 @@ export class ChronicleOptions {
             clientArtifactsProvider: options?.clientArtifactsProvider,
             discoveryPatterns: options?.discoveryPatterns,
             defaultSinkTypeId: options?.defaultSinkTypeId,
-            reactorResultHandler: options?.reactorResultHandler
+            reactorResultHandler: options?.reactorResultHandler,
+            artifactActivator: options?.artifactActivator
         });
     }
 

@@ -8,8 +8,8 @@ import { InvalidEventContextPropertyError } from '../projections/InvalidEventCon
 import { invalidEventContextPropertyInProjection } from '../projections/invalidEventContextPropertyInProjection.js';
 import { getReadModelId } from './readModel.js';
 import { ProjectionBuilderFor } from '../projections/declarative/ProjectionBuilderFor.js';
+import type { ChildrenDefinitionLike } from '../projections/declarative/ProjectionBuilderCore.js';
 import type { IProjectionFor } from '../projections/declarative/IProjectionFor.js';
-import type { ChildrenDefinitionLike } from '../projections/modelBound/childrenAndNestedBuilder.js';
 import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
 import { resolveChildElementType, resolveNestedType } from '../projections/modelBound/childrenAndNestedBuilder.js';
 import { isNested } from '../projections/modelBound/nested.js';
