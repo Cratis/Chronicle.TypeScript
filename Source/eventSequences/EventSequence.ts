@@ -4,14 +4,13 @@
 import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
-import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
+import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
+import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
-import { Tag } from '../events/Tag.js';
-import { getTagsFor } from '../events/tagDecorator.js';
-import { mergeTags } from '../events/mergeTags.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { toClientFailedPartition } from '../observation/toClientFailedPartition.js';
@@ -38,7 +37,6 @@ import { ChronicleTracer } from '../Tracing.js';
 import { ChronicleMetrics } from '../Metrics.js';
 import { identityProvider, Identity } from '../identity/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
-import { correlationIdManager } from '../correlation/index.js';
 import { toContractsGuid } from '../connection/Guid.js';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
@@ -139,22 +137,8 @@ export class EventSequence implements IEventSequence {
                 }
 
                 if (this.appendOperations.hasSubscribers) {
-                    this.appendOperations.publish([{
-                        event: {
-                            context: {
-                                sequenceNumber: result.sequenceNumber.value,
-                                eventSourceId,
-                                eventType,
-                                occurred: new Date(),
-                                correlationId: correlationId.toString(),
-                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } })),
-                                tags: tags.map(value => new Tag(value))
-                            },
-                            eventType,
-                            content: event as Record<string, unknown>
-                        },
-                        result
-                    }]);
+                    this.appendOperations.publish([createAppendNotification(eventSourceId, event, result,
+                        correlationId.toString(), mapAppendNotificationCausation(causationChain), tags)]);
                 }
 
                 return result;
@@ -181,74 +165,8 @@ export class EventSequence implements IEventSequence {
         eventsOrOptions?: object[] | AppendOptions,
         options?: AppendOptions
     ): Promise<AppendResult[]> {
-        if (typeof eventSourceIdOrEvents !== 'string' && !Array.isArray(eventSourceIdOrEvents)) {
-            throw new Error('Invalid arguments: first parameter must be an eventSourceId string or an array of { eventSourceId, event }.');
-        }
-        if (typeof eventSourceIdOrEvents === 'string' && !Array.isArray(eventsOrOptions)) {
-            throw new Error('Invalid arguments: use appendMany(eventSourceId, events, options?) where the second parameter is an array of events.');
-        }
-        if (typeof eventSourceIdOrEvents !== 'string' && Array.isArray(eventsOrOptions)) {
-            throw new Error('Invalid arguments: use appendMany(eventsForEventSourceId, options?) where the second parameter is append options.');
-        }
-
-        let eventsForEventSourceIds: EventForEventSourceId[];
-        if (typeof eventSourceIdOrEvents === 'string') {
-            const eventsArray = eventsOrOptions as object[];
-            eventsForEventSourceIds = eventsArray.map((event: object) => ({
-                eventSourceId: eventSourceIdOrEvents,
-                event
-            }));
-        } else {
-            eventsForEventSourceIds = eventSourceIdOrEvents;
-        }
-        const appendOptions = typeof eventSourceIdOrEvents === 'string'
-            ? options
-            : eventsOrOptions as AppendOptions | undefined;
-        if (eventsForEventSourceIds.length === 0 && Object.keys(appendOptions?.concurrencyScopes ?? {}).length > 0) {
-            throw new Error('Chronicle requires at least one event to validate concurrency scopes.');
-        }
-
-        const correlationId = appendOptions?.correlationId === undefined
-            ? Guid.as(correlationIdManager.current.value)
-            : Guid.as(appendOptions.correlationId);
-
-        const batchCausationChain = causationManager.run(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) },
-            () => causationManager.getCurrentChain());
-        const identity = identityProvider.getCurrent();
-
-        // Explicit labels may narrow a different event source than any target in this batch.
-        // Preserve them and supply the shared fallback only for targets without an explicit scope.
-        const concurrencyScopes = new Map<string, ConcurrencyScope | undefined>(Object.entries(appendOptions?.concurrencyScopes ?? {}));
-        for (const { eventSourceId } of eventsForEventSourceIds) {
-            if (!concurrencyScopes.has(eventSourceId)) {
-                concurrencyScopes.set(eventSourceId, appendOptions?.concurrencyScope);
-            }
-        }
-
-        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, occurred, tags: instanceTags }) => {
-            const eventType = getEventTypeFor(event.constructor as Function);
-
-            // Merge static tags declared on the event type, tags carried by this specific
-            // EventForEventSourceId entry, and tags supplied at call time for the whole batch.
-            const tags = mergeTags(getTagsFor(event.constructor as Function), instanceTags, appendOptions?.tags);
-            const occurrenceTime = occurred ?? appendOptions?.occurred;
-
-            return {
-                EventSourceType: eventSourceType ?? appendOptions?.sourceType,
-                EventSourceId: eventSourceId,
-                EventStreamType: eventStreamType ?? appendOptions?.streamType,
-                EventStreamId: eventStreamId ?? appendOptions?.streamId,
-                EventType: {
-                    Id: eventType.id.value,
-                    Generation: eventType.generation.value,
-                    Tombstone: eventType.tombstone
-                },
-                Content: JsonSerializer.serialize(event),
-                Tags: tags,
-                Occurred: occurrenceTime === undefined ? undefined : { Value: occurrenceTime.toISOString() },
-                Subject: subject ?? appendOptions?.subject ?? eventSourceId
-            };
-        });
+        const { eventsForEventSourceIds, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend } =
+            prepareBatchAppend(eventSourceIdOrEvents, eventsOrOptions, options);
 
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
 
@@ -336,26 +254,11 @@ export class EventSequence implements IEventSequence {
 
                 if (this.appendOperations.hasSubscribers && result.length > 0) {
                     const occurredAt = new Date();
-                    const causationEntries = batchCausationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }));
+                    const causationEntries = mapAppendNotificationCausation(batchCausationChain);
                     this.appendOperations.publish(result.map((appendResult: AppendResult, index: number) => {
                         const { eventSourceId, event } = eventsForEventSourceIds[index];
-                        const eventType = getEventTypeFor(event.constructor as Function);
-                        return {
-                            event: {
-                                context: {
-                                    sequenceNumber: appendResult.sequenceNumber.value,
-                                    eventSourceId,
-                                    eventType,
-                                    occurred: occurredAt,
-                                    correlationId: correlationId.toString(),
-                                    causation: causationEntries,
-                                    tags: eventsToAppend[index].Tags.map(value => new Tag(value))
-                                },
-                                eventType,
-                                content: event as Record<string, unknown>
-                            },
-                            result: appendResult
-                        };
+                        return createAppendNotification(eventSourceId, event, appendResult, correlationId.toString(),
+                            causationEntries, eventsToAppend[index].Tags, occurredAt);
                     }));
                 }
 

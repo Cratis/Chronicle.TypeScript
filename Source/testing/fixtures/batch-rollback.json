@@ -1,0 +1,244 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "operations": [
+    {
+      "overload": "mixed",
+      "events": [
+        {
+          "source": "A",
+          "type": "unique",
+          "key": "claimed"
+        }
+      ]
+    },
+    {
+      "overload": "same",
+      "events": [
+        {
+          "source": "B",
+          "name": "would rollback",
+          "active": true
+        },
+        {
+          "source": "B",
+          "type": "unique",
+          "key": "claimed"
+        }
+      ]
+    },
+    {
+      "overload": "mixed",
+      "events": [
+        {
+          "source": "B",
+          "type": "unique",
+          "key": "in batch"
+        },
+        {
+          "source": "C",
+          "type": "unique",
+          "key": "in batch"
+        }
+      ]
+    },
+    {
+      "overload": "mixed",
+      "events": [
+        {
+          "source": "B",
+          "name": "after",
+          "active": false
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": 0,
+        "violationIds": [],
+        "errors": 0,
+        "concurrencyViolation": false
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": 1,
+        "violationIds": [
+          "BatchUniqueKey"
+        ],
+        "errors": 0,
+        "concurrencyViolation": false
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": 1,
+        "violationIds": [
+          "BatchUniqueKey"
+        ],
+        "errors": 0,
+        "concurrencyViolation": false
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": 0,
+        "violationIds": [],
+        "errors": 0,
+        "concurrencyViolation": false
+      }
+    ],
+    "notifications": [
+      [
+        {
+          "sequence": "0",
+          "source": "A",
+          "type": "BatchUniqueRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "18446744073709551615",
+          "source": "B",
+          "type": "OracleEventRecorded",
+          "success": false
+        },
+        {
+          "sequence": "18446744073709551615",
+          "source": "B",
+          "type": "BatchUniqueRecorded",
+          "success": false
+        }
+      ],
+      [
+        {
+          "sequence": "18446744073709551615",
+          "source": "B",
+          "type": "BatchUniqueRecorded",
+          "success": false
+        },
+        {
+          "sequence": "18446744073709551615",
+          "source": "C",
+          "type": "BatchUniqueRecorded",
+          "success": false
+        }
+      ],
+      [
+        {
+          "sequence": "1",
+          "source": "B",
+          "type": "OracleEventRecorded",
+          "success": true
+        }
+      ]
+    ],
+    "notificationHistoryLengths": [
+      1,
+      1,
+      1,
+      2
+    ],
+    "history": [
+      {
+        "sequence": "0",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "H3koDG+FSvZpsLv7oBF9E7g1NxjZRdCTkfTGdpiZauQ=",
+        "type": "BatchUniqueRecorded",
+        "content": {
+          "key": "claimed"
+        }
+      },
+      {
+        "sequence": "1",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "B",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "B",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "zGxsAEmOdxZMXQ9fXrcP0B1YBUNc1sVHCH/gJu26SGc=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "after",
+          "active": false
+        }
+      }
+    ],
+    "next": "2",
+    "tail": "1",
+    "tailA": "0",
+    "tailByType": "18446744073709551615",
+    "fromOneByType": [],
+    "byRoute": [],
+    "byAllStreamType": [],
+    "byDefaultRoute": [
+      "1"
+    ],
+    "tailByAll": "18446744073709551615",
+    "byCustomRoute": [],
+    "tailByRoute": "18446744073709551615",
+    "byStreamTypeOnly": [],
+    "tailByStreamTypeOnly": "18446744073709551615",
+    "byStreamIdOnly": [],
+    "tailByStreamIdOnly": "18446744073709551615",
+    "bySourceTypeOnly": [],
+    "tailBySourceTypeOnly": "18446744073709551615",
+    "byMixedRoute": [],
+    "tailByMixedRoute": "18446744073709551615"
+  }
+}

@@ -16,5 +16,5 @@ const basicScenario = new BasicEventScenario({
 const basicResult = await basicScenario.append('message-1', new MessageRecorded('hello'));
 const basicHistory = basicScenario.appendedEvents;
 // basicResult.isSuccess is true; basicHistory contains the serialized event.
-// Batch append, constraints and observers require a kernel-backed test.
+// Constraints and observer completion require a kernel-backed test.
 ```
