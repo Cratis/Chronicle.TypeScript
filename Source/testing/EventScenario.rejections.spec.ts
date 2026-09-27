@@ -50,6 +50,14 @@ class PaddedId {
     @field(String) name = 'value';
 }
 eventType(' PaddedId ')(PaddedId);
+class NonAsciiPaddedId {
+    @field(String) name = 'value';
+}
+eventType('\u0085NonAsciiPaddedId\u0085')(NonAsciiPaddedId);
+class DuplicateId {
+    @field(String) name = 'value';
+}
+eventType('Recorded')(DuplicateId);
 
 const scenario = () => new EventScenario({ artifacts: { eventTypes: [Recorded] }, constraints: 'disabled' });
 const clean = (subject: EventScenario) => {
@@ -79,7 +87,8 @@ describe('when the fixture-bounded event sequence encounters unproven operations
     for (const [type, operation] of [
         [PropertyUnique, 'artifacts.constraints'], [RemovesConstraint, 'artifacts.eventTypes.constraints'], [Tagged, 'tags'],
         [LaterGeneration, 'artifacts.eventTypes'], [Tombstone, 'artifacts.eventTypes'],
-        [CommaId, 'artifacts.eventTypes.id'], [PaddedId, 'artifacts.eventTypes.id']
+        [CommaId, 'artifacts.eventTypes.id'], [PaddedId, 'artifacts.eventTypes.id'],
+        [NonAsciiPaddedId, 'artifacts.eventTypes.id']
     ] as const) {
         it(`should reject ${type.name} during catalog validation`, () => {
             const subject = scenario();
@@ -89,6 +98,11 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         });
     }
 
+    it('should reject duplicate event IDs in the catalog', () => {
+        const subject = scenario();
+        rejected(() => new EventScenario({ artifacts: { eventTypes: [Recorded, DuplicateId] }, constraints: 'disabled' }), 'artifacts.eventTypes');
+        clean(subject);
+    });
     it('should reject migrations', () => {
         const subject = scenario();
         rejected(() => new EventScenario({ artifacts: { eventTypes: [Recorded], eventTypeMigrations: [class Migration {}] }, constraints: 'disabled' }), 'artifacts.eventTypeMigrations');
@@ -181,5 +195,113 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         const subject = new EventScenario({ artifacts: { eventTypes: [Recorded] }, constraints: 'disabled', clock: () => new Date(NaN) });
         await rejects(() => subject.append('A', new Recorded()), 'append.clock');
         clean(subject);
+    });
+    for (const date of ['0000-12-31T23:59:59.999Z', '+010000-01-01T00:00:00.000Z']) {
+        it(`should reject out-of-range UTC occurrence ${date} without changing history or results`, async () => {
+            let clock = new Date('2024-01-01T00:00:00.000Z');
+            const subject = new EventScenario({ artifacts: { eventTypes: [Recorded] }, constraints: 'disabled', clock: () => clock });
+            await subject.append('A', new Recorded());
+            const history = subject.appendedEvents;
+            const results = subject.results;
+            clock = new Date(date);
+            await rejects(() => subject.append('B', new Recorded()), 'append.clock');
+            subject.appendedEvents.should.deep.equal(history);
+            subject.results.should.deep.equal(results);
+        });
+    }
+    for (const [name, value] of [
+        ['quote', '"'], ['backslash', '\\'], ['DEL', '\u007f'], ['uppercase accented letter', '\u00c9'],
+        ['decomposed accent', 'e\u0301'], ['Japanese', '日本'], ['tab', '\t']
+    ] as const) {
+        it(`should reject ${name} outside the fixture-backed content domain`, async () => {
+            const subject = scenario();
+            const event = new Recorded();
+            event.name = value;
+            await rejects(() => subject.append('A', event), 'append.content');
+            clean(subject);
+        });
+    }
+    for (const [name, value] of [['missing', undefined], ['numeric', 42]] as const) {
+        it(`should reject ${name} content`, async () => {
+            const subject = scenario();
+            const event = new Recorded();
+            Object.assign(event, { name: value });
+            await rejects(() => subject.append('A', event), 'append.content');
+            clean(subject);
+        });
+    }
+    it('should reject extra content fields', async () => {
+        const subject = scenario();
+        const event = Object.assign(new Recorded(), { extra: 'value' });
+        await rejects(() => subject.append('A', event), 'append.content');
+        clean(subject);
+    });
+    for (const source of ['a b', 'a|b', '\u00c9']) {
+        it(`should reject unsupported append source ${JSON.stringify(source)}`, async () => {
+            const subject = scenario();
+            await rejects(() => subject.append(source, new Recorded()), 'append.source');
+            clean(subject);
+        });
+    }
+    it('should reject plain correlation options', async () => {
+        const subject = scenario();
+        await rejects(() => subject.append('A', new Recorded(), { correlationId: '00000000-0000-0000-0000-000000000001' }), 'append.options');
+        clean(subject);
+    });
+    it('should reject plain subject options', async () => {
+        const subject = scenario();
+        await rejects(() => subject.append('A', new Recorded(), { subject: 'other' }), 'append.options');
+        clean(subject);
+    });
+    for (const [name, filters] of [
+        ['stream type', ['All', undefined, undefined]],
+        ['stream ID', [undefined, 'Default', undefined]],
+        ['source type', [undefined, undefined, 'Default']]
+    ] as const) {
+        it(`should reject ${name} source/type-read filters`, async () => {
+            const subject = scenario();
+            await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', [Recorded], ...filters),
+                'getForEventSourceIdAndEventTypes.filters');
+            clean(subject);
+        });
+    }
+    it('should reject empty source/type-read event types', async () => {
+        const subject = scenario();
+        await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', []), 'getForEventSourceIdAndEventTypes.filters');
+        clean(subject);
+    });
+    it('should reject unregistered source/type-read event types', async () => {
+        const subject = scenario();
+        await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', [DuplicateId]), 'read.eventTypes');
+        clean(subject);
+    });
+    it('should reject non-ASCII padded read sources before returning an incorrect result', async () => {
+        const subject = scenario();
+        await subject.append('A', new Recorded());
+        const history = subject.appendedEvents;
+        const results = subject.results;
+        for (const source of ['\u0085A\u0085', 'A\u00a0', 'A\u007f', 'A\u2000B']) {
+            await rejects(() => subject.eventSequence.hasEventsFor(source), 'hasEventsFor.source');
+            await rejects(() => subject.eventSequence.getTailSequenceNumber(source), 'getTailSequenceNumber.source');
+            await rejects(() => subject.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, source), 'getFromSequenceNumber.source');
+            await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes(source, [Recorded]), 'getForEventSourceIdAndEventTypes.source');
+        }
+        subject.appendedEvents.should.deep.equal(history);
+        subject.results.should.deep.equal(results);
+    });
+    it('should reject overlapping act appends, including separate act entry points', async () => {
+        const subject = scenario();
+        const [first, second] = await Promise.allSettled([
+            subject.append('A', new Recorded()),
+            subject.eventLog.append('B', new Recorded())
+        ]);
+        first.status.should.equal('fulfilled');
+        second.status.should.equal('rejected');
+        if (second.status === 'rejected') {
+            (second.reason instanceof UnsupportedEventSequenceOperation).should.be.true;
+            (second.reason as Error).message.should.include('append');
+        }
+        subject.appendedEvents.length.should.equal(1);
+        subject.results.length.should.equal(1);
     });
 });

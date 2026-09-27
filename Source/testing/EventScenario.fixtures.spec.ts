@@ -87,7 +87,7 @@ function unsupported(action: () => unknown, operation: string): void {
 
 describe('when appending against committed kernel event fixtures', () => {
     it('should include a non-vacuous empty sequence, single append, alternate schema and interleaved sources', () => {
-        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'boundary.json', 'client-causation.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
+        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'boundary.json', 'client-causation.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json', 'source-tail-before-global.json']);
     });
 
     for (const { name, fixture } of fixtures) {
@@ -153,6 +153,9 @@ describe('when appending against committed kernel event fixtures', () => {
             (await scenario.eventSequence.getNextSequenceNumber()).value.toString().should.equal(fixture.expected.next);
             (await scenario.eventSequence.getTailSequenceNumber()).value.toString().should.equal(fixture.expected.tail);
             (await scenario.eventSequence.getTailSequenceNumber('A')).value.toString().should.equal(fixture.expected.tailA);
+            if (name === 'source-tail-before-global.json') {
+                fixture.expected.tailA.should.not.equal(fixture.expected.tail);
+            }
             (await scenario.eventSequence.hasEventsFor('A')).should.equal(fixture.expected.hasSourceA);
             const sourceEvents = await scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A');
             sourceEvents.map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.sourceA);

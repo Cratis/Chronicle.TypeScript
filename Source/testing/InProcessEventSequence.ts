@@ -28,6 +28,9 @@ import { getRemovedConstraintNames } from '../events/constraints/removeConstrain
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
+// JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
+const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
+
 /** Fixture-backed, scenario-local single-append sequence; no kernel or observer scheduler is started. */
 export class InProcessEventSequence implements IEventSequence {
     readonly id: EventSequenceId;
@@ -62,7 +65,8 @@ export class InProcessEventSequence implements IEventSequence {
             const metadata = getEventTypeMetadata(type);
             if (!metadata) throw this.unsupported('artifacts.eventTypes', type.name, 'Event type has no @eventType metadata.');
             const eventType = metadata.eventType;
-            if (!eventType.id.value.trim() || eventType.id.value !== eventType.id.value.trim() || eventType.id.value.includes(',')) {
+            if (!eventType.id.value.trim() || eventType.id.value !== eventType.id.value.trim() ||
+                unprovenFilterCharacters.test(eventType.id.value) || eventType.id.value.includes(',')) {
                 throw this.unsupported('artifacts.eventTypes.id', eventType.id.value, 'Comma-separated or padded event IDs have unproven filter behavior.');
             }
             if (ids.has(eventType.id.value)) throw this.unsupported('artifacts.eventTypes', type.name, 'Duplicate event ID or generation history.');
@@ -157,7 +161,11 @@ export class InProcessEventSequence implements IEventSequence {
                 throw this.unsupported('append.content', event.constructor.name, 'Content differs from the flat scalar schema; null, missing and extra values are not proven.');
             }
             const occurred = this._clock();
-            if (!(occurred instanceof Date) || Number.isNaN(occurred.getTime())) throw this.unsupported('append.clock', event.constructor.name, 'Clock must return a valid Date.');
+            // Date has millisecond precision; only the UTC year range representable by DateTimeOffset is supported.
+            if (!(occurred instanceof Date) || Number.isNaN(occurred.getTime()) ||
+                occurred.getUTCFullYear() < 1 || occurred.getUTCFullYear() > 9999) {
+                throw this.unsupported('append.clock', event.constructor.name, 'Clock must return a valid Date within UTC years 1–9999 (millisecond precision).');
+            }
             const canonical = Object.fromEntries(Object.entries(content).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
             const hash = createHash('sha256').update(`${prepared.eventType.id.value}|${eventSourceId}|${JSON.stringify(canonical)}`).digest('base64');
             const sequenceNumber = new EventSequenceNumber(BigInt(this._history.length));
@@ -182,6 +190,8 @@ export class InProcessEventSequence implements IEventSequence {
             if (!this._setup) this._results.push(result);
             return result;
         } finally {
+            // Keep the append in flight until its promise crosses an async boundary.
+            await Promise.resolve();
             this._busy = false;
         }
     }
@@ -254,7 +264,7 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     private validateReadSource(operation: string, source: string): void {
-        if (!source.trim() || source !== source.trim()) {
+        if (!source.trim() || source !== source.trim() || unprovenFilterCharacters.test(source)) {
             throw this.unsupported(operation, source, 'Blank and padded source filters have unproven kernel normalization.');
         }
     }
