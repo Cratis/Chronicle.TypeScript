@@ -19,7 +19,7 @@ import { InProcessEventSequence } from './InProcessEventSequence.js';
 import { registerScenarioSeed } from './EventScenarioSeed.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
-/** A kernel-free, fixture-bounded single-event append scenario. No observer runs automatically. */
+/** A kernel-free, fixture-bounded append scenario. No observer runs automatically. */
 export class EventScenario {
     readonly eventSequence: IEventSequence;
     readonly given: EventScenarioGivenBuilder;
@@ -63,9 +63,11 @@ export class EventScenario {
     }
     appendMany(source: string, events: object[], options?: AppendOptions): Promise<AppendResult[]>;
     appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
-    async appendMany(_sourceOrEvents: string | EventForEventSourceId[], _eventsOrOptions?: object[] | AppendOptions, _options?: AppendOptions): Promise<AppendResult[]> {
-        throw new UnsupportedEventSequenceOperation('appendMany', this.eventSequence.id.value,
-            'Both batch overloads require kernel-backed atomicity fixtures.');
+    async appendMany(sourceOrEvents: string | EventForEventSourceId[], eventsOrOptions?: object[] | AppendOptions, options?: AppendOptions): Promise<AppendResult[]> {
+        if (typeof sourceOrEvents === 'string') {
+            return this.eventSequence.appendMany(sourceOrEvents, eventsOrOptions as object[], options);
+        }
+        return this.eventSequence.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
     }
     get results(): readonly AppendResult[] { return (this.eventSequence as InProcessEventSequence).results; }
     get appendedEvents(): readonly AppendedEvent[] { return (this.eventSequence as InProcessEventSequence).appendedEvents; }

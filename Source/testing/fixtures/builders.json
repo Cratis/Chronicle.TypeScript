@@ -1,0 +1,238 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "operations": [
+    {
+      "overload": "given",
+      "events": []
+    },
+    {
+      "overload": "given",
+      "events": [
+        {
+          "source": "A",
+          "name": "seed",
+          "active": true
+        },
+        {
+          "source": "A",
+          "type": "alternate",
+          "label": "second"
+        }
+      ]
+    },
+    {
+      "overload": "whenSequential",
+      "events": [
+        {
+          "source": "A",
+          "name": "act",
+          "active": false
+        },
+        {
+          "source": "A",
+          "type": "alternate",
+          "label": "fourth"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "given": 0
+      },
+      {
+        "given": 2
+      },
+      {
+        "sequentialSuccess": true,
+        "lastSequence": "3"
+      }
+    ],
+    "notifications": [
+      [
+        {
+          "sequence": "0",
+          "source": "A",
+          "type": "OracleEventRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "1",
+          "source": "A",
+          "type": "AlternateRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "2",
+          "source": "A",
+          "type": "OracleEventRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "3",
+          "source": "A",
+          "type": "AlternateRecorded",
+          "success": true
+        }
+      ]
+    ],
+    "history": [
+      {
+        "sequence": "0",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "ZwOwbSgS0bQXsblZm+OT4/SYsy/i1sBXstmjPkE/wVI=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "seed",
+          "active": true
+        }
+      },
+      {
+        "sequence": "1",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "swXR8ZrQHp4Q1ZG02ncOrlf3/8oN75W4iOILRWAvsxc=",
+        "type": "AlternateRecorded",
+        "content": {
+          "label": "second"
+        }
+      },
+      {
+        "sequence": "2",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "275Cir9hbEtUYh3VFxbDhMkZdold1Z/q5f3UEQmeLdc=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "act",
+          "active": false
+        }
+      },
+      {
+        "sequence": "3",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "hash": "xF3o1cfJke1MR1Hu3EdpOVWiJNlFn5VoEZsC6pSfn1I=",
+        "type": "AlternateRecorded",
+        "content": {
+          "label": "fourth"
+        }
+      }
+    ],
+    "next": "4",
+    "tail": "3",
+    "tailA": "3",
+    "tailByType": "3",
+    "fromOneByType": [
+      "1",
+      "3"
+    ],
+    "byRoute": [
+      "0",
+      "2"
+    ],
+    "byAllStreamType": [
+      "1",
+      "3"
+    ],
+    "byDefaultRoute": [],
+    "tailByAll": "3",
+    "byCustomRoute": [],
+    "tailByRoute": "18446744073709551615"
+  }
+}

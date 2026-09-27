@@ -13,7 +13,7 @@ const givenScenario = new GivenEventScenario({
     artifacts: { eventTypes: [MessageSeeded] },
     constraints: 'disabled'
 });
-await givenScenario.given.forEventSource('message-1').events(new MessageSeeded('first'));
-await givenScenario.given.forEventSource('message-1').events(new MessageSeeded('second'));
-// Setup events enter appendedEvents, not results. Pass exactly one event per call.
+await givenScenario.given.forEventSource('message-1').events(
+    new MessageSeeded('first'), new MessageSeeded('second'));
+// Given uses sequential single appends, not an atomic batch. Setup events enter appendedEvents, not results.
 ```
