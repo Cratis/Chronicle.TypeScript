@@ -1,0 +1,155 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+import 'reflect-metadata';
+import { readFileSync, readdirSync } from 'node:fs';
+import { chai, describe, it } from 'vitest';
+import { field } from '@cratis/fundamentals';
+import { eventType } from '../events/eventTypeDecorator.js';
+import { unique } from '../events/constraints/unique.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import { EventScenario, UnsupportedEventSequenceOperation } from './index.js';
+
+chai.should();
+
+class OracleEventRecorded {
+    @field(String) name: string;
+    @field(Boolean) active: boolean;
+    constructor(name: string, active: boolean) { this.name = name; this.active = active; }
+}
+eventType('OracleEventRecorded')(OracleEventRecorded);
+class AlternateRecorded {
+    @field(String) label: string;
+    constructor(label: string) { this.label = label; }
+}
+eventType('AlternateRecorded')(AlternateRecorded);
+class UnknownEvent {}
+class UnprovenNumber {
+    @field(Number) amount = 1;
+}
+eventType('UnprovenNumber')(UnprovenNumber);
+class ConstrainedEvent {
+    @field(String) value = 'value';
+}
+eventType('ConstrainedEvent')(ConstrainedEvent);
+unique()(ConstrainedEvent);
+
+interface Fixture {
+    actions: Array<{ type?: string; source: string; name?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string }>;
+    expected: {
+        results: Array<{ success: boolean; sequenceNumber: string }>;
+        history: Array<{ sequenceNumber: string; source: string; sourceType: string; streamType: string; streamId: string;
+            subject: string; store: string; namespace: string; eventType: string; generation: number; hash: string; content: object;
+            occurredValid: boolean; correlationValid: boolean; explicitOccurred: string | null; explicitCorrelation: string | null;
+            tagsCount: number; causedByName: string }>;
+        next: string; tail: string; tailA: string; hasSourceA: boolean; sourceA: string[]; fromOne: string[]; byType: string[];
+    };
+}
+const directory = new URL('./fixtures/', import.meta.url);
+const fixtures = readdirSync(directory).filter(name => name.endsWith('.json')).map(name => ({
+    name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
+}));
+const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded], constraints: [] };
+const makeScenario = (action?: Fixture['actions'][number]) => new EventScenario({
+    artifacts, constraints: 'disabled',
+    clock: action?.occurred ? () => new Date(action.occurred!) : undefined,
+    correlationId: action?.correlationId ? () => action.correlationId! : undefined
+});
+
+function unsupported(action: () => unknown, operation: string): void {
+    try { action(); throw new Error('Expected rejection'); }
+    catch (error) {
+        (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+        (error as Error).message.should.include(operation);
+        (error as Error).message.should.include('Use a kernel-backed test.');
+    }
+}
+
+describe('when appending against committed kernel event fixtures', () => {
+    it('should include a non-vacuous empty sequence, single append, alternate schema and interleaved sources', () => {
+        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
+    });
+
+    for (const { name, fixture } of fixtures) {
+        it(`should match the accepted event and essential read snapshots for ${name}`, async () => {
+            const scenario = makeScenario(fixture.actions[0]);
+            for (const action of fixture.actions) {
+                const event = action.type === 'alternate'
+                    ? new AlternateRecorded(action.label!) : new OracleEventRecorded(action.name!, action.active!);
+                const result = await scenario.append(action.source, event);
+                result.isSuccess.should.equal(true);
+            }
+            scenario.results.map(item => ({ success: item.isSuccess, sequenceNumber: item.sequenceNumber.value.toString() }))
+                .should.deep.equal(fixture.expected.results);
+            const history = scenario.appendedEvents;
+            history.length.should.equal(fixture.expected.history.length);
+            for (let index = 0; index < history.length; index++) {
+                const actual = history[index];
+                const expected = fixture.expected.history[index];
+                ({ sequenceNumber: actual.context.sequenceNumber.toString(), source: actual.context.eventSourceId,
+                    sourceType: actual.context.eventSourceType, streamType: actual.context.eventStreamType,
+                    streamId: actual.context.eventStreamId, subject: actual.context.subject,
+                    store: actual.context.eventStore, namespace: actual.context.namespace,
+                    eventType: actual.eventType.id.value, generation: actual.eventType.generation.value,
+                    hash: actual.context.hash, content: actual.content }).should.deep.equal({
+                    sequenceNumber: expected.sequenceNumber, source: expected.source,
+                    sourceType: expected.sourceType, streamType: expected.streamType, streamId: expected.streamId,
+                    subject: expected.subject, store: expected.store, namespace: expected.namespace,
+                    eventType: expected.eventType, generation: expected.generation, hash: expected.hash, content: expected.content
+                });
+                (actual.context.occurred instanceof Date && !Number.isNaN(actual.context.occurred.getTime())).should.equal(expected.occurredValid);
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actual.context.correlationId)
+                    .should.equal(expected.correlationValid);
+                actual.context.tags.length.should.equal(expected.tagsCount);
+                actual.context.causedBy!.name.should.equal(expected.causedByName);
+                if (expected.explicitOccurred) {
+                    actual.context.occurred.toISOString().slice(0, 19).should.equal(expected.explicitOccurred.slice(0, 19));
+                    actual.context.correlationId.should.equal(expected.explicitCorrelation);
+                }
+            }
+            (await scenario.eventSequence.getNextSequenceNumber()).value.toString().should.equal(fixture.expected.next);
+            (await scenario.eventSequence.getTailSequenceNumber()).value.toString().should.equal(fixture.expected.tail);
+            (await scenario.eventSequence.getTailSequenceNumber('A')).value.toString().should.equal(fixture.expected.tailA);
+            (await scenario.eventSequence.hasEventsFor('A')).should.equal(fixture.expected.hasSourceA);
+            (await scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A'))
+                .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.sourceA);
+            (await scenario.eventSequence.getFromSequenceNumber(new EventSequenceNumber(1n)))
+                .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.fromOne);
+            (await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [OracleEventRecorded]))
+                .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.byType);
+        });
+    }
+
+    it('should keep setup out of results, protect history, and allow a single when action', async () => {
+        const scenario = makeScenario();
+        const seed = new OracleEventRecorded('seed', true);
+        await scenario.given.forEventSource('A').events(seed);
+        seed.name = 'changed';
+        (await scenario.when.forEventSource('B').event(new AlternateRecorded('act'))).isSuccess.should.be.true;
+        scenario.results.length.should.equal(1);
+        scenario.then.results.should.deep.equal(scenario.results);
+        scenario.appendedEvents[0].content.should.deep.equal({ name: 'seed', active: true });
+        (scenario.appendedEvents[0].content as { name: string }).name = 'changed again';
+        scenario.appendedEvents[0].content.should.deep.equal({ name: 'seed', active: true });
+        (await scenario).should.equal(scenario);
+        scenario.eventLog.should.equal(scenario.eventSequence);
+    });
+
+    it('should reject all batch entry points before mutation, including one-event plural actions', async () => {
+        const scenario = makeScenario();
+        unsupported(() => scenario.eventSequence.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
+        unsupported(() => scenario.eventSequence.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
+        unsupported(() => scenario.when.forEventSource('A').events(new OracleEventRecorded('one', true)), 'when.events');
+        unsupported(() => scenario.given.forEventSource('A').events(new OracleEventRecorded('one', true), new OracleEventRecorded('two', false)), 'given.events');
+        scenario.appendedEvents.length.should.equal(0);
+    });
+
+    it('should reject unproven schemas, event registrations and constraints before appending', async () => {
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenNumber] }, constraints: 'disabled' }), 'schema');
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [ConstrainedEvent] } }), 'constraints');
+        const scenario = makeScenario();
+        try { await scenario.append('A', new UnknownEvent()); throw new Error('Expected rejection'); }
+        catch (error) { (error instanceof UnsupportedEventSequenceOperation).should.be.true; }
+        scenario.appendedEvents.length.should.equal(0);
+    });
+});
