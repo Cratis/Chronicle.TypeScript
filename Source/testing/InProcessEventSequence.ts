@@ -242,16 +242,20 @@ export class InProcessEventSequence implements IEventSequence {
                     throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
                 }
             }
-            const batchOptions: AppendOptions | undefined = shared?.correlationId === undefined && this._correlationId
-                ? { correlationId: this._correlationId(), sourceType: shared?.sourceType, streamType: shared?.streamType,
-                    streamId: shared?.streamId, subject: shared?.subject, occurred: shared?.occurred, tags: shared?.tags }
-                : shared;
-            if (batchOptions?.correlationId !== undefined) this.validateGuid(batchOptions.correlationId, 'appendMany.correlationId');
             let prepared: ReturnType<typeof prepareBatchAppend>;
-            try { prepared = typeof sourceOrEvents === 'string'
-                ? prepareBatchAppend(sourceOrEvents, entries as object[], batchOptions)
-                : prepareBatchAppend(sourceOrEvents, batchOptions); }
-            catch (error) { throw this.unsupported('appendMany.serialization', this.id.value, `Batch preparation failed: ${String(error)}.`); }
+            try {
+                const batchOptions: AppendOptions | undefined = shared?.correlationId === undefined && this._correlationId
+                    ? { correlationId: this._correlationId(), sourceType: shared?.sourceType, streamType: shared?.streamType,
+                        streamId: shared?.streamId, subject: shared?.subject, occurred: shared?.occurred, tags: shared?.tags }
+                    : shared;
+                if (batchOptions?.correlationId !== undefined) this.validateGuid(batchOptions.correlationId, 'appendMany.correlationId');
+                prepared = typeof sourceOrEvents === 'string'
+                    ? prepareBatchAppend(sourceOrEvents, entries as object[], batchOptions)
+                    : prepareBatchAppend(sourceOrEvents, batchOptions);
+            } catch (error) {
+                if (error instanceof UnsupportedEventSequenceOperation) throw error;
+                throw this.unsupported('appendMany.serialization', this.id.value, `Batch preparation failed: ${String(error)}.`);
+            }
             const { eventsForEventSourceIds, eventsToAppend, correlationId, batchCausationChain, identity } = prepared;
             this.validateGuid(correlationId, 'appendMany.correlationId');
             if (identity !== Identity.system || batchCausationChain.length !== 2 ||

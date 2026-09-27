@@ -308,6 +308,29 @@ describe('when appending batches against committed kernel fixtures', () => {
         }
     });
 
+    it('should wrap a throwing correlation hook for single, both batch overloads and plural actions', async () => {
+        const scenario = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] },
+            constraints: 'disabled', correlationId: () => { throw new Error('hook boom'); } });
+        for (const [operation, action] of [
+            ['append.serialization', () => scenario.append('A', new OracleEventRecorded('single', true))],
+            ['appendMany.serialization', () => scenario.appendMany('A', [new OracleEventRecorded('same', true)])],
+            ['appendMany.serialization', () => scenario.appendMany([
+                { eventSourceId: 'A', event: new OracleEventRecorded('mixed', true) }])],
+            ['appendMany.serialization', () => scenario.when.forEventSource('A').events(new OracleEventRecorded('plural', true))]
+        ] as const) {
+            await action().then(() => { throw new Error('Throwing hook accepted'); }, error => {
+                (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+                (error as Error).message.should.include(operation);
+                (error as Error).message.should.include('hook boom');
+            });
+        }
+        scenario.appendedEvents.length.should.equal(0);
+        scenario.results.length.should.equal(0);
+        (await scenario.eventSequence.getNextSequenceNumber()).value.should.equal(0n);
+        await scenario.appendMany('A', [new OracleEventRecorded('override', true)], { correlationId: explicitCorrelationId });
+        scenario.appendedEvents[0].context.correlationId.should.equal(explicitCorrelationId);
+    });
+
     it('should reject an invalid correlation hook without changing batch history', async () => {
         const scenario = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] },
             constraints: 'disabled', correlationId: () => 'not-a-guid' });
