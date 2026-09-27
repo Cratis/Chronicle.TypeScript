@@ -61,13 +61,13 @@ internal static class Program
             {
                 throw new InvalidOperationException("Event oracle requires at least four fixtures; refusing a vacuous check.");
             }
+            if (args[0] != "--update-events" && projectionFiles.Length < 5)
+            {
+                throw new InvalidOperationException("Projection oracle requires at least five fixtures; refusing a vacuous check.");
+            }
             var files = projectionFiles
                 .Concat(eventFiles)
                 .OrderBy(name => name, StringComparer.Ordinal).ToArray();
-            if (files.Length < (args[0] == "--update-events" ? 3 : 8))
-            {
-                throw new InvalidOperationException("Oracle requires at least five fixtures; refusing a vacuous check.");
-            }
             var drift = 0;
             foreach (var path in files)
             {
@@ -88,7 +88,7 @@ internal static class Program
                     fixture["tsContracts"]?["version"]?.GetValue<string>() != contracts ||
                     fixture["tsContracts"]?["descriptorSha256"]?.GetValue<string>() !=
                         (fixture["oracle"]?.GetValue<string>() == "eventScenario"
-                            ? Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, "generated", "eventsequences.ts"))))
+                            ? Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, "generated", "sequences.ts"))))
                             : hash))
                 {
                     throw new InvalidOperationException($"{path}: fixture version/hash does not match loaded engine and installed TypeScript contracts.");

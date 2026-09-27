@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createHash } from 'node:crypto';
+import { EventObservationState } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
@@ -21,6 +22,7 @@ import type { IEventSequence } from '../eventSequences/IEventSequence.js';
 import type { ITransactionalEventSequence } from '../eventSequences/ITransactionalEventSequence.js';
 import type { CompleteStreamResult } from '../eventSequences/CompleteStreamResult.js';
 import { prepareSingleAppend } from '../eventSequences/prepareSingleAppend.js';
+import { toContractsGuid } from '../connection/Guid.js';
 import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
@@ -118,7 +120,12 @@ export class InProcessEventSequence implements IEventSequence {
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
             if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            if (options && Object.keys(options).length) throw this.unsupported('append.options', event.constructor.name, 'Append metadata, routing and concurrency are not fixture-backed.');
+            if (options && (Reflect.ownKeys(options).length || options.correlationId !== undefined || options.sourceType !== undefined ||
+                options.streamType !== undefined || options.streamId !== undefined || options.subject !== undefined ||
+                options.occurred !== undefined || options.eventSourceId !== undefined || options.concurrencyScope !== undefined ||
+                options.tags !== undefined || options.concurrencyScopes !== undefined)) {
+                throw this.unsupported('append.options', event.constructor.name, 'Append metadata, routing and concurrency are not fixture-backed.');
+            }
             const metadata = this._catalog.get(event.constructor);
             if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
             let prepared: ReturnType<typeof prepareSingleAppend>;
@@ -128,6 +135,12 @@ export class InProcessEventSequence implements IEventSequence {
                 content = JSON.parse(prepared.content) as Record<string, unknown>;
             } catch (error) {
                 throw this.unsupported('append.serialization', event.constructor.name, `Payload or metadata could not be serialized: ${String(error)}.`);
+            }
+            try {
+                toContractsGuid(prepared.correlationId);
+                if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(prepared.correlationId.toString())) throw new Error('Invalid correlation ID.');
+            } catch {
+                throw this.unsupported('append.correlationId', event.constructor.name, 'Correlation ID must be a valid GUID.');
             }
             if (prepared.identity !== Identity.system || prepared.causationChain.length !== 2 ||
                 Object.keys(prepared.causationChain[0].properties).length !== 0) {
@@ -152,7 +165,7 @@ export class InProcessEventSequence implements IEventSequence {
                     eventStore: this._store, namespace: this._namespace,
                     sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: 'Default', eventStreamType: 'All', eventStreamId: 'Default',
-                    subject: eventSourceId, hash, causedBy: prepared.identity,
+                    subject: eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: prepared.tags.map(tag => new Tag(tag))
@@ -182,6 +195,7 @@ export class InProcessEventSequence implements IEventSequence {
         if (sourceType !== undefined || streamType !== undefined || streamId !== undefined || types?.length) {
             throw this.unsupported('getTailSequenceNumber.filters', this.id.value, 'Route and event-type tail filters are not fixture-backed.');
         }
+        if (source !== undefined) this.validateReadSource('getTailSequenceNumber.source', source);
         const last = source === undefined ? this._history.at(-1) : [...this._history].reverse().find(event => event.context.eventSourceId === source);
         return last ? new EventSequenceNumber(last.context.sequenceNumber) : EventSequenceNumber.unset;
     }
@@ -196,6 +210,7 @@ export class InProcessEventSequence implements IEventSequence {
         if (streamType !== undefined || streamId !== undefined || sourceType !== undefined || !types.length) {
             throw this.unsupported('getForEventSourceIdAndEventTypes.filters', source, 'Only explicit event-type/source filtering is fixture-backed.');
         }
+        this.validateReadSource('getForEventSourceIdAndEventTypes.source', source);
         const ids = types.map(type => {
             const metadata = this._catalog.get(type);
             if (!metadata) throw this.unsupported('read.eventTypes', type.name, 'Event type is not in the selected catalog.');
@@ -206,6 +221,7 @@ export class InProcessEventSequence implements IEventSequence {
 
     async getFromSequenceNumber(sequence: EventSequenceNumber, source?: string, types?: Constructor[]): Promise<AppendedEvent[]> {
         if (types?.length) throw this.unsupported('getFromSequenceNumber.filterEventTypes', this.id.value, 'Event-type filtering on sequence reads is not fixture-backed.');
+        if (source !== undefined) this.validateReadSource('getFromSequenceNumber.source', source);
         return this._history.filter(event => event.context.sequenceNumber >= sequence.value &&
             (source === undefined || event.context.eventSourceId === source)).map(event => this.snapshot(event));
     }
@@ -226,6 +242,12 @@ export class InProcessEventSequence implements IEventSequence {
                 causation: event.context.causation.map(item => ({ ...item, occurred: item.occurred && new Date(item.occurred), properties: { ...item.properties } })),
                 tags: event.context.tags.map(item => new Tag(item.value)) }
         };
+    }
+
+    private validateReadSource(operation: string, source: string): void {
+        if (!source.trim() || source !== source.trim()) {
+            throw this.unsupported(operation, source, 'Blank and padded source filters have unproven kernel normalization.');
+        }
     }
 
     private unsupported(operation: string, artifact: string, reason: string): UnsupportedEventSequenceOperation {

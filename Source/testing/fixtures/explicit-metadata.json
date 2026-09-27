@@ -9,7 +9,7 @@
   },
   "tsContracts": {
     "version": "19.6.1",
-    "descriptorSha256": "76dfba92909c9a13dde1677eb3af123c6321920f9bd80eac61df962608c46c8f"
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
   },
   "actions": [
     {
@@ -54,6 +54,13 @@
         "explicitCorrelation": "11111111-2222-3333-4444-555555555555",
         "correlationValid": true,
         "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
         "tagsCount": 0,
         "causedByName": "[System]",
         "eventType": "OracleEventRecorded",

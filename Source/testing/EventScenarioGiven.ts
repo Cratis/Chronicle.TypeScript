@@ -9,7 +9,7 @@ export class EventScenarioGiven {
     constructor(private readonly _scenario: EventScenario, private readonly _id: string) {}
     events(...events: object[]): Promise<void> {
         if (events.length !== 1) throw new UnsupportedEventSequenceOperation('given.events', this._id,
-            'Zero or multiple setup events require batch semantics, not repeated single appends.');
+            'Zero or multiple setup events are not supported in this increment; call events once per event.');
         return this._scenario.seed(this._id, events[0]);
     }
 }

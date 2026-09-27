@@ -1,7 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Reflection;
 using System.Text.Json.Nodes;
+using Cratis.Chronicle.Auditing;
 using Cratis.Chronicle.Events;
 using Cratis.Execution;
 using Cratis.Chronicle.EventSequences;
@@ -29,11 +32,32 @@ internal static class EventScenarioOracle
             object value = action["type"]?.GetValue<string>() == "alternate"
                 ? new AlternateRecorded(action["label"]!.GetValue<string>())
                 : new OracleEventRecorded(action["name"]!.GetValue<string>(), action["active"]!.GetValue<bool>());
-            var result = action["correlationId"] is not null
-                ? await scenario.EventLog.Append(source, value,
-                    correlationId: (CorrelationId)Guid.Parse(action["correlationId"]!.GetValue<string>()),
-                    occurred: DateTimeOffset.Parse(action["occurred"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture))
-                : await scenario.EventLog.Append(source, value);
+            // The .NET client ordinarily sends its own root. For this fixture, put the
+            // TypeScript client's two entries on the same ambient chain the .NET client sends.
+            var ambient = (AsyncLocal<List<Causation>>)typeof(CausationManager)
+                .GetField("_current", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            var previous = ambient.Value;
+            if (action["clientCausation"]?.GetValue<bool>() == true)
+            {
+                ambient.Value = [
+                    new Causation(DateTimeOffset.UtcNow, CausationType.Root, ImmutableDictionary<string, string>.Empty),
+                    new Causation(DateTimeOffset.UtcNow, new CausationType("TypeScriptClient.Append"),
+                        ImmutableDictionary<string, string>.Empty.Add("eventType", action["type"]?.GetValue<string>() == "alternate" ? "AlternateRecorded" : "OracleEventRecorded"))
+                ];
+            }
+            AppendResult result;
+            try
+            {
+                result = action["correlationId"] is not null
+                    ? await scenario.EventLog.Append(source, value,
+                        correlationId: (CorrelationId)Guid.Parse(action["correlationId"]!.GetValue<string>()),
+                        occurred: DateTimeOffset.Parse(action["occurred"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture))
+                    : await scenario.EventLog.Append(source, value);
+            }
+            finally
+            {
+                ambient.Value = previous!;
+            }
             string? waitError = null;
             try { await result.WaitForCompletion(); }
             catch (Exception exception) { waitError = exception.GetType().Name; }
@@ -67,6 +91,11 @@ internal static class EventScenarioOracle
                 ["explicitCorrelation"] = action["correlationId"] is null ? null : entry.Context.CorrelationId.Value.ToString(),
                 ["correlationValid"] = Guid.TryParse(entry.Context.CorrelationId.Value.ToString(), out _),
                 ["causationCount"] = entry.Context.Causation.Count(),
+                ["causation"] = new JsonArray(entry.Context.Causation.Select(item => (JsonNode?)new JsonObject {
+                    ["type"] = item.Type.Name,
+                    ["properties"] = new JsonObject(item.Properties.ToDictionary(pair => pair.Key, pair => (JsonNode?)JsonValue.Create(pair.Value)))
+                }).ToArray()),
+                ["observationState"] = (int)entry.Context.ObservationState,
                 ["tagsCount"] = entry.Context.Tags.Count(),
                 ["causedByName"] = entry.Context.CausedBy.Name,
                 ["eventType"] = entry.Context.EventType.Id.Value,

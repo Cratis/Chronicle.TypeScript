@@ -8,6 +8,7 @@ import { field } from '@cratis/fundamentals';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { unique } from '../events/constraints/unique.js';
 import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import { CorrelationId, correlationIdManager } from '../correlation/index.js';
 import { EventScenario, UnsupportedEventSequenceOperation } from './index.js';
 
 chai.should();
@@ -35,14 +36,15 @@ eventType('ConstrainedEvent')(ConstrainedEvent);
 unique()(ConstrainedEvent);
 
 interface Fixture {
-    actions: Array<{ type?: string; source: string; name?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string }>;
+    actions: Array<{ type?: string; source: string; name?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string; clientCausation?: boolean }>;
     expected: {
         results: Array<{ success: boolean; sequenceNumber: string; violations: number; errors: number;
             concurrencyViolation: boolean; waitError: string }>;
         history: Array<{ sequenceNumber: string; source: string; sourceType: string; streamType: string; streamId: string;
             subject: string; store: string; namespace: string; eventType: string; generation: number; hash: string; content: object;
             occurredValid: boolean; correlationValid: boolean; explicitOccurred: string | null; explicitCorrelation: string | null;
-            tagsCount: number; causedByName: string }>;
+            tagsCount: number; causedByName: string; observationState: number; causationCount: number;
+            causation: Array<{ type: string; properties: Record<string, string> }> }>;
         next: string; tail: string; tailA: string; hasSourceA: boolean; sourceA: string[]; fromOne: string[]; byType: string[];
     };
 }
@@ -57,6 +59,16 @@ const makeScenario = (action?: Fixture['actions'][number]) => new EventScenario(
     correlationId: action?.correlationId ? () => action.correlationId! : undefined
 });
 
+async function unsupportedAsync(action: () => Promise<unknown>, operation: string): Promise<void> {
+    await action().then(
+        () => { throw new Error(`Expected ${operation} rejection`); },
+        error => {
+            (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+            (error as Error).message.should.include(operation);
+        }
+    );
+}
+
 function unsupported(action: () => unknown, operation: string): void {
     try { action(); throw new Error('Expected rejection'); }
     catch (error) {
@@ -68,7 +80,7 @@ function unsupported(action: () => unknown, operation: string): void {
 
 describe('when appending against committed kernel event fixtures', () => {
     it('should include a non-vacuous empty sequence, single append, alternate schema and interleaved sources', () => {
-        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
+        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'client-causation.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
     });
 
     for (const { name, fixture } of fixtures) {
@@ -112,6 +124,19 @@ describe('when appending against committed kernel event fixtures', () => {
                     .should.equal(expected.correlationValid);
                 actual.context.tags.length.should.equal(expected.tagsCount);
                 actual.context.causedBy!.name.should.equal(expected.causedByName);
+                actual.context.observationState!.should.equal(expected.observationState);
+                const causation = actual.context.causation.map(item => ({ type: item.type, properties: item.properties }));
+                if (fixture.actions[index].clientCausation) {
+                    causation.should.deep.equal(expected.causation);
+                    causation.length.should.equal(expected.causationCount);
+                } else {
+                    // The .NET client's default root is Unknown; the TS client prepares Root + Append.
+                    expected.causation.should.deep.equal([{ type: 'Unknown', properties: {} }]);
+                    causation.should.deep.equal([
+                        { type: 'Root', properties: {} },
+                        { type: 'TypeScriptClient.Append', properties: { eventType: expected.eventType } }
+                    ]);
+                }
                 if (expected.explicitOccurred) {
                     actual.context.occurred.toISOString().slice(0, 19).should.equal(expected.explicitOccurred.slice(0, 19));
                     actual.context.correlationId.should.equal(expected.explicitCorrelation);
@@ -121,12 +146,17 @@ describe('when appending against committed kernel event fixtures', () => {
             (await scenario.eventSequence.getTailSequenceNumber()).value.toString().should.equal(fixture.expected.tail);
             (await scenario.eventSequence.getTailSequenceNumber('A')).value.toString().should.equal(fixture.expected.tailA);
             (await scenario.eventSequence.hasEventsFor('A')).should.equal(fixture.expected.hasSourceA);
-            (await scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A'))
-                .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.sourceA);
+            const sourceEvents = await scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A');
+            sourceEvents.map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.sourceA);
+            sourceEvents.map(item => item.context.observationState).should.deep.equal(
+                fixture.expected.history.filter(item => item.source === 'A').map(item => item.observationState));
             (await scenario.eventSequence.getFromSequenceNumber(new EventSequenceNumber(1n)))
                 .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.fromOne);
-            (await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [OracleEventRecorded]))
-                .map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.byType);
+            const byType = await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [OracleEventRecorded]);
+            byType.map(item => item.context.sequenceNumber.toString()).should.deep.equal(fixture.expected.byType);
+            byType.map(item => item.context.observationState).should.deep.equal(
+                fixture.expected.history.filter(item => item.source === 'A' && item.eventType === 'OracleEventRecorded')
+                    .map(item => item.observationState));
         });
     }
 
@@ -175,6 +205,44 @@ describe('when appending against committed kernel event fixtures', () => {
         await pending;
         scenario.results.length.should.equal(0);
         scenario.appendedEvents.length.should.equal(1);
+    });
+
+    it('should reject prototype getters and non-enumerable append metadata without mutation', async () => {
+        const scenario = makeScenario();
+        class OptionsWithGetters {
+            get subject() { return 'different-subject'; }
+            get streamId() { return 'different-stream'; }
+        }
+        await unsupportedAsync(() => scenario.append('A', new OracleEventRecorded('one', true), new OptionsWithGetters()), 'append.options');
+        const hidden = Object.defineProperty({}, 'subject', { value: 'different-subject', enumerable: false });
+        await unsupportedAsync(() => scenario.append('A', new OracleEventRecorded('one', true), hidden), 'append.options');
+        scenario.appendedEvents.length.should.equal(0);
+        scenario.results.length.should.equal(0);
+    });
+
+    it('should reject malformed hook and ambient correlation IDs before mutation', async () => {
+        const malformed = 'zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz';
+        const fromHook = new EventScenario({ artifacts, constraints: 'disabled', correlationId: () => malformed });
+        await unsupportedAsync(() => fromHook.append('A', new OracleEventRecorded('one', true)), 'append.correlationId');
+        fromHook.appendedEvents.length.should.equal(0);
+        fromHook.results.length.should.equal(0);
+        const fromAmbient = makeScenario();
+        await correlationIdManager.run(new CorrelationId(malformed), () =>
+            unsupportedAsync(() => fromAmbient.append('A', new OracleEventRecorded('one', true)), 'append.correlationId'));
+        fromAmbient.appendedEvents.length.should.equal(0);
+        fromAmbient.results.length.should.equal(0);
+    });
+
+    it('should reject unproven blank and padded read source filters', async () => {
+        const scenario = makeScenario();
+        await scenario.append('A', new OracleEventRecorded('one', true));
+        for (const source of ['', ' ', ' A ']) {
+            await unsupportedAsync(() => scenario.eventSequence.getTailSequenceNumber(source), 'getTailSequenceNumber.source');
+            await unsupportedAsync(() => scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, source), 'getFromSequenceNumber.source');
+            await unsupportedAsync(() => scenario.eventSequence.getForEventSourceIdAndEventTypes(source, [OracleEventRecorded]), 'getForEventSourceIdAndEventTypes.source');
+        }
+        scenario.appendedEvents.length.should.equal(1);
+        scenario.results.length.should.equal(1);
     });
 
     it('should record direct act-phase append calls without reporting setup results', async () => {

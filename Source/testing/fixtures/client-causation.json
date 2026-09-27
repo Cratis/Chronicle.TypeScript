@@ -13,15 +13,20 @@
   },
   "actions": [
     {
-      "type": "alternate",
-      "source": "B",
-      "label": "text with é and |"
+      "source": "A",
+      "name": "caused",
+      "active": true,
+      "clientCausation": true
     }
   ],
   "expected": {
-    "sourceA": [],
-    "byType": [],
-    "tailA": "18446744073709551615",
+    "sourceA": [
+      "0"
+    ],
+    "byType": [
+      "0"
+    ],
+    "tailA": "0",
     "fromOne": [],
     "results": [
       {
@@ -36,37 +41,44 @@
     "history": [
       {
         "sequenceNumber": "0",
-        "source": "B",
+        "source": "A",
         "sourceType": "Default",
         "streamType": "All",
         "streamId": "Default",
-        "subject": "B",
+        "subject": "A",
         "store": "test-event-store",
         "namespace": "default",
         "occurredValid": true,
         "explicitOccurred": null,
         "explicitCorrelation": null,
         "correlationValid": true,
-        "causationCount": 1,
+        "causationCount": 2,
         "causation": [
           {
-            "type": "Unknown",
+            "type": "Root",
             "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.Append",
+            "properties": {
+              "eventType": "OracleEventRecorded"
+            }
           }
         ],
         "observationState": 1,
         "tagsCount": 0,
         "causedByName": "[System]",
-        "eventType": "AlternateRecorded",
+        "eventType": "OracleEventRecorded",
         "generation": 1,
-        "hash": "I6238IuMgL4dHyeGfeQB6ToTDhik3vCkuDg7xu17rMI=",
+        "hash": "V5qDgBQJFfQE+bgjugFvQD8vwoaI3x5TGu87f5dBtfA=",
         "content": {
-          "label": "text with é and |"
+          "name": "caused",
+          "active": true
         }
       }
     ],
     "next": "1",
     "tail": "0",
-    "hasSourceA": false
+    "hasSourceA": true
   }
 }
