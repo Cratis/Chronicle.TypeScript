@@ -21,6 +21,7 @@ GENERATED_INVALID_CHECK = GENERATED_DIR / "invalid-check.mjs"
 GENERATED_TSCONFIG = GENERATED_DIR / "tsconfig.json"
 FENCE_RE = re.compile(r"```([^\s`]+)[^\n]*\n(.*?)\n```", re.DOTALL)
 NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle['\"];?\s*$")
+TESTING_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle/testing['\"];?\s*$")
 CONTRACTS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle\.contracts['\"];?\s*$")
 FUNDAMENTALS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/fundamentals['\"];?\s*$")
 SIDE_EFFECT_IMPORT_RE = re.compile(r"^import\s+['\"]([^'\"]+)['\"];?\s*$")
@@ -147,6 +148,7 @@ def extract_snippet(path: Path) -> str | None:
 def split_imports(
     code: str,
     named_imports: set[str],
+    testing_named_imports: set[str],
     contracts_named_imports: set[str],
     fundamentals_named_imports: set[str],
     side_effect_imports: set[str],
@@ -159,6 +161,14 @@ def split_imports(
                 imported = imported.strip()
                 if imported:
                     named_imports.add(imported)
+            continue
+
+        testing_named_match = TESTING_NAMED_IMPORT_RE.match(line)
+        if testing_named_match:
+            for imported in testing_named_match.group(1).split(","):
+                imported = imported.strip()
+                if imported:
+                    testing_named_imports.add(imported)
             continue
 
         contracts_named_match = CONTRACTS_NAMED_IMPORT_RE.match(line)
@@ -202,6 +212,7 @@ def generate_source(runtime: bool = False) -> str:
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
+    testing_named_imports: set[str] = set()
     declarations: list[str] = [textwrap.dedent(declaration).strip() for declaration in COMMON_DECLARATIONS]
     functions: list[str] = []
     classes: list[tuple[str, str]] = []
@@ -212,7 +223,7 @@ def generate_source(runtime: bool = False) -> str:
         if snippet is None or (runtime and relative_path in RUNTIME_INVALID_ERRORS):
             continue
 
-        body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+        body = split_imports(snippet, named_imports, testing_named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
         if runtime and not CLASS_RE.search(body):
             continue
 
@@ -229,6 +240,8 @@ def generate_source(runtime: bool = False) -> str:
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
         f"import {{ {', '.join(sorted(named_imports))} }} from '{'../sdk.mjs' if runtime else '../index'}';",
     ]
+    if testing_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(testing_named_imports))} }} from '{'../sdk.mjs' if runtime else '../testing/index.js'}';")
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
     if fundamentals_named_imports:
@@ -330,10 +343,11 @@ def generate_invalid_source(path: Path) -> str:
     if snippet is None:
         raise ValueError(f"Expected an intentionally invalid TypeScript snippet in {path}")
     named_imports = {"getEventTypeMetadata"}
+    testing_named_imports: set[str] = set()
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
-    body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+    body = split_imports(snippet, named_imports, testing_named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
     classes = CLASS_RE.findall(body)
     if not classes:
         raise ValueError(f"No classes found in intentionally invalid snippet {path}")
@@ -341,6 +355,8 @@ def generate_invalid_source(path: Path) -> str:
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
         f"import {{ {', '.join(sorted(named_imports))} }} from '../sdk.mjs';",
     ]
+    if testing_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(testing_named_imports))} }} from '../sdk.mjs';")
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
     if fundamentals_named_imports:
@@ -402,7 +418,8 @@ def main() -> int:
             }
             console.log(`Standard decorators: ${cases.length} intentionally invalid snippets rejected with expected errors.`);
         """), encoding="utf-8")
-        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\nexport { ProjectionDefinitionCompiler } from '../projections/ProjectionDefinitionCompiler.js';\nexport { isModelBoundProjection } from '../projections/modelBound/isModelBoundProjection.js';\nexport { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';\n", encoding="utf-8")
+        # Bundle root and testing together so their decorator metadata and artifact registries are shared.
+        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport * from '../testing/index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\nexport { ProjectionDefinitionCompiler } from '../projections/ProjectionDefinitionCompiler.js';\nexport { isModelBoundProjection } from '../projections/modelBound/isModelBoundProjection.js';\nexport { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';\n", encoding="utf-8")
         subprocess.run([
             "yarn", "exec", "esbuild", ".docs-snippets/sdk-entry.ts", "--bundle", "--packages=external",
             "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/sdk.mjs",
