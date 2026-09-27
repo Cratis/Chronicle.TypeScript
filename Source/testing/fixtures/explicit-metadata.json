@@ -1,0 +1,79 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "actions": [
+    {
+      "source": "A",
+      "name": "fixed",
+      "active": false,
+      "occurred": "2025-01-02T03:04:05.000Z",
+      "correlationId": "11111111-2222-3333-4444-555555555555"
+    }
+  ],
+  "expected": {
+    "sourceA": [
+      "0"
+    ],
+    "byType": [
+      "0"
+    ],
+    "tailA": "0",
+    "fromOne": [],
+    "results": [
+      {
+        "success": true,
+        "sequenceNumber": "0",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
+      }
+    ],
+    "history": [
+      {
+        "sequenceNumber": "0",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "explicitOccurred": "2025-01-02T03:04:05.0000000+00:00",
+        "explicitCorrelation": "11111111-2222-3333-4444-555555555555",
+        "correlationValid": true,
+        "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "ewRbnQ69wMlL0kDY9+R58ELaPwxHoCN2229J8Y2WU6I=",
+        "content": {
+          "name": "fixed",
+          "active": false
+        }
+      }
+    ],
+    "next": "1",
+    "tail": "0",
+    "hasSourceA": true
+  }
+}

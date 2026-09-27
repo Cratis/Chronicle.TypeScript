@@ -1,0 +1,170 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "actions": [
+    {
+      "source": "A",
+      "name": "first",
+      "active": true
+    },
+    {
+      "type": "alternate",
+      "source": "A",
+      "label": ""
+    },
+    {
+      "type": "boundary",
+      "source": "A",
+      "firstName": " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+      "label": ""
+    }
+  ],
+  "expected": {
+    "sourceA": [
+      "0",
+      "1",
+      "2"
+    ],
+    "byType": [
+      "0"
+    ],
+    "tailA": "2",
+    "fromOne": [
+      "1",
+      "2"
+    ],
+    "results": [
+      {
+        "success": true,
+        "sequenceNumber": "0",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
+      },
+      {
+        "success": true,
+        "sequenceNumber": "1",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
+      },
+      {
+        "success": true,
+        "sequenceNumber": "2",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
+      }
+    ],
+    "history": [
+      {
+        "sequenceNumber": "0",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "explicitCorrelation": null,
+        "correlationValid": true,
+        "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "QZ/qJhBY8Eq/nz7xQGqQv+0g4BndTDisqc21PZCdruw=",
+        "content": {
+          "name": "first",
+          "active": true
+        }
+      },
+      {
+        "sequenceNumber": "1",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "explicitCorrelation": null,
+        "correlationValid": true,
+        "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "AlternateRecorded",
+        "generation": 1,
+        "hash": "WimRV3az2/j1hj2HKoV24+uCMw5wHsgtp5Ajm/pHFV8=",
+        "content": {
+          "label": ""
+        }
+      },
+      {
+        "sequenceNumber": "2",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "explicitCorrelation": null,
+        "correlationValid": true,
+        "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "BoundaryRecorded",
+        "generation": 1,
+        "hash": "UvcSCb9R5qLMvAXBaOq3pxhc7Ww78pi6+EVgWK7CmAM=",
+        "content": {
+          "firstName": " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+          "label": ""
+        }
+      }
+    ],
+    "next": "3",
+    "tail": "2",
+    "hasSourceA": true
+  }
+}

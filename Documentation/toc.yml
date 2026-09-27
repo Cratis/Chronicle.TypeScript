@@ -4,7 +4,7 @@
   href: getting-started.md
 - name: Connect to Chronicle
   href: connecting.md
-- name: Test Reducer Read Models
+- name: Test Events and Read Models
   href: testing.md
 - name: Preserve Existing Append Routes
   href: migrate-append-routing.md

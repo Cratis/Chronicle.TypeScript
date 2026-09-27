@@ -7,7 +7,7 @@ on:
   pull_request:
     paths:
       - 'Tools/ProjectionOracle/**'
-      - 'Source/testing/projections/**'
+      - 'Source/testing/**'
       - 'Source/projections/**'
       - 'Source/events/**'
       - 'package.json'

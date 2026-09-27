@@ -1,0 +1,77 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "actions": [
+    {
+      "source": "A",
+      "name": "alpha",
+      "active": true
+    }
+  ],
+  "expected": {
+    "sourceA": [
+      "0"
+    ],
+    "byType": [
+      "0"
+    ],
+    "tailA": "0",
+    "fromOne": [],
+    "results": [
+      {
+        "success": true,
+        "sequenceNumber": "0",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
+      }
+    ],
+    "history": [
+      {
+        "sequenceNumber": "0",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "explicitCorrelation": null,
+        "correlationValid": true,
+        "causationCount": 1,
+        "causation": [
+          {
+            "type": "Unknown",
+            "properties": {}
+          }
+        ],
+        "observationState": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "+FUfXxYwX8GLc3JwoPMNPsOO8d/5jVwyEIKyeOyXXTs=",
+        "content": {
+          "name": "alpha",
+          "active": true
+        }
+      }
+    ],
+    "next": "1",
+    "tail": "0",
+    "hasSourceA": true
+  }
+}

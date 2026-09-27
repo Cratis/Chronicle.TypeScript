@@ -5,6 +5,7 @@ import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
 import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
+import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
@@ -64,18 +65,7 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
-        const eventType = getEventTypeFor(event.constructor as Function);
-        const correlationId = options?.correlationId === undefined
-            ? Guid.as(correlationIdManager.current.value)
-            : Guid.as(options.correlationId);
-        const content = JsonSerializer.serialize(event);
-
-        // Merge static tags declared on the event type with tags supplied at append time.
-        const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
-
-        const causationChain = causationManager.run(CausationType.appendEvent, { eventType: eventType.id.value },
-            () => causationManager.getCurrentChain());
-        const identity = identityProvider.getCurrent();
+        const { eventType, correlationId, content, tags, causationChain, identity } = prepareSingleAppend(event, options);
 
         const metricAttributes = {
             'chronicle.event_store': this._eventStoreName,
