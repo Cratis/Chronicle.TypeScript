@@ -4,6 +4,44 @@ title: Test read models without a kernel
 
 # Test read models without a kernel
 
+## EventScenario: fixture-backed single appends
+
+`EventScenario` is a scenario-local event sequence for single, accepted appends. No kernel, storage, constraints, or observers are started. Supply an isolated event catalog and explicitly disable constraints only when the behavior under test does not depend on them:
+
+```typescript
+import { field } from '@cratis/fundamentals';
+import { eventType } from '@cratis/chronicle';
+import { EventScenario } from '@cratis/chronicle/testing';
+
+class MessageRecorded {
+    @field(String) label: string;
+    constructor(label: string) { this.label = label; }
+}
+eventType('MessageRecorded')(MessageRecorded);
+
+const scenario = new EventScenario({
+    artifacts: { eventTypes: [MessageRecorded] },
+    constraints: 'disabled'
+});
+await scenario.given.forEventSource('message-1').events(new MessageRecorded('seed'));
+const result = await scenario.when.forEventSource('message-2').event(new MessageRecorded('act'));
+// result.isSuccess === true; scenario.results contains the act-phase result only.
+const history = scenario.appendedEvents; // Serialized, independent snapshots of setup and act.
+const events = await scenario.eventSequence.getFromSequenceNumber(result.sequenceNumber);
+```
+
+`scenario.eventLog` is the same sequence when the sequence ID is `event-log`. `scenario.then` is a non-callable assertion view with `results` and `appendedEvents`; use ordinary assertions on it. Direct calls to `scenario.eventSequence.append` also enter `results`. `given.events` accepts **exactly one** event in this increment; call it again to seed another. `when.forEventSource(id).event(event)` is the single-event act. The plural `when...events(...)` always denotes a batch, even with one argument, and is rejected. No append runs projections automatically; `ReadModelScenario` remains independent.
+
+| Operation | Basic EventScenario boundary |
+| --- | --- |
+| Single append, global zero-based sequence allocation, `hasEventsFor`, next/tail (global or source), source/type reads, inclusive reads from sequence | Supported for registered generation-1 events with nonempty flat `@field(String)` and `@field(Boolean)` schemas and matching scalar JSON content. The fixture-backed value domain is printable strings and booleans. Results include successful appends; accepted history includes setup. |
+| Event metadata | Default source/stream routes (`Default`/`All`/`Default`), subject equal to source ID, store `test-event-store`, namespace `default`, correlation, occurrence time (with deterministic scenario clock/ID hooks), system identity, and a SHA-256/base64 content hash for the supported scalar JSON domain. Custom routing/tags/concurrency/append metadata and unproven serialization are rejected. The TypeScript client's append causation preparation is shared with production; this does **not** claim .NET client causation-chain parity. |
+| Batches (`appendMany` both overloads, `when...events`, multi-event `given.events`), constraints (including decorator/fluent definitions), migrations, tombstones, alternate generations, protected fields, numeric/date/object content, completion/redaction, transactions, append notifications, observer-tail and unproven read filters | **Unsupported:** `UnsupportedEventSequenceOperation` names the operation and artifact and says “Use a kernel-backed test.” Explicit `constraints: 'disabled'` is for scenarios that deliberately do not test constraints; it is never a silent fallback. Accepted single appends cannot wait for observer completion because no observers run. |
+
+The committed `Source/testing/fixtures/{empty,single,interleaved,alternate,explicit-metadata}.json` snapshots run through the real in-process kernel via the pinned `Cratis.Chronicle.Testing` 19.8.1 oracle. `yarn oracle:check` verifies them alongside projection fixtures. The fixture tests also compare the TypeScript client’s serialized content, context fields, hash, result shape and essential reads. They do not establish production storage, concurrency, compliance or scheduler fidelity; use a kernel-backed test for those behaviors.
+
+## ReadModelScenario
+
 Import `ReadModelScenario` from `@cratis/chronicle/testing`. Associate a reducer with its read model using the third argument of `reducer()`. Seed events for an event source, then await the instance:
 
 ```typescript
