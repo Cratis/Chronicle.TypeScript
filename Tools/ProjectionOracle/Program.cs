@@ -36,9 +36,9 @@ internal static class Program
             {
                 return 0;
             }
-            if (args is not ["--check"] and not ["--update"] and not ["--probe", _])
+            if (args is not ["--check"] and not ["--update"] and not ["--update-events"] and not ["--probe", _])
             {
-                Console.Error.WriteLine("Usage: ProjectionOracle --smoke | --check | --update | --probe VERSION (run from the repository root)");
+                Console.Error.WriteLine("Usage: ProjectionOracle --smoke | --check | --update | --update-events | --probe VERSION (run from the repository root)");
                 return 2;
             }
             if (args is ["--probe", var release] && versionParts[0] != release)
@@ -53,8 +53,13 @@ internal static class Program
             }
             var contracts = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(package, "package.json")))!["version"]!.GetValue<string>();
             var hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(descriptor)));
-            var files = Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json").OrderBy(name => name, StringComparer.Ordinal).ToArray();
-            if (files.Length < 5)
+            var projectionFiles = args[0] == "--update-events"
+                ? []
+                : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
+            var files = projectionFiles
+                .Concat(Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json"))
+                .OrderBy(name => name, StringComparer.Ordinal).ToArray();
+            if (files.Length < (args[0] == "--update-events" ? 3 : 8))
             {
                 throw new InvalidOperationException("Oracle requires at least five fixtures; refusing a vacuous check.");
             }
@@ -72,12 +77,17 @@ internal static class Program
                     (args[0] != "--probe" && (fixture["chronicle"]?["version"]?.GetValue<string>() != versionParts[0] ||
                      fixtureCommit is null || fixtureCommit.Length < 7 || !versionParts[1].StartsWith(fixtureCommit, StringComparison.OrdinalIgnoreCase))) ||
                     fixture["tsContracts"]?["version"]?.GetValue<string>() != contracts ||
-                    fixture["tsContracts"]?["descriptorSha256"]?.GetValue<string>() != hash)
+                    fixture["tsContracts"]?["descriptorSha256"]?.GetValue<string>() !=
+                        (fixture["oracle"]?.GetValue<string>() == "eventScenario"
+                            ? Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, "generated", "eventsequences.ts"))))
+                            : hash))
                 {
                     throw new InvalidOperationException($"{path}: fixture version/hash does not match loaded engine and installed TypeScript contracts.");
                 }
-                var actual = await OracleRunner.Run(fixture);
-                if (args[0] == "--update")
+                var actual = fixture["oracle"]?.GetValue<string>() == "eventScenario"
+                    ? await EventScenarioOracle.Run(fixture)
+                    : await OracleRunner.Run(fixture);
+                if (args[0] is "--update" or "--update-events")
                 {
                     fixture["expected"] = actual;
                     await File.WriteAllTextAsync(path, fixture.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n");

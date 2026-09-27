@@ -1,0 +1,131 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "76dfba92909c9a13dde1677eb3af123c6321920f9bd80eac61df962608c46c8f"
+  },
+  "actions": [
+    {
+      "source": "A",
+      "name": "first",
+      "active": true
+    },
+    {
+      "source": "B",
+      "name": "second",
+      "active": false
+    },
+    {
+      "source": "A",
+      "name": "third",
+      "active": false
+    }
+  ],
+  "expected": {
+    "sourceA": [
+      "0",
+      "2"
+    ],
+    "byType": [
+      "0",
+      "2"
+    ],
+    "tailA": "2",
+    "fromOne": [
+      "1",
+      "2"
+    ],
+    "results": [
+      {
+        "success": true,
+        "sequenceNumber": "0"
+      },
+      {
+        "success": true,
+        "sequenceNumber": "1"
+      },
+      {
+        "success": true,
+        "sequenceNumber": "2"
+      }
+    ],
+    "history": [
+      {
+        "sequenceNumber": "0",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "correlationValid": true,
+        "causationCount": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "QZ/qJhBY8Eq/nz7xQGqQv+0g4BndTDisqc21PZCdruw=",
+        "content": {
+          "name": "first",
+          "active": true
+        }
+      },
+      {
+        "sequenceNumber": "1",
+        "source": "B",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "B",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "correlationValid": true,
+        "causationCount": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "rrC94cDR2II+giawBNT3p0fOdwG0HKcfaYy9E3fek2k=",
+        "content": {
+          "name": "second",
+          "active": false
+        }
+      },
+      {
+        "sequenceNumber": "2",
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "store": "test-event-store",
+        "namespace": "default",
+        "occurredValid": true,
+        "correlationValid": true,
+        "causationCount": 1,
+        "tagsCount": 0,
+        "causedByName": "[System]",
+        "eventType": "OracleEventRecorded",
+        "generation": 1,
+        "hash": "MGkwNVv+u5SAU7gkR+qu/gjNKag0gi1SMtMprwwTqIs=",
+        "content": {
+          "name": "third",
+          "active": false
+        }
+      }
+    ],
+    "next": "3",
+    "tail": "2",
+    "hasSourceA": true
+  }
+}
