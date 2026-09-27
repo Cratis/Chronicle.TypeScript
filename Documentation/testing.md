@@ -54,7 +54,7 @@ The committed `Source/testing/fixtures/*.json` snapshots run through the real in
 
 ## ReactorScenario: live event deliveries and recorded effects
 
-`ReactorScenario` shares the production reactor's handler discovery, per-event invocation boundary and returned-event normalization. Its input is the fixture-bounded `EventScenario`: each `given` or `when` call appends registered events and immediately delivers their serialized history in source-partition order. `given.events` uses sequential single appends; `when.events` uses an atomic batch (including one event). Both await completion before returning. A returned event is **recorded, not appended or recursively delivered**.
+`ReactorScenario` shares the production reactor's handler discovery, per-event invocation boundary and returned-event normalization. Its input is the fixture-bounded `EventScenario`: each `given` or `when` call appends registered events and immediately delivers their serialized history in source-partition order. `given.events` uses sequential single appends; `when.events` uses an atomic batch (including one event). Both await completion before returning. A returned event is **recorded, not appended or recursively delivered**. In production, returning an event type that the same reactor subscribes to delivers it back to the reactor; the scenario does not simulate that feedback loop.
 
 ```typescript
 import { field } from '@cratis/fundamentals';

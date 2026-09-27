@@ -48,7 +48,7 @@ export class ReactorScenario {
     constructor(private readonly _reactor: Constructor, private readonly _options: ReactorScenarioOptions = {}) {
         const metadata = getReactorMetadata(_reactor);
         if (!metadata) throw new UnsupportedReactorOperation('reactor', _reactor.name, 'A registered @reactor is required.');
-        if (metadata.eventSequenceId && metadata.eventSequenceId !== 'event-log') {
+        if ((metadata.eventSequenceId ?? 'event-log') !== 'event-log') {
             throw new UnsupportedReactorOperation('reactor.eventSequenceId', _reactor.name, 'Only the default event log is fixture-backed.');
         }
         if (getFilterTagsFor(_reactor).length) {
@@ -57,9 +57,18 @@ export class ReactorScenario {
         if (_options.commandTypes?.length) {
             throw new UnsupportedReactorOperation('options.commandTypes', _reactor.name, 'Command classification belongs to the explicit-composition increment.');
         }
-        // Use one immutable catalog for append validation, handler discovery and returned effects.
-        this._eventTypes = Object.freeze([...(_options.artifacts?.eventTypes ?? this.discoveredTypes())]);
-        this._events = new EventScenario({ ..._options, artifacts: { ..._options.artifacts, eventTypes: [...this._eventTypes] } });
+        // Resolve the selected or discovered catalog once; preserve getter-backed constraints and migrations.
+        const artifacts = _options.artifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
+        const constraints = artifacts.constraints;
+        // EventScenario rejects an explicitly selected empty catalog, but allows empty default discovery.
+        const selectedConstraints = !_options.artifacts && constraints?.length === 0 ? undefined : constraints;
+        const eventTypeMigrations = artifacts.eventTypeMigrations;
+        this._eventTypes = Object.freeze([...artifacts.eventTypes]);
+        this._events = new EventScenario({ ..._options, artifacts: {
+            eventTypes: [...this._eventTypes],
+            constraints: selectedConstraints === undefined ? undefined : [...selectedConstraints],
+            eventTypeMigrations: eventTypeMigrations === undefined ? undefined : [...eventTypeMigrations]
+        } });
         this._entries = getReactorEventTypes(_reactor, this._eventTypes);
         this._instance = _options.artifactActivator ? undefined : new (_reactor as new () => Record<string, Function>)();
         this._store = _options.servicesEventStore ?? this.scenarioStore();
@@ -67,18 +76,15 @@ export class ReactorScenario {
         this.when = { forEventSource: id => ({ events: (...events) => this.deliver(id, events, false) }) };
     }
 
-    private discoveredTypes(): Constructor[] {
-        // Reuse the production discovery provider, but only once at scenario construction.
-        return [...new DefaultClientArtifactsProvider(TypeDiscoverer.default).eventTypes];
-    }
-
     private scenarioStore(): IEventStore {
         const unsupported = (operation: string): never => { throw new UnsupportedReactorOperation(`services.${operation}`, this._reactor.name,
             'Provide an explicit eventStore test double for this service.'); };
+        const readModelMethods = new Set(['register', 'getInstanceById', 'findInstanceById', 'getInstances',
+            'getSnapshotsById', 'dehydrateSession', 'release', 'releaseMany']);
         const readModels = new Proxy({}, { get: (_, key) => {
-            if (typeof key !== 'string' || key === 'then') return undefined;
             if (key === 'watch') return async function* () { unsupported('readModels.watch'); };
             if (key === 'materialized') return unsupported('readModels.materialized');
+            if (typeof key !== 'string' || !readModelMethods.has(key)) return undefined;
             return async () => unsupported(`readModels.${key}`);
         } }) as IReadModels;
         const eventLog = this._events.eventLog;
@@ -110,12 +116,16 @@ export class ReactorScenario {
         } }) as IEventLog;
         const store = { name: new EventStoreName(this._options.eventStore ?? 'test-event-store'),
             namespace: new EventStoreNamespaceName(this._options.namespace ?? 'default'), eventLog: guardedLog, readModels };
+        const unsupportedStoreProperties = new Set(['eventTypes', 'constraints', 'projections', 'reactors', 'reducers',
+            'unitOfWorkManager', 'jobs', 'webhooks', 'subscriptions', 'seeding', 'externalServices', 'identities',
+            'pii', 'failedPartitions', 'observers']);
         return new Proxy(store, { get: (target, key) => {
-            if (typeof key !== 'string' || key === 'then') return undefined;
-            if (key in target) return target[key as keyof typeof target];
+            if (typeof key !== 'string') return undefined;
+            if (Object.hasOwn(target, key)) return target[key as keyof typeof target];
             if (key === 'getNamespaces') return async () => unsupported('eventStore.getNamespaces');
             if (key === 'getEventSequence') return () => unsupported('eventStore.getEventSequence');
-            return unsupported(`eventStore.${key}`);
+            if (unsupportedStoreProperties.has(key)) return unsupported(`eventStore.${key}`);
+            return undefined;
         } }) as IEventStore;
     }
 
@@ -214,7 +224,8 @@ export class ReactorScenario {
     }
 
     private async record(result: unknown, context: EventContext, handler: string, deliveryIndex: number): Promise<void> {
-        if (await this._options.resultHandler?.(result, context, this._reactor, this._store.name.value, this._store.namespace.value)) return;
+        if (await this._options.resultHandler?.(result, context, this._reactor,
+            this._options.eventStore ?? 'test-event-store', this._options.namespace ?? 'default')) return;
         if (result == null) return;
         const items = Array.isArray(result) ? result : [result];
         const events = normalizeReactorSideEffects(result, context.eventSourceId,

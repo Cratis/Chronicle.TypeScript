@@ -4,6 +4,9 @@
 import { field } from '@cratis/fundamentals';
 import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
+import { DecoratorType } from '../types/DecoratorType.js';
+import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
+import type { IEventStore } from '../IEventStore.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { filterEventsByTag } from '../events/filterEventsByTagDecorator.js';
 import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
@@ -11,7 +14,7 @@ import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventContext } from '../events/EventContext.js';
 import { reactor } from '../reactors/reactor.js';
 import type { ReactorServices } from '../reactors/ReactorServices.js';
-import { chai, describe, it } from 'vitest';
+import { chai, describe, it, vi } from 'vitest';
 import fixture from './fixtures/builders.json' with { type: 'json' };
 import { ReactorScenario } from './ReactorScenario.js';
 import { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
@@ -46,6 +49,77 @@ const options: ReactorScenarioOptions = { artifacts: { eventTypes: [Registered, 
     clock: () => new Date('2025-01-02T03:04:05.000Z'), correlationId: () => '11111111-2222-3333-4444-555555555555' };
 
 describe('ReactorScenario live delivery', () => {
+    it('rejects an empty reactor event sequence ID before activation', () => {
+        let created = false;
+        @reactor('empty-sequence-reactor', '')
+        class EmptySequence {
+            constructor() { created = true; }
+            registered() {}
+        }
+        (() => new ReactorScenario(EmptySequence, options)).should.throw(UnsupportedReactorOperation, 'reactor.eventSequenceId');
+        created.should.be.false;
+    });
+
+    it('preserves getter-backed constraints and migrations from a selected catalog', () => {
+        let created = false;
+        @reactor('catalog-rejection-reactor')
+        class CatalogRejection {
+            constructor() { created = true; }
+            registered() {}
+        }
+        class SelectedConstraint {}
+        class SelectedMigration {}
+        const constrained = { eventTypes: [Registered], get constraints() { return [SelectedConstraint]; } };
+        (() => new ReactorScenario(CatalogRejection, { artifacts: constrained })).should.throw(
+            UnsupportedEventSequenceOperation, 'artifacts.constraints');
+        const migrated = { eventTypes: [Registered], get eventTypeMigrations() { return [SelectedMigration]; } };
+        (() => new ReactorScenario(CatalogRejection, { artifacts: migrated, constraints: 'disabled' })).should.throw(
+            UnsupportedEventSequenceOperation, 'artifacts.eventTypeMigrations');
+        created.should.be.false;
+    });
+
+    it('allows empty default constraint discovery without disabling constraints', async () => {
+        const discover = vi.spyOn(TypeDiscoverer.default, 'getTypesByDecoratorType').mockImplementation(kind =>
+            kind === DecoratorType.EventType ? [Registered] : []);
+        try {
+            const scenario = new ReactorScenario(ScenarioReactor);
+            await scenario.when.forEventSource('A').events(new Registered('first'));
+            scenario.results[0].completed.should.be.true;
+        } finally {
+            discover.mockRestore();
+        }
+    });
+
+    it('rejects discovered constraint definitions', () => {
+        class DiscoveredConstraint {}
+        const discover = vi.spyOn(TypeDiscoverer.default, 'getTypesByDecoratorType').mockImplementation(kind => {
+            if (kind === DecoratorType.EventType) return [Registered];
+            if (kind === DecoratorType.Constraint) return [DiscoveredConstraint];
+            return [];
+        });
+        try {
+            (() => new ReactorScenario(ScenarioReactor)).should.throw(
+                UnsupportedEventSequenceOperation, 'artifacts.constraints');
+        } finally {
+            discover.mockRestore();
+        }
+    });
+
+    it('rejects discovered migrations even when constraints are explicitly disabled', () => {
+        class DiscoveredMigration {}
+        const discover = vi.spyOn(TypeDiscoverer.default, 'getTypesByDecoratorType').mockImplementation(kind => {
+            if (kind === DecoratorType.EventType) return [Registered];
+            if (kind === DecoratorType.EventTypeMigration) return [DiscoveredMigration];
+            return [];
+        });
+        try {
+            (() => new ReactorScenario(ScenarioReactor, { constraints: 'disabled' })).should.throw(
+                UnsupportedEventSequenceOperation, 'artifacts.eventTypeMigrations');
+        } finally {
+            discover.mockRestore();
+        }
+    });
+
     it('rejects tag-filtered reactors before activation', () => {
         let created = false;
         @reactor('filtered-scenario-reactor')
@@ -107,6 +181,36 @@ describe('ReactorScenario live delivery', () => {
         await scenario.when.forEventSource('A').events(new Registered('first'));
         errors.length.should.equal(10);
         errors.every(error => error instanceof UnsupportedReactorOperation && String(error).includes('Use a kernel-backed test.')).should.be.true;
+    });
+
+    it('does not create unhandled rejections for JSON serialization probes of services', async () => {
+        @reactor('serialized-services-reactor')
+        class SerializedServices {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                JSON.stringify(services, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value);
+                (Reflect.get(services.readModels, 'toJSON') === undefined).should.be.true;
+                (Reflect.get(services.eventStore, 'toJSON') === undefined).should.be.true;
+                (Reflect.get(services.eventStore, 'notAStoreMember') === undefined).should.be.true;
+            }
+        }
+        const scenario = new ReactorScenario(SerializedServices, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        scenario.results[0].completed.should.be.true;
+    });
+
+    it('passes an explicit services event-store double to the handler', async () => {
+        const readModels = {} as ReactorServices['readModels'];
+        const store = { readModels } as IEventStore;
+        @reactor('explicit-store-reactor')
+        class ExplicitStore {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                services.eventStore.should.equal(store);
+                services.readModels.should.equal(readModels);
+            }
+        }
+        const scenario = new ReactorScenario(ExplicitStore, { ...options, servicesEventStore: store });
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        scenario.results[0].completed.should.be.true;
     });
 
     it('provides real event-store identifiers with string conversion', async () => {
@@ -274,6 +378,32 @@ describe('ReactorScenario live delivery', () => {
         steps.should.deep.equal(['handler', 'complete', 'dispose']);
         scenario.results[0].completed.should.be.false;
         scenario.results[0].handled.length.should.equal(0);
+    });
+
+    it('lets a result handler claim an effect without recording it', async () => {
+        const store = { readModels: {} } as IEventStore;
+        const received: unknown[] = [];
+        const scenario = new ReactorScenario(ScenarioReactor, { ...options, servicesEventStore: store,
+            resultHandler: (result, context, reactorType, eventStore, namespace) => {
+                received.push(result, context.eventSourceId, reactorType, eventStore, namespace);
+                return true;
+            } });
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        received.length.should.equal(5);
+        (received[0] as { event: Registered }).event.name.should.equal('first');
+        received.slice(1).should.deep.equal(['A', ScenarioReactor, 'test-event-store', 'default']);
+        scenario.produced.length.should.equal(0);
+        scenario.sideEffects.length.should.equal(0);
+    });
+
+    it('records returned events when a result handler declines them', async () => {
+        let invoked = 0;
+        const scenario = new ReactorScenario(ScenarioReactor, { ...options,
+            resultHandler: async () => { invoked++; return false; } });
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        invoked.should.equal(1);
+        scenario.shouldHaveProduced(Registered, event => event.name === 'first');
+        scenario.sideEffects.length.should.equal(1);
     });
 
     it('awaits side-effect handling within run and propagates declined or thrown results', async () => {

@@ -10,13 +10,19 @@ class BasicWelcomeRequested {
 }
 eventType('BasicWelcomeRequested')(BasicWelcomeRequested);
 
+class BasicWelcomeSent {
+    @field(String) name: string;
+    constructor(name: string) { this.name = name; }
+}
+eventType('BasicWelcomeSent')(BasicWelcomeSent);
+
 class BasicWelcomeReactor {
-    basicWelcomeRequested(event: BasicWelcomeRequested) { return new BasicWelcomeRequested(event.name); }
+    basicWelcomeRequested(event: BasicWelcomeRequested) { return new BasicWelcomeSent(event.name); }
 }
 reactor('BasicWelcomeReactor')(BasicWelcomeReactor);
 
 const basicReactorScenario = new ReactorScenario(BasicWelcomeReactor, {
-    artifacts: { eventTypes: [BasicWelcomeRequested] }, constraints: 'disabled'
+    artifacts: { eventTypes: [BasicWelcomeRequested, BasicWelcomeSent] }, constraints: 'disabled'
 });
 await basicReactorScenario.given.forEventSource('customer-1').events(new BasicWelcomeRequested('alice'));
 await basicReactorScenario.when.forEventSource('customer-2').events(new BasicWelcomeRequested('bob'));
