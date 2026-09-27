@@ -10,7 +10,15 @@ import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
 import { withActivatedArtifact } from '../artifacts/withActivatedArtifact.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { EventContext } from '../events/EventContext.js';
+import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
+import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import type { IEventLog } from '../eventSequences/IEventLog.js';
+import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
+import type { AppendOptions } from '../eventSequences/AppendOptions.js';
+import { EventStoreName } from '../EventStoreName.js';
+import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
 import type { IEventStore } from '../IEventStore.js';
+import type { IReadModels } from '../readModels/IReadModels.js';
 import { getReactorEventTypes, invokeReactorHandler, selectReactorHandler } from '../reactors/ReactorDispatcher.js';
 import { getReactorMetadata } from '../reactors/reactor.js';
 import { normalizeReactorSideEffects } from '../reactors/ReactorSideEffects.js';
@@ -34,6 +42,7 @@ export class ReactorScenario {
     private readonly _effects: RecordedReactorSideEffect[] = [];
     private readonly _results: ReactorDeliveryResult[] = [];
     private _busy = false;
+    private _failed = false;
     private _deliveryIndex = 0;
 
     constructor(private readonly _reactor: Constructor, private readonly _options: ReactorScenarioOptions = {}) {
@@ -42,12 +51,15 @@ export class ReactorScenario {
         if (metadata.eventSequenceId && metadata.eventSequenceId !== 'event-log') {
             throw new UnsupportedReactorOperation('reactor.eventSequenceId', _reactor.name, 'Only the default event log is fixture-backed.');
         }
+        if (getFilterTagsFor(_reactor).length) {
+            throw new UnsupportedReactorOperation('reactor.filterEventsByTag', _reactor.name, 'Tag-filtered delivery is not fixture-backed.');
+        }
         if (_options.commandTypes?.length) {
             throw new UnsupportedReactorOperation('options.commandTypes', _reactor.name, 'Command classification belongs to the explicit-composition increment.');
         }
-        this._events = new EventScenario(_options);
-        // Capture the catalog once, as production observation does at registration.
-        this._eventTypes = _options.artifacts?.eventTypes ?? this.discoveredTypes();
+        // Use one immutable catalog for append validation, handler discovery and returned effects.
+        this._eventTypes = Object.freeze([...(_options.artifacts?.eventTypes ?? this.discoveredTypes())]);
+        this._events = new EventScenario({ ..._options, artifacts: { ..._options.artifacts, eventTypes: [...this._eventTypes] } });
         this._entries = getReactorEventTypes(_reactor, this._eventTypes);
         this._instance = _options.artifactActivator ? undefined : new (_reactor as new () => Record<string, Function>)();
         this._store = _options.servicesEventStore ?? this.scenarioStore();
@@ -61,12 +73,50 @@ export class ReactorScenario {
     }
 
     private scenarioStore(): IEventStore {
-        const unsupported = (operation: string) => { throw new UnsupportedReactorOperation(`services.${operation}`, this._reactor.name,
+        const unsupported = (operation: string): never => { throw new UnsupportedReactorOperation(`services.${operation}`, this._reactor.name,
             'Provide an explicit eventStore test double for this service.'); };
-        const readModels = new Proxy({}, { get: (_, key) => unsupported(`readModels.${String(key)}`) });
-        const store = { name: { value: this._options.eventStore ?? 'test-event-store' },
-            namespace: { value: this._options.namespace ?? 'default' }, eventLog: this._events.eventLog, readModels };
-        return new Proxy(store, { get: (target, key) => key in target ? target[key as keyof typeof target] : unsupported(`eventStore.${String(key)}`) }) as IEventStore;
+        const readModels = new Proxy({}, { get: (_, key) => {
+            if (typeof key !== 'string' || key === 'then') return undefined;
+            if (key === 'watch') return async function* () { unsupported('readModels.watch'); };
+            if (key === 'materialized') return unsupported('readModels.materialized');
+            return async () => unsupported(`readModels.${key}`);
+        } }) as IReadModels;
+        const eventLog = this._events.eventLog;
+        const rejectSubscribed = (events: readonly object[]) => {
+            if (events.some(event => {
+                const id = getEventTypeMetadata(event.constructor)?.eventType.id.value;
+                return this._entries.some(entry => entry.id === id);
+            })) {
+                throw new UnsupportedReactorOperation('services.eventLog.append.subscribed', this._reactor.name,
+                    'Delivery of a reactor\'s own appended events is not supported.');
+            }
+        };
+        const guardedLog = new Proxy(eventLog, { get: (target, key) => {
+            if (key === 'append') return async (...args: Parameters<IEventLog['append']>) => {
+                rejectSubscribed([args[1]]);
+                return target.append(...args);
+            };
+            if (key === 'appendMany') return async (sourceOrEvents: string | EventForEventSourceId[],
+                eventsOrOptions?: object[] | AppendOptions, options?: AppendOptions) => {
+                if (typeof sourceOrEvents === 'string') {
+                    rejectSubscribed(eventsOrOptions as object[]);
+                    return target.appendMany(sourceOrEvents, eventsOrOptions as object[], options);
+                }
+                rejectSubscribed(sourceOrEvents.map(entry => entry.event));
+                return target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
+            };
+            const value = Reflect.get(target, key, target) as unknown;
+            return typeof value === 'function' ? value.bind(target) : value;
+        } }) as IEventLog;
+        const store = { name: new EventStoreName(this._options.eventStore ?? 'test-event-store'),
+            namespace: new EventStoreNamespaceName(this._options.namespace ?? 'default'), eventLog: guardedLog, readModels };
+        return new Proxy(store, { get: (target, key) => {
+            if (typeof key !== 'string' || key === 'then') return undefined;
+            if (key in target) return target[key as keyof typeof target];
+            if (key === 'getNamespaces') return async () => unsupported('eventStore.getNamespaces');
+            if (key === 'getEventSequence') return () => unsupported('eventStore.getEventSequence');
+            return unsupported(`eventStore.${key}`);
+        } }) as IEventStore;
     }
 
     get produced(): readonly unknown[] { return Object.freeze(this._effects.map(effect => effect.value)); }
@@ -97,6 +147,8 @@ export class ReactorScenario {
     }
 
     private async deliver(sourceId: string, input: object[], setup: boolean): Promise<void> {
+        if (this._failed) throw new UnsupportedReactorOperation('delivery.afterFailure', this._reactor.name,
+            'A previous delivery failed; failed-partition retries are not supported.');
         if (this._busy) throw new UnsupportedReactorOperation('delivery.overlap', this._reactor.name, 'Concurrent deliveries have unproven ordering.');
         this._busy = true;
         try {
@@ -154,6 +206,7 @@ export class ReactorScenario {
             outcome.completed = true;
         } catch (error) {
             outcome.error = error;
+            this._failed = true;
             throw error;
         } finally {
             this._results.push(Object.freeze({ ...outcome, handled: Object.freeze([...handled]), skipped: Object.freeze([...skipped]) }));

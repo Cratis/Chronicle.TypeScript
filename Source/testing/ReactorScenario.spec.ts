@@ -5,6 +5,9 @@ import { field } from '@cratis/fundamentals';
 import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { eventType } from '../events/eventTypeDecorator.js';
+import { filterEventsByTag } from '../events/filterEventsByTagDecorator.js';
+import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
+import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventContext } from '../events/EventContext.js';
 import { reactor } from '../reactors/reactor.js';
 import type { ReactorServices } from '../reactors/ReactorServices.js';
@@ -12,6 +15,7 @@ import { chai, describe, it } from 'vitest';
 import fixture from './fixtures/builders.json' with { type: 'json' };
 import { ReactorScenario } from './ReactorScenario.js';
 import { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
+import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import type { ReactorScenarioOptions } from './ReactorScenarioOptions.js';
 
 chai.should();
@@ -42,6 +46,167 @@ const options: ReactorScenarioOptions = { artifacts: { eventTypes: [Registered, 
     clock: () => new Date('2025-01-02T03:04:05.000Z'), correlationId: () => '11111111-2222-3333-4444-555555555555' };
 
 describe('ReactorScenario live delivery', () => {
+    it('rejects tag-filtered reactors before activation', () => {
+        let created = false;
+        @reactor('filtered-scenario-reactor')
+        @filterEventsByTag('vip')
+        class Filtered {
+            constructor() { created = true; }
+            registered() {}
+        }
+        (() => new ReactorScenario(Filtered, options)).should.throw(UnsupportedReactorOperation, 'reactor.filterEventsByTag');
+        created.should.be.false;
+    });
+
+    it('keeps one event-type catalog after the caller changes its array', async () => {
+        const eventTypes = [Registered, Skipped];
+        const scenario = new ReactorScenario(ScenarioReactor, { ...options, artifacts: { eventTypes } });
+        eventTypes.length = 0;
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        scenario.shouldHaveProduced(Registered, event => event.name === 'first');
+        eventTypes.push(Registered);
+        scenario.results[0].completed.should.be.true;
+        @eventType('NotSelectedRecorded')
+        class NotSelected {
+            @field(String) label: string;
+            constructor(label: string) { this.label = label; }
+        }
+        eventTypes.push(NotSelected);
+        await scenario.when.forEventSource('B').events(new NotSelected('unexpected')).then(() => {
+            throw new Error('expected rejection');
+        }, error => { (error instanceof UnsupportedEventSequenceOperation).should.be.true; });
+    });
+
+    it('rejects unsupported promise-returning services asynchronously and preserves property probes', async () => {
+        const errors: unknown[] = [];
+        @reactor('service-rejection-reactor')
+        class ServiceRejection {
+            async registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                (Reflect.get(services.readModels, 'then') === undefined).should.be.true;
+                (Reflect.get(services.readModels, Symbol.toStringTag) === undefined).should.be.true;
+                (Reflect.get(services.eventStore, 'then') === undefined).should.be.true;
+                (Reflect.get(services.eventStore, Symbol.toStringTag) === undefined).should.be.true;
+                const failures = [
+                    services.readModels.register(),
+                    services.readModels.getInstanceById(Registered, 'A'),
+                    services.readModels.findInstanceById(Registered, 'A'),
+                    services.readModels.getInstances(Registered),
+                    services.readModels.getSnapshotsById(Registered, 'A'),
+                    services.readModels.dehydrateSession('session', Registered, 'A'),
+                    services.readModels.release(Registered, new Registered('one')),
+                    services.readModels.releaseMany(Registered, [new Registered('one')]),
+                    services.eventStore.getNamespaces()
+                ];
+                await Promise.all(failures.map(failure => failure.catch(error => { errors.push(error); })));
+                try {
+                    for await (const _change of services.readModels.watch(Registered)) { /* Unsupported. */ }
+                } catch (error) { errors.push(error); }
+            }
+        }
+        const scenario = new ReactorScenario(ServiceRejection, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        errors.length.should.equal(10);
+        errors.every(error => error instanceof UnsupportedReactorOperation && String(error).includes('Use a kernel-backed test.')).should.be.true;
+    });
+
+    it('provides real event-store identifiers with string conversion', async () => {
+        const identifiers: string[] = [];
+        @reactor('store-name-reactor')
+        class StoreNames {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                identifiers.push(String(services.eventStore.name), `${services.eventStore.namespace}`);
+            }
+        }
+        const scenario = new ReactorScenario(StoreNames, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        identifiers.should.deep.equal(['test-event-store', 'default']);
+    });
+
+    it('rejects later deliveries after a failed batch without appending them', async () => {
+        const handled: string[] = [];
+        let log!: IEventLog;
+        @reactor('failed-partition-reactor')
+        class Failing {
+            registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                log = services.eventStore.eventLog;
+                handled.push(event.name);
+                if (event.name === 'bad') throw new Error('processing failed');
+            }
+        }
+        const scenario = new ReactorScenario(Failing, options);
+        await scenario.when.forEventSource('A').events(new Registered('bad'), new Registered('tail')).then(() => {
+            throw new Error('expected rejection');
+        }, error => { String(error).should.contain('processing failed'); });
+        for (const source of ['A', 'B']) {
+            await scenario.when.forEventSource(source).events(new Registered('next')).then(() => {
+                throw new Error('expected rejection');
+            }, error => {
+                (error instanceof UnsupportedReactorOperation).should.be.true;
+                String(error).should.contain('delivery.afterFailure');
+            });
+        }
+        handled.should.deep.equal(['bad']);
+        scenario.results.length.should.equal(1);
+        scenario.results[0].completed.should.be.false;
+        (await log.getNextSequenceNumber()).value.should.equal(2n);
+    });
+
+    it('rejects an explicit append of a subscribed event before it enters history', async () => {
+        let log!: IEventLog;
+        @reactor('self-append-reactor')
+        class SelfAppend {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                log = services.eventStore.eventLog;
+                await log.append('A', new Registered(event.name + '-follow'));
+            }
+        }
+        const scenario = new ReactorScenario(SelfAppend, options);
+        await scenario.when.forEventSource('A').events(new Registered('first')).then(() => {
+            throw new Error('expected rejection');
+        }, error => {
+            (error instanceof UnsupportedReactorOperation).should.be.true;
+            String(error).should.contain('services.eventLog.append.subscribed');
+        });
+        scenario.results[0].completed.should.be.false;
+        (await log.getNextSequenceNumber()).value.should.equal(1n);
+    });
+
+    it('records an explicit append of an unobserved event without delivering it', async () => {
+        let log!: IEventLog;
+        const handled: string[] = [];
+        @reactor('unobserved-append-reactor')
+        class UnobservedAppend {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                log = services.eventStore.eventLog;
+                handled.push(event.name);
+                await log.append('A', new Skipped('not observed'));
+            }
+        }
+        const scenario = new ReactorScenario(UnobservedAppend, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        handled.should.deep.equal(['first']);
+        (await log.getFromSequenceNumber(EventSequenceNumber.first)).length.should.equal(2);
+    });
+
+    it('rejects a mixed-source batch containing a subscribed follow-up event atomically', async () => {
+        let log!: IEventLog;
+        @reactor('self-append-batch-reactor')
+        class SelfAppendBatch {
+            async registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                log = services.eventStore.eventLog;
+                await log.appendMany([
+                    { eventSourceId: 'B', event: new Skipped('allowed') },
+                    { eventSourceId: 'A', event: new Registered('not allowed') }
+                ]);
+            }
+        }
+        const scenario = new ReactorScenario(SelfAppendBatch, options);
+        await scenario.when.forEventSource('A').events(new Registered('first')).then(() => {
+            throw new Error('expected rejection');
+        }, error => { String(error).should.contain('services.eventLog.append.subscribed'); });
+        (await log.getNextSequenceNumber()).value.should.equal(1n);
+    });
+
     it('uses fixture-backed history contexts and records returned events without appending them', async () => {
         calls.length = 0;
         const activations: EventContext[] = [];
