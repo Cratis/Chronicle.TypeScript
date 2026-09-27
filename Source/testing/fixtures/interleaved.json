@@ -45,15 +45,27 @@
     "results": [
       {
         "success": true,
-        "sequenceNumber": "0"
+        "sequenceNumber": "0",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
       },
       {
         "success": true,
-        "sequenceNumber": "1"
+        "sequenceNumber": "1",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
       },
       {
         "success": true,
-        "sequenceNumber": "2"
+        "sequenceNumber": "2",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
       }
     ],
     "history": [

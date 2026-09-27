@@ -6,6 +6,7 @@ using Cratis.Chronicle.Events;
 using Cratis.Execution;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Testing.EventSequences;
+using Cratis.Chronicle.Observation;
 
 namespace ProjectionOracle;
 
@@ -33,7 +34,17 @@ internal static class EventScenarioOracle
                     correlationId: (CorrelationId)Guid.Parse(action["correlationId"]!.GetValue<string>()),
                     occurred: DateTimeOffset.Parse(action["occurred"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture))
                 : await scenario.EventLog.Append(source, value);
-            results.Add(new JsonObject { ["success"] = result.IsSuccess, ["sequenceNumber"] = result.SequenceNumber.Value.ToString() });
+            string? waitError = null;
+            try { await result.WaitForCompletion(); }
+            catch (Exception exception) { waitError = exception.GetType().Name; }
+            results.Add(new JsonObject {
+                ["success"] = result.IsSuccess,
+                ["sequenceNumber"] = result.SequenceNumber.Value.ToString(),
+                ["violations"] = result.ConstraintViolations.Count(),
+                ["errors"] = result.Errors.Count(),
+                ["concurrencyViolation"] = result.ConcurrencyViolation is not null,
+                ["waitError"] = waitError
+            });
         }
         var events = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
         var history = new JsonArray();

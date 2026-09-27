@@ -26,7 +26,11 @@
     "results": [
       {
         "success": true,
-        "sequenceNumber": "0"
+        "sequenceNumber": "0",
+        "violations": 0,
+        "errors": 0,
+        "concurrencyViolation": false,
+        "waitError": "CannotWaitForObserverCompletion"
       }
     ],
     "history": [
