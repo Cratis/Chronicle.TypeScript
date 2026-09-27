@@ -224,6 +224,45 @@ describe('ReactorScenario live delivery', () => {
         }, error => { String(error).should.contain('delivery.afterFailure'); });
     });
 
+    it('fails the delivery when the handler catches an unsupported append', async () => {
+        @reactor('swallowed-append-reactor')
+        class SwallowedAppend {
+            async registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                await services.eventStore.eventLog.append('A', new Skipped('x'), { subject: 'x' }).catch(() => undefined);
+                await services.eventStore.eventLog.appendMany('A', []).catch(() => undefined);
+            }
+        }
+        const scenario = new ReactorScenario(SwallowedAppend, options);
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
+        (failure instanceof UnsupportedEventSequenceOperation).should.be.true;
+        scenario.results[0].completed.should.be.false;
+        await scenario.when.forEventSource('A').events(new Registered('second')).then(() => {
+            throw new Error('expected rejection');
+        }, error => { String(error).should.contain('delivery.afterFailure'); });
+    });
+
+    it('does not fail a running delivery for leftover work from an earlier delivery', async () => {
+        let release!: () => void;
+        const leftover = new Promise<void>(resolve => { release = resolve; });
+        let straggler: Promise<unknown> | undefined;
+        @reactor('leftover-work-reactor')
+        class LeftoverWork {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                if (event.name === 'first') {
+                    straggler = leftover.then(() => services.readModels.getInstances(Registered)).catch(() => undefined);
+                } else {
+                    release();
+                    await straggler;
+                }
+            }
+        }
+        const scenario = new ReactorScenario(LeftoverWork, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        await scenario.when.forEventSource('A').events(new Registered('second'));
+        scenario.results.map(result => result.completed).should.deep.equal([true, true]);
+    });
+
     it('does not attribute an unsupported call made after its delivery finished to a later delivery', async () => {
         let services!: ReactorServices;
         @reactor('detached-call-reactor')

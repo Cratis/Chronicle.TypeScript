@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Constructor } from '@cratis/fundamentals';
 import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
@@ -46,6 +47,7 @@ export class ReactorScenario {
     private _failed = false;
     // Unsupported calls are attributed only to the delivery that is running when they happen.
     private _delivery?: { violation?: Error };
+    private readonly _deliveryContext = new AsyncLocalStorage<{ violation?: Error }>();
     private _deliveryIndex = 0;
 
     constructor(private readonly _reactor: Constructor, private readonly _options: ReactorScenarioOptions = {}) {
@@ -102,17 +104,21 @@ export class ReactorScenario {
         };
         const guardedLog = new Proxy(eventLog, { get: (target, key) => {
             if (key === 'append') return async (...args: Parameters<IEventLog['append']>) => {
-                rejectSubscribed([args[1]]);
-                return target.append(...args);
+                try {
+                    rejectSubscribed([args[1]]);
+                    return await target.append(...args);
+                } catch (error) { throw this.latch(error); }
             };
             if (key === 'appendMany') return async (sourceOrEvents: string | EventForEventSourceId[],
                 eventsOrOptions?: object[] | AppendOptions, options?: AppendOptions) => {
-                if (typeof sourceOrEvents === 'string') {
-                    rejectSubscribed(eventsOrOptions as object[]);
-                    return target.appendMany(sourceOrEvents, eventsOrOptions as object[], options);
-                }
-                rejectSubscribed(sourceOrEvents.map(entry => entry.event));
-                return target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
+                try {
+                    if (typeof sourceOrEvents === 'string') {
+                        rejectSubscribed(eventsOrOptions as object[]);
+                        return await target.appendMany(sourceOrEvents, eventsOrOptions as object[], options);
+                    }
+                    rejectSubscribed(sourceOrEvents.map(entry => entry.event));
+                    return await target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
+                } catch (error) { throw this.latch(error); }
             };
             let value: unknown;
             try { value = Reflect.get(target, key, target); } catch (error) { throw this.latch(error); }
@@ -194,8 +200,11 @@ export class ReactorScenario {
     }
 
     private latch(error: unknown): unknown {
-        if (this._delivery && (error instanceof UnsupportedReactorOperation || error instanceof UnsupportedEventSequenceOperation)) {
-            this._delivery.violation ??= error;
+        // Attribute the call to the delivery whose async context made it, and only while that delivery is running.
+        const delivery = this._deliveryContext.getStore();
+        if (delivery && delivery === this._delivery &&
+            (error instanceof UnsupportedReactorOperation || error instanceof UnsupportedEventSequenceOperation)) {
+            delivery.violation ??= error;
         }
         return error;
     }
@@ -235,15 +244,17 @@ export class ReactorScenario {
             }
         };
         try {
-            if (first && this._options.artifactActivator) {
-                await withActivatedArtifact(this._reactor, { kind: ArtifactKind.Reactor,
-                    artifactId: getReactorMetadata(this._reactor)!.id.value, eventStore: this._store,
-                    readModels: services.readModels, eventSequenceId: 'event-log', partition: sourceId,
-                    signal: services.signal, delivery: ArtifactDelivery.Events, eventContext: first.context },
-                this._options.artifactActivator, process);
-            } else {
-                await process({ instance: this._instance ?? {} });
-            }
+            await this._deliveryContext.run(delivery, async () => {
+                if (first && this._options.artifactActivator) {
+                    await withActivatedArtifact(this._reactor, { kind: ArtifactKind.Reactor,
+                        artifactId: getReactorMetadata(this._reactor)!.id.value, eventStore: this._store,
+                        readModels: services.readModels, eventSequenceId: 'event-log', partition: sourceId,
+                        signal: services.signal, delivery: ArtifactDelivery.Events, eventContext: first.context },
+                    this._options.artifactActivator, process);
+                } else {
+                    await process({ instance: this._instance ?? {} });
+                }
+            });
             // A handler that catches an unsupported-service rejection must not turn it into a successful delivery.
             this.throwIfViolated(delivery);
             outcome.completed = true;
