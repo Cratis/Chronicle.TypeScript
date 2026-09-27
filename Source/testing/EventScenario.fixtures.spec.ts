@@ -37,7 +37,8 @@ unique()(ConstrainedEvent);
 interface Fixture {
     actions: Array<{ type?: string; source: string; name?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string }>;
     expected: {
-        results: Array<{ success: boolean; sequenceNumber: string }>;
+        results: Array<{ success: boolean; sequenceNumber: string; violations: number; errors: number;
+            concurrencyViolation: boolean; waitError: string }>;
         history: Array<{ sequenceNumber: string; source: string; sourceType: string; streamType: string; streamId: string;
             subject: string; store: string; namespace: string; eventType: string; generation: number; hash: string; content: object;
             occurredValid: boolean; correlationValid: boolean; explicitOccurred: string | null; explicitCorrelation: string | null;
@@ -79,8 +80,17 @@ describe('when appending against committed kernel event fixtures', () => {
                 const result = await scenario.append(action.source, event);
                 result.isSuccess.should.equal(true);
             }
-            scenario.results.map(item => ({ success: item.isSuccess, sequenceNumber: item.sequenceNumber.value.toString() }))
-                .should.deep.equal(fixture.expected.results);
+            scenario.results.map(item => ({ success: item.isSuccess, sequenceNumber: item.sequenceNumber.value.toString(),
+                violations: item.constraintViolations.length, errors: item.errors.length,
+                concurrencyViolation: item.concurrencyViolation !== undefined }))
+                .should.deep.equal(fixture.expected.results.map(({ waitError: _waitError, ...result }) => result));
+            for (const [index, result] of scenario.results.entries()) {
+                fixture.expected.results[index].waitError.should.equal('CannotWaitForObserverCompletion');
+                await result.waitForCompletion().then(
+                    () => { throw new Error('Observers did not run but completion succeeded'); },
+                    error => { (error instanceof UnsupportedEventSequenceOperation).should.be.true; }
+                );
+            }
             const history = scenario.appendedEvents;
             history.length.should.equal(fixture.expected.history.length);
             for (let index = 0; index < history.length; index++) {
@@ -147,9 +157,31 @@ describe('when appending against committed kernel event fixtures', () => {
     it('should reject unproven schemas, event registrations and constraints before appending', async () => {
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenNumber] }, constraints: 'disabled' }), 'schema');
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [ConstrainedEvent] } }), 'constraints');
+        unsupported(() => new EventScenario({ artifacts }), 'empty constraint catalog');
+        unsupported(() => new EventScenario({ artifacts, constraints: 'disabled', eventStore: 'other-store' }), 'eventStore');
         const scenario = makeScenario();
         try { await scenario.append('A', new UnknownEvent()); throw new Error('Expected rejection'); }
         catch (error) { (error instanceof UnsupportedEventSequenceOperation).should.be.true; }
         scenario.appendedEvents.length.should.equal(0);
+    });
+
+    it('should reject an act that overlaps unfinished setup without losing its result', async () => {
+        const scenario = makeScenario();
+        const pending = scenario.given.forEventSource('A').events(new OracleEventRecorded('seed', true));
+        await scenario.append('B', new AlternateRecorded('act')).then(
+            () => { throw new Error('Overlapping append succeeded'); },
+            error => { (error instanceof UnsupportedEventSequenceOperation).should.be.true; }
+        );
+        await pending;
+        scenario.results.length.should.equal(0);
+        scenario.appendedEvents.length.should.equal(1);
+    });
+
+    it('should record direct act-phase append calls without reporting setup results', async () => {
+        const scenario = makeScenario();
+        await scenario.given.forEventSource('A').events(new OracleEventRecorded('seed', true));
+        await scenario.eventSequence.append('B', new AlternateRecorded('act'));
+        scenario.results.length.should.equal(1);
+        scenario.appendedEvents.length.should.equal(2);
     });
 });

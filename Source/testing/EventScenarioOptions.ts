@@ -10,7 +10,7 @@ export interface EventScenarioOptions {
     artifacts?: { eventTypes: Constructor[]; constraints?: Constructor[]; eventTypeMigrations?: Constructor[] };
     /** Constraint discovery is the default. Explicitly disable it only for tests without constraints. */
     constraints?: 'disabled';
-    /** Scenario-local routing identifiers. */
+    /** Scenario-local identifiers; only the fixture-backed defaults are supported in this increment. */
     eventStore?: string;
     namespace?: string;
     eventSequenceId?: EventSequenceId;

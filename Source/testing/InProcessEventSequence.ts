@@ -36,10 +36,14 @@ export class InProcessEventSequence implements IEventSequence {
     private readonly _clock: () => Date;
     private readonly _correlationId?: () => string;
     private _setup = false;
+    private _allowSeedAppend = false;
     private _busy = false;
     private readonly _results: AppendResult[] = [];
 
     constructor(options: EventScenarioOptions, eventTypes: Constructor[]) {
+        if (options.eventSequenceId && options.eventSequenceId.value !== EventSequenceId.eventLog.value) {
+            throw this.unsupported('options.eventSequenceId', options.eventSequenceId.value, 'Custom sequences are not fixture-backed.');
+        }
         this.id = options.eventSequenceId ?? EventSequenceId.eventLog;
         if (options.eventStore !== undefined && options.eventStore !== 'test-event-store') {
             throw this.unsupported('options.eventStore', options.eventStore, 'Custom event stores are not fixture-backed.');
@@ -89,9 +93,14 @@ export class InProcessEventSequence implements IEventSequence {
 
     /** Seed through the same append path, without recording act-phase results. */
     async seed(source: string, event: object): Promise<void> {
+        if (this._setup) throw this.unsupported('given.events', this.id.value, 'Overlapping setup calls are not fixture-backed.');
         this._setup = true;
+        this._allowSeedAppend = true;
+        let pending: Promise<AppendResult>;
+        try { pending = this.append(source, event); }
+        finally { this._allowSeedAppend = false; }
         try {
-            const result = await this.append(source, event);
+            const result = await pending;
             if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result)}`);
         } finally {
             this._setup = false;
@@ -102,7 +111,9 @@ export class InProcessEventSequence implements IEventSequence {
     get appendOperations(): AsyncIterable<AppendedEventWithResult[]> { throw this.unsupported('appendOperations', this.id.value, 'Append notifications are not fixture-backed.'); }
 
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
-        if (this._busy) throw this.unsupported('append', this.id.value, 'Overlapping calls do not have proven ordering.');
+        if (this._busy || (this._setup && !this._allowSeedAppend)) {
+            throw this.unsupported('append', this.id.value, 'Overlapping calls do not have proven ordering.');
+        }
         this._busy = true;
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');

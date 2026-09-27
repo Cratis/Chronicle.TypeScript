@@ -27,6 +27,10 @@ export class EventScenario {
     constructor(options: EventScenarioOptions = {}) {
         const artifacts = options.artifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
         const eventTypes = [...artifacts.eventTypes];
+        if (options.artifacts?.constraints?.length === 0 && options.constraints !== 'disabled') {
+            throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'empty constraint catalog',
+                'An empty selected catalog cannot silently disable constraint discovery; set constraints: disabled explicitly.');
+        }
         const discovered = options.artifacts?.constraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
         if (options.constraints !== 'disabled' && (discovered.length || eventTypes.some(type => {
             const metadata = getEventTypeMetadata(type);
