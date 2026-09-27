@@ -178,9 +178,31 @@ describe('ReactorScenario live delivery', () => {
             }
         }
         const scenario = new ReactorScenario(ServiceRejection, options);
-        await scenario.when.forEventSource('A').events(new Registered('first'));
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
         errors.length.should.equal(10);
         errors.every(error => error instanceof UnsupportedReactorOperation && String(error).includes('Use a kernel-backed test.')).should.be.true;
+        // Swallowed rejections still fail the delivery with the first unsupported operation.
+        (failure === errors[0]).should.be.true;
+        scenario.results[0].completed.should.be.false;
+    });
+
+    it('fails the delivery when the handler catches a subscribed self-append rejection', async () => {
+        let log!: IEventLog;
+        @reactor('swallowed-self-append-reactor')
+        class SwallowedSelfAppend {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                log = services.eventStore.eventLog;
+                try { await log.append('A', new Registered(event.name + '-follow')); } catch { /* Swallowed on purpose. */ }
+            }
+        }
+        const scenario = new ReactorScenario(SwallowedSelfAppend, options);
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
+        (failure instanceof UnsupportedReactorOperation).should.be.true;
+        String(failure).should.contain('services.eventLog.append.subscribed');
+        scenario.results[0].completed.should.be.false;
+        (await log.getNextSequenceNumber()).value.should.equal(1n);
     });
 
     it('does not create unhandled rejections for JSON serialization probes of services', async () => {

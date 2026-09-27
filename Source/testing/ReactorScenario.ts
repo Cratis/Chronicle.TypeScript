@@ -43,6 +43,7 @@ export class ReactorScenario {
     private readonly _results: ReactorDeliveryResult[] = [];
     private _busy = false;
     private _failed = false;
+    private _violation?: UnsupportedReactorOperation;
     private _deliveryIndex = 0;
 
     constructor(private readonly _reactor: Constructor, private readonly _options: ReactorScenarioOptions = {}) {
@@ -77,7 +78,7 @@ export class ReactorScenario {
     }
 
     private scenarioStore(): IEventStore {
-        const unsupported = (operation: string): never => { throw new UnsupportedReactorOperation(`services.${operation}`, this._reactor.name,
+        const unsupported = (operation: string): never => { throw this.violation(`services.${operation}`,
             'Provide an explicit eventStore test double for this service.'); };
         const readModelMethods = new Set(['register', 'getInstanceById', 'findInstanceById', 'getInstances',
             'getSnapshotsById', 'dehydrateSession', 'release', 'releaseMany']);
@@ -93,7 +94,7 @@ export class ReactorScenario {
                 const id = getEventTypeMetadata(event.constructor)?.eventType.id.value;
                 return this._entries.some(entry => entry.id === id);
             })) {
-                throw new UnsupportedReactorOperation('services.eventLog.append.subscribed', this._reactor.name,
+                throw this.violation('services.eventLog.append.subscribed',
                     'Delivery of a reactor\'s own appended events is not supported.');
             }
         };
@@ -179,7 +180,14 @@ export class ReactorScenario {
         }
     }
 
+    private violation(operation: string, reason: string): UnsupportedReactorOperation {
+        const error = new UnsupportedReactorOperation(operation, this._reactor.name, reason);
+        this._violation ??= error;
+        return error;
+    }
+
     private async process(sourceId: string, events: readonly AppendedEvent[]): Promise<void> {
+        this._violation = undefined;
         const deliveryIndex = this._deliveryIndex++;
         const handled: EventContext[] = [];
         const skipped: EventContext[] = [];
@@ -213,6 +221,8 @@ export class ReactorScenario {
             } else {
                 await process({ instance: this._instance ?? {} });
             }
+            // A handler that catches an unsupported-service rejection must not turn it into a successful delivery.
+            if (this._violation) throw this._violation;
             outcome.completed = true;
         } catch (error) {
             outcome.error = error;
