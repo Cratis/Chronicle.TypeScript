@@ -16,6 +16,7 @@ import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { EventScenarioGivenBuilder } from './EventScenarioGivenBuilder.js';
 import { EventScenarioWhenBuilder } from './EventScenarioWhenBuilder.js';
 import { InProcessEventSequence } from './InProcessEventSequence.js';
+import { registerScenarioSeed } from './EventScenarioSeed.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
 /** A kernel-free, fixture-bounded single-event append scenario. No observer runs automatically. */
@@ -43,7 +44,9 @@ export class EventScenario {
             throw new UnsupportedEventSequenceOperation('artifacts.eventTypeMigrations', artifacts.eventTypeMigrations.map(type => type.name).join(', '),
                 'Migrations are not fixture-backed.');
         }
-        this.eventSequence = new InProcessEventSequence(options, eventTypes);
+        const sequence = new InProcessEventSequence(options, eventTypes);
+        this.eventSequence = sequence;
+        registerScenarioSeed(this, (source, event) => sequence.seed(source, event));
         this.given = new EventScenarioGivenBuilder(this);
         this.when = new EventScenarioWhenBuilder(this);
     }
@@ -60,7 +63,7 @@ export class EventScenario {
     }
     appendMany(source: string, events: object[], options?: AppendOptions): Promise<AppendResult[]>;
     appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
-    appendMany(_sourceOrEvents: string | EventForEventSourceId[], _eventsOrOptions?: object[] | AppendOptions, _options?: AppendOptions): Promise<AppendResult[]> {
+    async appendMany(_sourceOrEvents: string | EventForEventSourceId[], _eventsOrOptions?: object[] | AppendOptions, _options?: AppendOptions): Promise<AppendResult[]> {
         throw new UnsupportedEventSequenceOperation('appendMany', this.eventSequence.id.value,
             'Both batch overloads require kernel-backed atomicity fixtures.');
     }
@@ -71,7 +74,4 @@ export class EventScenario {
     get then(): { readonly results: readonly AppendResult[]; readonly appendedEvents: readonly AppendedEvent[] } {
         return { results: this.results, appendedEvents: this.appendedEvents };
     }
-
-    /** Internal setup append. */
-    async seed(source: string, event: object): Promise<void> { await (this.eventSequence as InProcessEventSequence).seed(source, event); }
 }

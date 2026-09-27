@@ -24,6 +24,12 @@ class AlternateRecorded {
     constructor(label: string) { this.label = label; }
 }
 eventType('AlternateRecorded')(AlternateRecorded);
+class BoundaryRecorded {
+    @field(String) firstName: string;
+    @field(String) label: string;
+    constructor(firstName: string, label: string) { this.firstName = firstName; this.label = label; }
+}
+eventType('BoundaryRecorded')(BoundaryRecorded);
 class UnknownEvent {}
 class UnprovenNumber {
     @field(Number) amount = 1;
@@ -36,7 +42,7 @@ eventType('ConstrainedEvent')(ConstrainedEvent);
 unique()(ConstrainedEvent);
 
 interface Fixture {
-    actions: Array<{ type?: string; source: string; name?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string; clientCausation?: boolean }>;
+    actions: Array<{ type?: string; source: string; name?: string; firstName?: string; active?: boolean; label?: string; occurred?: string; correlationId?: string; clientCausation?: boolean }>;
     expected: {
         results: Array<{ success: boolean; sequenceNumber: string; violations: number; errors: number;
             concurrencyViolation: boolean; waitError: string }>;
@@ -52,7 +58,7 @@ const directory = new URL('./fixtures/', import.meta.url);
 const fixtures = readdirSync(directory).filter(name => name.endsWith('.json')).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
-const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded], constraints: [] };
+const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
 const makeScenario = (action?: Fixture['actions'][number]) => new EventScenario({
     artifacts, constraints: 'disabled',
     clock: action?.occurred ? () => new Date(action.occurred!) : undefined,
@@ -65,6 +71,7 @@ async function unsupportedAsync(action: () => Promise<unknown>, operation: strin
         error => {
             (error instanceof UnsupportedEventSequenceOperation).should.be.true;
             (error as Error).message.should.include(operation);
+            (error as Error).message.should.include('Use a kernel-backed test.');
         }
     );
 }
@@ -80,7 +87,7 @@ function unsupported(action: () => unknown, operation: string): void {
 
 describe('when appending against committed kernel event fixtures', () => {
     it('should include a non-vacuous empty sequence, single append, alternate schema and interleaved sources', () => {
-        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'client-causation.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
+        fixtures.map(item => item.name).should.deep.equal(['alternate.json', 'boundary.json', 'client-causation.json', 'empty.json', 'explicit-metadata.json', 'interleaved.json', 'single.json']);
     });
 
     for (const { name, fixture } of fixtures) {
@@ -88,7 +95,8 @@ describe('when appending against committed kernel event fixtures', () => {
             const scenario = makeScenario(fixture.actions[0]);
             for (const action of fixture.actions) {
                 const event = action.type === 'alternate'
-                    ? new AlternateRecorded(action.label!) : new OracleEventRecorded(action.name!, action.active!);
+                    ? new AlternateRecorded(action.label!) : action.type === 'boundary'
+                        ? new BoundaryRecorded(action.firstName!, action.label!) : new OracleEventRecorded(action.name!, action.active!);
                 const result = await scenario.append(action.source, event);
                 result.isSuccess.should.equal(true);
             }
@@ -177,10 +185,14 @@ describe('when appending against committed kernel event fixtures', () => {
 
     it('should reject all batch entry points before mutation, including one-event plural actions', async () => {
         const scenario = makeScenario();
-        unsupported(() => scenario.eventSequence.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
-        unsupported(() => scenario.eventSequence.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
-        unsupported(() => scenario.when.forEventSource('A').events(new OracleEventRecorded('one', true)), 'when.events');
-        unsupported(() => scenario.given.forEventSource('A').events(new OracleEventRecorded('one', true), new OracleEventRecorded('two', false)), 'given.events');
+        await unsupportedAsync(() => scenario.eventSequence.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
+        await unsupportedAsync(() => scenario.eventSequence.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
+        await unsupportedAsync(() => scenario.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
+        await unsupportedAsync(() => scenario.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
+        await unsupportedAsync(() => scenario.when.forEventSource('A').events(new OracleEventRecorded('one', true)), 'when.events');
+        await unsupportedAsync(() => scenario.when.forEventSource('A').events(), 'when.events');
+        await unsupportedAsync(() => scenario.given.forEventSource('A').events(new OracleEventRecorded('one', true), new OracleEventRecorded('two', false)), 'given.events');
+        await unsupportedAsync(() => scenario.given.forEventSource('A').events(), 'given.events');
         scenario.appendedEvents.length.should.equal(0);
     });
 
@@ -237,6 +249,7 @@ describe('when appending against committed kernel event fixtures', () => {
         const scenario = makeScenario();
         await scenario.append('A', new OracleEventRecorded('one', true));
         for (const source of ['', ' ', ' A ']) {
+            await unsupportedAsync(() => scenario.eventSequence.hasEventsFor(source), 'hasEventsFor.source');
             await unsupportedAsync(() => scenario.eventSequence.getTailSequenceNumber(source), 'getTailSequenceNumber.source');
             await unsupportedAsync(() => scenario.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, source), 'getFromSequenceNumber.source');
             await unsupportedAsync(() => scenario.eventSequence.getForEventSourceIdAndEventTypes(source, [OracleEventRecorded]), 'getForEventSourceIdAndEventTypes.source');

@@ -19,6 +19,9 @@ public record OracleEventRecorded(string Name, bool Active);
 [EventType("AlternateRecorded")]
 public record AlternateRecorded(string Label);
 
+[EventType("BoundaryRecorded")]
+public record BoundaryRecorded(string FirstName, string Label);
+
 internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
@@ -29,9 +32,12 @@ internal static class EventScenarioOracle
         foreach (var action in actions)
         {
             var source = action!["source"]!.GetValue<string>();
-            object value = action["type"]?.GetValue<string>() == "alternate"
-                ? new AlternateRecorded(action["label"]!.GetValue<string>())
-                : new OracleEventRecorded(action["name"]!.GetValue<string>(), action["active"]!.GetValue<bool>());
+            object value = action["type"]?.GetValue<string>() switch
+            {
+                "alternate" => new AlternateRecorded(action["label"]!.GetValue<string>()),
+                "boundary" => new BoundaryRecorded(action["firstName"]!.GetValue<string>(), action["label"]!.GetValue<string>()),
+                _ => new OracleEventRecorded(action["name"]!.GetValue<string>(), action["active"]!.GetValue<bool>())
+            };
             // The .NET client ordinarily sends its own root. For this fixture, put the
             // TypeScript client's two entries on the same ambient chain the .NET client sends.
             var ambient = (AsyncLocal<List<Causation>>)typeof(CausationManager)
@@ -101,12 +107,13 @@ internal static class EventScenarioOracle
                 ["eventType"] = entry.Context.EventType.Id.Value,
                 ["generation"] = entry.Context.EventType.Generation.Value,
                 ["hash"] = entry.Context.Hash.Value,
-                ["content"] = entry.Content is AlternateRecorded alternate
-                    ? new JsonObject { ["label"] = alternate.Label }
-                    : new JsonObject {
-                        ["name"] = ((OracleEventRecorded)entry.Content).Name,
-                        ["active"] = ((OracleEventRecorded)entry.Content).Active
-                    }
+                ["content"] = entry.Content switch
+                {
+                    AlternateRecorded alternate => new JsonObject { ["label"] = alternate.Label },
+                    BoundaryRecorded boundary => new JsonObject { ["firstName"] = boundary.FirstName, ["label"] = boundary.Label },
+                    OracleEventRecorded recorded => new JsonObject { ["name"] = recorded.Name, ["active"] = recorded.Active },
+                    _ => throw new InvalidOperationException("Unexpected event content")
+                }
             });
         }
         var sourceA = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First, "A");

@@ -9,7 +9,7 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 export class EventScenarioWhen {
     constructor(private readonly _scenario: EventScenario, private readonly _id: string) {}
     async event(event: object): Promise<AppendResult> { return this._scenario.append(this._id, event); }
-    events(..._events: object[]): Promise<readonly AppendResult[]> {
+    async events(..._events: object[]): Promise<readonly AppendResult[]> {
         throw new UnsupportedEventSequenceOperation('when.events/appendMany', this._id,
             'Even a one-event plural action uses kernel batch semantics; batch fixtures are not included.');
     }

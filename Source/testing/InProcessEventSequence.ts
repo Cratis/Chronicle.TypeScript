@@ -62,6 +62,9 @@ export class InProcessEventSequence implements IEventSequence {
             const metadata = getEventTypeMetadata(type);
             if (!metadata) throw this.unsupported('artifacts.eventTypes', type.name, 'Event type has no @eventType metadata.');
             const eventType = metadata.eventType;
+            if (!eventType.id.value.trim() || eventType.id.value !== eventType.id.value.trim() || eventType.id.value.includes(',')) {
+                throw this.unsupported('artifacts.eventTypes.id', eventType.id.value, 'Comma-separated or padded event IDs have unproven filter behavior.');
+            }
             if (ids.has(eventType.id.value)) throw this.unsupported('artifacts.eventTypes', type.name, 'Duplicate event ID or generation history.');
             ids.add(eventType.id.value);
             if (eventType.generation.value !== 1 || eventType.tombstone) {
@@ -185,7 +188,7 @@ export class InProcessEventSequence implements IEventSequence {
 
     appendMany(_eventSourceId: string, _events: object[], _options?: AppendOptions): Promise<AppendResult[]>;
     appendMany(_events: EventForEventSourceId[], _options?: AppendOptions): Promise<AppendResult[]>;
-    appendMany(): Promise<AppendResult[]> {
+    async appendMany(): Promise<AppendResult[]> {
         throw this.unsupported('appendMany', this.id.value, 'Batch atomicity and result mapping require kernel fixtures.');
     }
 
@@ -200,11 +203,14 @@ export class InProcessEventSequence implements IEventSequence {
         return last ? new EventSequenceNumber(last.context.sequenceNumber) : EventSequenceNumber.unset;
     }
 
-    getTailSequenceNumberForObserver(observer: Constructor): Promise<EventSequenceNumber> {
+    async getTailSequenceNumberForObserver(observer: Constructor): Promise<EventSequenceNumber> {
         throw this.unsupported('getTailSequenceNumberForObserver', observer.name, 'Observer discovery is not fixture-backed.');
     }
 
-    async hasEventsFor(source: string): Promise<boolean> { return this._history.some(event => event.context.eventSourceId === source); }
+    async hasEventsFor(source: string): Promise<boolean> {
+        this.validateReadSource('hasEventsFor.source', source);
+        return this._history.some(event => event.context.eventSourceId === source);
+    }
 
     async getForEventSourceIdAndEventTypes(source: string, types: Constructor[], streamType?: string, streamId?: string, sourceType?: string): Promise<AppendedEvent[]> {
         if (streamType !== undefined || streamId !== undefined || sourceType !== undefined || !types.length) {
@@ -220,15 +226,18 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     async getFromSequenceNumber(sequence: EventSequenceNumber, source?: string, types?: Constructor[]): Promise<AppendedEvent[]> {
+        if (sequence.value < 0n || sequence.value > EventSequenceNumber.unset.value) {
+            throw this.unsupported('getFromSequenceNumber.sequenceNumber', sequence.value.toString(), 'Sequence numbers must fit unsigned 64-bit wire values.');
+        }
         if (types?.length) throw this.unsupported('getFromSequenceNumber.filterEventTypes', this.id.value, 'Event-type filtering on sequence reads is not fixture-backed.');
         if (source !== undefined) this.validateReadSource('getFromSequenceNumber.source', source);
         return this._history.filter(event => event.context.sequenceNumber >= sequence.value &&
             (source === undefined || event.context.eventSourceId === source)).map(event => this.snapshot(event));
     }
 
-    redact(): Promise<void> { throw this.unsupported('redact', this.id.value, 'Redaction requires kernel storage.'); }
-    redactForEventSource(): Promise<void> { throw this.unsupported('redactForEventSource', this.id.value, 'Redaction requires kernel storage.'); }
-    completeStream(): Promise<CompleteStreamResult> { throw this.unsupported('completeStream', this.id.value, 'Stream completion requires a kernel.'); }
+    async redact(): Promise<void> { throw this.unsupported('redact', this.id.value, 'Redaction requires kernel storage.'); }
+    async redactForEventSource(): Promise<void> { throw this.unsupported('redactForEventSource', this.id.value, 'Redaction requires kernel storage.'); }
+    async completeStream(): Promise<CompleteStreamResult> { throw this.unsupported('completeStream', this.id.value, 'Stream completion requires a kernel.'); }
 
     private snapshot(event: AppendedEvent): AppendedEvent {
         const eventType = new EventType(new EventTypeId(event.eventType.id.value),
