@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import { EventObservationState } from '@cratis/chronicle.contracts';
 import { AppendOperationsBroadcaster } from '../eventSequences/AppendOperationsBroadcaster.js';
 import { prepareBatchAppend } from '../eventSequences/prepareBatchAppend.js';
-import type { Constructor } from '@cratis/fundamentals';
+import { Guid, type Constructor } from '@cratis/fundamentals';
 import { getEventTypeMetadata, getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
@@ -44,6 +44,8 @@ export class InProcessEventSequence implements IEventSequence {
     private readonly _correlationId?: () => string;
     private _setup = false;
     private _allowSeedAppend = false;
+    private _stagedSeeds?: AppendedEvent[];
+    private _stagedNotifications?: AppendedEventWithResult[][];
     private _busy = false;
     private readonly _results: AppendResult[] = [];
     readonly appendOperations = new AppendOperationsBroadcaster<AppendedEventWithResult[]>();
@@ -103,18 +105,26 @@ export class InProcessEventSequence implements IEventSequence {
     get results(): readonly AppendResult[] { return Object.freeze([...this._results]); }
     get appendedEvents(): readonly AppendedEvent[] { return Object.freeze(this._history.map(event => this.snapshot(event))); }
 
-    /** Seed through the same append path, without recording act-phase results. */
-    async seed(source: string, event: object): Promise<void> {
-        if (this._setup) throw this.unsupported('given.events', this.id.value, 'Overlapping setup calls are not fixture-backed.');
+    /** Stage every single append before committing setup history or publishing notifications. */
+    async seed(source: string, events: object[]): Promise<void> {
+        if (this._setup || this._busy) throw this.unsupported('given.events', this.id.value, 'Overlapping setup calls are not fixture-backed.');
         this._setup = true;
-        this._allowSeedAppend = true;
-        let pending: Promise<AppendResult>;
-        try { pending = this.append(source, event); }
-        finally { this._allowSeedAppend = false; }
+        this._stagedSeeds = [];
+        this._stagedNotifications = [];
         try {
-            const result = await pending;
-            if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result)}`);
+            for (const event of events) {
+                this._allowSeedAppend = true;
+                let pending: Promise<AppendResult>;
+                try { pending = this.append(source, event); }
+                finally { this._allowSeedAppend = false; }
+                const result = await pending;
+                if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result)}`);
+            }
+            this._history.push(...this._stagedSeeds);
+            for (const notification of this._stagedNotifications) this.appendOperations.publish(notification);
         } finally {
+            this._stagedSeeds = undefined;
+            this._stagedNotifications = undefined;
             this._setup = false;
         }
     }
@@ -170,7 +180,7 @@ export class InProcessEventSequence implements IEventSequence {
             }
             const canonical = Object.fromEntries(Object.entries(content).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
             const hash = createHash('sha256').update(`${prepared.eventType.id.value}|${eventSourceId}|${JSON.stringify(canonical)}`).digest('base64');
-            const sequenceNumber = new EventSequenceNumber(BigInt(this._history.length));
+            const sequenceNumber = new EventSequenceNumber(BigInt(this._history.length + (this._stagedSeeds?.length ?? 0)));
             const stored: AppendedEvent = {
                 eventType: prepared.eventType,
                 content,
@@ -184,11 +194,16 @@ export class InProcessEventSequence implements IEventSequence {
                     tags: prepared.tags.map(tag => new Tag(tag))
                 }
             };
-            this._history.push(this.snapshot(stored));
+            if (this._stagedSeeds) this._stagedSeeds.push(this.snapshot(stored));
+            else this._history.push(this.snapshot(stored));
             const result = this.success(sequenceNumber, event.constructor.name);
             if (!this._setup) this._results.push(result);
-            if (this.appendOperations.hasSubscribers) this.appendOperations.publish([this.notification(eventSourceId, event, result,
-                prepared.correlationId.toString(), prepared.causationChain, prepared.tags)]);
+            if (this._stagedNotifications || this.appendOperations.hasSubscribers) {
+                const notification = [this.notification(eventSourceId, event, result,
+                    prepared.correlationId.toString(), prepared.causationChain, prepared.tags)];
+                if (this._stagedNotifications) this._stagedNotifications.push(notification);
+                else this.appendOperations.publish(notification);
+            }
             return result;
         } finally {
             // Keep the append in flight until its promise crosses an async boundary.
@@ -208,19 +223,27 @@ export class InProcessEventSequence implements IEventSequence {
             if (!Array.isArray(entries)) throw this.unsupported('appendMany.arguments', this.id.value, 'Events must be an array.');
             if (!entries.length) throw this.unsupported('appendMany.empty', this.id.value, 'The kernel rejects an empty batch.');
             this.validateBatchOptions(shared);
+            if (shared?.occurred !== undefined) this.checkedDate(shared.occurred, 'appendMany.occurred');
             for (const entry of entries) {
                 if (typeof sourceOrEvents === 'string') break;
                 if (!entry || typeof entry !== 'object' || Reflect.ownKeys(entry).some(key =>
                     !['eventSourceId', 'event', 'eventSourceType', 'eventStreamType', 'eventStreamId', 'subject', 'occurred', 'tags'].includes(String(key)))) {
                     throw this.unsupported('appendMany.entry', this.id.value, 'Unrecognized per-entry metadata.');
                 }
-                const tags = (entry as EventForEventSourceId).tags;
+                const individual = entry as EventForEventSourceId;
+                if (individual.occurred !== undefined) this.checkedDate(individual.occurred, 'appendMany.occurred');
+                const tags = individual.tags;
                 if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
                     throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
                 }
             }
+            const batchOptions = shared?.correlationId === undefined && this._correlationId
+                ? { ...shared, correlationId: this._correlationId() } : shared;
+            if (batchOptions?.correlationId !== undefined) this.validateGuid(batchOptions.correlationId, 'appendMany.correlationId');
             let prepared: ReturnType<typeof prepareBatchAppend>;
-            try { prepared = prepareBatchAppend(sourceOrEvents, eventsOrOptions, options); }
+            try { prepared = typeof sourceOrEvents === 'string'
+                ? prepareBatchAppend(sourceOrEvents, entries as object[], batchOptions)
+                : prepareBatchAppend(sourceOrEvents, batchOptions); }
             catch (error) { throw this.unsupported('appendMany.serialization', this.id.value, `Batch preparation failed: ${String(error)}.`); }
             const { eventsForEventSourceIds, eventsToAppend, correlationId, batchCausationChain, identity } = prepared;
             this.validateGuid(correlationId, 'appendMany.correlationId');
@@ -266,9 +289,12 @@ export class InProcessEventSequence implements IEventSequence {
             this._history.push(...staged.map(item => this.snapshot(item.stored)));
             const results = staged.map(item => item.result);
             this._results.push(...results);
-            if (this.appendOperations.hasSubscribers) this.appendOperations.publish(staged.map(({ result }, index) =>
-                this.notification(eventsForEventSourceIds[index].eventSourceId, eventsForEventSourceIds[index].event, result,
-                    correlationId.toString(), batchCausationChain, eventsToAppend[index].Tags)));
+            if (this.appendOperations.hasSubscribers) {
+                const occurredAt = new Date();
+                this.appendOperations.publish(staged.map(({ result }, index) =>
+                    this.notification(eventsForEventSourceIds[index].eventSourceId, eventsForEventSourceIds[index].event, result,
+                        correlationId.toString(), batchCausationChain, eventsToAppend[index].Tags, occurredAt)));
+            }
             return results;
         } finally {
             await Promise.resolve();
@@ -356,9 +382,9 @@ export class InProcessEventSequence implements IEventSequence {
         }
     }
 
-    private validateGuid(value: Parameters<typeof toContractsGuid>[0], operation: string): void {
+    private validateGuid(value: string | Guid, operation: string): void {
         try {
-            toContractsGuid(value);
+            toContractsGuid(Guid.as(value));
             if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value.toString())) throw new Error('Invalid GUID.');
         } catch { throw this.unsupported(operation, this.id.value, 'Correlation ID must be a valid GUID.'); }
     }
@@ -397,10 +423,11 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     private notification(source: string, event: object, result: AppendResult, correlationId: string,
-        causation: readonly { type: { name: string }; properties: Readonly<Record<string, string>> }[], tags: string[]): AppendedEventWithResult {
+        causation: readonly { type: { name: string }; properties: Readonly<Record<string, string>> }[], tags: string[],
+        occurredAt = new Date()): AppendedEventWithResult {
         const eventType = getEventTypeFor(event.constructor);
         return { event: { eventType, content: event as Record<string, unknown>, context: {
-            sequenceNumber: result.sequenceNumber.value, eventSourceId: source, eventType, occurred: new Date(), correlationId,
+            sequenceNumber: result.sequenceNumber.value, eventSourceId: source, eventType, occurred: occurredAt, correlationId,
             causation: causation.map(item => ({ type: item.type.name, properties: { ...item.properties } })),
             tags: tags.map(tag => new Tag(tag))
         } }, result };

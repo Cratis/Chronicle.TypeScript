@@ -8,6 +8,6 @@ import { seedScenario } from './EventScenarioSeed.js';
 export class EventScenarioGiven {
     constructor(private readonly _scenario: EventScenario, private readonly _id: string) {}
     async events(...events: object[]): Promise<void> {
-        for (const event of events) await seedScenario(this._scenario, this._id, event);
+        await seedScenario(this._scenario, this._id, events);
     }
 }
