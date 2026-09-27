@@ -132,6 +132,25 @@ function compareHistory(scenario: EventScenario, expected: History[]): void {
 }
 
 describe('when appending batches against committed kernel fixtures', () => {
+    it('should resolve omitted routes like the pinned kernel batch path', async () => {
+        const { routeCases, expected } = JSON.parse(readFileSync(new URL('./fixtures/batch-omitted-routes.json', import.meta.url), 'utf8')) as {
+            routeCases: Array<{ source: string; name: string; active: boolean; sourceType?: string; streamType?: string; streamId?: string }>;
+            expected: { sequences: string[]; routes: Array<{ source: string; sourceType: string; streamType: string; streamId: string }> };
+        };
+        const scenario = create();
+        // Explicit empty route values are outside the scenario's domain; omit only those fields here.
+        const supported = routeCases.filter(item => item.sourceType !== '' && item.streamType !== '' && item.streamId !== '');
+        const results = await scenario.appendMany(supported.map(item => ({ eventSourceId: item.source,
+            event: new OracleEventRecorded(item.name, item.active), eventSourceType: item.sourceType,
+            eventStreamType: item.streamType, eventStreamId: item.streamId })));
+        results.map(result => result.sequenceNumber.value.toString()).should.deep.equal(expected.sequences.slice(0, supported.length));
+        scenario.appendedEvents.map(item => ({ source: item.context.eventSourceId,
+            sourceType: item.context.eventSourceType, streamType: item.context.eventStreamType,
+            streamId: item.context.eventStreamId })).should.deep.equal(
+            expected.routes.filter(item => supported.some(entry => entry.source === item.source)));
+        expected.routes.length.should.equal(routeCases.length);
+    });
+
     it('should match both overloads, entry-over-shared metadata, empty rejection and remaining reads', async () => {
         const { operations, expected } = fixture('batches');
         const scenario = create();
@@ -214,6 +233,16 @@ describe('when appending batches against committed kernel fixtures', () => {
                 .should.deep.equal([{ type: 'Root', properties: {} }, { type, properties }]);
         });
         await compareReads(scenario, expected);
+    });
+
+    it('should discard blank tags through production preparation on both batch overloads', async () => {
+        const scenario = create();
+        const blanks = ['', ' ', '\u00a0'];
+        await scenario.appendMany('A', [new OracleEventRecorded('same', true)], { tags: [...blanks, 'shared'] });
+        await scenario.appendMany([{ eventSourceId: 'B', event: new OracleEventRecorded('mixed', true),
+            tags: [...blanks, 'local'] }], { tags: [...blanks, 'shared'] });
+        scenario.appendedEvents.map(item => item.context.tags.map(tag => tag.value))
+            .should.deep.equal([['shared'], ['local', 'shared']]);
     });
 
     it('should reject concurrency scopes before committing a batch', async () => {

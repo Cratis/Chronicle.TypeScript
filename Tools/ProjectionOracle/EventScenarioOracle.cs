@@ -1,9 +1,16 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+extern alias KernelContracts;
+
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
+using KernelServiceAccessor = KernelContracts::Cratis.Chronicle.Contracts.IChronicleServicesAccessor;
+using KernelBatchRequest = KernelContracts::Cratis.Chronicle.Contracts.Sequences.AppendManyForEventSourcesRequest;
+using KernelBatchEvent = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventForEventSourceId;
+using KernelEventType = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventType;
 using Cratis.Chronicle.Auditing;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.Events.Constraints;
@@ -31,6 +38,7 @@ internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
+        if (fixture["routeCases"] is JsonArray) return await RunOmittedRoutes(fixture);
         if (fixture["operations"] is JsonArray) return await RunBatches(fixture);
         using var scenario = new EventScenario();
         var actions = fixture["actions"]!.AsArray();
@@ -135,6 +143,60 @@ internal static class EventScenarioOracle
             ["next"] = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString(),
             ["tail"] = (await scenario.EventLog.GetTailSequenceNumber()).Value.ToString(),
             ["hasSourceA"] = await scenario.EventLog.HasEventsFor("A")
+        };
+    }
+
+    // Bypass the .NET convenience type, which eagerly fills in routing defaults. This request
+    // reaches the pinned in-process kernel service with truly absent or empty route fields.
+    static async Task<JsonNode> RunOmittedRoutes(JsonObject fixture)
+    {
+        using var scenario = new EventScenario();
+        var created = (ITuple)typeof(EventScenario).GetField("_created", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(scenario)!;
+        var services = ((KernelServiceAccessor)created[1]!).Services;
+        var cases = fixture["routeCases"]!.AsArray();
+        if (cases.Count < 3 || !cases.Any(item => item!["sourceType"] is null && item["streamType"] is null && item["streamId"] is null) ||
+            !cases.Any(item => item!["sourceType"]?.GetValue<string>() == "" && item["streamType"]?.GetValue<string>() == "" && item["streamId"]?.GetValue<string>() == ""))
+            throw new InvalidOperationException("Omitted-route fixture must include both fully omitted and explicitly empty routes.");
+        var request = new KernelBatchRequest
+        {
+            EventStore = "test-event-store",
+            Namespace = "default",
+            EventSequenceId = "event-log",
+            Events = cases.Select(item =>
+            {
+                var wire = new KernelBatchEvent
+                {
+                    EventSourceId = item!["source"]!.GetValue<string>(),
+                    EventType = new KernelEventType { Id = "OracleEventRecorded", Generation = 1 },
+                    Content = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        name = item["name"]!.GetValue<string>(), active = item["active"]!.GetValue<bool>()
+                    }),
+                    Subject = item["source"]!.GetValue<string>()
+                };
+                // Leave absent route members at their contract defaults; send explicit empty members unchanged.
+                if (item["sourceType"] is not null) wire.EventSourceType = item["sourceType"]!.GetValue<string>();
+                if (item["streamType"] is not null) wire.EventStreamType = item["streamType"]!.GetValue<string>();
+                if (item["streamId"] is not null) wire.EventStreamId = item["streamId"]!.GetValue<string>();
+                return wire;
+            }).ToArray()
+        };
+        if (request.Events.Any(item => item.EventSourceType is "Default" || item.EventStreamType is "All" || item.EventStreamId is "Default"))
+            throw new InvalidOperationException("Omitted-route oracle must not supply route defaults.");
+        var response = await services.Sequences.AppendManyForEventSources(request);
+        if (response.Response?.IsSuccess != true || response.Response.SequenceNumbers.Count() != cases.Count)
+            throw new InvalidOperationException($"Kernel omitted-route append failed: {string.Join(", ", response.ExceptionMessages)}");
+        var history = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
+        return new JsonObject
+        {
+            ["sequences"] = new JsonArray(response.Response.SequenceNumbers.Select(number => (JsonNode?)JsonValue.Create(number.ToString())).ToArray()),
+            ["routes"] = new JsonArray(history.Select(entry => (JsonNode?)new JsonObject
+            {
+                ["source"] = entry.Context.EventSourceId.Value,
+                ["sourceType"] = entry.Context.EventSourceType.Value,
+                ["streamType"] = entry.Context.EventStreamType.Value,
+                ["streamId"] = entry.Context.EventStreamId.Value
+            }).ToArray())
         };
     }
 
