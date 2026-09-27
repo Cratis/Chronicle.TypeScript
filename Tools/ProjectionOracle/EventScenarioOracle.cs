@@ -143,7 +143,8 @@ internal static class EventScenarioOracle
     static async Task<JsonNode> RunBatches(JsonObject fixture)
     {
         using var scenario = new EventScenario();
-        var notifications = new BatchNotificationObserver();
+        var notifications = new BatchNotificationObserver(() =>
+            scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First).GetAwaiter().GetResult().Count());
         using var subscription = scenario.EventLog.AppendOperations.Subscribe(notifications);
         var outcomes = new JsonArray();
         foreach (var operation in fixture["operations"]!.AsArray())
@@ -254,6 +255,7 @@ internal static class EventScenarioOracle
         return new JsonObject {
             ["outcomes"] = outcomes,
             ["notifications"] = new JsonArray(notifications.Batches.ToArray()),
+            ["notificationHistoryLengths"] = new JsonArray(notifications.HistoryLengths.Select(count => (JsonNode?)JsonValue.Create(count)).ToArray()),
             ["history"] = new JsonArray(history),
             ["next"] = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString(),
             ["tail"] = (await scenario.EventLog.GetTailSequenceNumber()).Value.ToString(),
@@ -276,20 +278,39 @@ internal static class EventScenarioOracle
                 eventStreamType: "Other", eventStreamId: "stream2", eventSourceType: "Custom"))
                 .Select(entry => (JsonNode?)JsonValue.Create(entry.Context.SequenceNumber.Value.ToString())).ToArray()),
             ["tailByRoute"] = (await scenario.EventLog.GetTailSequenceNumber("B", "Custom", "Other", "stream2",
-                [new EventType("OracleEventRecorded", 1)])).Value.ToString()
+                [new EventType("OracleEventRecorded", 1)])).Value.ToString(),
+            ["byStreamTypeOnly"] = new JsonArray((await scenario.EventLog.GetForEventSourceIdAndEventTypes("A", [new EventType("AlternateRecorded", 1)],
+                eventStreamType: "Archive")).Select(entry => (JsonNode?)JsonValue.Create(entry.Context.SequenceNumber.Value.ToString())).ToArray()),
+            ["tailByStreamTypeOnly"] = (await scenario.EventLog.GetTailSequenceNumber("A", eventStreamType: "Archive")).Value.ToString(),
+            ["byStreamIdOnly"] = new JsonArray((await scenario.EventLog.GetForEventSourceIdAndEventTypes("A", [new EventType("AlternateRecorded", 1)],
+                eventStreamId: "stream1")).Select(entry => (JsonNode?)JsonValue.Create(entry.Context.SequenceNumber.Value.ToString())).ToArray()),
+            ["tailByStreamIdOnly"] = (await scenario.EventLog.GetTailSequenceNumber("A", eventStreamId: "stream1")).Value.ToString(),
+            ["bySourceTypeOnly"] = new JsonArray((await scenario.EventLog.GetForEventSourceIdAndEventTypes("B", [new EventType("OracleEventRecorded", 1)],
+                eventSourceType: "Custom")).Select(entry => (JsonNode?)JsonValue.Create(entry.Context.SequenceNumber.Value.ToString())).ToArray()),
+            ["tailBySourceTypeOnly"] = (await scenario.EventLog.GetTailSequenceNumber("B", eventSourceType: "Custom")).Value.ToString(),
+            ["byMixedRoute"] = new JsonArray((await scenario.EventLog.GetForEventSourceIdAndEventTypes("A", [new EventType("AlternateRecorded", 1)],
+                eventStreamType: "All", eventStreamId: "stream1")).Select(entry => (JsonNode?)JsonValue.Create(entry.Context.SequenceNumber.Value.ToString())).ToArray()),
+            ["tailByMixedRoute"] = (await scenario.EventLog.GetTailSequenceNumber("A", eventStreamType: "All", eventStreamId: "stream1")).Value.ToString()
         };
     }
 
     sealed class BatchNotificationObserver : IObserver<IEnumerable<AppendedEventWithResult>>
     {
+        readonly Func<int> _historyLength;
+        public BatchNotificationObserver(Func<int> historyLength) => _historyLength = historyLength;
         public List<JsonNode> Batches { get; } = [];
+        public List<int> HistoryLengths { get; } = [];
         public void OnCompleted() { }
         public void OnError(Exception error) => throw error;
-        public void OnNext(IEnumerable<AppendedEventWithResult> values) => Batches.Add(new JsonArray(values.Select(item => (JsonNode?)new JsonObject {
-            ["sequence"] = item.Result.SequenceNumber.Value.ToString(),
-            ["source"] = item.Event.Context.EventSourceId.Value,
-            ["type"] = item.Event.Context.EventType.Id.Value,
-            ["success"] = item.Result.IsSuccess
-        }).ToArray()));
+        public void OnNext(IEnumerable<AppendedEventWithResult> values)
+        {
+            HistoryLengths.Add(_historyLength());
+            Batches.Add(new JsonArray(values.Select(item => (JsonNode?)new JsonObject {
+                ["sequence"] = item.Result.SequenceNumber.Value.ToString(),
+                ["source"] = item.Event.Context.EventSourceId.Value,
+                ["type"] = item.Event.Context.EventType.Id.Value,
+                ["success"] = item.Result.IsSuccess
+            }).ToArray()));
+        }
     }
 }

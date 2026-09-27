@@ -47,9 +47,13 @@ type Fixture = { operations: Operation[]; expected: { outcomes: Array<{ success?
     violations?: number; errors?: number; concurrencyViolation?: boolean; rejection?: string; given?: number;
     sequentialSuccess?: boolean; lastSequence?: string }>;
     history: History[]; notifications: Array<Array<{ sequence: string; source: string; type: string; success: boolean }>>;
+    notificationHistoryLengths: number[];
     next: string; tail: string; tailA: string; tailByType: string;
     fromOneByType: string[]; byRoute: string[]; byDefaultRoute: string[]; byAllStreamType: string[];
-    tailByAll: string; byCustomRoute: string[]; tailByRoute: string } };
+    tailByAll: string; byCustomRoute: string[]; tailByRoute: string;
+    byStreamTypeOnly: string[]; tailByStreamTypeOnly: string;
+    byStreamIdOnly: string[]; tailByStreamIdOnly: string; bySourceTypeOnly: string[]; tailBySourceTypeOnly: string;
+    byMixedRoute: string[]; tailByMixedRoute: string } };
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/${name}.json`, import.meta.url), 'utf8')) as Fixture;
 const create = () => new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded, AlternateRecorded] }, constraints: 'disabled' });
 const value = (entry: Entry) => entry.type === 'alternate' ? new AlternateRecorded(entry.label!) : new OracleEventRecorded(entry.name!, entry.active!);
@@ -82,6 +86,22 @@ async function compareReads(scenario: EventScenario, expected: Fixture['expected
         .map(item => item.context.sequenceNumber.toString()).should.deep.equal(expected.byCustomRoute);
     (await scenario.eventSequence.getTailSequenceNumber('B', 'Custom', 'Other', 'stream2', [OracleEventRecorded]))
         .value.toString().should.equal(expected.tailByRoute);
+    (await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [AlternateRecorded], 'Archive'))
+        .map(item => item.context.sequenceNumber.toString()).should.deep.equal(expected.byStreamTypeOnly);
+    (await scenario.eventSequence.getTailSequenceNumber('A', undefined, 'Archive'))
+        .value.toString().should.equal(expected.tailByStreamTypeOnly);
+    (await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [AlternateRecorded], undefined, 'stream1'))
+        .map(item => item.context.sequenceNumber.toString()).should.deep.equal(expected.byStreamIdOnly);
+    (await scenario.eventSequence.getTailSequenceNumber('A', undefined, undefined, 'stream1'))
+        .value.toString().should.equal(expected.tailByStreamIdOnly);
+    (await scenario.eventSequence.getForEventSourceIdAndEventTypes('B', [OracleEventRecorded], undefined, undefined, 'Custom'))
+        .map(item => item.context.sequenceNumber.toString()).should.deep.equal(expected.bySourceTypeOnly);
+    (await scenario.eventSequence.getTailSequenceNumber('B', 'Custom'))
+        .value.toString().should.equal(expected.tailBySourceTypeOnly);
+    (await scenario.eventSequence.getForEventSourceIdAndEventTypes('A', [AlternateRecorded], 'All', 'stream1'))
+        .map(item => item.context.sequenceNumber.toString()).should.deep.equal(expected.byMixedRoute);
+    (await scenario.eventSequence.getTailSequenceNumber('A', undefined, 'All', 'stream1'))
+        .value.toString().should.equal(expected.tailByMixedRoute);
 }
 
 function compareHistory(scenario: EventScenario, expected: History[]): void {
@@ -108,7 +128,6 @@ function compareHistory(scenario: EventScenario, expected: History[]): void {
         if (entry.explicitCorrelation) event.context.correlationId.should.equal(entry.explicitCorrelation);
         const causation = event.context.causation.map(item => ({ type: item.type, properties: item.properties }));
         if (entry.causation[0].type === 'Root') causation.should.deep.equal(entry.causation);
-        else entry.causation.should.deep.equal([{ type: 'Unknown', properties: {} }]);
     });
 }
 
@@ -131,6 +150,7 @@ describe('when appending batches against committed kernel fixtures', () => {
                 ? await scenario.appendMany(operation.events[0].source, operation.events.map(value), options(operation))
                 : await scenario.eventSequence.appendMany(entries(operation), options(operation));
             const notified = (await next).value!;
+            scenario.appendedEvents.length.should.equal(expected.notificationHistoryLengths[notificationIndex]);
             notified.every(item => item.event.context.occurred === notified[0].event.context.occurred).should.be.true;
             notified.map(item => ({ sequence: item.result.sequenceNumber.value.toString(),
                 source: item.event.context.eventSourceId, type: item.event.eventType.id.value,
@@ -158,17 +178,41 @@ describe('when appending batches against committed kernel fixtures', () => {
     it('should seed multiple given events sequentially; TypeScript plural when remains an atomic batch', async () => {
         const { operations, expected } = fixture('builders');
         const scenario = create();
+        const seedCount = expected.outcomes.reduce((count, outcome) => count + (outcome.given ?? 0), 0);
+        const historyAtNotification: number[] = [];
+        const observing = (async () => {
+            for await (const notification of scenario.eventSequence.appendOperations) {
+                const index = historyAtNotification.length;
+                historyAtNotification.push(scenario.appendedEvents.length);
+                notification.map(item => ({ sequence: item.result.sequenceNumber.value.toString(),
+                    source: item.event.context.eventSourceId, type: item.event.eventType.id.value,
+                    success: item.result.isSuccess })).should.deep.equal(expected.notifications[index]);
+                if (historyAtNotification.length === seedCount) break;
+            }
+        })();
         for (const [index, operation] of operations.entries()) {
             if (operation.overload === 'given') {
                 await scenario.given.forEventSource('A').events(...operation.events.map(value));
-                expected.outcomes[index].given.should.equal(operation.events.length);
+                scenario.appendedEvents.length.should.equal(expected.outcomes[index].given);
             } else {
                 const result = await scenario.when.forEventSource('A').events(...operation.events.map(value));
-                result.map(item => item.sequenceNumber.value.toString()).should.deep.equal(['2', '3']);
+                const last = BigInt(expected.outcomes[index].lastSequence!);
+                result.map(item => item.sequenceNumber.value.toString()).should.deep.equal(
+                    operation.events.map((_, offset) => (last - BigInt(operation.events.length - offset - 1)).toString()));
+                result.every(item => item.isSuccess).should.equal(expected.outcomes[index].sequentialSuccess);
             }
         }
+        await observing;
+        historyAtNotification.should.deep.equal(expected.notificationHistoryLengths.slice(0, seedCount));
         scenario.results.length.should.equal(2);
         compareHistory(scenario, expected.history);
+        scenario.appendedEvents.forEach((event, index) => {
+            const type = index < seedCount ? 'TypeScriptClient.Append' : 'TypeScriptClient.AppendMany';
+            const properties = index < seedCount ? { eventType: expected.history[index].type }
+                : { count: String(operations.find(operation => operation.overload === 'whenSequential')!.events.length) };
+            event.context.causation.map(item => ({ type: item.type, properties: item.properties }))
+                .should.deep.equal([{ type: 'Root', properties: {} }, { type, properties }]);
+        });
         await compareReads(scenario, expected);
     });
 
@@ -236,6 +280,34 @@ describe('when appending batches against committed kernel fixtures', () => {
             .should.deep.equal([explicitCorrelationId, explicitCorrelationId]);
     });
 
+    it('should retain getter and non-enumerable shared options with the correlation hook on both batch overloads', async () => {
+        for (const overload of ['same', 'mixed'] as const) {
+            for (const shape of ['getter', 'non-enumerable'] as const) {
+                const scenario = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] },
+                    constraints: 'disabled', correlationId: () => fixedCorrelationId });
+                const metadata: AppendOptions = { sourceType: 'Group', streamType: 'Archive', streamId: 'stream1',
+                    subject: 'shared', occurred: new Date('2025-01-02T03:04:05.000Z'), tags: ['shared'] };
+                const shared: AppendOptions = shape === 'getter'
+                    ? Object.create(Object.defineProperties({}, Object.fromEntries(Object.entries(metadata).map(([key, value]) =>
+                        [key, { get: () => value, configurable: true }])))) as AppendOptions
+                    : Object.defineProperties({}, Object.fromEntries(Object.entries(metadata).map(([key, value]) =>
+                        [key, { value, configurable: true, writable: true, enumerable: false }]))) as AppendOptions;
+                const event = new OracleEventRecorded(`${overload}-${shape}`, true);
+                const results = overload === 'same' ? await scenario.appendMany('A', [event], shared)
+                    : await scenario.appendMany([{ eventSourceId: 'A', event }], shared);
+                results[0].isSuccess.should.be.true;
+                const context = scenario.appendedEvents[0].context;
+                context.eventSourceType.should.equal('Group');
+                context.eventStreamType.should.equal('Archive');
+                context.eventStreamId.should.equal('stream1');
+                context.subject.should.equal('shared');
+                context.occurred.toISOString().should.equal('2025-01-02T03:04:05.000Z');
+                context.tags.map(tag => tag.value).should.deep.equal(['shared']);
+                context.correlationId.should.equal(fixedCorrelationId);
+            }
+        }
+    });
+
     it('should reject an invalid correlation hook without changing batch history', async () => {
         const scenario = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] },
             constraints: 'disabled', correlationId: () => 'not-a-guid' });
@@ -271,6 +343,22 @@ describe('when appending batches against committed kernel fixtures', () => {
         (await notification).done.should.be.true;
         await scenario.given.forEventSource('A').events(new OracleEventRecorded('recovered', true));
         scenario.appendedEvents[0].context.sequenceNumber.should.equal(0n);
+    });
+
+    it('should expose only committed seed history to each setup notification', async () => {
+        const scenario = create();
+        const lengths: number[] = [];
+        const observed = (async () => {
+            for await (const notification of scenario.eventSequence.appendOperations) {
+                lengths.push(scenario.appendedEvents.length);
+                notification[0].event.context.sequenceNumber.should.equal(BigInt(lengths.length - 1));
+                if (lengths.length === 2) break;
+            }
+        })();
+        await scenario.given.forEventSource('A').events(new OracleEventRecorded('first', true),
+            new AlternateRecorded('second'));
+        await observed;
+        lengths.should.deep.equal([1, 2]);
     });
 
     it('should hold setup ownership between seeds against act and competing setup calls', async () => {
@@ -342,6 +430,31 @@ describe('when appending batches against committed kernel fixtures', () => {
             scenario.results.should.deep.equal(results);
             (await scenario.eventSequence.getNextSequenceNumber()).value.should.equal(next);
         }
+    });
+
+    it('should sample the clock once per defaulted batch entry and stage failures atomically', async () => {
+        let ticks = 0;
+        const scenario = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] }, constraints: 'disabled',
+            clock: () => new Date(Date.UTC(2025, 0, 1, 0, 0, ++ticks)) });
+        await scenario.appendMany('A', [new OracleEventRecorded('first', true), new OracleEventRecorded('second', true)]);
+        await scenario.appendMany([
+            { eventSourceId: 'A', event: new OracleEventRecorded('third', true), occurred: new Date('2025-04-01T00:00:00.000Z') },
+            { eventSourceId: 'A', event: new OracleEventRecorded('fourth', true) }
+        ]);
+        scenario.appendedEvents.map(item => item.context.occurred.toISOString()).should.deep.equal([
+            '2025-01-01T00:00:01.000Z', '2025-01-01T00:00:02.000Z',
+            '2025-04-01T00:00:00.000Z', '2025-01-01T00:00:03.000Z']);
+        ticks.should.equal(3);
+        let invalidTicks = 0;
+        const invalidClock = new EventScenario({ artifacts: { eventTypes: [OracleEventRecorded] }, constraints: 'disabled',
+            clock: () => ++invalidTicks === 2 ? new Date(NaN) : new Date('2025-01-01T00:00:00.000Z') });
+        await invalidClock.appendMany('A', [new OracleEventRecorded('valid', true),
+            new OracleEventRecorded('invalid clock', true)]).then(() => { throw new Error('Invalid clock accepted'); }, error => {
+            (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+            (error as Error).message.should.include('appendMany.clock');
+        });
+        invalidClock.appendedEvents.length.should.equal(0);
+        invalidClock.results.length.should.equal(0);
     });
 
     it('should expose hot append notifications with the production client shape', async () => {

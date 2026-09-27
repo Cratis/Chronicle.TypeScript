@@ -152,6 +152,12 @@
         }
       ]
     ],
+    "notificationHistoryLengths": [
+      1,
+      1,
+      1,
+      2
+    ],
     "history": [
       {
         "sequence": "0",
@@ -225,6 +231,14 @@
     ],
     "tailByAll": "18446744073709551615",
     "byCustomRoute": [],
-    "tailByRoute": "18446744073709551615"
+    "tailByRoute": "18446744073709551615",
+    "byStreamTypeOnly": [],
+    "tailByStreamTypeOnly": "18446744073709551615",
+    "byStreamIdOnly": [],
+    "tailByStreamIdOnly": "18446744073709551615",
+    "bySourceTypeOnly": [],
+    "tailBySourceTypeOnly": "18446744073709551615",
+    "byMixedRoute": [],
+    "tailByMixedRoute": "18446744073709551615"
   }
 }

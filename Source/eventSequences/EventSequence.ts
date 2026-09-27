@@ -7,10 +7,10 @@ import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/ch
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
-import { Tag } from '../events/Tag.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { toClientFailedPartition } from '../observation/toClientFailedPartition.js';
@@ -137,22 +137,8 @@ export class EventSequence implements IEventSequence {
                 }
 
                 if (this.appendOperations.hasSubscribers) {
-                    this.appendOperations.publish([{
-                        event: {
-                            context: {
-                                sequenceNumber: result.sequenceNumber.value,
-                                eventSourceId,
-                                eventType,
-                                occurred: new Date(),
-                                correlationId: correlationId.toString(),
-                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } })),
-                                tags: tags.map(value => new Tag(value))
-                            },
-                            eventType,
-                            content: event as Record<string, unknown>
-                        },
-                        result
-                    }]);
+                    this.appendOperations.publish([createAppendNotification(eventSourceId, event, result,
+                        correlationId.toString(), mapAppendNotificationCausation(causationChain), tags)]);
                 }
 
                 return result;
@@ -268,26 +254,11 @@ export class EventSequence implements IEventSequence {
 
                 if (this.appendOperations.hasSubscribers && result.length > 0) {
                     const occurredAt = new Date();
-                    const causationEntries = batchCausationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }));
+                    const causationEntries = mapAppendNotificationCausation(batchCausationChain);
                     this.appendOperations.publish(result.map((appendResult: AppendResult, index: number) => {
                         const { eventSourceId, event } = eventsForEventSourceIds[index];
-                        const eventType = getEventTypeFor(event.constructor as Function);
-                        return {
-                            event: {
-                                context: {
-                                    sequenceNumber: appendResult.sequenceNumber.value,
-                                    eventSourceId,
-                                    eventType,
-                                    occurred: occurredAt,
-                                    correlationId: correlationId.toString(),
-                                    causation: causationEntries,
-                                    tags: eventsToAppend[index].Tags.map(value => new Tag(value))
-                                },
-                                eventType,
-                                content: event as Record<string, unknown>
-                            },
-                            result: appendResult
-                        };
+                        return createAppendNotification(eventSourceId, event, appendResult, correlationId.toString(),
+                            causationEntries, eventsToAppend[index].Tags, occurredAt);
                     }));
                 }
 
