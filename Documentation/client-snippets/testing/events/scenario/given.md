@@ -15,5 +15,6 @@ const givenScenario = new GivenEventScenario({
 });
 await givenScenario.given.forEventSource('message-1').events(
     new MessageSeeded('first'), new MessageSeeded('second'));
-// Given uses sequential single appends, not an atomic batch. Setup events enter appendedEvents, not results.
+// Given uses sequential single appends, not an atomic batch, but commits nothing if any setup event is rejected.
+// Setup events enter appendedEvents, not results.
 ```
