@@ -263,6 +263,47 @@ describe('ReactorScenario live delivery', () => {
         scenario.results[0].completed.should.be.false;
     });
 
+    for (const form of ['source', 'mixed'] as const) {
+        it(`stops the delivery when the handler swallows waitForCompletion on a ${form} appendMany result`, async () => {
+            const invoked: string[] = [];
+            @reactor(`swallowed-many-wait-${form}-reactor`)
+            class SwallowedManyWait {
+                async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                    invoked.push(event.name);
+                    const log = services.eventStore.eventLog;
+                    const results = form === 'source'
+                        ? await log.appendMany('A', [new Skipped(event.name)])
+                        : await log.appendMany([{ eventSourceId: 'A', event: new Skipped(event.name) }]);
+                    await results[0].waitForCompletion().catch(() => undefined);
+                    return new Skipped(`${event.name}-out`);
+                }
+            }
+            const scenario = new ReactorScenario(SwallowedManyWait, options);
+            let failure: unknown;
+            await scenario.when.forEventSource('A').events(new Registered('first'), new Registered('second'))
+                .catch(error => { failure = error; });
+            (failure instanceof UnsupportedEventSequenceOperation).should.be.true;
+            invoked.should.deep.equal(['first']);
+            scenario.produced.length.should.equal(0);
+        });
+    }
+
+    it('delivers an append notification to an iterator created before the append', async () => {
+        let notified: unknown;
+        @reactor('append-operations-reactor')
+        class AppendOperations {
+            async registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                const iterator = services.eventStore.eventLog.appendOperations[Symbol.asyncIterator]();
+                await services.eventStore.eventLog.append('A', new Skipped('observed'));
+                notified = (await iterator.next()).value;
+                await iterator.return?.();
+            }
+        }
+        const scenario = new ReactorScenario(AppendOperations, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        (notified as unknown[]).length.should.equal(1);
+    });
+
     it('does not fail a running delivery for leftover work from an earlier delivery', async () => {
         let release!: () => void;
         const leftover = new Promise<void>(resolve => { release = resolve; });

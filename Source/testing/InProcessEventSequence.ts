@@ -35,6 +35,18 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
 
 /** Fixture-backed, scenario-local append sequence; no kernel or observer scheduler is started. */
+const unsupportedObservers = new WeakMap<object, (error: UnsupportedEventSequenceOperation) => void>();
+
+/**
+ * Observe every unsupported operation a scenario sequence reports, however the caller receives it.
+ * Internal to the testing harness; ReactorScenario uses it to fail deliveries that swallow such errors.
+ * @param sequence - The in-process sequence to observe.
+ * @param observer - Called with each unsupported-operation error the sequence creates.
+ */
+export function observeUnsupportedOperations(sequence: object, observer: (error: UnsupportedEventSequenceOperation) => void): void {
+    unsupportedObservers.set(sequence, observer);
+}
+
 export class InProcessEventSequence implements IEventSequence {
     readonly id: EventSequenceId;
     private readonly _catalog = new Map<Function, ReturnType<typeof getEventTypeMetadata>>();
@@ -455,6 +467,8 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     private unsupported(operation: string, artifact: string, reason: string): UnsupportedEventSequenceOperation {
-        return new UnsupportedEventSequenceOperation(operation, artifact, reason);
+        const error = new UnsupportedEventSequenceOperation(operation, artifact, reason);
+        unsupportedObservers.get(this)?.(error);
+        return error;
     }
 }
