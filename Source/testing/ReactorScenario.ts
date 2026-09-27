@@ -107,7 +107,7 @@ export class ReactorScenario {
         const guardResult = <T>(value: T): T => {
             if (!value || typeof value !== 'object' || typeof (value as { waitForCompletion?: unknown }).waitForCompletion !== 'function') return value;
             // Results are frozen, so copy every property descriptor and replace only waitForCompletion.
-            const descriptors = Object.getOwnPropertyDescriptors(value);
+            const descriptors: Record<string, PropertyDescriptor> = Object.getOwnPropertyDescriptors(value);
             const original = (value as unknown as { waitForCompletion: Function }).waitForCompletion;
             descriptors.waitForCompletion = { enumerable: descriptors.waitForCompletion?.enumerable ?? true, configurable: false, writable: false, value: (...args: unknown[]) => Promise.resolve()
                 .then(() => original.apply(value, args)).catch(error => { throw this.latch(error); }) };
