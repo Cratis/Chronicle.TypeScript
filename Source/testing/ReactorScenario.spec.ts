@@ -242,6 +242,27 @@ describe('ReactorScenario live delivery', () => {
         }, error => { String(error).should.contain('delivery.afterFailure'); });
     });
 
+    it('stops the delivery when the handler swallows an unsupported waitForCompletion', async () => {
+        const invoked: string[] = [];
+        @reactor('swallowed-wait-reactor')
+        class SwallowedWait {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                invoked.push(event.name);
+                const result = await services.eventStore.eventLog.append('A', new Skipped(event.name));
+                await result.waitForCompletion().catch(() => undefined);
+                return new Skipped(`${event.name}-out`);
+            }
+        }
+        const scenario = new ReactorScenario(SwallowedWait, options);
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first'), new Registered('second'))
+            .catch(error => { failure = error; });
+        (failure instanceof UnsupportedEventSequenceOperation).should.be.true;
+        invoked.should.deep.equal(['first']);
+        scenario.produced.length.should.equal(0);
+        scenario.results[0].completed.should.be.false;
+    });
+
     it('does not fail a running delivery for leftover work from an earlier delivery', async () => {
         let release!: () => void;
         const leftover = new Promise<void>(resolve => { release = resolve; });

@@ -16,6 +16,7 @@ import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
+import type { AppendedEventWithResult } from '../eventSequences/AppendedEventWithResult.js';
 import { EventStoreName } from '../EventStoreName.js';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
 import type { IEventStore } from '../IEventStore.js';
@@ -102,11 +103,22 @@ export class ReactorScenario {
                     'Delivery of a reactor\'s own appended events is not supported.');
             }
         };
+        // Append results expose waitForCompletion, which is unsupported in process; latch it like any other call.
+        const guardResult = <T>(value: T): T => {
+            if (!value || typeof value !== 'object' || typeof (value as { waitForCompletion?: unknown }).waitForCompletion !== 'function') return value;
+            // Results are frozen, so copy every property descriptor and replace only waitForCompletion.
+            const descriptors = Object.getOwnPropertyDescriptors(value);
+            const original = (value as unknown as { waitForCompletion: Function }).waitForCompletion;
+            descriptors.waitForCompletion = { enumerable: descriptors.waitForCompletion?.enumerable ?? true, configurable: false, writable: false, value: (...args: unknown[]) => Promise.resolve()
+                .then(() => original.apply(value, args)).catch(error => { throw this.latch(error); }) };
+            const guarded = Object.create(Object.getPrototypeOf(value), descriptors) as T;
+            return Object.isFrozen(value) ? Object.freeze(guarded) : guarded;
+        };
         const guardedLog = new Proxy(eventLog, { get: (target, key) => {
             if (key === 'append') return async (...args: Parameters<IEventLog['append']>) => {
                 try {
                     rejectSubscribed([args[1]]);
-                    return await target.append(...args);
+                    return guardResult(await target.append(...args));
                 } catch (error) { throw this.latch(error); }
             };
             if (key === 'appendMany') return async (sourceOrEvents: string | EventForEventSourceId[],
@@ -114,14 +126,20 @@ export class ReactorScenario {
                 try {
                     if (typeof sourceOrEvents === 'string') {
                         rejectSubscribed(eventsOrOptions as object[]);
-                        return await target.appendMany(sourceOrEvents, eventsOrOptions as object[], options);
+                        return guardResult(await target.appendMany(sourceOrEvents, eventsOrOptions as object[], options));
                     }
                     rejectSubscribed(sourceOrEvents.map(entry => entry.event));
-                    return await target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
+                    return guardResult(await target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined));
                 } catch (error) { throw this.latch(error); }
             };
             let value: unknown;
             try { value = Reflect.get(target, key, target); } catch (error) { throw this.latch(error); }
+            if (key === 'appendOperations') {
+                const operations = value as AsyncIterable<AppendedEventWithResult[]>;
+                return { [Symbol.asyncIterator]: async function* () {
+                    for await (const batch of operations) yield batch.map(entry => ({ ...entry, result: guardResult(entry.result) }));
+                } };
+            }
             if (typeof value !== 'function') return value;
             // Unsupported event-sequence operations fail the delivery even when the handler catches them.
             return (...args: unknown[]) => {
