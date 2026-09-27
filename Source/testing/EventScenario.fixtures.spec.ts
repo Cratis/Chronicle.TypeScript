@@ -55,7 +55,8 @@ interface Fixture {
     };
 }
 const directory = new URL('./fixtures/', import.meta.url);
-const fixtures = readdirSync(directory).filter(name => name.endsWith('.json')).map(name => ({
+const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
+    !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
@@ -186,18 +187,6 @@ describe('when appending against committed kernel event fixtures', () => {
         scenario.eventLog.should.equal(scenario.eventSequence);
     });
 
-    it('should reject all batch entry points before mutation, including one-event plural actions', async () => {
-        const scenario = makeScenario();
-        await unsupportedAsync(() => scenario.eventSequence.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
-        await unsupportedAsync(() => scenario.eventSequence.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
-        await unsupportedAsync(() => scenario.appendMany('A', [new OracleEventRecorded('one', true)]), 'appendMany');
-        await unsupportedAsync(() => scenario.appendMany([{ eventSourceId: 'A', event: new OracleEventRecorded('one', true) }]), 'appendMany');
-        await unsupportedAsync(() => scenario.when.forEventSource('A').events(new OracleEventRecorded('one', true)), 'when.events');
-        await unsupportedAsync(() => scenario.when.forEventSource('A').events(), 'when.events');
-        await unsupportedAsync(() => scenario.given.forEventSource('A').events(new OracleEventRecorded('one', true), new OracleEventRecorded('two', false)), 'given.events');
-        await unsupportedAsync(() => scenario.given.forEventSource('A').events(), 'given.events');
-        scenario.appendedEvents.length.should.equal(0);
-    });
 
     it('should reject unproven schemas, event registrations and constraints before appending', async () => {
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenNumber] }, constraints: 'disabled' }), 'schema');

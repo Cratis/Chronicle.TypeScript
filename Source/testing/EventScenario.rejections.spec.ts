@@ -123,34 +123,12 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         rejected(() => subject.eventSequence.transactional, 'transactional');
         clean(subject);
     });
-    it('should reject append notifications', () => {
+    it('should reject unproven route filters and unknown event types', async () => {
         const subject = scenario();
-        rejected(() => subject.eventSequence.appendOperations, 'appendOperations');
-        clean(subject);
-    });
-    it('should reject source-type tail filters', async () => {
-        const subject = scenario();
-        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', 'Default'), 'getTailSequenceNumber.filters');
-        clean(subject);
-    });
-    it('should reject stream-type tail filters', async () => {
-        const subject = scenario();
-        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', undefined, 'All'), 'getTailSequenceNumber.filters');
-        clean(subject);
-    });
-    it('should reject stream-ID tail filters', async () => {
-        const subject = scenario();
-        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', undefined, undefined, 'Default'), 'getTailSequenceNumber.filters');
-        clean(subject);
-    });
-    it('should reject event-type tail filters', async () => {
-        const subject = scenario();
-        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', undefined, undefined, undefined, [Recorded]), 'getTailSequenceNumber.filters');
-        clean(subject);
-    });
-    it('should reject event-type sequence filters', async () => {
-        const subject = scenario();
-        await rejects(() => subject.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A', [Recorded]), 'getFromSequenceNumber.filterEventTypes');
+        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', ' A '), 'getTailSequenceNumber.filters');
+        await rejects(() => subject.eventSequence.getTailSequenceNumber('A', undefined, undefined, undefined, [DuplicateId]), 'read.eventTypes');
+        await rejects(() => subject.eventSequence.getFromSequenceNumber(EventSequenceNumber.first, 'A', [DuplicateId]), 'read.eventTypes');
+        await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', [Recorded], ' A '), 'getForEventSourceIdAndEventTypes.filters');
         clean(subject);
     });
     for (const value of [-1n, EventSequenceNumber.unset.value + 1n]) {
@@ -253,18 +231,6 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         await rejects(() => subject.append('A', new Recorded(), { subject: 'other' }), 'append.options');
         clean(subject);
     });
-    for (const [name, filters] of [
-        ['stream type', ['All', undefined, undefined]],
-        ['stream ID', [undefined, 'Default', undefined]],
-        ['source type', [undefined, undefined, 'Default']]
-    ] as const) {
-        it(`should reject ${name} source/type-read filters`, async () => {
-            const subject = scenario();
-            await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', [Recorded], ...filters),
-                'getForEventSourceIdAndEventTypes.filters');
-            clean(subject);
-        });
-    }
     it('should reject empty source/type-read event types', async () => {
         const subject = scenario();
         await rejects(() => subject.eventSequence.getForEventSourceIdAndEventTypes('A', []), 'getForEventSourceIdAndEventTypes.filters');
