@@ -14,8 +14,10 @@
   "actions": [
     {
       "source": "A",
-      "name": "alpha",
-      "active": true
+      "name": "fixed",
+      "active": false,
+      "occurred": "2025-01-02T03:04:05.000Z",
+      "correlationId": "11111111-2222-3333-4444-555555555555"
     }
   ],
   "expected": {
@@ -44,18 +46,18 @@
         "store": "test-event-store",
         "namespace": "default",
         "occurredValid": true,
-        "explicitOccurred": null,
-        "explicitCorrelation": null,
+        "explicitOccurred": "2025-01-02T03:04:05.0000000+00:00",
+        "explicitCorrelation": "11111111-2222-3333-4444-555555555555",
         "correlationValid": true,
         "causationCount": 1,
         "tagsCount": 0,
         "causedByName": "[System]",
         "eventType": "OracleEventRecorded",
         "generation": 1,
-        "hash": "+FUfXxYwX8GLc3JwoPMNPsOO8d/5jVwyEIKyeOyXXTs=",
+        "hash": "ewRbnQ69wMlL0kDY9+R58ELaPwxHoCN2229J8Y2WU6I=",
         "content": {
-          "name": "alpha",
-          "active": true
+          "name": "fixed",
+          "active": false
         }
       }
     ],

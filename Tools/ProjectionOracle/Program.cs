@@ -56,8 +56,13 @@ internal static class Program
             var projectionFiles = args[0] == "--update-events"
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
+            var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
+            if (eventFiles.Length < 4)
+            {
+                throw new InvalidOperationException("Event oracle requires at least four fixtures; refusing a vacuous check.");
+            }
             var files = projectionFiles
-                .Concat(Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json"))
+                .Concat(eventFiles)
                 .OrderBy(name => name, StringComparer.Ordinal).ToArray();
             if (files.Length < (args[0] == "--update-events" ? 3 : 8))
             {
@@ -69,6 +74,10 @@ internal static class Program
                 var fixture = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
                 var fixtureCommit = fixture["chronicle"]?["commit"]?.GetValue<string>();
                 var kind = fixture["kind"]?.GetValue<string>();
+                if (eventFiles.Contains(path) && fixture["oracle"]?.GetValue<string>() != "eventScenario")
+                {
+                    throw new InvalidOperationException($"{path}: event fixture must use the packaged kernel EventScenario oracle.");
+                }
                 if (kind is not ("kernelSemantics" or "oracleGuard"))
                 {
                     throw new InvalidOperationException($"{path}: kind must be 'kernelSemantics' or 'oracleGuard'.");

@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Cratis.Chronicle.Events;
+using Cratis.Execution;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Testing.EventSequences;
 
@@ -10,6 +11,9 @@ namespace ProjectionOracle;
 
 [EventType("OracleEventRecorded")]
 public record OracleEventRecorded(string Name, bool Active);
+
+[EventType("AlternateRecorded")]
+public record AlternateRecorded(string Label);
 
 internal static class EventScenarioOracle
 {
@@ -21,14 +25,22 @@ internal static class EventScenarioOracle
         foreach (var action in actions)
         {
             var source = action!["source"]!.GetValue<string>();
-            var value = new OracleEventRecorded(action["name"]!.GetValue<string>(), action["active"]!.GetValue<bool>());
-            var result = await scenario.EventLog.Append(source, value);
+            object value = action["type"]?.GetValue<string>() == "alternate"
+                ? new AlternateRecorded(action["label"]!.GetValue<string>())
+                : new OracleEventRecorded(action["name"]!.GetValue<string>(), action["active"]!.GetValue<bool>());
+            var result = action["correlationId"] is not null
+                ? await scenario.EventLog.Append(source, value,
+                    correlationId: (CorrelationId)Guid.Parse(action["correlationId"]!.GetValue<string>()),
+                    occurred: DateTimeOffset.Parse(action["occurred"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture))
+                : await scenario.EventLog.Append(source, value);
             results.Add(new JsonObject { ["success"] = result.IsSuccess, ["sequenceNumber"] = result.SequenceNumber.Value.ToString() });
         }
         var events = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
         var history = new JsonArray();
+        var index = 0;
         foreach (var entry in events)
         {
+            var action = actions[index++]!;
             history.Add(new JsonObject
             {
                 ["sequenceNumber"] = entry.Context.SequenceNumber.Value.ToString(),
@@ -40,6 +52,8 @@ internal static class EventScenarioOracle
                 ["store"] = entry.Context.EventStore.Value,
                 ["namespace"] = entry.Context.Namespace.Value,
                 ["occurredValid"] = entry.Context.Occurred.Year > 2020,
+                ["explicitOccurred"] = action["occurred"] is null ? null : entry.Context.Occurred.ToString("O"),
+                ["explicitCorrelation"] = action["correlationId"] is null ? null : entry.Context.CorrelationId.Value.ToString(),
                 ["correlationValid"] = Guid.TryParse(entry.Context.CorrelationId.Value.ToString(), out _),
                 ["causationCount"] = entry.Context.Causation.Count(),
                 ["tagsCount"] = entry.Context.Tags.Count(),
@@ -47,10 +61,12 @@ internal static class EventScenarioOracle
                 ["eventType"] = entry.Context.EventType.Id.Value,
                 ["generation"] = entry.Context.EventType.Generation.Value,
                 ["hash"] = entry.Context.Hash.Value,
-                ["content"] = new JsonObject {
-                    ["name"] = ((OracleEventRecorded)entry.Content).Name,
-                    ["active"] = ((OracleEventRecorded)entry.Content).Active
-                }
+                ["content"] = entry.Content is AlternateRecorded alternate
+                    ? new JsonObject { ["label"] = alternate.Label }
+                    : new JsonObject {
+                        ["name"] = ((OracleEventRecorded)entry.Content).Name,
+                        ["active"] = ((OracleEventRecorded)entry.Content).Active
+                    }
             });
         }
         var sourceA = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First, "A");

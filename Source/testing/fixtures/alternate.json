@@ -13,19 +13,15 @@
   },
   "actions": [
     {
-      "source": "A",
-      "name": "alpha",
-      "active": true
+      "type": "alternate",
+      "source": "B",
+      "label": "text with é and |"
     }
   ],
   "expected": {
-    "sourceA": [
-      "0"
-    ],
-    "byType": [
-      "0"
-    ],
-    "tailA": "0",
+    "sourceA": [],
+    "byType": [],
+    "tailA": "18446744073709551615",
     "fromOne": [],
     "results": [
       {
@@ -36,11 +32,11 @@
     "history": [
       {
         "sequenceNumber": "0",
-        "source": "A",
+        "source": "B",
         "sourceType": "Default",
         "streamType": "All",
         "streamId": "Default",
-        "subject": "A",
+        "subject": "B",
         "store": "test-event-store",
         "namespace": "default",
         "occurredValid": true,
@@ -50,17 +46,16 @@
         "causationCount": 1,
         "tagsCount": 0,
         "causedByName": "[System]",
-        "eventType": "OracleEventRecorded",
+        "eventType": "AlternateRecorded",
         "generation": 1,
-        "hash": "+FUfXxYwX8GLc3JwoPMNPsOO8d/5jVwyEIKyeOyXXTs=",
+        "hash": "I6238IuMgL4dHyeGfeQB6ToTDhik3vCkuDg7xu17rMI=",
         "content": {
-          "name": "alpha",
-          "active": true
+          "label": "text with é and |"
         }
       }
     ],
     "next": "1",
     "tail": "0",
-    "hasSourceA": true
+    "hasSourceA": false
   }
 }
