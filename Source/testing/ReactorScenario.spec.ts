@@ -187,6 +187,56 @@ describe('ReactorScenario live delivery', () => {
         scenario.results[0].completed.should.be.false;
     });
 
+    it('stops a multi-event delivery at the event whose handler swallowed an unsupported call', async () => {
+        const invoked: string[] = [];
+        @reactor('swallowed-in-batch-reactor')
+        class SwallowedInBatch {
+            async registered(event: Registered, _context: EventContext, services: ReactorServices) {
+                invoked.push(event.name);
+                await services.readModels.getInstances(Registered).catch(() => undefined);
+                return new Skipped(`${event.name}-out`);
+            }
+        }
+        const scenario = new ReactorScenario(SwallowedInBatch, options);
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first'), new Registered('second'))
+            .catch(error => { failure = error; });
+        (failure instanceof UnsupportedReactorOperation).should.be.true;
+        invoked.should.deep.equal(['first']);
+        scenario.results[0].handled.length.should.equal(0);
+        scenario.produced.length.should.equal(0);
+    });
+
+    it('fails the delivery when the handler catches an unsupported event-log operation', async () => {
+        @reactor('swallowed-event-log-reactor')
+        class SwallowedEventLog {
+            async registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                await services.eventStore.eventLog.completeStream('Orders', 'A').catch(() => undefined);
+            }
+        }
+        const scenario = new ReactorScenario(SwallowedEventLog, options);
+        let failure: unknown;
+        await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
+        (failure instanceof UnsupportedEventSequenceOperation).should.be.true;
+        scenario.results[0].completed.should.be.false;
+        await scenario.when.forEventSource('A').events(new Registered('second')).then(() => {
+            throw new Error('expected rejection');
+        }, error => { String(error).should.contain('delivery.afterFailure'); });
+    });
+
+    it('does not attribute an unsupported call made after its delivery finished to a later delivery', async () => {
+        let services!: ReactorServices;
+        @reactor('detached-call-reactor')
+        class DetachedCall {
+            registered(_event: Registered, _context: EventContext, reactorServices: ReactorServices) { services = reactorServices; }
+        }
+        const scenario = new ReactorScenario(DetachedCall, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        await services.readModels.getInstances(Registered).catch(() => undefined);
+        await scenario.when.forEventSource('A').events(new Registered('second'));
+        scenario.results.map(result => result.completed).should.deep.equal([true, true]);
+    });
+
     it('fails the delivery when the handler catches a subscribed self-append rejection', async () => {
         let log!: IEventLog;
         @reactor('swallowed-self-append-reactor')

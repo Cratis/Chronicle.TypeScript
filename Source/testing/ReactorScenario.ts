@@ -27,6 +27,7 @@ import { EventScenario } from './EventScenario.js';
 import type { ReactorDeliveryResult } from './ReactorDeliveryResult.js';
 import type { ReactorScenarioOptions } from './ReactorScenarioOptions.js';
 import type { RecordedReactorSideEffect } from './RecordedReactorSideEffect.js';
+import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
 
 /** Live, ordered reactor deliveries over the fixture-proven EventScenario event boundary. */
@@ -43,7 +44,8 @@ export class ReactorScenario {
     private readonly _results: ReactorDeliveryResult[] = [];
     private _busy = false;
     private _failed = false;
-    private _violation?: UnsupportedReactorOperation;
+    // Unsupported calls are attributed only to the delivery that is running when they happen.
+    private _delivery?: { violation?: Error };
     private _deliveryIndex = 0;
 
     constructor(private readonly _reactor: Constructor, private readonly _options: ReactorScenarioOptions = {}) {
@@ -112,8 +114,15 @@ export class ReactorScenario {
                 rejectSubscribed(sourceOrEvents.map(entry => entry.event));
                 return target.appendMany(sourceOrEvents, eventsOrOptions as AppendOptions | undefined);
             };
-            const value = Reflect.get(target, key, target) as unknown;
-            return typeof value === 'function' ? value.bind(target) : value;
+            let value: unknown;
+            try { value = Reflect.get(target, key, target); } catch (error) { throw this.latch(error); }
+            if (typeof value !== 'function') return value;
+            // Unsupported event-sequence operations fail the delivery even when the handler catches them.
+            return (...args: unknown[]) => {
+                let result: unknown;
+                try { result = (value as Function).apply(target, args); } catch (error) { throw this.latch(error); }
+                return result instanceof Promise ? result.catch(error => { throw this.latch(error); }) : result;
+            };
         } }) as IEventLog;
         const store = { name: new EventStoreName(this._options.eventStore ?? 'test-event-store'),
             namespace: new EventStoreNamespaceName(this._options.namespace ?? 'default'), eventLog: guardedLog, readModels };
@@ -181,13 +190,23 @@ export class ReactorScenario {
     }
 
     private violation(operation: string, reason: string): UnsupportedReactorOperation {
-        const error = new UnsupportedReactorOperation(operation, this._reactor.name, reason);
-        this._violation ??= error;
+        return this.latch(new UnsupportedReactorOperation(operation, this._reactor.name, reason)) as UnsupportedReactorOperation;
+    }
+
+    private latch(error: unknown): unknown {
+        if (this._delivery && (error instanceof UnsupportedReactorOperation || error instanceof UnsupportedEventSequenceOperation)) {
+            this._delivery.violation ??= error;
+        }
         return error;
     }
 
+    private throwIfViolated(delivery: { violation?: Error }): void {
+        if (delivery.violation) throw delivery.violation;
+    }
+
     private async process(sourceId: string, events: readonly AppendedEvent[]): Promise<void> {
-        this._violation = undefined;
+        const delivery: { violation?: Error } = {};
+        this._delivery = delivery;
         const deliveryIndex = this._deliveryIndex++;
         const handled: EventContext[] = [];
         const skipped: EventContext[] = [];
@@ -206,8 +225,12 @@ export class ReactorScenario {
                 const selection = selectReactorHandler(this._entries, this._reactor, artifact.instance,
                     event.eventType.id.value, event.context.observationState);
                 if (!selection?.methodName || selection.skipReplay) { skipped.push(event.context); continue; }
-                await invokeReactorHandler(artifact, selection.methodName, event.content, event.context, services, result =>
-                    this.record(result, event.context, selection.methodName!, deliveryIndex));
+                await invokeReactorHandler(artifact, selection.methodName, event.content, event.context, services, result => {
+                    // A swallowed unsupported call fails this event like a throwing handler: nothing is recorded.
+                    this.throwIfViolated(delivery);
+                    return this.record(result, event.context, selection.methodName!, deliveryIndex);
+                });
+                this.throwIfViolated(delivery);
                 handled.push(event.context);
             }
         };
@@ -222,13 +245,14 @@ export class ReactorScenario {
                 await process({ instance: this._instance ?? {} });
             }
             // A handler that catches an unsupported-service rejection must not turn it into a successful delivery.
-            if (this._violation) throw this._violation;
+            this.throwIfViolated(delivery);
             outcome.completed = true;
         } catch (error) {
             outcome.error = error;
             this._failed = true;
             throw error;
         } finally {
+            if (this._delivery === delivery) this._delivery = undefined;
             this._results.push(Object.freeze({ ...outcome, handled: Object.freeze([...handled]), skipped: Object.freeze([...skipped]) }));
         }
     }
