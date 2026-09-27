@@ -66,7 +66,7 @@ export class InProcessEventSequence implements IEventSequence {
                 throw this.unsupported('artifacts.eventTypes', type.name, 'Only generation 1, non-tombstone events are proven.');
             }
             if (options.constraints !== 'disabled' && (getUniqueEventMetadata(type) || getRemovedConstraintNames(type).length ||
-                Object.keys(metadata.schema.properties ?? {}).some(key => getUniquePropertyMetadata(type, key)))) {
+                [...metadata.members.keys()].some(key => getUniquePropertyMetadata(type, key)))) {
                 throw this.unsupported('artifacts.eventTypes.constraints', type.name, 'Constraint metadata is not supported in this increment.');
             }
             if (getTagsFor(type).length) throw this.unsupported('artifacts.eventTypes.tags', type.name, 'Tagged events are not fixture-backed.');

@@ -34,7 +34,7 @@ export class EventScenario {
         const discovered = options.artifacts?.constraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
         if (options.constraints !== 'disabled' && (discovered.length || eventTypes.some(type => {
             const metadata = getEventTypeMetadata(type);
-            return getUniqueEventMetadata(type) || Object.keys(metadata?.schema.properties ?? {}).some(key => getUniquePropertyMetadata(type, key));
+            return getUniqueEventMetadata(type) || [...(metadata?.members.keys() ?? [])].some(key => getUniquePropertyMetadata(type, key));
         }))) {
             throw new UnsupportedEventSequenceOperation('artifacts.constraints', discovered.map(type => type.name).join(', ') || 'event metadata',
                 'Constraint definitions are rejected until kernel-backed constraint fixtures are available.');
