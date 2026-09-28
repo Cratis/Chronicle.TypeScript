@@ -315,19 +315,6 @@ describe('fixture-backed unscoped constraints', () => {
             'artifacts.constraints').message.should.include('Every selected constraint must have @constraint metadata.');
     });
 
-    it('wraps throwing and duplicate fluent definitions as unsupported compiler errors', () => {
-        class Throws implements IConstraint { define(_builder: IConstraintBuilder) { throw new Error('Invalid definition'); } }
-        constraint('Throws')(Throws);
-        class First implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
-        class Second implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
-        constraint('Duplicate')(First);
-        constraint('Duplicate')(Second);
-        for (const constraints of [[Throws], [First, Second]]) {
-            unsupported(() => new EventScenario({ artifacts: { eventTypes: types, constraints } }),
-                'artifacts.constraints').message.should.include('compiler');
-        }
-    });
-
     it('rejects overlapping property constraints and property plus event-type constraints at construction', () => {
         class TwoProperties {
             @field(String) @unique('FirstProperty') first = 'Alpha';
@@ -390,11 +377,13 @@ describe('fixture-backed unscoped constraints', () => {
         class Removal { @field(String) label = 'removed'; }
         eventType('Removal')(Removal);
         removeConstraint('OracleKey')(Removal);
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, Removal] } }), 'artifacts.constraints');
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, Removal], constraints: [OracleFluentOnceConstraint] } }), 'artifacts.constraints')
+            .message.should.include('removal');
         class AnotherOnce { @field(String) label = 'second'; }
         eventType('AnotherOnce')(AnotherOnce);
         unique('OracleOnce')(AnotherOnce);
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, AnotherOnce] } }), 'artifacts.constraints');
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, AnotherOnce], constraints: [OracleFluentOnceConstraint] } }), 'artifacts.constraints')
+            .message.should.include('multi-type unique event cycles');
         const subject = scenario();
         await subject.append('A', new OracleKeyClaimed('Alpha'));
         await subject.append('B', new OracleKeyClaimed('beta'));
@@ -407,6 +396,19 @@ describe('fixture-backed unscoped constraints', () => {
             });
             subject.appendedEvents.length.should.equal(2);
             subject.results.length.should.equal(2);
+        }
+    });
+
+    it('wraps throwing and duplicate fluent definitions as unsupported compiler errors', () => {
+        class Throws implements IConstraint { define(_builder: IConstraintBuilder) { throw new Error('Invalid definition'); } }
+        constraint('Throws')(Throws);
+        class First implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
+        class Second implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
+        constraint('Duplicate')(First);
+        constraint('Duplicate')(Second);
+        for (const constraints of [[Throws], [First, Second]]) {
+            unsupported(() => new EventScenario({ artifacts: { eventTypes: types, constraints } }),
+                'artifacts.constraints').message.should.include('compiler');
         }
     });
 });
