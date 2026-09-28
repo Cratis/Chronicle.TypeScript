@@ -1,0 +1,3629 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "constraintDescriptorSha256": "8de18d804165220f6c491cfed59ca31bf55c84eb6eb7a94a2a83b092b12bbf84",
+  "eventSchemas": {
+    "first": {
+      "eventTypeId": "OracleCycleFirst",
+      "properties": {
+        "label": "string"
+      }
+    },
+    "sibling": {
+      "eventTypeId": "OracleCycleSibling",
+      "properties": {
+        "label": "string"
+      }
+    },
+    "cycleRemoved": {
+      "eventTypeId": "OracleCycleRemoved",
+      "properties": {
+        "label": "string"
+      }
+    },
+    "cycleExpired": {
+      "eventTypeId": "OracleCycleExpired",
+      "properties": {
+        "label": "string"
+      }
+    },
+    "renewed": {
+      "eventTypeId": "OracleCycleRenewed",
+      "properties": {
+        "label": "string"
+      }
+    }
+  },
+  "constraintDefinitions": [
+    {
+      "kind": "uniqueEventType",
+      "name": "OracleCycle",
+      "eventTypes": [
+        "first",
+        "sibling",
+        "renewed"
+      ],
+      "removedWithEventTypeIds": [
+        "cycleRemoved",
+        "cycleExpired",
+        "renewed"
+      ],
+      "message": "Cycle occupied"
+    }
+  ],
+  "isolatedConstraintOperations": [
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "first",
+          "value": "first A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "blocked"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "sibling",
+          "value": "first B"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "cycleRemoved",
+          "value": "not A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "first",
+          "value": "still blocked"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "cycleRemoved",
+          "value": "release A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "reclaim A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "duplicate"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "cycleExpired",
+          "value": "expire A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "first",
+          "value": "new A"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "A",
+          "type": "cycleRemoved",
+          "value": "release batch"
+        },
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "reopen batch"
+        },
+        {
+          "source": "A",
+          "type": "first",
+          "value": "blocked batch"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "rollback held"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "A",
+          "type": "cycleRemoved",
+          "value": "release batch"
+        },
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "reopen batch"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "first",
+          "value": "new blocker"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "C",
+          "type": "first",
+          "value": "first C"
+        },
+        {
+          "source": "C",
+          "type": "cycleExpired",
+          "value": "release C"
+        },
+        {
+          "source": "C",
+          "type": "sibling",
+          "value": "second C"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "C",
+          "type": "first",
+          "value": "blocked C"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "D",
+          "type": "first",
+          "value": "first D"
+        },
+        {
+          "source": "D",
+          "type": "sibling",
+          "value": "blocked D"
+        },
+        {
+          "source": "D",
+          "type": "cycleRemoved",
+          "value": "too late"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D",
+          "type": "sibling",
+          "value": "rollback D"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "E",
+          "type": "renewed",
+          "value": "claim and remove E"
+        },
+        {
+          "source": "E",
+          "type": "first",
+          "value": "after release E"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "E",
+          "type": "renewed",
+          "value": "blocked before release"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "F",
+          "type": "first",
+          "value": "first F"
+        },
+        {
+          "source": "F",
+          "type": "renewed",
+          "value": "blocked F"
+        },
+        {
+          "source": "F",
+          "type": "sibling",
+          "value": "still blocked F"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "F",
+          "type": "renewed",
+          "value": "fresh F"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "F",
+          "type": "first",
+          "value": "fresh after release"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "A",
+          "type": "cycleExpired",
+          "value": "release A"
+        },
+        {
+          "source": "A",
+          "type": "first",
+          "value": "reclaim A"
+        },
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "blocked A"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "sibling",
+          "value": "still held A"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "0",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleFirst",
+            "SequenceNumber": "0",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "3"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "4"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "4",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 4",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "5"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          }
+        ],
+        "next": "6"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "6"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleFirst",
+            "SequenceNumber": "6",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 6",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "6",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 6",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "7",
+          "8"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleFirst",
+            "SequenceNumber": "8",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 8",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "9",
+          "10",
+          "11"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleFirst",
+            "SequenceNumber": "11",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 11",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 18446744073709551615",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "12"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          }
+        ],
+        "next": "13"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "13",
+          "14"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleRenewed",
+            "SequenceNumber": "14",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleRenewed' violated a unique event type constraint on sequence number 14",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          },
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleRenewed",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleRenewed' violated a unique event type constraint on sequence number 18446744073709551615",
+            "Details": {}
+          },
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 18446744073709551615",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "15"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          },
+          {
+            "sequence": "15",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "fresh F"
+            },
+            "hash": "gGny3dVHockRi+iqlajbG2juh+gHF5mxRjvUHB7EEyg="
+          }
+        ],
+        "next": "16"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "16"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          },
+          {
+            "sequence": "15",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "fresh F"
+            },
+            "hash": "gGny3dVHockRi+iqlajbG2juh+gHF5mxRjvUHB7EEyg="
+          },
+          {
+            "sequence": "16",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "fresh after release"
+            },
+            "hash": "+3xNvqcdMInhMhFcU3O3daRcD2HPL/62dhaL5bzX4oc="
+          }
+        ],
+        "next": "17"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "8",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 8",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          },
+          {
+            "sequence": "15",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "fresh F"
+            },
+            "hash": "gGny3dVHockRi+iqlajbG2juh+gHF5mxRjvUHB7EEyg="
+          },
+          {
+            "sequence": "16",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "fresh after release"
+            },
+            "hash": "+3xNvqcdMInhMhFcU3O3daRcD2HPL/62dhaL5bzX4oc="
+          }
+        ],
+        "next": "17"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleCycle",
+            "message": "Cycle occupied",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCycleSibling",
+            "SequenceNumber": "8",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleCycle",
+            "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 8",
+            "Details": {}
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first A"
+            },
+            "hash": "dt6vZwmufWBOBZKn+A1MYMjGF+XescJW++6cDde878Y="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "first B"
+            },
+            "hash": "Mx30E8DcXj84suZatMG/468tYKmDcpQb1vmqxgnjz1o="
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "not A"
+            },
+            "hash": "mVQAJEHZP069d7OiqwjUDmxuHo4RogmalqXdo1n9s7c="
+          },
+          {
+            "sequence": "3",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release A"
+            },
+            "hash": "oxWC15ar1CnNpcsCZvqxEGDBfCUCEtcQPTE8P+Kpc8U="
+          },
+          {
+            "sequence": "4",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reclaim A"
+            },
+            "hash": "wFfq3+AsXeXUMkgj9ThrgphbMg/cHu9vEC8ke83diM0="
+          },
+          {
+            "sequence": "5",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "expire A"
+            },
+            "hash": "S07YNwDAo4jmVYuPLp3aEV8YD1uEihHX3LQ7DGvE0Ic="
+          },
+          {
+            "sequence": "6",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "new A"
+            },
+            "hash": "lC/qAthpXDe7nyYUCWhbycIri0CoZ3UikJonqt3eHCk="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRemoved",
+            "content": {
+              "label": "release batch"
+            },
+            "hash": "CmR64JrnTURjeRSSM7h/OQ+Losom0XYX9mGdGutWT80="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "reopen batch"
+            },
+            "hash": "6/TNHn/2R6PNewU9mcuP/I3Cz8oPHJ7+1wmOKXiU4kk="
+          },
+          {
+            "sequence": "9",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "first C"
+            },
+            "hash": "SYQs6cbn3lUl5FyC9KaQnV+fLFVwSFU4/ZWkDm2X0y4="
+          },
+          {
+            "sequence": "10",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleExpired",
+            "content": {
+              "label": "release C"
+            },
+            "hash": "9Hf0hM2p6Icsj28jjgNhBABKTuYQOBYOLvds/lTLuaQ="
+          },
+          {
+            "sequence": "11",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "second C"
+            },
+            "hash": "rpGAUJldhx1brss8pG6rvMhvVepcAIwSZUc0e/wi+RM="
+          },
+          {
+            "sequence": "12",
+            "source": "D",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleSibling",
+            "content": {
+              "label": "rollback D"
+            },
+            "hash": "n2+QEHH48PvDZDZIhklAtTNSvw49/rzb+EaFIxrlyn4="
+          },
+          {
+            "sequence": "13",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "claim and remove E"
+            },
+            "hash": "dEamVTXwwERaSG4Xp1VBEuy4em1jprDHwglWPdMv19w="
+          },
+          {
+            "sequence": "14",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "after release E"
+            },
+            "hash": "U1XXOIs1KZGYJQWzIRhup6nbeUWsW4nHVYi0VonJQPE="
+          },
+          {
+            "sequence": "15",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleRenewed",
+            "content": {
+              "label": "fresh F"
+            },
+            "hash": "gGny3dVHockRi+iqlajbG2juh+gHF5mxRjvUHB7EEyg="
+          },
+          {
+            "sequence": "16",
+            "source": "F",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCycleFirst",
+            "content": {
+              "label": "fresh after release"
+            },
+            "hash": "+3xNvqcdMInhMhFcU3O3daRcD2HPL/62dhaL5bzX4oc="
+          }
+        ],
+        "next": "17"
+      }
+    ]
+  }
+}
