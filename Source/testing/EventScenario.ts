@@ -34,7 +34,7 @@ export class EventScenario {
             throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'empty constraint catalog',
                 'An empty selected catalog cannot silently disable constraint discovery; set constraints: disabled explicitly.');
         }
-        const discovered = options.artifacts?.constraints ?? artifacts.constraints;
+        const discovered = options.artifacts?.constraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
         let constraints: InProcessConstraints | undefined;
         if (options.constraints !== 'disabled') {
             for (const type of discovered ?? []) {
@@ -42,7 +42,9 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                const definitions = compileConstraints({ ...artifacts, eventTypes, constraints: discovered ?? [] });
+                const definitions = compileConstraints({ ...artifacts, eventTypes, constraints: discovered ?? [] },
+                    options.artifacts && options.artifacts.constraints === undefined
+                        ? new Set(eventTypes.map(type => getEventTypeFor(type).id.value)) : undefined);
                 constraints = new InProcessConstraints(definitions);
                 for (const [name, capture] of definitions) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??

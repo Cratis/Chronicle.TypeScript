@@ -104,6 +104,27 @@ describe('fixture-backed unscoped constraints', () => {
         subject.then.results.should.deep.equal(subject.results);
     });
 
+    it('discovers fluent constraints by default when the selected catalog omits constraints', async () => {
+        const subject = new EventScenario({ artifacts: { eventTypes: types } });
+        (await subject.append('A', new OracleFluentOnce('first'))).isSuccess.should.be.true;
+        (await subject.append('A', new OracleFluentOnce('second'))).constraintViolations[0]
+            .constraintId.should.equal('OracleFluentOnceConstraint');
+    });
+
+    it('isolates a selected catalog from unrelated globally discovered constraints', async () => {
+        class Unrelated { @field(String) label = 'unrelated'; }
+        eventType('Unrelated')(Unrelated);
+        class UnrelatedConstraint implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(Unrelated, event => event.label).ignoreCasing());
+            }
+        }
+        constraint('UnrelatedConstraint')(UnrelatedConstraint);
+        const subject = new EventScenario({ artifacts: { eventTypes: types } });
+        (await subject.append('A', new OracleFluentOnce('first'))).isSuccess.should.be.true;
+        (await subject.append('A', new OracleFluentOnce('second'))).constraintViolations.length.should.equal(1);
+    });
+
     it('uses the same compiler for an unscoped fluent constraint', async () => {
         class FluentKey implements IConstraint {
             define(builder: IConstraintBuilder) {

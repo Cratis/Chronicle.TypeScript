@@ -36,19 +36,31 @@ function assertMatchingScope(name: string, left: ConstraintScopeCapture, right: 
 }
 
 /** Compile decorator and fluent constraints using the production registration rules. */
-export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eventTypes' | 'constraints'>): Map<string, ConstraintCapture> {
+export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eventTypes' | 'constraints'>,
+    selectedEventIds?: ReadonlySet<string>): Map<string, ConstraintCapture> {
     const captures = new Map<string, ConstraintCapture>();
         const fluentIds = new Set<string>();
         for (const type of provider.constraints) {
             const metadata = getConstraintMetadata(type);
             if (!metadata) continue;
-            if (fluentIds.has(metadata.id.value)) throw new Error(`Duplicate constraint id '${metadata.id.value}'.`);
-            fluentIds.add(metadata.id.value);
+            if (!selectedEventIds) {
+                if (fluentIds.has(metadata.id.value)) throw new Error(`Duplicate constraint id '${metadata.id.value}'.`);
+                fluentIds.add(metadata.id.value);
+            }
 
             const builder = new ConstraintBuilder(metadata.id.value);
             const instance = new (type as new () => IConstraint)();
             instance.define(builder);
             const capture = builder.capture;
+            if (selectedEventIds) {
+                // A selected event catalog isolates globally discovered, unrelated fluent definitions.
+                // Keep the complete definition whenever any declared event belongs to the catalog.
+                const covered = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
+                    capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
+                if (!covered.some(id => id !== undefined && selectedEventIds.has(id))) continue;
+                if (fluentIds.has(metadata.id.value)) throw new Error(`Duplicate constraint id '${metadata.id.value}'.`);
+                fluentIds.add(metadata.id.value);
+            }
             const name = wireNameOf(capture);
             const existing = captures.get(name);
             if (existing?.uniqueEventType && capture.uniqueEventType) {
