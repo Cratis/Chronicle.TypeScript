@@ -28,6 +28,8 @@ function keyHash(value: string): string {
 
 /** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
+    private readonly _constrainedProperties = new Map<string, Set<string>>();
+
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
         const coveredTypes = new Set<string>();
         for (const [name, capture] of _definitions) {
@@ -44,6 +46,11 @@ export class InProcessConstraints {
                         !/^[a-z][a-zA-Z0-9]*$/.test(entry.properties[0]))) {
                     throw this.unsupported(name, 'Case folding, removal and composite or nested keys are not fixture-backed.');
                 }
+                for (const entry of unique.eventDefinitions) {
+                    const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();
+                    properties.add(entry.properties[0]);
+                    this._constrainedProperties.set(entry.eventTypeId, properties);
+                }
             } else if (capture.uniqueEventType) {
                 const unique = capture.uniqueEventType;
                 if (unique.removedWithEventTypeIds?.length || (unique.eventTypeIds?.length ?? 1) !== 1) {
@@ -59,6 +66,10 @@ export class InProcessConstraints {
                 coveredTypes.add(id);
             }
         }
+    }
+
+    isConstrainedProperty(eventTypeId: string, property: string): boolean {
+        return this._constrainedProperties.get(eventTypeId)?.has(property) ?? false;
     }
 
     /** Validate against committed history and all earlier entries of this append, without changing state. */

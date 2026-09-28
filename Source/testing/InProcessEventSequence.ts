@@ -432,11 +432,13 @@ export class InProcessEventSequence implements IEventSequence {
         let content: Record<string, unknown>;
         try { content = JSON.parse(serialized) as Record<string, unknown>; }
         catch { throw this.unsupported(operation, event.constructor.name, 'Content must be valid JSON.'); }
-        const properties = this._catalog.get(event.constructor)!.schema.properties!;
+        const metadata = this._catalog.get(event.constructor)!;
+        const properties = metadata.schema.properties!;
         if (!content || typeof content !== 'object' || Array.isArray(content) ||
             Object.keys(content).length !== Object.keys(properties).length ||
-            Object.entries(properties).some(([key, property]) => typeof Reflect.get(event, key) !== property.type ||
-                Reflect.get(event, key) !== content[key] ||
+            Object.entries(properties).some(([key, property]) => typeof content[key] !== property.type ||
+                (this._constraints?.isConstrainedProperty(metadata.eventType.id.value, key) &&
+                    (typeof Reflect.get(event, key) !== property.type || Reflect.get(event, key) !== content[key])) ||
                 (property.type === 'string' && !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
             throw this.unsupported(operation, event.constructor.name, mismatchReason);
         }

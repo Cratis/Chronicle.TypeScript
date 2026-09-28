@@ -389,9 +389,10 @@ describe('fixture-backed unscoped constraints', () => {
         await subject.append('B', new OracleKeyClaimed('beta'));
         for (const action of [() => subject.append('A', new OracleKeyClaimed('different')),
             () => subject.appendMany('A', [new OracleKeyClaimed('Alpha'), new OracleKeyClaimed('changed')]),
-            () => subject.append('C', new OracleKeyClaimed('É'))]) {
+            () => subject.append('C', new OracleKeyClaimed('!'))]) {
             await action().then(() => { throw new Error('Unsupported key accepted'); }, error => {
                 (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+                (error as Error).message.should.include('artifacts.constraints');
                 (error as Error).message.should.include('Use a kernel-backed test.');
             });
             subject.appendedEvents.length.should.equal(2);

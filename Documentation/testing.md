@@ -72,7 +72,7 @@ For the mixed-source overload, per-entry source/stream routing, subject, occurre
 
 | Unique-property key domain | In-process support |
 | --- | --- |
-| Case-sensitive strings | Empty, one-space and padded strings; ASCII letters/digits, space, `.`, `@`, `_`, `-`, `:`, `|`, `{`, `}`, `$` (including email-like strings); also U+00E9 (`é`). Other punctuation may be valid *event content* but is not proven as a constrained key. No trimming, Unicode normalization or casing conversion. |
+| Case-sensitive strings | Empty, one-space and padded strings; ASCII letters/digits, space, `.`, `@`, `_`, `-`, `:`, `\|`, `{`, `}`, `$` (including email-like strings); also U+00E9 (`é`). Other punctuation may be valid *event content* but is not proven as a constrained key. No trimming, Unicode normalization or casing conversion. |
 | Schema-backed booleans | `true` hashes as `True`, `false` as `False`. A string `"True"` shares a key with boolean `true`; `"true"` is distinct. Violation details contain `True` or `False`, not JavaScript lowercase spelling. |
 | Still rejected | Numeric-valued, null/missing, array, object, date, concept or mismatched schema/value keys; unproven punctuation, Unicode, escapes and control characters; composite, scoped and case-insensitive definitions. Use a kernel-backed test. |
 

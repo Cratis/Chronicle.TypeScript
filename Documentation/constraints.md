@@ -17,7 +17,7 @@ Constraints are shared Chronicle behavior. The shared docs explain the consisten
 
 | Unique-property key | In-process support |
 | --- | --- |
-| Case-sensitive strings | Empty, spaces and padded strings; ASCII letters/digits and `.`, `@`, `_`, `-`, `:`, `|`, `{`, `}`, `$` (including email-like strings); plus `é` (U+00E9). Spaces are significant. Other valid event-content punctuation is not necessarily a supported constraint key. |
+| Case-sensitive strings | Empty, spaces and padded strings; ASCII letters/digits and `.`, `@`, `_`, `-`, `:`, `\|`, `{`, `}`, `$` (including email-like strings); plus `é` (U+00E9). Spaces are significant. Other valid event-content punctuation is not necessarily a supported constraint key. |
 | Schema-backed booleans | `true` and `false` become kernel strings `True` and `False`; boolean `true` conflicts with string `"True"`, not with `"true"`. Violation details retain the kernel spelling. |
 | Still rejected | Numeric-valued or null/missing keys, unproven punctuation, Unicode or escaped strings, arrays, objects, dates, concepts, schema/value mismatches, case folding, composites and scopes. Use a kernel-backed test. |
 

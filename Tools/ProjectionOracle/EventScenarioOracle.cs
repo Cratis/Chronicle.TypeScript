@@ -305,6 +305,8 @@ internal static class EventScenarioOracle
     // definition and schema catalog, so adding another oracle case never installs global definitions.
     static async Task<JsonNode> RunIsolatedConstraints(JsonObject fixture)
     {
+        if (fixture["isolatedConstraintOperations"]!.AsArray().Count == 0)
+            throw new InvalidOperationException("Isolated constraint fixture must contain operations.");
         var schema = fixture["eventSchemas"]!.AsObject();
         var known = new Dictionary<string, (Type Type, string Property, string SchemaType)>
         {
