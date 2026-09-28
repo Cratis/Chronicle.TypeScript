@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { ConstraintType, type ConstraintViolation as ContractsConstraintViolation } from '@cratis/chronicle.contracts';
 import { chai, describe, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../../../connection/ChronicleConnection.js';
 import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifactsProvider.js';
@@ -57,13 +58,15 @@ describe('when resolving violation messages', () => {
         const connection = {
             eventSequences: { append: vi.fn().mockResolvedValue({ Response: {
                 SequenceNumber: 0n, Errors: [], ConstraintViolations: [{
-                    ConstraintId: 'SharedAddress', Message: 'Kernel default', Details: { email: 'a$b' }
-                }]
+                    EventTypeId: 'message-registered', SequenceNumber: 0n, ConstraintType: ConstraintType.Unique,
+                    ConstraintName: 'SharedAddress', Message: 'Kernel default', Details: { email: 'a$b' }
+                } satisfies ContractsConstraintViolation]
             } }) }
         } as unknown as ChronicleConnection;
         const sequence = new EventSequence(EventSequenceId.eventLog, 'store', 'namespace', connection,
             {} as IUnitOfWorkManager, discovered.resolveMessageFor.bind(discovered));
         const result = await sequence.append('source', new Registered());
+        result.constraintViolations[0].constraintId.should.equal('SharedAddress');
         result.constraintViolations[0].message.should.equal('Address a$b already registered');
     });
 
@@ -80,13 +83,15 @@ describe('when resolving violation messages', () => {
         const connection = {
             eventSequences: { append: vi.fn().mockResolvedValue({ Response: {
                 SequenceNumber: 0n, Errors: [], ConstraintViolations: [{
-                    ConstraintId: 'OneRegistration', Message: 'Kernel default', Details: {}
-                }]
+                    EventTypeId: 'message-once', SequenceNumber: 0n, ConstraintType: ConstraintType.UniqueEventType,
+                    ConstraintName: 'OneRegistration', Message: 'Kernel default', Details: {}
+                } satisfies ContractsConstraintViolation]
             } }) }
         } as unknown as ChronicleConnection;
         const sequence = new EventSequence(EventSequenceId.eventLog, 'store', 'namespace', connection,
             {} as IUnitOfWorkManager, discovered.resolveMessageFor.bind(discovered));
         const result = await sequence.append('source', new OnlyOnce());
+        result.constraintViolations[0].constraintId.should.equal('OneRegistration');
         result.constraintViolations[0].message.should.equal('Already registered');
     });
 });

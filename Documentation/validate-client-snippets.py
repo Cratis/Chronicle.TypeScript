@@ -145,6 +145,14 @@ def extract_snippet(path: Path) -> str | None:
     return code.strip()
 
 
+def validate_schema_validation_example() -> None:
+    path = SNIPPET_ROOT / "events" / "appending" / "schema-validation.md"
+    snippet = extract_snippet(path)
+    if (snippet is None or "result.constraintViolations" not in snippet or "SchemaValidation" not in snippet
+            or "details.path" not in snippet or "result.errors" in snippet):
+        raise ValueError(f"{path.relative_to(REPO_ROOT)} must show schema constraint violations and their path")
+
+
 def split_imports(
     code: str,
     named_imports: set[str],
@@ -384,6 +392,7 @@ def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
 
 
 def main() -> int:
+    validate_schema_validation_example()
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     GENERATED_SOURCE.write_text(generate_source(), encoding="utf-8")
     files = [path for path in snippet_files() if extract_snippet(path) is not None]

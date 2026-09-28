@@ -3,7 +3,11 @@
 
 import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
+import type {
+    AppendedEventResponse as ContractsAppendedEvent,
+    AppendManyResponse as ContractsAppendManyResponse,
+    AppendResponse as ContractsAppendResponse
+} from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
@@ -210,10 +214,11 @@ export class EventSequence implements IEventSequence {
                 // Mirrors the C# client: every per-event AppendResult in a batch carries all
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
-                const firstConcurrencyViolation = (appendManyResponse.ConcurrencyViolations ?? [])[0];
-                const sequenceNumbers = appendManyResponse.SequenceNumbers ?? [];
-                const constraintViolations = appendManyResponse.ConstraintViolations ?? [];
-                const errors = appendManyResponse.Errors ?? [];
+                const firstConcurrencyViolation: ContractsAppendManyResponse['ConcurrencyViolations'][number] | undefined =
+                    (appendManyResponse.ConcurrencyViolations ?? [])[0];
+                const sequenceNumbers: ContractsAppendManyResponse['SequenceNumbers'] = appendManyResponse.SequenceNumbers ?? [];
+                const constraintViolations: ContractsAppendManyResponse['ConstraintViolations'] = appendManyResponse.ConstraintViolations ?? [];
+                const errors: ContractsAppendManyResponse['Errors'] = appendManyResponse.Errors ?? [];
                 const batchWasRejected = sequenceNumbers.length === 0 &&
                     (constraintViolations.length > 0 || errors.length > 0 || firstConcurrencyViolation !== undefined);
                 if (sequenceNumbers.length === 0 && eventsForEventSourceIds.length > 0 && !batchWasRejected) {
@@ -221,11 +226,11 @@ export class EventSequence implements IEventSequence {
                 }
                 const result = batchWasRejected
                     ? eventsForEventSourceIds.map(() => this.mapAppendResponse(0n, constraintViolations, errors, firstConcurrencyViolation))
-                    : sequenceNumbers.map((sequenceNumber: bigint, index: number) =>
+                    : sequenceNumbers.map((sequenceNumber, index) =>
                         this.mapAppendResponse(
                             sequenceNumber,
                             constraintViolations,
-                            errors.filter((_: string, errorIndex: number) => errorIndex === index),
+                            errors.filter((_, errorIndex) => errorIndex === index),
                             firstConcurrencyViolation
                         )
                     );
@@ -585,14 +590,14 @@ export class EventSequence implements IEventSequence {
     }
 
     private mapAppendResponse(
-        sequenceNumber: bigint,
-        constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
-        errors: string[],
-        concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
+        sequenceNumber: ContractsAppendResponse['SequenceNumber'],
+        constraintViolations: ContractsAppendResponse['ConstraintViolations'],
+        errors: ContractsAppendResponse['Errors'],
+        concurrencyViolation: ContractsAppendResponse['ConcurrencyViolation']
     ): AppendResult {
         const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
             const mapped = {
-                constraintId: violation.ConstraintId ?? '',
+                constraintId: violation.ConstraintName ?? '',
                 message: violation.Message ?? '',
                 details: violation.Details ?? {}
             };
