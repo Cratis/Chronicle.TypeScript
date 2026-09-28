@@ -170,8 +170,10 @@ export class InProcessEventSequence implements IEventSequence {
             let content: Record<string, unknown>;
             try {
                 prepared = prepareSingleAppend(event, this._correlationId ? { correlationId: this._correlationId() } : undefined);
-                content = JSON.parse(prepared.content) as Record<string, unknown>;
+                content = this.checkedContent(event, prepared.content, 'append.content',
+                    'Content differs from the flat scalar schema; null, missing and extra values are not proven.');
             } catch (error) {
+                if (error instanceof UnsupportedEventSequenceOperation) throw error;
                 throw this.unsupported('append.serialization', event.constructor.name, `Payload or metadata could not be serialized: ${String(error)}.`);
             }
             try {
@@ -183,13 +185,6 @@ export class InProcessEventSequence implements IEventSequence {
             if (prepared.identity !== Identity.system || prepared.causationChain.length !== 2 ||
                 Object.keys(prepared.causationChain[0].properties).length !== 0) {
                 throw this.unsupported('append.context', event.constructor.name, 'Ambient identity or causation metadata is not fixture-backed.');
-            }
-            const properties = metadata.schema.properties!;
-            if (!content || typeof content !== 'object' || Array.isArray(content) ||
-                Object.keys(content).length !== Object.keys(properties).length ||
-                Object.entries(properties).some(([key, property]) => typeof content[key] !== property.type ||
-                    (property.type === 'string' && !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
-                throw this.unsupported('append.content', event.constructor.name, 'Content differs from the flat scalar schema; null, missing and extra values are not proven.');
             }
             const occurred = this._clock();
             // Date has millisecond precision; only the UTC year range representable by DateTimeOffset is supported.
@@ -432,16 +427,18 @@ export class InProcessEventSequence implements IEventSequence {
         }
     }
 
-    private checkedContent(event: object, serialized: string, operation: string): Record<string, unknown> {
+    private checkedContent(event: object, serialized: string, operation: string,
+        mismatchReason = 'Content differs from the fixture-backed scalar schema.'): Record<string, unknown> {
         let content: Record<string, unknown>;
         try { content = JSON.parse(serialized) as Record<string, unknown>; }
         catch { throw this.unsupported(operation, event.constructor.name, 'Content must be valid JSON.'); }
         const properties = this._catalog.get(event.constructor)!.schema.properties!;
         if (!content || typeof content !== 'object' || Array.isArray(content) ||
             Object.keys(content).length !== Object.keys(properties).length ||
-            Object.entries(properties).some(([key, property]) => typeof content[key] !== property.type ||
+            Object.entries(properties).some(([key, property]) => typeof Reflect.get(event, key) !== property.type ||
+                Reflect.get(event, key) !== content[key] ||
                 (property.type === 'string' && !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
-            throw this.unsupported(operation, event.constructor.name, 'Content differs from the fixture-backed scalar schema.');
+            throw this.unsupported(operation, event.constructor.name, mismatchReason);
         }
         return content;
     }

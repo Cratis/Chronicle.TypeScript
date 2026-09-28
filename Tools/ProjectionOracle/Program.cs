@@ -57,7 +57,7 @@ internal static class Program
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
             var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
-            foreach (var required in new[] { "constraints.json", "constraints-isolation.json" })
+            foreach (var required in new[] { "constraints.json", "constraints-isolation.json", "constraints-key-domain.json" })
             {
                 if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", required)))
                     throw new InvalidOperationException($"Event oracle requires {required}; refusing a vacuous check.");

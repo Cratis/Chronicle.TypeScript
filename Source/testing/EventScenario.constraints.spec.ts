@@ -276,10 +276,10 @@ describe('fixture-backed unscoped constraints', () => {
         (await subject.eventSequence.getNextSequenceNumber()).value.should.equal(1n);
     });
 
-    it('rejects non-string constrained schemas at construction', () => {
-        class BoolConstrained { @field(Boolean) @unique('Flag') active = true; }
-        eventType('BoolConstrained')(BoolConstrained);
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [BoolConstrained] } }), 'artifacts.constraints');
+    it('rejects unproven numeric constrained schemas at construction', () => {
+        class NumericConstrained { @field(Number) @unique('NumberKey') key = 1; }
+        eventType('NumericConstrained')(NumericConstrained);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [NumericConstrained] } }), 'artifacts.constraints');
     });
 
     it('rejects a selected constraint covering an event outside the selected catalog', () => {
@@ -389,7 +389,7 @@ describe('fixture-backed unscoped constraints', () => {
         await subject.append('B', new OracleKeyClaimed('beta'));
         for (const action of [() => subject.append('A', new OracleKeyClaimed('different')),
             () => subject.appendMany('A', [new OracleKeyClaimed('Alpha'), new OracleKeyClaimed('changed')]),
-            () => subject.append('C', new OracleKeyClaimed('é'))]) {
+            () => subject.append('C', new OracleKeyClaimed('É'))]) {
             await action().then(() => { throw new Error('Unsupported key accepted'); }, error => {
                 (error instanceof UnsupportedEventSequenceOperation).should.be.true;
                 (error as Error).message.should.include('Use a kernel-backed test.');
