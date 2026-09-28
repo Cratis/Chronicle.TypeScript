@@ -28,13 +28,15 @@ export class EventScenario {
     readonly when: EventScenarioWhenBuilder;
 
     constructor(options: EventScenarioOptions = {}) {
-        const artifacts = options.artifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
+        const selectedArtifacts = options.artifacts;
+        const selectedConstraints = selectedArtifacts?.constraints;
+        const artifacts = selectedArtifacts ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default);
         const eventTypes = [...artifacts.eventTypes];
-        if (options.artifacts?.constraints?.length === 0 && options.constraints !== 'disabled') {
+        if (selectedConstraints?.length === 0 && options.constraints !== 'disabled') {
             throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'empty constraint catalog',
                 'An empty selected catalog cannot silently disable constraint discovery; set constraints: disabled explicitly.');
         }
-        const discovered = options.artifacts?.constraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
+        const discovered = selectedConstraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
         let constraints: InProcessConstraints | undefined;
         if (options.constraints !== 'disabled') {
             for (const type of discovered ?? []) {
@@ -42,8 +44,8 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                const definitions = compileConstraints({ ...artifacts, eventTypes, constraints: discovered ?? [] },
-                    options.artifacts && options.artifacts.constraints === undefined
+                const definitions = compileConstraints({ eventTypes, constraints: discovered ?? [] },
+                    selectedArtifacts && selectedConstraints === undefined
                         ? new Set(eventTypes.map(type => getEventTypeFor(type).id.value)) : undefined);
                 constraints = new InProcessConstraints(definitions);
                 for (const [name, capture] of definitions) {

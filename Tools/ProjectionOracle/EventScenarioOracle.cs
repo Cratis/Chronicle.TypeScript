@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using KernelServiceAccessor = KernelContracts::Cratis.Chronicle.Contracts.IChronicleServicesAccessor;
+using KernelAppendRequest = KernelContracts::Cratis.Chronicle.Contracts.Sequences.AppendRequest;
 using KernelBatchRequest = KernelContracts::Cratis.Chronicle.Contracts.Sequences.AppendManyForEventSourcesRequest;
 using KernelBatchEvent = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventForEventSourceId;
 using KernelEventType = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventType;
@@ -177,6 +178,8 @@ internal static class EventScenarioOracle
     static async Task<JsonNode> RunConstraints(JsonObject fixture)
     {
         using var scenario = new EventScenario();
+        var created = (ITuple)typeof(EventScenario).GetField("_created", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(scenario)!;
+        var services = ((KernelServiceAccessor)created[1]!).Services;
         var outcomes = new JsonArray();
         foreach (var operation in fixture["constraintOperations"]!.AsArray())
         {
@@ -216,6 +219,41 @@ internal static class EventScenarioOracle
                     ["errors"] = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray())
                 });
             }
+            // Re-send only rejected operations directly to the same kernel state. A rejection cannot
+            // commit; this captures the actual contract fields before the .NET client maps messages.
+            JsonArray wireViolations = new();
+            if (!outcomes[^1]!["success"]!.GetValue<bool>())
+            {
+                var rawEvents = operation["events"]!.AsArray().Select(item => new KernelBatchEvent
+                {
+                    EventSourceId = item!["source"]!.GetValue<string>(),
+                    EventType = new KernelEventType { Id = item["type"]!.GetValue<string>() switch
+                    {
+                        "key" => "OracleKeyClaimed", "shared" => "OracleKeyShared", "plain" => "BatchUniqueRecorded",
+                        "once" => "OracleOnceRecorded", "fluentOnce" => "OracleFluentOnce", "namedOnce" => "OracleNamedOnce",
+                        _ => throw new InvalidOperationException("Unknown constraint fixture event")
+                    }, Generation = 1 },
+                    Content = item["type"]!.GetValue<string>() is "key" or "shared" or "plain"
+                        ? System.Text.Json.JsonSerializer.Serialize(new { key = item["value"]!.GetValue<string>() })
+                        : System.Text.Json.JsonSerializer.Serialize(new { label = item["value"]!.GetValue<string>() }),
+                    Subject = item["source"]!.GetValue<string>()
+                }).ToArray();
+                var raw = single
+                    ? (await services.Sequences.Append(new KernelAppendRequest
+                    {
+                        EventStore = "test-event-store", Namespace = "default", EventSequenceId = "event-log",
+                        EventSourceId = rawEvents[0].EventSourceId, EventType = rawEvents[0].EventType,
+                        Content = rawEvents[0].Content, Subject = rawEvents[0].Subject
+                    })).Response?.ConstraintViolations
+                    : (await services.Sequences.AppendManyForEventSources(new KernelBatchRequest
+                    {
+                        EventStore = "test-event-store", Namespace = "default", EventSequenceId = "event-log",
+                        Events = rawEvents
+                    })).Response?.ConstraintViolations;
+                if (raw is null || !raw.Any()) throw new InvalidOperationException("Rejected constraint operation had no raw kernel violations.");
+                wireViolations = WireViolations(raw);
+            }
+            outcomes[^1]!["wireViolations"] = wireViolations;
             var committed = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
             outcomes[^1]!["history"] = new JsonArray(committed.Select(entry => (JsonNode?)new JsonObject
             {
@@ -238,6 +276,17 @@ internal static class EventScenarioOracle
         }
         return new JsonObject { ["outcomes"] = outcomes };
     }
+
+    static JsonArray WireViolations(IEnumerable<KernelContracts::Cratis.Chronicle.Contracts.Events.Constraints.ConstraintViolation> violations) =>
+        new(violations.Select(violation => (JsonNode?)new JsonObject
+        {
+            ["EventTypeId"] = violation.EventTypeId,
+            ["SequenceNumber"] = violation.SequenceNumber.ToString(),
+            ["ConstraintType"] = (int)violation.ConstraintType,
+            ["ConstraintName"] = violation.ConstraintName,
+            ["Message"] = violation.Message,
+            ["Details"] = new JsonObject(violation.Details.ToDictionary(pair => pair.Key, pair => (JsonNode?)JsonValue.Create(pair.Value)))
+        }).ToArray());
 
     static JsonArray Violations(IEnumerable<ConstraintViolation> violations) =>
         new(violations.Select(violation => (JsonNode?)new JsonObject

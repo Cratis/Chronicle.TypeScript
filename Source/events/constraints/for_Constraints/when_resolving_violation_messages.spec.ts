@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { readFileSync } from 'node:fs';
+import { field } from '@cratis/fundamentals';
 import { chai, describe, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../../../connection/ChronicleConnection.js';
 import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifactsProvider.js';
@@ -57,7 +59,7 @@ describe('when resolving violation messages', () => {
         const connection = {
             eventSequences: { append: vi.fn().mockResolvedValue({ Response: {
                 SequenceNumber: 0n, Errors: [], ConstraintViolations: [{
-                    ConstraintId: 'SharedAddress', Message: 'Kernel default', Details: { email: 'a$b' }
+                    ConstraintName: 'SharedAddress', Message: 'Kernel default', Details: { email: 'a$b' }
                 }]
             } }) }
         } as unknown as ChronicleConnection;
@@ -65,6 +67,32 @@ describe('when resolving violation messages', () => {
             {} as IUnitOfWorkManager, discovered.resolveMessageFor.bind(discovered));
         const result = await sequence.append('source', new Registered());
         result.constraintViolations[0].message.should.equal('Address a$b already registered');
+    });
+
+    it('should map a kernel wire violation name and resolve its configured message on a connected append', async () => {
+        class OracleKeyClaimed { @field(String) @unique('OracleKey', 'Already claimed: {PropertyName}={PropertyValue}') key = 'Alpha'; }
+        eventType('OracleKeyClaimed')(OracleKeyClaimed);
+        const discovered = constraints([OracleKeyClaimed]);
+        await discovered.discover();
+        const fixture = JSON.parse(readFileSync(new URL('../../../testing/fixtures/constraints.json', import.meta.url), 'utf8')) as {
+            expected: { outcomes: Array<{ wireViolations: Array<{ SequenceNumber: string; ConstraintName: string;
+                EventTypeId: string; ConstraintType: number; Message: string; Details: Record<string, string> }>;
+                violations: Array<{ message: string }> }> }
+        };
+        const wire = fixture.expected.outcomes[2].wireViolations[0];
+        const connection = {
+            eventSequences: { append: vi.fn().mockResolvedValue({ Response: {
+                SequenceNumber: 18446744073709551615n, Errors: [],
+                ConstraintViolations: [{ ...wire, SequenceNumber: BigInt(wire.SequenceNumber) }]
+            } }) }
+        } as unknown as ChronicleConnection;
+        const sequence = new EventSequence(EventSequenceId.eventLog, 'store', 'namespace', connection,
+            {} as IUnitOfWorkManager, discovered.resolveMessageFor.bind(discovered));
+        const result = await sequence.append('B', new OracleKeyClaimed());
+        result.isSuccess.should.be.false;
+        result.constraintViolations[0].constraintId.should.equal(wire.ConstraintName);
+        result.constraintViolations[0].message.should.equal(fixture.expected.outcomes[2].violations[0].message);
+        result.constraintViolations[0].message.should.not.equal(wire.Message);
     });
 
     it('should resolve a named fluent event type with a different class id', async () => {
@@ -80,7 +108,7 @@ describe('when resolving violation messages', () => {
         const connection = {
             eventSequences: { append: vi.fn().mockResolvedValue({ Response: {
                 SequenceNumber: 0n, Errors: [], ConstraintViolations: [{
-                    ConstraintId: 'OneRegistration', Message: 'Kernel default', Details: {}
+                    ConstraintName: 'OneRegistration', Message: 'Kernel default', Details: {}
                 }]
             } }) }
         } as unknown as ChronicleConnection;

@@ -666,7 +666,7 @@ describe('EventSequence', () => {
             append: vi.fn().mockResolvedValue({
                 Response: {
                     SequenceNumber: 0n,
-                    ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: {} }],
+                    ConstraintViolations: [{ ConstraintName: 'unique', Message: 'Value must be unique', Details: {} }],
                     Errors: []
                 }
             })
@@ -711,7 +711,7 @@ describe('EventSequence', () => {
             appendManyForEventSources: vi.fn().mockResolvedValue({
                 Response: {
                     SequenceNumbers: [],
-                    ConstraintViolations: [{ ConstraintId: 'unique', Message: 'Value must be unique', Details: { value: 'a' } }],
+                    ConstraintViolations: [{ ConstraintName: 'unique', Message: 'Value must be unique', Details: { value: 'a' } }],
                     Errors: ['Batch rejected']
                 }
             })

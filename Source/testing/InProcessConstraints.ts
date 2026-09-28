@@ -2,18 +2,21 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createHash } from 'node:crypto';
+import type { ConstraintViolation as ContractsConstraintViolation } from '@cratis/chronicle.contracts';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.js';
 import { resolveConstraintMessage } from '../events/constraints/Constraints.js';
 import type { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
-export type WireConstraintViolation = { ConstraintId: string; Message: string; Details: Record<string, string> };
+export type WireConstraintViolation = ContractsConstraintViolation;
+
 const unavailable = '18446744073709551615';
 
 /** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
+        const coveredTypes = new Set<string>();
         for (const [name, capture] of _definitions) {
             if (capture.uniqueConstraint && capture.uniqueEventType) {
                 throw this.unsupported(name, 'A definition with both constraint kinds is not fixture-backed.');
@@ -35,6 +38,12 @@ export class InProcessConstraints {
                 }
             } else {
                 throw this.unsupported(name, 'Unknown constraint definition.');
+            }
+            const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
+                capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType!.eventTypeId];
+            for (const id of ids) {
+                if (coveredTypes.has(id)) throw this.unsupported(name, 'Overlapping constraints are not fixture-backed.');
+                coveredTypes.add(id);
             }
         }
     }
@@ -82,7 +91,8 @@ export class InProcessConstraints {
                     const batchOwner = stagedKeys.get(`${name}\u0001${key}`);
                     if (existing && existing.source !== source || batchOwner && batchOwner !== source) {
                         const details = { PropertyName: property, PropertyValue: raw };
-                        violations.push({ ConstraintId: name,
+                        violations.push({ EventTypeId: type, SequenceNumber: BigInt(existing?.sequence ?? unavailable), ConstraintType: 1,
+                            ConstraintName: name,
                             Message: `Event '${type}' on member '${property}' violated a unique constraint on sequence number ${existing?.sequence ?? unavailable}`,
                             Details: details });
                     } else {
@@ -96,7 +106,8 @@ export class InProcessConstraints {
                         (uniqueType.eventTypeIds ?? [uniqueType.eventTypeId]).includes(prior.eventType.id.value));
                     const staged = stagedTypes.has(`${name}\u0000${source}`);
                     if (first || staged) {
-                        violations.push({ ConstraintId: name,
+                        violations.push({ EventTypeId: type, SequenceNumber: first?.context.sequenceNumber ?? BigInt(unavailable), ConstraintType: 2,
+                            ConstraintName: name,
                             Message: `Event '${type}' violated a unique event type constraint on sequence number ${first?.context.sequenceNumber.toString() ?? unavailable}`,
                             Details: {} });
                     } else stagedTypes.add(`${name}\u0000${source}`);

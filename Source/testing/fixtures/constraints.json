@@ -246,6 +246,51 @@
           "value": "second"
         }
       ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "R",
+          "type": "plain",
+          "value": "fresh"
+        },
+        {
+          "source": "S",
+          "type": "plain",
+          "value": "fresh"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "T",
+          "type": "plain",
+          "value": "claim"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "T",
+          "type": "plain",
+          "value": "claim"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "U",
+          "type": "plain",
+          "value": "claim"
+        }
+      ]
     }
   ],
   "expected": {
@@ -257,6 +302,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -274,6 +320,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -306,6 +353,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyClaimed",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyClaimed' on member 'key' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -329,6 +389,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -358,6 +419,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -400,6 +462,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyShared",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyShared' on member 'key' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -442,6 +517,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyShared",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyShared' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "new"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -481,6 +569,16 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleOnceRecorded",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleOnce",
+            "Message": "Event 'OracleOnceRecorded' violated a unique event type constraint on sequence number 18446744073709551615",
+            "Details": {}
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -516,6 +614,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -563,6 +662,16 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleOnceRecorded",
+            "SequenceNumber": "4",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleOnce",
+            "Message": "Event 'OracleOnceRecorded' violated a unique event type constraint on sequence number 4",
+            "Details": {}
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -605,6 +714,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -658,6 +768,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -717,6 +828,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -791,6 +903,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "BatchUniqueRecorded",
+            "SequenceNumber": "8",
+            "ConstraintType": 1,
+            "ConstraintName": "BatchUniqueKey",
+            "Message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 8",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "plain"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -865,6 +990,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyClaimed",
+            "SequenceNumber": "3",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyClaimed' on member 'key' violated a unique constraint on sequence number 3",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": " Alpha "
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -939,6 +1077,19 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyClaimed",
+            "SequenceNumber": "2",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyClaimed' on member 'key' violated a unique constraint on sequence number 2",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "alpha"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -1019,6 +1170,30 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleKeyShared",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleKey",
+            "Message": "Event 'OracleKeyShared' on member 'key' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          },
+          {
+            "EventTypeId": "BatchUniqueRecorded",
+            "SequenceNumber": "8",
+            "ConstraintType": 1,
+            "ConstraintName": "BatchUniqueKey",
+            "Message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 8",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "plain"
+            }
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -1084,6 +1259,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -1161,6 +1337,16 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleFluentOnce",
+            "SequenceNumber": "9",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleFluentOnceConstraint",
+            "Message": "Event 'OracleFluentOnce' violated a unique event type constraint on sequence number 9",
+            "Details": {}
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -1232,6 +1418,7 @@
         ],
         "violations": [],
         "errors": [],
+        "wireViolations": [],
         "history": [
           {
             "sequence": "0",
@@ -1315,6 +1502,16 @@
           }
         ],
         "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleNamedOnce",
+            "SequenceNumber": "10",
+            "ConstraintType": 2,
+            "ConstraintName": "OracleNamedOnce",
+            "Message": "Event 'OracleNamedOnce' violated a unique event type constraint on sequence number 10",
+            "Details": {}
+          }
+        ],
         "history": [
           {
             "sequence": "0",
@@ -1384,6 +1581,388 @@
           }
         ],
         "next": "11"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "BatchUniqueKey",
+            "message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "fresh"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "BatchUniqueRecorded",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "BatchUniqueKey",
+            "Message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "fresh"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          }
+        ],
+        "next": "11"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "11"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "11",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "12"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "11",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "12",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          }
+        ],
+        "next": "13"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "BatchUniqueKey",
+            "message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 12",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "claim"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "BatchUniqueRecorded",
+            "SequenceNumber": "12",
+            "ConstraintType": 1,
+            "ConstraintName": "BatchUniqueKey",
+            "Message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 12",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "claim"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "11",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "12",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          }
+        ],
+        "next": "13"
       }
     ]
   }

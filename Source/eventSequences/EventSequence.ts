@@ -3,7 +3,7 @@
 
 import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
+import type { AppendedEventResponse as ContractsAppendedEvent, ConstraintViolation as WireConstraintViolation } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
@@ -586,7 +586,7 @@ export class EventSequence implements IEventSequence {
 
     private mapAppendResponse(
         sequenceNumber: bigint,
-        constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
+        constraintViolations: Array<Partial<Pick<WireConstraintViolation, 'ConstraintName' | 'Message' | 'Details'>>>,
         errors: string[],
         concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
     ): AppendResult {

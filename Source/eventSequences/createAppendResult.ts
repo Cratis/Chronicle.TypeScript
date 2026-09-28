@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { ConstraintViolation as WireConstraintViolation } from '@cratis/chronicle.contracts';
 import type { AppendResult } from './AppendResult.js';
 import type { ConstraintViolation } from './ConstraintViolation.js';
 import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
@@ -10,7 +11,7 @@ import { EventSequenceNumber } from './EventSequenceNumber.js';
 /** Map the wire append response for both the connected client and in-process scenarios. */
 export function createAppendResult(
     sequenceNumber: bigint,
-    constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
+    constraintViolations: Array<Partial<Pick<WireConstraintViolation, 'ConstraintName' | 'Message' | 'Details'>>>,
     errors: string[],
     concurrencyViolation: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint } | undefined,
     resolveMessage: ((violation: ConstraintViolation) => ConstraintViolation) | undefined,
@@ -18,7 +19,7 @@ export function createAppendResult(
 ): AppendResult {
     const mappedViolations = constraintViolations.map(violation => {
         const mapped = {
-            constraintId: violation.ConstraintId ?? '',
+            constraintId: violation.ConstraintName ?? '',
             message: violation.Message ?? '',
             details: violation.Details ?? {}
         };

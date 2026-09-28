@@ -3,15 +3,17 @@
 
 import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
-import { chai, describe, it } from 'vitest';
+import { chai, describe, it, vi } from 'vitest';
 import { field } from '@cratis/fundamentals';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { unique } from '../events/constraints/unique.js';
 import { constraint } from '../events/constraints/constraint.js';
+import { compileConstraints } from '../events/constraints/Constraints.js';
 import type { IConstraint } from '../events/constraints/IConstraint.js';
 import type { IConstraintBuilder } from '../events/constraints/IConstraintBuilder.js';
 import { removeConstraint } from '../events/constraints/removeConstraint.js';
 import { ReactorScenario } from './ReactorScenario.js';
+import { InProcessConstraints } from './InProcessConstraints.js';
 import { reactor } from '../reactors/reactor.js';
 import { EventScenario, UnsupportedEventSequenceOperation } from './index.js';
 
@@ -56,6 +58,8 @@ const types = [OracleKeyClaimed, OracleKeyShared, OracleOnceRecorded, BatchUniqu
 const scenario = () => new EventScenario({ artifacts: { eventTypes: types, constraints: [OracleFluentOnceConstraint] } });
 type Input = { source: string; type: 'key' | 'shared' | 'once' | 'plain' | 'fluentOnce' | 'namedOnce'; value: string };
 type Outcome = { success: boolean; sequences: string[];
+    wireViolations: Array<{ EventTypeId: string; SequenceNumber: string; ConstraintType: number;
+        ConstraintName: string; Message: string; Details: Record<string, string> }>;
     violations: Array<{ id: string; message: string; details: Record<string, string> }>;
     errors: string[]; next: string; history: Array<{ sequence: string; source: string; type: string; value: string }> };
 type Fixture = { constraintOperations: Array<{ mode: 'single' | 'batch'; events: Input[] }>;
@@ -67,12 +71,13 @@ const value = (input: Input) => input.type === 'key' ? new OracleKeyClaimed(inpu
             input.type === 'fluentOnce' ? new OracleFluentOnce(input.value) :
                 input.type === 'namedOnce' ? new OracleNamedOnce(input.value) : new BatchUniqueRecorded(input.value);
 
-const unsupported = (action: () => unknown, operation: string) => {
+const unsupported = (action: () => unknown, operation: string): UnsupportedEventSequenceOperation => {
     try { action(); throw new Error('Expected rejection'); }
     catch (error) {
         (error instanceof UnsupportedEventSequenceOperation).should.be.true;
         (error as Error).message.should.include(operation);
         (error as Error).message.should.include('Use a kernel-backed test.');
+        return error as UnsupportedEventSequenceOperation;
     }
 };
 
@@ -80,35 +85,43 @@ describe('fixture-backed unscoped constraints', () => {
     it('matches kernel violation messages, details, sequence normalization and batch rollback', async () => {
         const subject = scenario();
         const notifications = subject.eventSequence.appendOperations[Symbol.asyncIterator]();
+        const validate = vi.spyOn(InProcessConstraints.prototype, 'validate');
         let resultCount = 0;
-        for (const [index, operation] of fixture.constraintOperations.entries()) {
-            const expected = fixture.expected.outcomes[index];
-            const nextNotification = notifications.next();
-            const results = operation.mode === 'single'
-                ? [await subject.append(operation.events[0].source, value(operation.events[0]))]
-                : await subject.appendMany(operation.events.map(entry => ({ eventSourceId: entry.source, event: value(entry) })));
-            const notification = (await nextNotification).value!;
-            notification.length.should.equal(operation.events.length);
-            notification.every(item => item.result.isSuccess === expected.success).should.be.true;
-            resultCount += operation.events.length;
-            subject.results.length.should.equal(resultCount);
-            results.length.should.equal(operation.events.length);
-            for (const result of results) {
-                result.isSuccess.should.equal(expected.success);
-                result.constraintViolations.map(item => ({ id: item.constraintId, message: item.message, details: item.details }))
-                    .should.deep.equal(expected.violations);
-                result.errors.map(item => item.message).should.deep.equal(expected.errors);
-                result.sequenceNumber.value.toString().should.equal(expected.success ?
-                    expected.sequences[results.indexOf(result)] : '0');
-                if (!expected.success) (await result.waitForCompletion()).should.deep.equal({ isSuccess: true, failedPartitions: [] });
+        try {
+            for (const [index, operation] of fixture.constraintOperations.entries()) {
+                const expected = fixture.expected.outcomes[index];
+                const nextNotification = notifications.next();
+                const results = operation.mode === 'single'
+                    ? [await subject.append(operation.events[0].source, value(operation.events[0]))]
+                    : await subject.appendMany(operation.events.map(entry => ({ eventSourceId: entry.source, event: value(entry) })));
+                const notification = (await nextNotification).value!;
+                const wireViolations = validate.mock.results.at(-1)?.value as ReturnType<InProcessConstraints['validate']>;
+                wireViolations.map(({ SequenceNumber, ...violation }) => ({ ...violation, SequenceNumber: SequenceNumber.toString() }))
+                    .should.deep.equal(expected.wireViolations);
+                notification.length.should.equal(operation.events.length);
+                notification.every(item => item.result.isSuccess === expected.success).should.be.true;
+                resultCount += operation.events.length;
+                subject.results.length.should.equal(resultCount);
+                results.length.should.equal(operation.events.length);
+                for (const result of results) {
+                    result.isSuccess.should.equal(expected.success);
+                    result.constraintViolations.map(item => ({ id: item.constraintId, message: item.message, details: item.details }))
+                        .should.deep.equal(expected.violations);
+                    result.errors.map(item => item.message).should.deep.equal(expected.errors);
+                    result.sequenceNumber.value.toString().should.equal(expected.success ?
+                        expected.sequences[results.indexOf(result)] : '0');
+                    if (!expected.success) (await result.waitForCompletion()).should.deep.equal({ isSuccess: true, failedPartitions: [] });
+                }
+                subject.appendedEvents.map(item => ({ sequence: item.context.sequenceNumber.toString(),
+                    source: item.context.eventSourceId, type: item.eventType.id.value,
+                    value: item.content.key ?? item.content.label })).should.deep.equal(expected.history);
+                (await subject.eventSequence.getNextSequenceNumber()).value.toString().should.equal(expected.next);
             }
-            subject.appendedEvents.map(item => ({ sequence: item.context.sequenceNumber.toString(),
-                source: item.context.eventSourceId, type: item.eventType.id.value,
-                value: item.content.key ?? item.content.label })).should.deep.equal(expected.history);
-            (await subject.eventSequence.getNextSequenceNumber()).value.toString().should.equal(expected.next);
+            subject.then.results.should.deep.equal(subject.results);
+        } finally {
+            validate.mockRestore();
+            await notifications.return?.();
         }
-        await notifications.return?.();
-        subject.then.results.should.deep.equal(subject.results);
     });
 
     it('discovers fluent constraints by default when the selected catalog omits constraints', async () => {
@@ -180,6 +193,96 @@ describe('fixture-backed unscoped constraints', () => {
         class BoolConstrained { @field(Boolean) @unique('Flag') active = true; }
         eventType('BoolConstrained')(BoolConstrained);
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [BoolConstrained] } }), 'artifacts.constraints');
+    });
+
+    it('rejects a selected constraint covering an event outside the selected catalog', () => {
+        class OutOfCatalog implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(OracleFluentOnce, event => event.label).on(OracleKeyShared, event => event.key));
+            }
+        }
+        constraint('OutOfCatalog')(OutOfCatalog);
+        const subject = scenario();
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [OracleFluentOnce], constraints: [OutOfCatalog] } }),
+            'artifacts.constraints').message.should.include('Every constrained event type must be in the selected catalog.');
+        subject.results.length.should.equal(0);
+        subject.appendedEvents.length.should.equal(0);
+    });
+
+    it('reads a getter-backed selected constraint catalog only once', () => {
+        class OutOfCatalog implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(OracleFluentOnce, event => event.label).on(OracleKeyShared, event => event.key));
+            }
+        }
+        constraint('GetterOutOfCatalog')(OutOfCatalog);
+        let reads = 0;
+        const artifacts = { eventTypes: [OracleFluentOnce], get constraints() { reads++; return reads === 1 ? [OutOfCatalog] : undefined; } };
+        unsupported(() => new EventScenario({ artifacts }), 'artifacts.constraints');
+        reads.should.equal(1);
+    });
+
+    it('rejects a selected constraint without @constraint metadata', () => {
+        class MissingMetadata implements IConstraint { define(_builder: IConstraintBuilder) {} }
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: types, constraints: [MissingMetadata] } }),
+            'artifacts.constraints').message.should.include('Every selected constraint must have @constraint metadata.');
+    });
+
+    it('wraps throwing and duplicate fluent definitions as unsupported compiler errors', () => {
+        class Throws implements IConstraint { define(_builder: IConstraintBuilder) { throw new Error('Invalid definition'); } }
+        constraint('Throws')(Throws);
+        class First implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
+        class Second implements IConstraint { define(builder: IConstraintBuilder) { builder.uniqueFor(OracleOnceRecorded); } }
+        constraint('Duplicate')(First);
+        constraint('Duplicate')(Second);
+        for (const constraints of [[Throws], [First, Second]]) {
+            unsupported(() => new EventScenario({ artifacts: { eventTypes: types, constraints } }),
+                'artifacts.constraints').message.should.include('compiler');
+        }
+    });
+
+    it('rejects overlapping property constraints and property plus event-type constraints at construction', () => {
+        class TwoProperties {
+            @field(String) @unique('FirstProperty') first = 'Alpha';
+            @field(String) @unique('SecondProperty') second = 'Beta';
+        }
+        eventType('TwoProperties')(TwoProperties);
+        class PropertyAndType { @field(String) @unique('PropertyName') name = 'Alpha'; }
+        eventType('PropertyAndType')(PropertyAndType);
+        unique('ClassName')(PropertyAndType);
+        for (const type of [TwoProperties, PropertyAndType]) {
+            unsupported(() => new EventScenario({ artifacts: { eventTypes: [type, OracleFluentOnce], constraints: [OracleFluentOnceConstraint] } }),
+                'artifacts.constraints').message.should.include('Overlapping constraints');
+        }
+    });
+
+    it('rejects a fresh-source key replacement within one batch without changing results or history', async () => {
+        const subject = scenario();
+        await subject.append('A', new OracleKeyClaimed('Alpha'));
+        const history = subject.appendedEvents;
+        const results = subject.results;
+        await subject.appendMany('C', [new OracleKeyClaimed('First'), new OracleKeyShared('Second')])
+            .then(() => { throw new Error('In-batch replacement accepted'); }, error => {
+                (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+                (error as Error).message.should.include('artifacts.constraints');
+                (error as Error).message.should.include('Replacing a key within one batch');
+                (error as Error).message.should.include('Use a kernel-backed test.');
+            });
+        subject.appendedEvents.should.deep.equal(history);
+        subject.results.should.deep.equal(results);
+    });
+
+    it('rejects history with an unproven unique key without changing scenario state', async () => {
+        const subject = scenario();
+        await subject.append('A', new OracleKeyClaimed('Alpha'));
+        const history = subject.appendedEvents;
+        const incoming = subject.appendedEvents;
+        history[0].content.key = 1;
+        const compiled = compileConstraints({ eventTypes: types, constraints: [OracleFluentOnceConstraint] });
+        const checker = new InProcessConstraints(compiled);
+        unsupported(() => checker.validate(history, incoming), 'artifacts.constraints');
+        subject.appendedEvents[0].content.key.should.equal('Alpha');
+        subject.results.length.should.equal(1);
     });
 
     it('rejects removal, scoped, composite, case-insensitive and replacement before mutation', async () => {
