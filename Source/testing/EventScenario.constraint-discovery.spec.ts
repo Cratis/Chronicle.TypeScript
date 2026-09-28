@@ -28,6 +28,24 @@ describe('selected constraint discovery', () => {
         subject.appendedEvents.length.should.equal(1);
     });
 
+    it('appends a constraint-free selected class shadowed by a later registration with the same ID', async () => {
+        class SelectedItemAdded {
+            @field(String) label: string;
+            constructor(label: string) { this.label = label; }
+        }
+        eventType('ShadowedPlainItemAdded')(SelectedItemAdded);
+        class ShadowItemAdded {
+            @field(String) name: string;
+            constructor(name: string) { this.name = name; }
+        }
+        eventType('ShadowedPlainItemAdded')(ShadowItemAdded);
+
+        const subject = new EventScenario({ artifacts: { eventTypes: [SelectedItemAdded] } });
+        (await subject.append('A', new SelectedItemAdded('Alpha'))).isSuccess.should.be.true;
+        subject.appendedEvents.length.should.equal(1);
+        subject.appendedEvents[0].content.should.deep.equal({ label: 'Alpha' });
+    });
+
     it('rejects a globally registered constructor shadowing the selected event type ID', () => {
         class SelectedClaim {
             @field(String) @unique('ShadowedRegistryKey') key = 'Alpha';

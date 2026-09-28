@@ -3,6 +3,7 @@
 
 import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
+import { TypeIntrospector } from '../types/TypeIntrospector.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
 import type { AppendResult } from '../eventSequences/AppendResult.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
@@ -12,6 +13,8 @@ import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getEventTypeFor, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { compileConstraints } from '../events/constraints/Constraints.js';
+import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
+import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import { getConstraintMetadata } from '../events/constraints/constraint.js';
 import { InProcessConstraints } from './InProcessConstraints.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
@@ -20,6 +23,11 @@ import { EventScenarioWhenBuilder } from './EventScenarioWhenBuilder.js';
 import { InProcessEventSequence } from './InProcessEventSequence.js';
 import { registerScenarioSeed } from './EventScenarioSeed.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
+
+function hasConstraintDecorators(type: Function): boolean {
+    return getUniqueEventMetadata(type) !== undefined || getRemovedConstraintNames(type).length > 0 ||
+        TypeIntrospector.getTrackedProperties(type).some(property => getUniquePropertyMetadata(type, property) !== undefined);
+}
 
 /** A kernel-free, fixture-bounded append scenario. No observer runs automatically. */
 export class EventScenario {
@@ -46,20 +54,20 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                // Include selected constructors even if discovery was cleared or shadowed; retain all
-                // global contributions so filtering cannot lose a decorator's message or coverage.
+                // Keep global decorator contributions, but let the selected constructor win when
+                // a shadowed ID has no decorators that could change compiled constraints.
                 const compiledEventTypes = [...new Set([...(discoveredArtifacts?.eventTypes ?? []), ...eventTypes])];
-                const constructorsById = new Map<string, Function>();
+                const constructorsById = new Map<string, (typeof eventTypes)[number]>();
                 for (const type of compiledEventTypes) {
                     const id = getEventTypeFor(type).id.value;
                     const previous = constructorsById.get(id);
-                    if (previous && previous !== type) {
+                    if (previous && previous !== type && (hasConstraintDecorators(previous) || hasConstraintDecorators(type))) {
                         throw new UnsupportedEventSequenceOperation('artifacts.eventTypes', id,
                             'Conflicting constructors share an event type ID; constraint discovery cannot choose one.');
                     }
                     constructorsById.set(id, type);
                 }
-                const compiled = compileConstraints({ eventTypes: compiledEventTypes, constraints: discovered ?? [] });
+                const compiled = compileConstraints({ eventTypes: [...constructorsById.values()], constraints: discovered ?? [] });
                 const selectedIds = new Set(eventTypes.map(type => getEventTypeFor(type).id.value));
                 const definitions = discoveredArtifacts ? new Map([...compiled].filter(([, capture]) => {
                     const constrained = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
