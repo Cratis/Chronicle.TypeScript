@@ -8,7 +8,7 @@ import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 import type { WaitForCompletionResult } from './WaitForCompletionResult.js';
 import { EventSequenceNumber } from './EventSequenceNumber.js';
 
-/** Map fixture-backed append results for in-process scenarios using the connected client's response shape. */
+/** Map the wire append response for both the connected client and in-process scenarios. */
 export function createAppendResult(
     sequenceNumber: bigint,
     constraintViolations: Array<Partial<Pick<WireConstraintViolation, 'ConstraintName' | 'Message' | 'Details'>>>,
