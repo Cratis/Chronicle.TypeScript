@@ -51,6 +51,15 @@ public record OracleDomainShared(string Key);
 [EventType("OracleDomainFlag")]
 public record OracleDomainFlag(bool Key);
 
+[EventType("OracleDomainRemoved")]
+public record OracleDomainRemoved(string Label);
+
+[EventType("OracleDomainExpired")]
+public record OracleDomainExpired(string Label);
+
+[EventType("OracleDomainCleared")]
+public record OracleDomainCleared();
+
 // The fixture explicitly selects the definitions installed in the packaged testing scenario.
 // No constraint validation is implemented here: the packaged kernel owns that operation.
 sealed class OracleConstraintProvider(ImmutableArray<IConstraintDefinition> definitions) : ICanProvideConstraints
@@ -308,15 +317,21 @@ internal static class EventScenarioOracle
         if (fixture["isolatedConstraintOperations"]!.AsArray().Count == 0)
             throw new InvalidOperationException("Isolated constraint fixture must contain operations.");
         var schema = fixture["eventSchemas"]!.AsObject();
-        var known = new Dictionary<string, (Type Type, string Property, string SchemaType)>
+        var allowed = new Dictionary<string, (Type Type, string? Property, string? SchemaType)>
         {
             ["string"] = (typeof(OracleDomainText), "key", "string"),
             ["shared"] = (typeof(OracleDomainShared), "key", "string"),
-            ["boolean"] = (typeof(OracleDomainFlag), "key", "boolean")
+            ["boolean"] = (typeof(OracleDomainFlag), "key", "boolean"),
+            ["removed"] = (typeof(OracleDomainRemoved), "label", "string"),
+            ["expired"] = (typeof(OracleDomainExpired), "label", "string"),
+            ["cleared"] = (typeof(OracleDomainCleared), null, null)
         };
+        var known = allowed.Where(pair => schema.ContainsKey(pair.Key)).ToDictionary();
         if (schema.Count == 0 || schema.Count != known.Count ||
             known.Any(pair => schema[pair.Key]?["eventTypeId"]?.GetValue<string>() != pair.Value.Type.Name ||
-                schema[pair.Key]?["properties"]?[pair.Value.Property]?.GetValue<string>() != pair.Value.SchemaType))
+                schema[pair.Key]?["properties"] is not JsonObject properties ||
+                properties.Count != (pair.Value.Property is null ? 0 : 1) ||
+                (pair.Value.Property is not null && properties[pair.Value.Property]?.GetValue<string>() != pair.Value.SchemaType)))
             throw new InvalidOperationException("Isolated constraint fixture must declare exactly the installed event schemas.");
         var definitions = fixture["constraintDefinitions"]!.AsArray().Select(node =>
         {
@@ -327,14 +342,20 @@ internal static class EventScenarioOracle
                 if (!known.TryGetValue(alias, out var kind) || entry["properties"] is not JsonArray properties ||
                     properties.Count != 1 || properties[0]?.GetValue<string>() != kind.Property)
                     throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
-                return new UniqueConstraintEventDefinition(kind.Type.Name, [kind.Property]);
+                return new UniqueConstraintEventDefinition(kind.Type.Name, [kind.Property!]);
             }).ToArray();
             if (events.Length == 0 || events.Select(entry => entry.EventTypeId.Value).Distinct().Count() != events.Length ||
                 node["kind"]?.GetValue<string>() != "uniqueProperty" || node["ignoreCasing"]?.GetValue<bool>() != false ||
-                node["removedWithEventTypeIds"] is not JsonArray { Count: 0 })
+                node["removedWithEventTypeIds"] is not JsonArray removalNames)
                 throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
+            var removals = removalNames.Select(item => item!.GetValue<string>()).ToArray();
+            if (removals.Distinct().Count() != removals.Length || removals.Any(alias =>
+                !known.TryGetValue(alias, out var kind) ||
+                (kind.Property == "key" && !events.Any(entry => entry.EventTypeId.Value == kind.Type.Name))))
+                throw new InvalidOperationException($"Unsupported fixture removal for {name}.");
             var message = node["message"]?.GetValue<string>() ?? "";
-            return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events, [], false);
+            return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events,
+                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), false);
         }).ToImmutableArray();
         if (definitions.Length == 0 || definitions.Select(definition => definition.Name.Value).Distinct().Count() != definitions.Length)
             throw new InvalidOperationException("Fixture definitions must be present and have distinct names.");
@@ -349,7 +370,10 @@ internal static class EventScenarioOracle
         foreach (var (definition, index) in definitions.Select((value, index) => (value, index)))
         {
             if (installed[index] is not KernelUnique actual || actual.Name.Value != definition.Name.Value ||
-                actual.IgnoreCasing || actual.Scope is not null || actual.RemovedWith.Any() ||
+                actual.IgnoreCasing || actual.Scope is not null ||
+                !actual.RemovedWith.Select(id => id.Value).SequenceEqual(
+                    fixture["constraintDefinitions"]![index]!["removedWithEventTypeIds"]!.AsArray()
+                        .Select(alias => known[alias!.GetValue<string>()].Type.Name)) ||
                 !actual.EventDefinitions.Select(entry => (entry.EventTypeId.Value, Properties: string.Join(",", entry.Properties)))
                     .SequenceEqual(((UniqueConstraintDefinition)definition).EventsWithProperties.Select(entry =>
                         (entry.EventTypeId.Value, Properties: string.Join(",", entry.Properties)))))
@@ -364,13 +388,18 @@ internal static class EventScenarioOracle
             var events = entries.Select(entry =>
             {
                 var alias = entry!["type"]!.GetValue<string>();
-                if (!known.ContainsKey(alias) || entry["source"] is null || entry["value"] is null)
+                if (!known.ContainsKey(alias) || entry["source"] is null ||
+                    (known[alias].Property is not null && entry["value"] is null) ||
+                    (known[alias].Property is null && entry["value"] is not null))
                     throw new InvalidOperationException("Unknown fixture event or missing value.");
                 object value = alias switch
                 {
                     "string" => new OracleDomainText(entry["value"]!.GetValue<string>()),
                     "shared" => new OracleDomainShared(entry["value"]!.GetValue<string>()),
                     "boolean" => new OracleDomainFlag(entry["value"]!.GetValue<bool>()),
+                    "removed" => new OracleDomainRemoved(entry["value"]!.GetValue<string>()),
+                    "expired" => new OracleDomainExpired(entry["value"]!.GetValue<string>()),
+                    "cleared" => new OracleDomainCleared(),
                     _ => throw new InvalidOperationException("Unknown fixture event.")
                 };
                 var options = operation["options"];
@@ -428,7 +457,12 @@ internal static class EventScenarioOracle
                     {
                         EventSourceId = entry["source"]!.GetValue<string>(),
                         EventType = new KernelEventType { Id = known[alias].Type.Name, Generation = 1 },
-                        Content = JsonSerializer.Serialize(new { key = entry["value"]!.DeepClone() }),
+                        Content = entry["type"]!.GetValue<string>() switch
+                        {
+                            "removed" or "expired" => JsonSerializer.Serialize(new { label = entry["value"]!.DeepClone() }),
+                            "cleared" => "{}",
+                            _ => JsonSerializer.Serialize(new { key = entry["value"]!.DeepClone() })
+                        },
                         Subject = entry["subject"]?.GetValue<string>() ?? options?["subject"]?.GetValue<string>() ?? entry["source"]!.GetValue<string>()
                     };
                     // Preserve omission separately from explicit empty strings in the raw request.
@@ -481,6 +515,9 @@ internal static class EventScenarioOracle
                     OracleDomainText text => new JsonObject { ["key"] = text.Key },
                     OracleDomainShared shared => new JsonObject { ["key"] = shared.Key },
                     OracleDomainFlag flag => new JsonObject { ["key"] = flag.Key },
+                    OracleDomainRemoved removed => new JsonObject { ["label"] = removed.Label },
+                    OracleDomainExpired expired => new JsonObject { ["label"] = expired.Label },
+                    OracleDomainCleared => new JsonObject(),
                     _ => throw new InvalidOperationException("Unexpected constrained history")
                 },
                 ["hash"] = entry.Context.Hash.Value
