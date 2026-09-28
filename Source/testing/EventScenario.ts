@@ -103,6 +103,11 @@ export class EventScenario {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'The constrained property must be a schema-backed string or boolean.');
                         }
+                        // constraints-ignore-casing.json captures folded string keys only.
+                        if (capture.uniqueConstraint!.ignoreCasing && schemaTypes.some(schemaType => schemaType !== 'string')) {
+                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                                'Case-insensitive keys must be schema-backed strings.');
+                        }
                         // constraints-composite.json captures string components only.
                         if (entry.properties.length > 1 && schemaTypes.some(schemaType => schemaType !== 'string')) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,

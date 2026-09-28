@@ -52,6 +52,19 @@ class Triple implements IConstraint {
     }
 }
 constraint('OracleTriple')(Triple);
+class Handle implements IConstraint {
+    define(builder: IConstraintBuilder) {
+        builder.unique(key => key.on(OracleDomainText, event => event.key).ignoreCasing()
+            .removedWith(OracleDomainRemoved).withMessage('Handle taken: {PropertyValue}'));
+    }
+}
+constraint('OracleHandle')(Handle);
+class CasedName implements IConstraint {
+    define(builder: IConstraintBuilder) {
+        builder.unique(key => key.on(OracleCompositeName, event => event.first, event => event.last).ignoreCasing());
+    }
+}
+constraint('OracleCasedName')(CasedName);
 
 const aliases = { string: OracleDomainText, removed: OracleDomainRemoved, name: OracleCompositeName,
     alias: OracleCompositeAlias, triple: OracleCompositeTriple };
@@ -251,5 +264,52 @@ describe('fixture-backed composite unique-property keys', () => {
             });
         await subject.when.forEventSource('B').events(new OracleCompositeAlias('Ada', 'Lovelace'));
         calls.should.deep.equal(['Ada/Lovelace', 'Lovelace/Ada']);
+    });
+});
+
+describe('fixture-backed ASCII case-insensitive unique-property keys', () => {
+    const casingTypes = [OracleDomainText, OracleDomainRemoved, OracleCompositeName];
+    const asciiReason = 'Case-insensitive keys outside the ASCII key domain are not fixture-backed.';
+
+    it('matches the pinned kernel constraints-ignore-casing: ASCII folding, original-cased details, ownership, hashes and rollback',
+        () => matchesFixture('constraints-ignore-casing', casingTypes, [Handle, CasedName]));
+
+    it('rejects a non-ASCII key under ignoreCasing before mutation, while the case-sensitive definition accepts it', async () => {
+        const sensitive = new EventScenario({ artifacts: { eventTypes: compositeTypes, constraints: [FullName, Triple] } });
+        (await sensitive.append('A', new OracleCompositeName('Zo\u00e9', 'X'))).isSuccess.should.be.true;
+        const scenario = new EventScenario({ artifacts: { eventTypes: casingTypes, constraints: [Handle, CasedName] } });
+        (await scenario.append('A', new OracleDomainText('Alice'))).isSuccess.should.be.true;
+        const before = historyOf(scenario);
+        const results = [...scenario.results];
+        const notifications = scenario.eventSequence.appendOperations[Symbol.asyncIterator]();
+        try {
+            const notification = notifications.next();
+            await unsupported(() => scenario.append('B', new OracleDomainText('Zo\u00e9')), 'artifacts.constraints (OracleHandle)', asciiReason);
+            await unsupported(() => scenario.appendMany([{ eventSourceId: 'C', event: new OracleDomainText('Bob') },
+                { eventSourceId: 'D', event: new OracleCompositeName('zo\u00e9', 'x') }]), 'artifacts.constraints (OracleCasedName)', asciiReason);
+            await unsupported(() => scenario.append('E', new OracleCompositeName('Zo\u00e9', 'X')), 'artifacts.constraints (OracleCasedName)', asciiReason);
+            historyOf(scenario).should.deep.equal(before);
+            scenario.results.should.deep.equal(results);
+            (await scenario.append('C', new OracleDomainText('BOB'))).isSuccess.should.be.true;
+            (await notification).value!.map(item => item.event.content).should.deep.equal([{ key: 'BOB' }]);
+        } finally { await notifications.return?.(); }
+        (await scenario.append('F', new OracleDomainText('bob'))).constraintViolations.map(item => item.message)
+            .should.deep.equal(['Handle taken: bob']);
+    });
+
+    it('rejects ignoreCasing on a boolean key, while the case-sensitive boolean key is accepted', async () => {
+        class Flagged { @field(Boolean) active = true; }
+        eventType('OracleCasedFlag')(Flagged);
+        class Folded implements IConstraint {
+            define(builder: IConstraintBuilder) { builder.unique(key => key.on(Flagged, event => event.active).ignoreCasing()); }
+        }
+        constraint('OracleCasedFlag')(Folded);
+        class Exact implements IConstraint {
+            define(builder: IConstraintBuilder) { builder.unique(key => key.on(Flagged, event => event.active)); }
+        }
+        constraint('OracleCasedFlag')(Exact);
+        new EventScenario({ artifacts: { eventTypes: [Flagged], constraints: [Exact] } }).should.be.instanceOf(EventScenario);
+        await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Flagged], constraints: [Folded] } }),
+            'artifacts.constraints (OracleCasedFlag)', 'Case-insensitive keys must be schema-backed strings.');
     });
 });

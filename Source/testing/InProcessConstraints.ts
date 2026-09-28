@@ -39,7 +39,14 @@ function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, conte
     if (properties === undefined) return undefined;
     const parts = properties.map(property => ({ property, raw: kernelKeyString(content[property], name) }));
     const joined = parts.map(part => part.raw).join('-');
-    return { key: keyHash(joined), parts };
+    if (!unique.ignoreCasing) return { key: keyHash(joined), parts };
+    // The kernel applies .NET ToLowerInvariant to the joined value. constraints-ignore-casing.json proves
+    // only the ASCII key domain, where that is exactly A-Z to a-z; host Unicode case tables are not used.
+    if (!/^[\x20-\x7e]*$/.test(joined)) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Case-insensitive keys outside the ASCII key domain are not fixture-backed.');
+    }
+    return { key: keyHash(joined.replace(/[A-Z]/g, letter => String.fromCharCode(letter.charCodeAt(0) + 32))), parts };
 }
 
 /** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
@@ -60,7 +67,6 @@ export class InProcessConstraints {
             }
             if (capture.uniqueConstraint) {
                 const unique = capture.uniqueConstraint;
-                if (unique.ignoreCasing) throw this.unsupported(name, 'Case folding is not fixture-backed.');
                 // constraints-composite.json installs one, two and three flat properties per event type.
                 // The kernel keys properties by path with ToDictionary, so duplicate paths are not a key shape.
                 if (unique.eventDefinitions.length === 0 || unique.eventDefinitions.some(entry =>
