@@ -207,6 +207,34 @@ describe('fixture-backed composite unique-property keys', () => {
             'artifacts.constraints (OracleQuad)', shapeReason);
     });
 
+    it('rejects nested and indexed key paths at the key-shape check, while the flat path is accepted', async () => {
+        // The event schema must stay flat to pass the schema check; the accessors reach the paths 'a.b' and 'items.0'.
+        class Nested { @field(String) a = 'a'; }
+        eventType('OracleCompositeNested')(Nested);
+        type Shaped = { a: { b: string }; items: string[] };
+        class Deep implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(Nested, event => event.a, event => (event as unknown as Shaped).a.b));
+            }
+        }
+        constraint('OracleNestedPath')(Deep);
+        class Indexed implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(Nested, event => event.a, event => (event as unknown as Shaped).items[0]));
+            }
+        }
+        constraint('OracleNestedPath')(Indexed);
+        class Flat implements IConstraint {
+            define(builder: IConstraintBuilder) { builder.unique(key => key.on(Nested, event => event.a)); }
+        }
+        constraint('OracleNestedPath')(Flat);
+        new EventScenario({ artifacts: { eventTypes: [Nested], constraints: [Flat] } }).should.be.instanceOf(EventScenario);
+        await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Nested], constraints: [Deep] } }),
+            'artifacts.constraints (OracleNestedPath)', shapeReason);
+        await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Nested], constraints: [Indexed] } }),
+            'artifacts.constraints (OracleNestedPath)', shapeReason);
+    });
+
     it('rejects a composite with a boolean component, while the boolean alone is accepted', async () => {
         class Mixed { @field(String) label = 'x'; @field(Boolean) active = true; }
         eventType('OracleCompositeMixed')(Mixed);
