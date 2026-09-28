@@ -34,7 +34,7 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 // JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
 
-/** Fixture-backed, scenario-local append sequence; no kernel or observer scheduler is started. */
+// Observers ReactorScenario registers to latch unsupported operations, keyed by sequence.
 const unsupportedObservers = new WeakMap<object, (error: UnsupportedEventSequenceOperation) => void>();
 
 /**
@@ -47,6 +47,7 @@ export function observeUnsupportedOperations(sequence: object, observer: (error:
     unsupportedObservers.set(sequence, observer);
 }
 
+/** Fixture-backed, scenario-local append sequence; no kernel or observer scheduler is started. */
 export class InProcessEventSequence implements IEventSequence {
     readonly id: EventSequenceId;
     private readonly _catalog = new Map<Function, ReturnType<typeof getEventTypeMetadata>>();
