@@ -42,13 +42,19 @@ class OracleFluentOnce {
     constructor(label: string) { this.label = label; }
 }
 eventType('OracleFluentOnce')(OracleFluentOnce);
+class OracleNamedOnce {
+    @field(String) label: string;
+    constructor(label: string) { this.label = label; }
+}
+eventType('OracleNamedOnce')(OracleNamedOnce);
+unique('OracleNamedOnce', 'Already recorded this kind of event')(OracleNamedOnce);
 class OracleFluentOnceConstraint implements IConstraint {
     define(builder: IConstraintBuilder) { builder.uniqueFor(OracleFluentOnce, undefined, 'OracleFluentOnceConstraint'); }
 }
 constraint('OracleFluentOnceConstraint')(OracleFluentOnceConstraint);
-const types = [OracleKeyClaimed, OracleKeyShared, OracleOnceRecorded, BatchUniqueRecorded, OracleFluentOnce];
+const types = [OracleKeyClaimed, OracleKeyShared, OracleOnceRecorded, BatchUniqueRecorded, OracleFluentOnce, OracleNamedOnce];
 const scenario = () => new EventScenario({ artifacts: { eventTypes: types, constraints: [OracleFluentOnceConstraint] } });
-type Input = { source: string; type: 'key' | 'shared' | 'once' | 'plain' | 'fluentOnce'; value: string };
+type Input = { source: string; type: 'key' | 'shared' | 'once' | 'plain' | 'fluentOnce' | 'namedOnce'; value: string };
 type Outcome = { success: boolean; sequences: string[];
     violations: Array<{ id: string; message: string; details: Record<string, string> }>;
     errors: string[]; next: string; history: Array<{ sequence: string; source: string; type: string; value: string }> };
@@ -58,7 +64,8 @@ const fixture = JSON.parse(readFileSync(new URL('./fixtures/constraints.json', i
 const value = (input: Input) => input.type === 'key' ? new OracleKeyClaimed(input.value) :
     input.type === 'shared' ? new OracleKeyShared(input.value) :
         input.type === 'once' ? new OracleOnceRecorded(input.value) :
-            input.type === 'fluentOnce' ? new OracleFluentOnce(input.value) : new BatchUniqueRecorded(input.value);
+            input.type === 'fluentOnce' ? new OracleFluentOnce(input.value) :
+                input.type === 'namedOnce' ? new OracleNamedOnce(input.value) : new BatchUniqueRecorded(input.value);
 
 const unsupported = (action: () => unknown, operation: string) => {
     try { action(); throw new Error('Expected rejection'); }

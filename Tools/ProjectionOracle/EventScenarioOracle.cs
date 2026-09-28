@@ -47,6 +47,10 @@ public record OracleOnceRecorded(string Label);
 [EventType("OracleOnceShared")]
 public record OracleOnceShared(string Label);
 
+[EventType("OracleNamedOnce")]
+[Unique("OracleNamedOnce", "Already recorded this kind of event")]
+public record OracleNamedOnce(string Label);
+
 [EventType("OracleFluentOnce")]
 public record OracleFluentOnce(string Label);
 
@@ -185,6 +189,7 @@ internal static class EventScenarioOracle
                     "once" => new OracleOnceRecorded(item["value"]!.GetValue<string>()),
                     "onceShared" => new OracleOnceShared(item["value"]!.GetValue<string>()),
                     "fluentOnce" => new OracleFluentOnce(item["value"]!.GetValue<string>()),
+                    "namedOnce" => new OracleNamedOnce(item["value"]!.GetValue<string>()),
                     _ => throw new InvalidOperationException("Unknown constraint fixture event")
                 })).ToArray();
             var single = operation["mode"]!.GetValue<string>() == "single";
@@ -225,6 +230,7 @@ internal static class EventScenarioOracle
                     OracleOnceRecorded once => once.Label,
                     OracleOnceShared once => once.Label,
                     OracleFluentOnce once => once.Label,
+                    OracleNamedOnce once => once.Label,
                     _ => throw new InvalidOperationException("Unexpected constrained history")
                 }
             }).ToArray());

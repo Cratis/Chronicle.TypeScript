@@ -226,6 +226,26 @@
           "value": "second"
         }
       ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "N",
+          "type": "namedOnce",
+          "value": "first"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "N",
+          "type": "namedOnce",
+          "value": "second"
+        }
+      ]
     }
   ],
   "expected": {
@@ -1204,6 +1224,166 @@
           }
         ],
         "next": "10"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "10"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          }
+        ],
+        "next": "11"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleNamedOnce",
+            "message": "Already recorded this kind of event",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          }
+        ],
+        "next": "11"
       }
     ]
   }
