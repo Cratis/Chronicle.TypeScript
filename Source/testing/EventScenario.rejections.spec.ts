@@ -28,7 +28,7 @@ class RemovesConstraint {
     @field(String) name = 'value';
 }
 eventType('RemovesConstraint')(RemovesConstraint);
-removeConstraint('name')(RemovesConstraint);
+removeConstraint('OtherName')(RemovesConstraint);
 class Tagged {
     @field(String) name = 'value';
 }

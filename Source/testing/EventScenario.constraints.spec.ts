@@ -150,6 +150,41 @@ describe('fixture-backed unscoped constraints', () => {
             .message.should.include('Every constrained event type must be in the selected catalog.');
     });
 
+    it('rejects a global property decorator sharing a selected name instead of losing its message', () => {
+        class GlobalDecorated { @field(String) @unique('ScenarioSharedDecorators', 'Global message: {PropertyValue}') key = 'Alpha'; }
+        eventType('GlobalDecorated')(GlobalDecorated);
+        class SelectedDecorated { @field(String) @unique('ScenarioSharedDecorators') key = 'Alpha'; }
+        eventType('SelectedDecorated')(SelectedDecorated);
+        const production = compileConstraints({ eventTypes: [GlobalDecorated, SelectedDecorated], constraints: [] });
+        production.get('ScenarioSharedDecorators')!.uniqueConstraint!.message.should.equal('Global message: {PropertyValue}');
+        production.get('ScenarioSharedDecorators')!.uniqueConstraint!.eventDefinitions.length.should.equal(2);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedDecorated] } }), 'artifacts.constraints')
+            .message.should.include('Every constrained event type must be in the selected catalog.');
+    });
+
+    it('rejects a same-named global class decorator as a multi-type unique event constraint', () => {
+        class GlobalOnce { @field(String) label = 'global'; }
+        eventType('GlobalOnce')(GlobalOnce);
+        unique('ScenarioSharedOnce')(GlobalOnce);
+        class SelectedOnce { @field(String) label = 'selected'; }
+        eventType('SelectedOnce')(SelectedOnce);
+        unique('ScenarioSharedOnce')(SelectedOnce);
+        const production = compileConstraints({ eventTypes: [GlobalOnce, SelectedOnce], constraints: [] });
+        production.get('ScenarioSharedOnce')!.uniqueEventType!.eventTypeIds.should.deep.equal(['GlobalOnce', 'SelectedOnce']);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedOnce] } }), 'artifacts.constraints')
+            .message.should.include('multi-type unique event cycles');
+    });
+
+    it('rejects a global removal decorator targeting a selected constraint', () => {
+        class SelectedClaim { @field(String) @unique('ScenarioRemovedGlobally') key = 'Alpha'; }
+        eventType('SelectedClaim')(SelectedClaim);
+        class GlobalRemoval { @field(String) label = 'removed'; }
+        eventType('GlobalRemoval')(GlobalRemoval);
+        removeConstraint('ScenarioRemovedGlobally')(GlobalRemoval);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedClaim] } }), 'artifacts.constraints')
+            .message.should.include('removal');
+    });
+
     it('rejects a globally discovered fluent constraint referencing a selected removal event', () => {
         class GlobalClaim { @field(String) key = 'Alpha'; }
         eventType('GlobalClaim')(GlobalClaim);
@@ -220,7 +255,9 @@ describe('fixture-backed unscoped constraints', () => {
         await subject.when.forEventSource('A').events(new OracleKeyClaimed('Alpha'));
         await subject.when.forEventSource('B').events(new OracleKeyClaimed('Alpha'))
             .then(() => { throw new Error('Constraint violation was delivered'); }, error => {
-                (error as Error).message.should.include('action append failed');
+                (error as Error).message.should.include('ReactorScenario action append failed');
+                (error as Error).message.should.include('OracleKey');
+                (error as Error).message.should.include('Already claimed: key=Alpha');
             });
         calls.should.deep.equal(['Alpha']);
         subject.results.length.should.equal(1);

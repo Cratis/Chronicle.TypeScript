@@ -291,6 +291,31 @@
           "value": "claim"
         }
       ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "W",
+          "type": "plain",
+          "value": "Batch"
+        },
+        {
+          "source": "W",
+          "type": "plain",
+          "value": "Batch"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "J",
+          "type": "plain",
+          "value": "Batch"
+        }
+      ]
     }
   ],
   "expected": {
@@ -1963,6 +1988,232 @@
           }
         ],
         "next": "13"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "13",
+          "14"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "11",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "12",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "13",
+            "source": "W",
+            "type": "BatchUniqueRecorded",
+            "value": "Batch"
+          },
+          {
+            "sequence": "14",
+            "source": "W",
+            "type": "BatchUniqueRecorded",
+            "value": "Batch"
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "BatchUniqueKey",
+            "message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 14",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Batch"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "BatchUniqueRecorded",
+            "SequenceNumber": "14",
+            "ConstraintType": 1,
+            "ConstraintName": "BatchUniqueKey",
+            "Message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 14",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Batch"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "10",
+            "source": "N",
+            "type": "OracleNamedOnce",
+            "value": "first"
+          },
+          {
+            "sequence": "11",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "12",
+            "source": "T",
+            "type": "BatchUniqueRecorded",
+            "value": "claim"
+          },
+          {
+            "sequence": "13",
+            "source": "W",
+            "type": "BatchUniqueRecorded",
+            "value": "Batch"
+          },
+          {
+            "sequence": "14",
+            "source": "W",
+            "type": "BatchUniqueRecorded",
+            "value": "Batch"
+          }
+        ],
+        "next": "15"
       }
     ]
   }

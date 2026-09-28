@@ -36,66 +36,19 @@ function assertMatchingScope(name: string, left: ConstraintScopeCapture, right: 
 }
 
 /** Compile decorator and fluent constraints using the production registration rules. */
-export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eventTypes' | 'constraints'>,
-    selectedEventIds?: ReadonlySet<string>): Map<string, ConstraintCapture> {
+export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eventTypes' | 'constraints'>): Map<string, ConstraintCapture> {
     const captures = new Map<string, ConstraintCapture>();
     const fluentIds = new Set<string>();
-    // Only selected scenarios inspect globally discovered definitions ahead of merging. Production
-    // continues to define and merge each constraint in its original order.
-    const selectedFluent = selectedEventIds ? [...provider.constraints].map(type => {
-        const metadata = getConstraintMetadata(type);
-        if (!metadata) return undefined;
-        const builder = new ConstraintBuilder(metadata.id.value);
-        new (type as new () => IConstraint)().define(builder);
-        return { id: metadata.id.value, capture: builder.capture };
-    }).filter(entry => entry !== undefined) : undefined;
-    const selectedNames = selectedEventIds ? new Set<string>() : undefined;
-    if (selectedEventIds && selectedNames && selectedFluent) {
-        for (const eventType of provider.eventTypes) {
-            if (!selectedEventIds.has(getEventTypeFor(eventType).id.value)) continue;
-            const eventMetadata = getUniqueEventMetadata(eventType);
-            if (eventMetadata) selectedNames.add(eventMetadata.name ?? eventType.name);
-            for (const name of getRemovedConstraintNames(eventType)) selectedNames.add(name);
-            for (const property of TypeIntrospector.getTrackedProperties(eventType)) {
-                const metadata = getUniquePropertyMetadata(eventType, property);
-                if (metadata) selectedNames.add(metadata.name ?? property);
-            }
-        }
-        for (const { capture } of selectedFluent) {
-            const covered = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
-                capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
-            const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
-                capture.uniqueConstraint?.removedWithEventTypeId,
-                ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
-            if ([...covered, ...removedWith].some(id => id !== undefined && selectedEventIds.has(id))) {
-                selectedNames.add(wireNameOf(capture));
-            }
-        }
-    }
-    const definitions = selectedFluent ?? provider.constraints;
-    for (const definition of definitions) {
-            if (definition === undefined) continue;
-            const selectedDefinition = selectedFluent ? definition as { id: string; capture: ConstraintCapture } : undefined;
-            const metadata = selectedDefinition ? undefined : getConstraintMetadata(definition as Function);
-            if (!selectedDefinition && !metadata) continue;
-            const id = selectedDefinition ? selectedDefinition.id : metadata!.id.value;
-            if (!selectedEventIds) {
-                if (fluentIds.has(id)) throw new Error(`Duplicate constraint id '${id}'.`);
-                fluentIds.add(id);
-            }
-
-            let capture: ConstraintCapture;
-            if (selectedDefinition) {
-                capture = selectedDefinition.capture;
-                if (!selectedNames!.has(wireNameOf(capture))) continue;
-                if (fluentIds.has(id)) throw new Error(`Duplicate constraint id '${id}'.`);
-                fluentIds.add(id);
-            } else {
-                const builder = new ConstraintBuilder(id);
-                const instance = new (definition as new () => IConstraint)();
-                instance.define(builder);
-                capture = builder.capture;
-            }
+    for (const definition of provider.constraints) {
+            const metadata = getConstraintMetadata(definition);
+            if (!metadata) continue;
+            const id = metadata.id.value;
+            if (fluentIds.has(id)) throw new Error(`Duplicate constraint id '${id}'.`);
+            fluentIds.add(id);
+            const builder = new ConstraintBuilder(id);
+            const instance = new (definition as new () => IConstraint)();
+            instance.define(builder);
+            const capture = builder.capture;
             const name = wireNameOf(capture);
             const existing = captures.get(name);
             if (existing?.uniqueEventType && capture.uniqueEventType) {

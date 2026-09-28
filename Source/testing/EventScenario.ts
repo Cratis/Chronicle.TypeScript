@@ -36,7 +36,9 @@ export class EventScenario {
             throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'empty constraint catalog',
                 'An empty selected catalog cannot silently disable constraint discovery; set constraints: disabled explicitly.');
         }
-        const discovered = selectedConstraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
+        const discoveredArtifacts = selectedArtifacts && selectedConstraints === undefined
+            ? new DefaultClientArtifactsProvider(TypeDiscoverer.default) : undefined;
+        const discovered = selectedConstraints ?? discoveredArtifacts?.constraints ?? artifacts.constraints;
         let constraints: InProcessConstraints | undefined;
         if (options.constraints !== 'disabled') {
             for (const type of discovered ?? []) {
@@ -44,14 +46,27 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                const definitions = compileConstraints({ eventTypes, constraints: discovered ?? [] },
-                    selectedArtifacts && selectedConstraints === undefined
-                        ? new Set(eventTypes.map(type => getEventTypeFor(type).id.value)) : undefined);
+                // Default discovery compiles the whole production catalog before selecting definitions.
+                // Filtering inputs before merging can lose a global decorator's message or coverage.
+                const compiled = compileConstraints({ eventTypes: discoveredArtifacts?.eventTypes ?? eventTypes,
+                    constraints: discovered ?? [] });
+                const selectedIds = new Set(eventTypes.map(type => getEventTypeFor(type).id.value));
+                const definitions = discoveredArtifacts ? new Map([...compiled].filter(([, capture]) => {
+                    const constrained = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
+                        capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
+                    const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
+                        capture.uniqueConstraint?.removedWithEventTypeId,
+                        ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
+                    return [...constrained, ...removedWith].some(id => id !== undefined && selectedIds.has(id));
+                })) : compiled;
                 constraints = new InProcessConstraints(definitions);
                 for (const [name, capture] of definitions) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
                         capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
-                    if (ids.some(id => !eventTypes.some(type => getEventTypeFor(type).id.value === id))) {
+                    const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
+                        capture.uniqueConstraint?.removedWithEventTypeId,
+                        ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
+                    if ([...ids, ...removedWith].some(id => id !== undefined && !selectedIds.has(id))) {
                         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                             'Every constrained event type must be in the selected catalog.');
                     }
