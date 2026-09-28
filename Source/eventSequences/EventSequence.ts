@@ -3,12 +3,15 @@
 
 import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { AppendedEventResponse as ContractsAppendedEvent, ConstraintViolation as WireConstraintViolation } from '@cratis/chronicle.contracts';
+import type {
+    AppendedEventResponse as ContractsAppendedEvent,
+    AppendManyResponse as ContractsAppendManyResponse,
+    AppendResponse as ContractsAppendResponse
+} from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
-import { createAppendResult } from './createAppendResult.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
@@ -21,6 +24,7 @@ import { AppendOptions } from './AppendOptions.js';
 import { AppendResult } from './AppendResult.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
 import { CompleteStreamResult } from './CompleteStreamResult.js';
+import { ConcurrencyViolation } from './ConcurrencyViolation.js';
 import { ConstraintViolation } from './ConstraintViolation.js';
 import { EventForEventSourceId } from './EventForEventSourceId.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -210,10 +214,11 @@ export class EventSequence implements IEventSequence {
                 // Mirrors the C# client: every per-event AppendResult in a batch carries all
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
-                const firstConcurrencyViolation = (appendManyResponse.ConcurrencyViolations ?? [])[0];
-                const sequenceNumbers = appendManyResponse.SequenceNumbers ?? [];
-                const constraintViolations = appendManyResponse.ConstraintViolations ?? [];
-                const errors = appendManyResponse.Errors ?? [];
+                const firstConcurrencyViolation: ContractsAppendManyResponse['ConcurrencyViolations'][number] | undefined =
+                    (appendManyResponse.ConcurrencyViolations ?? [])[0];
+                const sequenceNumbers: ContractsAppendManyResponse['SequenceNumbers'] = appendManyResponse.SequenceNumbers ?? [];
+                const constraintViolations: ContractsAppendManyResponse['ConstraintViolations'] = appendManyResponse.ConstraintViolations ?? [];
+                const errors: ContractsAppendManyResponse['Errors'] = appendManyResponse.Errors ?? [];
                 const batchWasRejected = sequenceNumbers.length === 0 &&
                     (constraintViolations.length > 0 || errors.length > 0 || firstConcurrencyViolation !== undefined);
                 if (sequenceNumbers.length === 0 && eventsForEventSourceIds.length > 0 && !batchWasRejected) {
@@ -221,11 +226,11 @@ export class EventSequence implements IEventSequence {
                 }
                 const result = batchWasRejected
                     ? eventsForEventSourceIds.map(() => this.mapAppendResponse(0n, constraintViolations, errors, firstConcurrencyViolation))
-                    : sequenceNumbers.map((sequenceNumber: bigint, index: number) =>
+                    : sequenceNumbers.map((sequenceNumber, index) =>
                         this.mapAppendResponse(
                             sequenceNumber,
                             constraintViolations,
-                            errors.filter((_: string, errorIndex: number) => errorIndex === index),
+                            errors.filter((_, errorIndex) => errorIndex === index),
                             firstConcurrencyViolation
                         )
                     );
@@ -585,13 +590,42 @@ export class EventSequence implements IEventSequence {
     }
 
     private mapAppendResponse(
-        sequenceNumber: bigint,
-        constraintViolations: Array<Partial<Pick<WireConstraintViolation, 'ConstraintName' | 'Message' | 'Details'>>>,
-        errors: string[],
-        concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
+        sequenceNumber: ContractsAppendResponse['SequenceNumber'],
+        constraintViolations: ContractsAppendResponse['ConstraintViolations'],
+        errors: ContractsAppendResponse['Errors'],
+        concurrencyViolation: ContractsAppendResponse['ConcurrencyViolation']
     ): AppendResult {
-        return createAppendResult(sequenceNumber, constraintViolations, errors, concurrencyViolation,
-            this._resolveConstraintMessage, (sequence, success, options) => this.waitForObserverCompletion(sequence, success, options));
+        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
+            const mapped = {
+                constraintId: violation.ConstraintName ?? '',
+                message: violation.Message ?? '',
+                details: violation.Details ?? {}
+            };
+            return this._resolveConstraintMessage?.(mapped) ?? mapped;
+        });
+
+        const mappedErrors = errors.map(message => ({ message }));
+
+        const mappedConcurrencyViolation: ConcurrencyViolation | undefined = concurrencyViolation
+            ? {
+                eventSourceId: concurrencyViolation.EventSourceId ?? '',
+                expectedSequenceNumber: new EventSequenceNumber(concurrencyViolation.ExpectedSequenceNumber ?? 0n),
+                actualSequenceNumber: new EventSequenceNumber(concurrencyViolation.ActualSequenceNumber ?? 0n)
+            }
+            : undefined;
+
+        const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
+        const eventSequenceNumber = new EventSequenceNumber(safeSequenceNumber);
+        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0 && !mappedConcurrencyViolation;
+
+        return {
+            sequenceNumber: eventSequenceNumber,
+            constraintViolations: mappedViolations,
+            concurrencyViolation: mappedConcurrencyViolation,
+            errors: mappedErrors,
+            isSuccess,
+            waitForCompletion: (options?: number | WaitForCompletionOptions) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, options)
+        };
     }
 
     /**

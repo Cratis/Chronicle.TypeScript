@@ -5,8 +5,10 @@ const result = await store.eventLog.append(
 );
 
 if (!result.isSuccess) {
-    for (const error of result.errors) {
-        console.log(`Schema error: ${error.message}`);
+    for (const violation of result.constraintViolations) {
+        if (violation.constraintId === 'SchemaValidation') {
+            console.log(`Schema error at ${violation.details.path}: ${violation.message}`);
+        }
     }
 }
 ```

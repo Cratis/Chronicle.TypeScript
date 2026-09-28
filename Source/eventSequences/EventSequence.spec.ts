@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
+import { ConstraintType, type ConstraintViolation as ContractsConstraintViolation } from '@cratis/chronicle.contracts';
 import type { ChronicleConnection } from '../connection/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
 import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
@@ -661,12 +662,43 @@ describe('EventSequence', () => {
         });
     });
 
+    describe('when a single append fails schema validation', () => {
+        const { eventSequence } = createEventSequence({
+            append: vi.fn().mockResolvedValue({ Response: {
+                SequenceNumber: 18446744073709551615n,
+                ConstraintViolations: [{
+                    EventTypeId: 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f',
+                    SequenceNumber: 0n,
+                    ConstraintType: ConstraintType.Schema,
+                    ConstraintName: 'SchemaValidation',
+                    Message: 'Invalid event content',
+                    Details: { path: '$.total', kind: 'type' }
+                } satisfies ContractsConstraintViolation],
+                Errors: []
+            } })
+        });
+
+        it('should preserve the schema constraint name and details from the wire response', async () => {
+            const result = await eventSequence.append('some-event-source', new SomethingHappened('a'));
+
+            expect(result.isSuccess).toBe(false);
+            expect(result.constraintViolations).toEqual([{
+                constraintId: 'SchemaValidation',
+                message: 'Invalid event content',
+                details: { path: '$.total', kind: 'type' }
+            }]);
+        });
+    });
+
     describe('when waiting for completion after an append that itself failed', () => {
         const { eventSequence, waitForCompletion } = createEventSequence({
             append: vi.fn().mockResolvedValue({
                 Response: {
                     SequenceNumber: 0n,
-                    ConstraintViolations: [{ ConstraintName: 'unique', Message: 'Value must be unique', Details: {} }],
+                    ConstraintViolations: [{
+                        EventTypeId: '', SequenceNumber: 0n, ConstraintType: ConstraintType.Unique,
+                        ConstraintName: 'unique', Message: 'Value must be unique', Details: {}
+                    } satisfies ContractsConstraintViolation],
                     Errors: []
                 }
             })
@@ -711,7 +743,10 @@ describe('EventSequence', () => {
             appendManyForEventSources: vi.fn().mockResolvedValue({
                 Response: {
                     SequenceNumbers: [],
-                    ConstraintViolations: [{ ConstraintName: 'unique', Message: 'Value must be unique', Details: { value: 'a' } }],
+                    ConstraintViolations: [{
+                        EventTypeId: '', SequenceNumber: 0n, ConstraintType: ConstraintType.Unique,
+                        ConstraintName: 'unique', Message: 'Value must be unique', Details: { value: 'a' }
+                    } satisfies ContractsConstraintViolation],
                     Errors: ['Batch rejected']
                 }
             })
