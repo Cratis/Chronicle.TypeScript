@@ -6,6 +6,7 @@ import { EventObservationState } from '@cratis/chronicle.contracts';
 import { AppendOperationsBroadcaster } from '../eventSequences/AppendOperationsBroadcaster.js';
 import { prepareBatchAppend } from '../eventSequences/prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from '../eventSequences/createAppendNotification.js';
+import { createAppendResult } from '../eventSequences/createAppendResult.js';
 import { Guid, type Constructor } from '@cratis/fundamentals';
 import { getEventTypeMetadata, getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
@@ -26,8 +27,8 @@ import type { ITransactionalEventSequence } from '../eventSequences/ITransaction
 import type { CompleteStreamResult } from '../eventSequences/CompleteStreamResult.js';
 import { prepareSingleAppend } from '../eventSequences/prepareSingleAppend.js';
 import { toContractsGuid } from '../connection/Guid.js';
-import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
+import { InProcessConstraints, type WireConstraintViolation } from './InProcessConstraints.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
@@ -64,7 +65,7 @@ export class InProcessEventSequence implements IEventSequence {
     private readonly _results: AppendResult[] = [];
     readonly appendOperations = new AppendOperationsBroadcaster<AppendedEventWithResult[]>();
 
-    constructor(options: EventScenarioOptions, eventTypes: Constructor[]) {
+    constructor(options: EventScenarioOptions, eventTypes: Constructor[], private readonly _constraints?: InProcessConstraints) {
         if (options.eventSequenceId && options.eventSequenceId.value !== EventSequenceId.eventLog.value) {
             throw this.unsupported('options.eventSequenceId', options.eventSequenceId.value, 'Custom sequences are not fixture-backed.');
         }
@@ -93,9 +94,8 @@ export class InProcessEventSequence implements IEventSequence {
             if (eventType.generation.value !== 1 || eventType.tombstone) {
                 throw this.unsupported('artifacts.eventTypes', type.name, 'Only generation 1, non-tombstone events are proven.');
             }
-            if (options.constraints !== 'disabled' && (getUniqueEventMetadata(type) || getRemovedConstraintNames(type).length ||
-                [...metadata.members.keys()].some(key => getUniquePropertyMetadata(type, key)))) {
-                throw this.unsupported('artifacts.eventTypes.constraints', type.name, 'Constraint metadata is not supported in this increment.');
+            if (options.constraints !== 'disabled' && getRemovedConstraintNames(type).length) {
+                throw this.unsupported('artifacts.eventTypes.constraints', type.name, 'Constraint removal is not fixture-backed.');
             }
             if (getTagsFor(type).length) throw this.unsupported('artifacts.eventTypes.tags', type.name, 'Tagged events are not fixture-backed.');
             // Validate the complete schema, not only properties present on a particular event.
@@ -132,7 +132,8 @@ export class InProcessEventSequence implements IEventSequence {
                 try { pending = this.append(source, event); }
                 finally { this._allowSeedAppend = false; }
                 const result = await pending;
-                if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result)}`);
+                if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result, (_, value) =>
+                    typeof value === 'bigint' ? value.toString() : value)}`);
             }
             for (const [index, stored] of this._stagedSeeds.entries()) {
                 this._history.push(stored);
@@ -212,9 +213,12 @@ export class InProcessEventSequence implements IEventSequence {
                     tags: prepared.tags.map(tag => new Tag(tag))
                 }
             };
-            if (this._stagedSeeds) this._stagedSeeds.push(this.snapshot(stored));
-            else this._history.push(this.snapshot(stored));
-            const result = this.success(sequenceNumber, event.constructor.name);
+            const violations = this.validateConstraints([...this._history, ...(this._stagedSeeds ?? [])], [stored]);
+            const result = violations.length ? this.rejected(violations) : this.success(sequenceNumber, event.constructor.name);
+            if (result.isSuccess) {
+                if (this._stagedSeeds) this._stagedSeeds.push(this.snapshot(stored));
+                else this._history.push(this.snapshot(stored));
+            }
             if (!this._setup) this._results.push(result);
             if (this._stagedNotifications || this.appendOperations.hasSubscribers) {
                 const notification = [createAppendNotification(eventSourceId, event, result,
@@ -309,15 +313,16 @@ export class InProcessEventSequence implements IEventSequence {
                 } };
                 return { stored, result: this.success(sequenceNumber, event.constructor.name) };
             });
-            // Stage and validate every entry before committing any event or result.
-            this._history.push(...staged.map(item => this.snapshot(item.stored)));
-            const results = staged.map(item => item.result);
+            // The kernel validates the entire batch before persisting any events or allocating sequences.
+            const violations = this.validateConstraints(this._history, staged.map(item => item.stored));
+            const results = violations.length ? staged.map(() => this.rejected(violations)) : staged.map(item => item.result);
+            if (!violations.length) this._history.push(...staged.map(item => this.snapshot(item.stored)));
             this._results.push(...results);
             if (this.appendOperations.hasSubscribers) {
                 const occurredAt = new Date();
                 const causationEntries = mapAppendNotificationCausation(batchCausationChain);
-                this.appendOperations.publish(staged.map(({ result }, index) =>
-                    createAppendNotification(eventsForEventSourceIds[index].eventSourceId, eventsForEventSourceIds[index].event, result,
+                this.appendOperations.publish(staged.map((_, index) =>
+                    createAppendNotification(eventsForEventSourceIds[index].eventSourceId, eventsForEventSourceIds[index].event, results[index],
                         correlationId.toString(), causationEntries, eventsToAppend[index].Tags, occurredAt)));
             }
             return results;
@@ -439,6 +444,19 @@ export class InProcessEventSequence implements IEventSequence {
             throw this.unsupported(operation, event.constructor.name, 'Content differs from the fixture-backed scalar schema.');
         }
         return content;
+    }
+
+    private validateConstraints(history: readonly AppendedEvent[], incoming: readonly AppendedEvent[]): WireConstraintViolation[] {
+        try { return this._constraints?.validate(history, incoming) ?? []; }
+        catch (error) {
+            if (error instanceof UnsupportedEventSequenceOperation) unsupportedObservers.get(this)?.(error);
+            throw error;
+        }
+    }
+
+    private rejected(violations: WireConstraintViolation[]): AppendResult {
+        return createAppendResult(18446744073709551615n, violations, [], undefined,
+            violation => this._constraints!.resolveMessage(violation), async () => ({ isSuccess: true, failedPartitions: [] }));
     }
 
     private success(sequenceNumber: EventSequenceNumber, artifact: string): AppendResult {

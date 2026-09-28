@@ -57,6 +57,10 @@ internal static class Program
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
             var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
+            if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", "constraints.json")))
+            {
+                throw new InvalidOperationException("Event oracle requires the unscoped constraints fixture; refusing a vacuous check.");
+            }
             if (eventFiles.Length < 4)
             {
                 throw new InvalidOperationException("Event oracle requires at least four fixtures; refusing a vacuous check.");

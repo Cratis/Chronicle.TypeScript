@@ -178,7 +178,9 @@ export class ReactorScenario {
                 await this._events.given.forEventSource(sourceId).events(...input);
             } else {
                 const results = await this._events.when.forEventSource(sourceId).events(...input);
-                if (results.some(result => !result.isSuccess)) throw new Error('ReactorScenario action append failed.');
+                const failures = results.filter(result => !result.isSuccess);
+                if (failures.length) throw new Error(`ReactorScenario action append failed: ${JSON.stringify(failures, (_, value) =>
+                    typeof value === 'bigint' ? value.toString() : value)}`);
             }
             const events = this._events.appendedEvents.slice(before);
             if (events.length) await this.process(sourceId, events);

@@ -56,7 +56,7 @@ interface Fixture {
 }
 const directory = new URL('./fixtures/', import.meta.url);
 const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
-    !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json'].includes(name)).map(name => ({
+    !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json', 'constraints.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
@@ -188,9 +188,11 @@ describe('when appending against committed kernel event fixtures', () => {
     });
 
 
-    it('should reject unproven schemas, event registrations and constraints before appending', async () => {
+    it('should reject unproven schemas and registrations but discover supported constraints', async () => {
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenNumber] }, constraints: 'disabled' }), 'schema');
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [ConstrainedEvent] } }), 'constraints');
+        const constrained = new EventScenario({ artifacts: { eventTypes: [ConstrainedEvent] } });
+        (await constrained.append('A', new ConstrainedEvent())).isSuccess.should.be.true;
+        (await constrained.append('A', new ConstrainedEvent())).constraintViolations.length.should.equal(1);
         unsupported(() => new EventScenario({ artifacts }), 'empty constraint catalog');
         unsupported(() => new EventScenario({ artifacts, constraints: 'disabled', eventStore: 'other-store' }), 'eventStore');
         const scenario = makeScenario();
