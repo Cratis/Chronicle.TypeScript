@@ -57,9 +57,10 @@ internal static class Program
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
             var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
-            if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", "constraints.json")))
+            foreach (var required in new[] { "constraints.json", "constraints-isolation.json" })
             {
-                throw new InvalidOperationException("Event oracle requires the unscoped constraints fixture; refusing a vacuous check.");
+                if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", required)))
+                    throw new InvalidOperationException($"Event oracle requires {required}; refusing a vacuous check.");
             }
             if (eventFiles.Length < 4)
             {
@@ -86,6 +87,9 @@ internal static class Program
                 {
                     throw new InvalidOperationException($"{path}: kind must be 'kernelSemantics' or 'oracleGuard'.");
                 }
+                if (fixture["constraintDefinitions"] is not null && fixture["constraintDescriptorSha256"]?.GetValue<string>() !=
+                    Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, "generated", "events_constraints.ts")))))
+                    throw new InvalidOperationException($"{path}: constraint contract descriptor does not match installed TypeScript contracts.");
                 if (fixture["formatVersion"]?.GetValue<int>() != 1 ||
                     (args[0] != "--probe" && (fixture["chronicle"]?["version"]?.GetValue<string>() != versionParts[0] ||
                      fixtureCommit is null || fixtureCommit.Length < 7 || !versionParts[1].StartsWith(fixtureCommit, StringComparison.OrdinalIgnoreCase))) ||

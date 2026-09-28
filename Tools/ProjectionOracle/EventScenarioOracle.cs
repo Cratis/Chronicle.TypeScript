@@ -2,8 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 extern alias KernelContracts;
+extern alias KernelConcepts;
+extern alias KernelStorage;
 
 using System.Collections.Immutable;
+using System.Text.Json;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
@@ -12,6 +15,10 @@ using KernelAppendRequest = KernelContracts::Cratis.Chronicle.Contracts.Sequence
 using KernelBatchRequest = KernelContracts::Cratis.Chronicle.Contracts.Sequences.AppendManyForEventSourcesRequest;
 using KernelBatchEvent = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventForEventSourceId;
 using KernelEventType = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventType;
+using KernelStore = KernelStorage::Cratis.Chronicle.Storage.IStorage;
+using KernelUnique = KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.UniqueConstraintDefinition;
+using KernelStoreName = KernelConcepts::Cratis.Chronicle.Concepts.EventStoreName;
+using Cratis.Chronicle;
 using Cratis.Chronicle.Auditing;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.Events.Constraints;
@@ -34,6 +41,22 @@ public record BoundaryRecorded(string FirstName, string Label);
 
 [EventType("BatchUniqueRecorded")]
 public record BatchUniqueRecorded([property: Unique("BatchUniqueKey")] string Key);
+
+[EventType("OracleDomainText")]
+public record OracleDomainText(string Key);
+
+[EventType("OracleDomainShared")]
+public record OracleDomainShared(string Key);
+
+[EventType("OracleDomainFlag")]
+public record OracleDomainFlag(bool Key);
+
+// The fixture explicitly selects the definitions installed in the packaged testing scenario.
+// No constraint validation is implemented here: the packaged kernel owns that operation.
+sealed class OracleConstraintProvider(ImmutableArray<IConstraintDefinition> definitions) : ICanProvideConstraints
+{
+    public IImmutableList<IConstraintDefinition> Provide() => definitions;
+}
 
 [EventType("OracleKeyClaimed")]
 public record OracleKeyClaimed([property: Unique("OracleKey", "Already claimed: {PropertyName}={PropertyValue}")] string Key);
@@ -64,6 +87,7 @@ internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
+        if (fixture["isolatedConstraintOperations"] is JsonArray) return await RunIsolatedConstraints(fixture);
         if (fixture["constraintOperations"] is JsonArray) return await RunConstraints(fixture);
         if (fixture["routeCases"] is JsonArray) return await RunOmittedRoutes(fixture);
         if (fixture["operations"] is JsonArray) return await RunBatches(fixture);
@@ -275,6 +299,190 @@ internal static class EventScenarioOracle
             outcomes[^1]!["next"] = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString();
         }
         return new JsonObject { ["outcomes"] = outcomes };
+    }
+
+    // Keep the increment-4 regression runner intact. This runner accepts an explicit fixture
+    // definition and schema catalog, so adding another oracle case never installs global definitions.
+    static async Task<JsonNode> RunIsolatedConstraints(JsonObject fixture)
+    {
+        var schema = fixture["eventSchemas"]!.AsObject();
+        var known = new Dictionary<string, (Type Type, string Property, string SchemaType)>
+        {
+            ["string"] = (typeof(OracleDomainText), "key", "string"),
+            ["shared"] = (typeof(OracleDomainShared), "key", "string"),
+            ["boolean"] = (typeof(OracleDomainFlag), "key", "boolean")
+        };
+        if (schema.Count == 0 || schema.Count != known.Count ||
+            known.Any(pair => schema[pair.Key]?["eventTypeId"]?.GetValue<string>() != pair.Value.Type.Name ||
+                schema[pair.Key]?["properties"]?[pair.Value.Property]?.GetValue<string>() != pair.Value.SchemaType))
+            throw new InvalidOperationException("Isolated constraint fixture must declare exactly the installed event schemas.");
+        var definitions = fixture["constraintDefinitions"]!.AsArray().Select(node =>
+        {
+            var name = node!["name"]!.GetValue<string>();
+            var events = node["events"]!.AsArray().Select(entry =>
+            {
+                var alias = entry!["type"]!.GetValue<string>();
+                if (!known.TryGetValue(alias, out var kind) || entry["properties"] is not JsonArray properties ||
+                    properties.Count != 1 || properties[0]?.GetValue<string>() != kind.Property)
+                    throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
+                return new UniqueConstraintEventDefinition(kind.Type.Name, [kind.Property]);
+            }).ToArray();
+            if (events.Length == 0 || events.Select(entry => entry.EventTypeId.Value).Distinct().Count() != events.Length ||
+                node["kind"]?.GetValue<string>() != "uniqueProperty" || node["ignoreCasing"]?.GetValue<bool>() != false ||
+                node["removedWithEventTypeIds"] is not JsonArray { Count: 0 })
+                throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
+            var message = node["message"]?.GetValue<string>() ?? "";
+            return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events, [], false);
+        }).ToImmutableArray();
+        if (definitions.Length == 0 || definitions.Select(definition => definition.Name.Value).Distinct().Count() != definitions.Length)
+            throw new InvalidOperationException("Fixture definitions must be present and have distinct names.");
+        using var scenario = new EventScenario(new OracleConstraintProvider(definitions));
+        var created = (ITuple)typeof(EventScenario).GetField("_created", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(scenario)!;
+        var services = ((KernelServiceAccessor)created[1]!).Services;
+        var storage = (KernelStore)(services.Sequences.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Single(field => field.FieldType == typeof(KernelStore)).GetValue(services.Sequences)
+            ?? throw new InvalidOperationException("Packaged sequence service has no kernel storage."));
+        var installed = (await storage.GetEventStore((KernelStoreName)"test-event-store").Constraints.GetDefinitions()).ToArray();
+        if (installed.Length != definitions.Length) throw new InvalidOperationException("Fixture definitions were not all installed.");
+        foreach (var (definition, index) in definitions.Select((value, index) => (value, index)))
+        {
+            if (installed[index] is not KernelUnique actual || actual.Name.Value != definition.Name.Value ||
+                actual.IgnoreCasing || actual.Scope is not null || actual.RemovedWith.Any() ||
+                !actual.EventDefinitions.Select(entry => (entry.EventTypeId.Value, Properties: string.Join(",", entry.Properties)))
+                    .SequenceEqual(((UniqueConstraintDefinition)definition).EventsWithProperties.Select(entry =>
+                        (entry.EventTypeId.Value, Properties: string.Join(",", entry.Properties)))))
+                throw new InvalidOperationException($"Installed kernel definition does not match fixture {definition.Name.Value}.");
+        }
+        var outcomes = new JsonArray();
+        foreach (var operation in fixture["isolatedConstraintOperations"]!.AsArray())
+        {
+            var before = await History();
+            var nextBefore = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString();
+            var entries = operation!["events"]!.AsArray();
+            var events = entries.Select(entry =>
+            {
+                var alias = entry!["type"]!.GetValue<string>();
+                if (!known.ContainsKey(alias) || entry["source"] is null || entry["value"] is null)
+                    throw new InvalidOperationException("Unknown fixture event or missing value.");
+                object value = alias switch
+                {
+                    "string" => new OracleDomainText(entry["value"]!.GetValue<string>()),
+                    "shared" => new OracleDomainShared(entry["value"]!.GetValue<string>()),
+                    "boolean" => new OracleDomainFlag(entry["value"]!.GetValue<bool>()),
+                    _ => throw new InvalidOperationException("Unknown fixture event.")
+                };
+                var options = operation["options"];
+                return new EventForEventSourceId(entry["source"]!.GetValue<string>(), value)
+                {
+                    EventSourceType = entry["sourceType"]?.GetValue<string>() ?? options?["sourceType"]?.GetValue<string>() ?? "Default",
+                    EventStreamType = entry["streamType"]?.GetValue<string>() ?? options?["streamType"]?.GetValue<string>() ?? "All",
+                    EventStreamId = entry["streamId"]?.GetValue<string>() ?? options?["streamId"]?.GetValue<string>() ?? "Default",
+                    Subject = entry["subject"]?.GetValue<string>() ?? options?["subject"]?.GetValue<string>() ?? entry["source"]!.GetValue<string>()
+                };
+            }).ToArray();
+            var single = operation["mode"]?.GetValue<string>() == "single";
+            if (events.Length == 0 || single && events.Length != 1 || !single && operation["mode"]?.GetValue<string>() != "batch")
+                throw new InvalidOperationException("Expected nonempty single or batch constraint operation.");
+            bool success;
+            JsonArray sequences;
+            JsonArray violations;
+            JsonArray errors;
+            if (single)
+            {
+                var first = entries[0]!;
+                var options = operation["options"];
+                var result = await scenario.EventLog.Append(events[0].EventSourceId, events[0].Event,
+                    eventSourceType: first["sourceType"] is null && options?["sourceType"] is null ? null :
+                        (EventSourceType)(first["sourceType"]?.GetValue<string>() ?? options!["sourceType"]!.GetValue<string>()),
+                    eventStreamType: first["streamType"] is null && options?["streamType"] is null ? null :
+                        (EventStreamType)(first["streamType"]?.GetValue<string>() ?? options!["streamType"]!.GetValue<string>()),
+                    eventStreamId: first["streamId"] is null && options?["streamId"] is null ? null :
+                        (EventStreamId)(first["streamId"]?.GetValue<string>() ?? options!["streamId"]!.GetValue<string>()),
+                    subject: first["subject"] is null && options?["subject"] is null ? null :
+                        (Subject)(first["subject"]?.GetValue<string>() ?? options!["subject"]!.GetValue<string>()));
+                success = result.IsSuccess;
+                sequences = new JsonArray(JsonValue.Create(result.SequenceNumber.Value.ToString()));
+                violations = Violations(result.ConstraintViolations);
+                errors = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray());
+            }
+            else
+            {
+                var result = await scenario.EventLog.AppendMany(events);
+                success = result.IsSuccess;
+                sequences = new JsonArray(result.SequenceNumbers.Select(number => (JsonNode?)JsonValue.Create(number.Value.ToString())).ToArray());
+                violations = Violations(result.ConstraintViolations);
+                errors = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray());
+            }
+            var wireViolations = new JsonArray();
+            if (!success)
+            {
+                if (violations.Count == 0 || errors.Count != 0)
+                    throw new InvalidOperationException("Expected a constraint rejection, not another append failure.");
+                var rawEvents = entries.Select(entry =>
+                {
+                    var alias = entry!["type"]!.GetValue<string>();
+                    var options = operation["options"];
+                    var wire = new KernelBatchEvent
+                    {
+                        EventSourceId = entry["source"]!.GetValue<string>(),
+                        EventType = new KernelEventType { Id = known[alias].Type.Name, Generation = 1 },
+                        Content = JsonSerializer.Serialize(new { key = entry["value"]!.DeepClone() }),
+                        Subject = entry["subject"]?.GetValue<string>() ?? options?["subject"]?.GetValue<string>() ?? entry["source"]!.GetValue<string>()
+                    };
+                    // Preserve omission separately from explicit empty strings in the raw request.
+                    if ((entry["sourceType"] ?? options?["sourceType"]) is JsonNode sourceType) wire.EventSourceType = sourceType.GetValue<string>();
+                    if ((entry["streamType"] ?? options?["streamType"]) is JsonNode streamType) wire.EventStreamType = streamType.GetValue<string>();
+                    if ((entry["streamId"] ?? options?["streamId"]) is JsonNode streamId) wire.EventStreamId = streamId.GetValue<string>();
+                    return wire;
+                }).ToArray();
+                // A rejected request cannot commit. The raw request gets the original durable
+                // history and captures the actual kernel contract before the client maps messages.
+                var raw = single
+                    ? (await services.Sequences.Append(new KernelAppendRequest
+                    {
+                        EventStore = "test-event-store", Namespace = "default", EventSequenceId = "event-log",
+                        EventSourceId = rawEvents[0].EventSourceId, EventType = rawEvents[0].EventType,
+                        Content = rawEvents[0].Content, Subject = rawEvents[0].Subject,
+                        EventSourceType = rawEvents[0].EventSourceType, EventStreamType = rawEvents[0].EventStreamType,
+                        EventStreamId = rawEvents[0].EventStreamId
+                    })).Response?.ConstraintViolations
+                    : (await services.Sequences.AppendManyForEventSources(new KernelBatchRequest
+                    {
+                        EventStore = "test-event-store", Namespace = "default", EventSequenceId = "event-log", Events = rawEvents
+                    })).Response?.ConstraintViolations;
+                if (raw is null || !raw.Any()) throw new InvalidOperationException("Rejected operation had no raw kernel violations.");
+                wireViolations = WireViolations(raw);
+            }
+            var history = await History();
+            var next = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString();
+            if (!success && (!JsonNode.DeepEquals(before, history) || nextBefore != next))
+                throw new InvalidOperationException("A rejected constraint operation changed history or the next sequence.");
+            outcomes.Add(new JsonObject
+            {
+                ["success"] = success, ["sequences"] = sequences, ["violations"] = violations, ["errors"] = errors,
+                ["wireViolations"] = wireViolations, ["history"] = history, ["next"] = next
+            });
+        }
+        return new JsonObject { ["outcomes"] = outcomes };
+
+        async Task<JsonArray> History() => new((await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First))
+            .Select(entry => (JsonNode?)new JsonObject
+            {
+                ["sequence"] = entry.Context.SequenceNumber.Value.ToString(),
+                ["source"] = entry.Context.EventSourceId.Value,
+                ["sourceType"] = entry.Context.EventSourceType.Value,
+                ["streamType"] = entry.Context.EventStreamType.Value,
+                ["streamId"] = entry.Context.EventStreamId.Value,
+                ["type"] = entry.Context.EventType.Id.Value,
+                ["content"] = entry.Content switch
+                {
+                    OracleDomainText text => new JsonObject { ["key"] = text.Key },
+                    OracleDomainShared shared => new JsonObject { ["key"] = shared.Key },
+                    OracleDomainFlag flag => new JsonObject { ["key"] = flag.Key },
+                    _ => throw new InvalidOperationException("Unexpected constrained history")
+                },
+                ["hash"] = entry.Context.Hash.Value
+            }).ToArray());
     }
 
     static JsonArray WireViolations(IEnumerable<KernelContracts::Cratis.Chronicle.Contracts.Events.Constraints.ConstraintViolation> violations) =>
