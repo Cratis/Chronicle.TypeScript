@@ -4,11 +4,10 @@
 import 'reflect-metadata';
 import { diag } from '@opentelemetry/api';
 import { Constructor } from '@cratis/fundamentals';
-import { EventObservationState, ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
-import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
@@ -19,7 +18,8 @@ import { IReactors } from './IReactors.js';
 import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
 import { isOnceOnly } from './onceOnly.js';
-import { getReplayEventType } from './replay.js';
+import { getReactorEventTypes, selectReactorHandler, invokeReactorHandler } from './ReactorDispatcher.js';
+import type { ReactorEventTypeEntry } from './ReactorDispatcher.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
 import type { ReactorServices } from './ReactorServices.js';
 import type { IEventStore } from '../IEventStore.js';
@@ -35,13 +35,6 @@ const EVENT_SOURCE_ID_KEY = '$eventSourceId';
 
 /** Sentinel sequence number sent back when no event was successfully processed. */
 const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
-
-interface EventTypeEntry {
-    readonly id: string;
-    readonly generation: number;
-    readonly methodName?: string;
-    readonly replayMethodName?: string;
-}
 
 /**
  * A push-based async queue that implements {@link AsyncIterable} for use with nice-grpc
@@ -187,7 +180,7 @@ export class Reactors implements IReactors {
         if (this._disposed) return;
         const metadata = getReactorMetadata(reactorType)!;
         const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const eventTypes = this.getEventTypesFor(reactorType);
+        const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
 
         this._logger.info('Starting reactor observation', {
             reactorId: id,
@@ -203,7 +196,7 @@ export class Reactors implements IReactors {
         id: string,
         reactorType: Constructor,
         eventSequenceId: string,
-        eventTypes: EventTypeEntry[]
+        eventTypes: ReactorEventTypeEntry[]
     ): Promise<void> {
         try {
             await this.observeReactor(id, reactorType, eventSequenceId, eventTypes);
@@ -246,7 +239,7 @@ export class Reactors implements IReactors {
         id: string,
         reactorType: Constructor,
         eventSequenceId: string,
-        eventTypes: EventTypeEntry[]
+        eventTypes: ReactorEventTypeEntry[]
     ): Promise<void> {
         const queue = new AsyncQueue<ReactorMessage>();
         const controller = new AbortController();
@@ -323,12 +316,8 @@ export class Reactors implements IReactors {
                 }
 
                 const selectHandler = (event: typeof eventsToObserve.Events[number]) => {
-                    const entry = eventTypes.find(candidate => candidate.id === event.Context?.EventType?.Id);
-                    if (!entry) return undefined;
-                    const isReplay = (event.Context!.ObservationState & EventObservationState.Replay) !== 0;
-                    const methodName = isReplay ? (entry.replayMethodName ?? entry.methodName) : entry.methodName;
-                    const method = methodName ? (reactorInstance?.[methodName] ?? (reactorType.prototype as Record<string, Function>)[methodName]) : undefined;
-                    return { methodName, isReplay, skipReplay: isReplay && method !== undefined && isOnceOnly(method) };
+                    return selectReactorHandler(eventTypes, reactorType, reactorInstance,
+                        event.Context?.EventType?.Id, event.Context?.ObservationState ?? 0);
                 };
 
                 const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
@@ -369,11 +358,9 @@ export class Reactors implements IReactors {
                                 eventTypeId
                             });
 
-                            await runActivated(artifact, async () => {
-                                const handlerResult = await artifact.instance[methodName](content, context, services);
-                                await dispatchReactorSideEffects(this._eventLog, handlerResult, context, reactorType as Function,
-                                    this._eventStoreName, this._namespace, this._resultHandler);
-                            }, { delivery: ArtifactDelivery.Events, eventContext: context, methodName });
+                            await invokeReactorHandler(artifact, methodName, content, context, services, result =>
+                                dispatchReactorSideEffects(this._eventLog, result, context, reactorType as Function,
+                                    this._eventStoreName, this._namespace, this._resultHandler));
 
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {
@@ -444,65 +431,6 @@ export class Reactors implements IReactors {
             }
             queue.complete();
         }
-    }
-
-    private getEventTypesFor(reactorType: Constructor): EventTypeEntry[] {
-        const proto = reactorType.prototype as Record<string, unknown>;
-        const entries: EventTypeEntry[] = [];
-        const replayHandlers = new Map<string, string>();
-        const eventTypes = new Map<string, { eventTypeClass: Function; id: string; generation: number }>();
-
-        for (const eventTypeClass of this._clientArtifacts.eventTypes) {
-            const metadata = getEventTypeMetadata(eventTypeClass);
-            if (metadata) {
-                eventTypes.set((eventTypeClass as Function).name, {
-                    eventTypeClass: eventTypeClass as Function,
-                    id: metadata.eventType.id.value,
-                    generation: metadata.eventType.generation.value
-                });
-            }
-        }
-
-        // A derived method shadows a base method of the same name, even if it is not marked for replay.
-        const seenMethods = new Set<string>();
-        for (let current = proto; current && current !== Object.prototype; current = Object.getPrototypeOf(current) as Record<string, unknown>) {
-            for (const name of Object.getOwnPropertyNames(current)) {
-                if (seenMethods.has(name)) continue;
-                seenMethods.add(name);
-                const method = current[name];
-                if (typeof method !== 'function') continue;
-                const replayEventType = getReplayEventType(method);
-                if (replayEventType === undefined) continue;
-
-                const eventType = replayEventType === true
-                    ? eventTypes.get(name.startsWith('replay') ? name.slice('replay'.length) : '')
-                    : [...eventTypes.values()].find(candidate => candidate.eventTypeClass === replayEventType);
-                if (!eventType) {
-                    throw new Error(`Replay handler '${name}' on reactor '${(reactorType as Function).name}' has no registered event type.`);
-                }
-                if (replayHandlers.has(eventType.id)) {
-                    throw new Error(`Reactor '${(reactorType as Function).name}' has multiple replay handlers for event type '${eventType.id}': '${replayHandlers.get(eventType.id)}' and '${name}'.`);
-                }
-                replayHandlers.set(eventType.id, name);
-            }
-        }
-
-        for (const [className, eventType] of eventTypes) {
-            const methodName = className.charAt(0).toLowerCase() + className.slice(1);
-            const liveMethod = proto[methodName];
-            const liveMethodName = typeof liveMethod === 'function' && getReplayEventType(liveMethod) === undefined ? methodName : undefined;
-            const replayMethodName = replayHandlers.get(eventType.id);
-            if (liveMethodName || replayMethodName) {
-                entries.push({
-                    id: eventType.id,
-                    generation: eventType.generation,
-                    methodName: liveMethodName,
-                    replayMethodName
-                });
-            }
-        }
-
-        return entries;
     }
 
     private disconnectAll(): void {

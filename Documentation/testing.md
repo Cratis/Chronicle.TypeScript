@@ -1,8 +1,8 @@
 ---
-title: Test events and read models without a kernel
+title: Test events, reactors and read models without a kernel
 ---
 
-# Test events and read models without a kernel
+# Test events, reactors and read models without a kernel
 
 ## EventScenario: fixture-backed appends
 
@@ -51,6 +51,49 @@ For the mixed-source overload, per-entry source/stream routing, subject, occurre
 | Empty batches, constraints (including decorator/fluent definitions or batch violations), migrations, tombstones, alternate generations, protected fields, numeric/date/object content, completion/redaction, transactions, observer-tail and unproven metadata/read filters | **Unsupported:** `UnsupportedEventSequenceOperation` names the operation and artifact and says “Use a kernel-backed test.” Explicit `constraints: 'disabled'` is for scenarios that deliberately do not test constraints; it is never a silent fallback. Accepted single appends cannot wait for observer completion because no observers run. |
 
 The committed `Source/testing/fixtures/*.json` snapshots run through the real in-process kernel via the pinned `Cratis.Chronicle.Testing` 19.8.1 oracle. `yarn oracle:check` verifies them alongside projection fixtures. The fixture tests also compare the TypeScript client’s serialized content, context fields, hash, result shape and essential reads. The boundary fixture covers an empty string, the supported printable ASCII range, a mixed-case property name and exclusion of a different event type on the same source. The source-tail fixture distinguishes the last event for A from the global tail. `batches.json` checks kernel-stored resolved per-entry metadata, the tag merge (including duplicate removal), correlation ID, ordering, hashes, batch causation, read filters and empty-batch rejection. Its .NET client-path oracle resolves per-entry versus shared route, subject and occurrence options **before** sending each event and supplies explicit route defaults; it does not independently prove those precedence rules. Those rules come from production `prepareBatchAppend` shared with the scenario. The separate `batch-omitted-routes.json` fixture bypasses the .NET convenience type and sends genuinely omitted and empty routes through the pinned kernel's batch service, verifying `Default`/`All`/`Default` resolution without claiming client-path notifications. Empty route and subject metadata are outside the scenario's supported domain. `builders.json` proves .NET's sequential setup/action semantics; `batch-rollback.json` proves rejected unique-constraint batches are atomic and leave no sequence gap, but constraint evaluation stays **unsupported** in TypeScript until the constraint increment. Blank or whitespace-padded source filters are rejected until their normalization is fixture-backed. They do not establish production storage, concurrency, compliance or scheduler fidelity; use a kernel-backed test for those behaviors.
+
+## ReactorScenario: live event deliveries and recorded effects
+
+`ReactorScenario` shares the production reactor's handler discovery, per-event invocation boundary and returned-event normalization. Its input is the fixture-bounded `EventScenario`: each `given` or `when` call appends registered events and immediately delivers their serialized history in source-partition order. `given.events` uses sequential single appends; `when.events` uses an atomic batch (including one event). Both await completion before returning. A returned event is **recorded, not appended or recursively delivered**. In production, returning an event type that the same reactor subscribes to delivers it back to the reactor; the scenario does not simulate that feedback loop.
+
+```typescript
+import { field } from '@cratis/fundamentals';
+import { eventType } from '@cratis/chronicle';
+import { reactor } from '@cratis/chronicle/reactors';
+import { ReactorScenario } from '@cratis/chronicle/testing';
+
+class WelcomeRequested {
+    @field(String) name: string;
+    constructor(name: string) { this.name = name; }
+}
+eventType('WelcomeRequested')(WelcomeRequested);
+
+class WelcomeSent {
+    @field(String) name: string;
+    constructor(name: string) { this.name = name; }
+}
+eventType('WelcomeSent')(WelcomeSent);
+
+class WelcomeReactor {
+    welcomeRequested(event: WelcomeRequested) { return new WelcomeSent(event.name); }
+}
+reactor('WelcomeReactor')(WelcomeReactor);
+
+const reactorScenario = new ReactorScenario(WelcomeReactor, {
+    artifacts: { eventTypes: [WelcomeRequested, WelcomeSent] },
+    constraints: 'disabled'
+});
+await reactorScenario.given.forEventSource('customer-1').events(new WelcomeRequested('alice'));
+await reactorScenario.when.forEventSource('customer-2').events(new WelcomeRequested('bob'));
+reactorScenario.shouldHaveProduced(WelcomeSent, sent => sent.name === 'bob');
+// reactorScenario.produced contains two events; returned events are not delivered again.
+```
+
+`results` contains a delivery outcome per nonempty call: the handled and skipped event contexts, completion status, and any error. `sideEffects` retains each returned event, its target routing, triggering context, handler and delivery index; `produced` flattens the event values. `then` is a non-callable view of all three. A failed delivery records its partial observations and **rejects the awaited call**. It stops on the failing event; the undelivered tail is not included in the outcome. After a delivery failure the whole scenario rejects further deliveries (including to other partitions) before appending, since failed-partition retries and checkpoints are not simulated. Use a kernel-backed test to exercise recovery.
+
+With `artifactActivator`, the scenario activates once per source-partition delivery with the first invocable event context, calls `run` for each handled event **and its returned effects** with `delivery: Events`, that event's context and its method name, calls `complete()` once even after processing failure, then disposes. Both processing and completion failures survive in `ArtifactCompletionFailed`; disposal-only failures are logged. Constructor dependencies belong in this production activator, not a scenario-specific DI container. Without an activator the instance is reused across deliveries, matching the TypeScript runtime (not .NET's fresh-instance default). The third handler argument is production `ReactorServices`; the default scenario store exposes its event log for explicit appends, but unsupported read-model and other store methods reject. Explicit appends are recorded in history but **not delivered to any observer**. An append (including a mixed batch) of an event type this reactor subscribes to rejects before committing, rather than silently skipping its follow-up delivery. An explicit store test double is outside that guard; its behavior is the test's responsibility. Supply `servicesEventStore` as an **explicit test double** for other dependencies. A `resultHandler` follows production semantics: returning true claims the whole result, false falls back to recording, and throwing fails delivery.
+
+The existing committed EventScenario kernel fixtures prove zero-based sequence allocation, serialized context fields and initial observation state for their own event histories: `builders.json` covers sequential setup appends and `batches.json` covers atomic batch actions. Reactor specs exercise contexts from the same EventScenario boundary, not a field-by-field comparison with the fixtures. Grouping one multi-event `given.events` call into one delivery is a scenario convention, not a claim about kernel queue batching. Runtime reactor activation and failure specs exercise the shared dispatcher. This does **not** simulate observer scheduling, retries, checkpoints or distributed ordering. `@filterEventsByTag` reactors reject at construction; `replay()` and `redeliver()` reject with `UnsupportedReactorOperation` until a separate kernel-backed increment. An unsupported service or event-log call inside a handler (including `waitForCompletion()` on an append result) fails the delivery at that event with its `UnsupportedReactorOperation` or `UnsupportedEventSequenceOperation`, even if the handler catches the rejection: nothing is recorded for that event and later events are not delivered. A call is attributed to the delivery whose handler started it, and only while that delivery is running; leftover work from an earlier delivery never fails a later one. `commandTypes` and unknown return shapes likewise reject (commands are not classified in this increment). Returned effects are not validated as kernel appends. Use a kernel-backed test for storage, replay, read-model materialization or command execution.
 
 ## ReadModelScenario
 
