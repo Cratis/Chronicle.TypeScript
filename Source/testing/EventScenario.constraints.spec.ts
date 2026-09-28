@@ -131,6 +131,56 @@ describe('fixture-backed unscoped constraints', () => {
             .constraintId.should.equal('OracleFluentOnceConstraint');
     });
 
+    it('rejects a globally discovered fluent contribution sharing a selected decorator name', () => {
+        class SelectedShared { @field(String) @unique('ScenarioSharedFromGlobal') key = 'Alpha'; }
+        eventType('SelectedShared')(SelectedShared);
+        class GlobalShared { @field(String) key = 'Alpha'; }
+        eventType('GlobalShared')(GlobalShared);
+        class GlobalSharedConstraint implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(GlobalShared, event => event.key)
+                    .withMessage('Global configured: {PropertyValue}'));
+            }
+        }
+        constraint('ScenarioSharedFromGlobal')(GlobalSharedConstraint);
+        const production = compileConstraints({ eventTypes: [SelectedShared], constraints: [GlobalSharedConstraint] });
+        production.get('ScenarioSharedFromGlobal')!.uniqueConstraint!.message.should.equal('Global configured: {PropertyValue}');
+        production.get('ScenarioSharedFromGlobal')!.uniqueConstraint!.eventDefinitions.length.should.equal(2);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedShared] } }), 'artifacts.constraints')
+            .message.should.include('Every constrained event type must be in the selected catalog.');
+    });
+
+    it('rejects a globally discovered fluent constraint referencing a selected removal event', () => {
+        class GlobalClaim { @field(String) key = 'Alpha'; }
+        eventType('GlobalClaim')(GlobalClaim);
+        class SelectedRemoval { @field(String) label = 'removed'; }
+        eventType('SelectedRemoval')(SelectedRemoval);
+        class GlobalRemovalConstraint implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(GlobalClaim, event => event.key).removedWith(SelectedRemoval));
+            }
+        }
+        constraint('ScenarioGlobalRemoval')(GlobalRemovalConstraint);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedRemoval] } }), 'artifacts.constraints')
+            .message.should.include('removal');
+    });
+
+    it('rejects a globally discovered constraint named by a selected removal decorator', () => {
+        class GlobalDecoratedClaim { @field(String) key = 'Alpha'; }
+        eventType('GlobalDecoratedClaim')(GlobalDecoratedClaim);
+        class SelectedDecoratedRemoval { @field(String) label = 'removed'; }
+        eventType('SelectedDecoratedRemoval')(SelectedDecoratedRemoval);
+        removeConstraint('ScenarioDecoratedGlobalRemoval')(SelectedDecoratedRemoval);
+        class DecoratedGlobalRemovalConstraint implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(GlobalDecoratedClaim, event => event.key));
+            }
+        }
+        constraint('ScenarioDecoratedGlobalRemoval')(DecoratedGlobalRemovalConstraint);
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedDecoratedRemoval] } }), 'artifacts.constraints')
+            .message.should.include('removal');
+    });
+
     it('isolates a selected catalog from unrelated globally discovered constraints', async () => {
         class Unrelated { @field(String) label = 'unrelated'; }
         eventType('Unrelated')(Unrelated);
