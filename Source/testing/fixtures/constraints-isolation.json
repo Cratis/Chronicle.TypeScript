@@ -1,0 +1,363 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "constraintDescriptorSha256": "8de18d804165220f6c491cfed59ca31bf55c84eb6eb7a94a2a83b092b12bbf84",
+  "eventSchemas": {
+    "string": {
+      "eventTypeId": "OracleDomainText",
+      "properties": {
+        "key": "string"
+      }
+    },
+    "shared": {
+      "eventTypeId": "OracleDomainShared",
+      "properties": {
+        "key": "string"
+      }
+    },
+    "boolean": {
+      "eventTypeId": "OracleDomainFlag",
+      "properties": {
+        "key": "boolean"
+      }
+    }
+  },
+  "constraintDefinitions": [
+    {
+      "kind": "uniqueProperty",
+      "name": "OracleDomainKey",
+      "events": [
+        {
+          "type": "string",
+          "properties": [
+            "key"
+          ]
+        },
+        {
+          "type": "shared",
+          "properties": [
+            "key"
+          ]
+        }
+      ],
+      "ignoreCasing": false,
+      "removedWithEventTypeIds": [],
+      "message": "Taken: {PropertyValue}"
+    }
+  ],
+  "isolatedConstraintOperations": [
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "string",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "shared",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "string",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "C",
+          "type": "string",
+          "value": "Beta"
+        },
+        {
+          "source": "D",
+          "type": "shared",
+          "value": "Beta"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "options": {
+        "sourceType": "Other",
+        "streamType": "Archive",
+        "streamId": "stream1"
+      },
+      "events": [
+        {
+          "source": "C",
+          "type": "string",
+          "value": "Gamma"
+        },
+        {
+          "source": "D",
+          "type": "shared",
+          "value": "Delta",
+          "streamType": "Local"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "yFT8as24TONGqCkuUZ9YfmQED8tN/adMIAahPUl4iXc="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: Alpha",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "yFT8as24TONGqCkuUZ9YfmQED8tN/adMIAahPUl4iXc="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: Beta",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Beta"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "Beta"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "yFT8as24TONGqCkuUZ9YfmQED8tN/adMIAahPUl4iXc="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2",
+          "3"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "Alpha"
+            },
+            "hash": "yFT8as24TONGqCkuUZ9YfmQED8tN/adMIAahPUl4iXc="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Other",
+            "streamType": "Archive",
+            "streamId": "stream1",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "Gamma"
+            },
+            "hash": "Rn+7TjIVtISEO2QTFUhcNtodd4gs3qLLECzG4GARxS0="
+          },
+          {
+            "sequence": "3",
+            "source": "D",
+            "sourceType": "Other",
+            "streamType": "Local",
+            "streamId": "stream1",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "Delta"
+            },
+            "hash": "khHmrbz+SdJJQOmzZu0ol+NhYbyPJP19gpTaPyI+8MY="
+          }
+        ],
+        "next": "4"
+      }
+    ]
+  }
+}

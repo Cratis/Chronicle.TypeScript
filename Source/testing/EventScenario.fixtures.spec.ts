@@ -56,7 +56,7 @@ interface Fixture {
 }
 const directory = new URL('./fixtures/', import.meta.url);
 const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
-    !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json', 'constraints.json'].includes(name)).map(name => ({
+    !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json', 'constraints.json', 'constraints-isolation.json', 'constraints-key-domain.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };

@@ -90,9 +90,9 @@ export class EventScenario {
                     }
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
-                        if (getEventTypeMetadata(type)?.schema.properties?.[entry.properties[0]]?.type !== 'string') {
+                        if (!['string', 'boolean'].includes(getEventTypeMetadata(type)?.schema.properties?.[entry.properties[0]]?.type ?? '')) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'The constrained property must be a schema-backed string.');
+                                'The constrained property must be a schema-backed string or boolean.');
                         }
                     }
                 }

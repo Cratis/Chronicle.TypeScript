@@ -1,0 +1,5393 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "constraintDescriptorSha256": "8de18d804165220f6c491cfed59ca31bf55c84eb6eb7a94a2a83b092b12bbf84",
+  "eventSchemas": {
+    "string": {
+      "eventTypeId": "OracleDomainText",
+      "properties": {
+        "key": "string"
+      }
+    },
+    "shared": {
+      "eventTypeId": "OracleDomainShared",
+      "properties": {
+        "key": "string"
+      }
+    },
+    "boolean": {
+      "eventTypeId": "OracleDomainFlag",
+      "properties": {
+        "key": "boolean"
+      }
+    }
+  },
+  "constraintDefinitions": [
+    {
+      "kind": "uniqueProperty",
+      "name": "OracleDomainKey",
+      "events": [
+        {
+          "type": "string",
+          "properties": [
+            "key"
+          ]
+        },
+        {
+          "type": "shared",
+          "properties": [
+            "key"
+          ]
+        },
+        {
+          "type": "boolean",
+          "properties": [
+            "key"
+          ]
+        }
+      ],
+      "ignoreCasing": false,
+      "removedWithEventTypeIds": [],
+      "message": "Taken: {PropertyValue}"
+    }
+  ],
+  "isolatedConstraintOperations": [
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D0",
+          "type": "string",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D01",
+          "type": "shared",
+          "value": "01"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D123",
+          "type": "string",
+          "value": "123"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "DA1",
+          "type": "string",
+          "value": "A1"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "DA1",
+          "type": "shared",
+          "value": "A1"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "DuplicateDigit",
+          "type": "shared",
+          "value": "01"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "Email",
+          "type": "shared",
+          "value": "a@b.c"
+        },
+        {
+          "source": "Dot",
+          "type": "string",
+          "value": "."
+        },
+        {
+          "source": "At",
+          "type": "string",
+          "value": "@"
+        },
+        {
+          "source": "Under",
+          "type": "shared",
+          "value": "_"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "Dash",
+          "type": "string",
+          "value": "-"
+        },
+        {
+          "source": "Colon",
+          "type": "shared",
+          "value": ":"
+        },
+        {
+          "source": "Pipe",
+          "type": "string",
+          "value": "|"
+        },
+        {
+          "source": "Braces",
+          "type": "shared",
+          "value": "{}"
+        },
+        {
+          "source": "Dollar",
+          "type": "string",
+          "value": "$"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "EmailDup",
+          "type": "string",
+          "value": "a@b.c"
+        },
+        {
+          "source": "DotDup",
+          "type": "shared",
+          "value": "."
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Empty",
+          "type": "string",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "EmptyOther",
+          "type": "shared",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Space",
+          "type": "string",
+          "value": " "
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Padded",
+          "type": "string",
+          "value": " A1 "
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Unicode",
+          "type": "string",
+          "value": "é"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "UnicodeOther",
+          "type": "shared",
+          "value": "é"
+        },
+        {
+          "source": "PaddedOther",
+          "type": "shared",
+          "value": " A1 "
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "FlagTrue",
+          "type": "boolean",
+          "value": true
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "FlagTrue",
+          "type": "boolean",
+          "value": true
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "FlagOther",
+          "type": "boolean",
+          "value": true
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "FlagFalse",
+          "type": "boolean",
+          "value": false
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "FlagFalseOther",
+          "type": "boolean",
+          "value": false
+        },
+        {
+          "source": "StringTrue",
+          "type": "string",
+          "value": "True"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "StringLower",
+          "type": "shared",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "StringTrue",
+          "type": "string",
+          "value": "True"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "BatchFresh",
+          "type": "string",
+          "value": "v:1"
+        },
+        {
+          "source": "BatchFresh",
+          "type": "shared",
+          "value": "v:1"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "BatchCollisionA",
+          "type": "string",
+          "value": "v:2"
+        },
+        {
+          "source": "BatchCollisionB",
+          "type": "shared",
+          "value": "v:2"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "AfterRollback",
+          "type": "shared",
+          "value": "v:2"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "3"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "4"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: 01",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "01"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "01"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "5",
+          "6",
+          "7",
+          "8"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "9",
+          "10",
+          "11",
+          "12",
+          "13"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          }
+        ],
+        "next": "14"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: a@b.c",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "a@b.c"
+            }
+          },
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: .",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "."
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "5",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 5",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "a@b.c"
+            }
+          },
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "6",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 6",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "."
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          }
+        ],
+        "next": "14"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "14"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: ",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": ""
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "14",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 14",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": ""
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "15"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          }
+        ],
+        "next": "16"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "16"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          }
+        ],
+        "next": "17"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "17"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          }
+        ],
+        "next": "18"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: é",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "é"
+            }
+          },
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken:  A1 ",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": " A1 "
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "17",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 17",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "é"
+            }
+          },
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "16",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 16",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": " A1 "
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          }
+        ],
+        "next": "18"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "18"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          }
+        ],
+        "next": "19"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "19"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          }
+        ],
+        "next": "20"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: True",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainFlag",
+            "SequenceNumber": "19",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainFlag' on member 'key' violated a unique constraint on sequence number 19",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          }
+        ],
+        "next": "20"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "20"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          }
+        ],
+        "next": "21"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: False",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "False"
+            }
+          },
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: True",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainFlag",
+            "SequenceNumber": "20",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainFlag' on member 'key' violated a unique constraint on sequence number 20",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "False"
+            }
+          },
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "19",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 19",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          }
+        ],
+        "next": "21"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "21"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          },
+          {
+            "sequence": "21",
+            "source": "StringLower",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "true"
+            },
+            "hash": "N6Z1oSWhjHrmWOJ30eICyOkIDy8zGqBpU0siF5ZNcZY="
+          }
+        ],
+        "next": "22"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: True",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "19",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 19",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "True"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          },
+          {
+            "sequence": "21",
+            "source": "StringLower",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "true"
+            },
+            "hash": "N6Z1oSWhjHrmWOJ30eICyOkIDy8zGqBpU0siF5ZNcZY="
+          }
+        ],
+        "next": "22"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "22",
+          "23"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          },
+          {
+            "sequence": "21",
+            "source": "StringLower",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "true"
+            },
+            "hash": "N6Z1oSWhjHrmWOJ30eICyOkIDy8zGqBpU0siF5ZNcZY="
+          },
+          {
+            "sequence": "22",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "y8F+uNJY/M9MZcbH+2lNYy4pZjSdsq2SWLzOpOZGo/8="
+          },
+          {
+            "sequence": "23",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "rkuT6geZ7le912auBh/O5hWOzehDMrLjasZFfpq2kLI="
+          }
+        ],
+        "next": "24"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleDomainKey",
+            "message": "Taken: v:2",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "v:2"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainShared",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleDomainKey",
+            "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "v:2"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          },
+          {
+            "sequence": "21",
+            "source": "StringLower",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "true"
+            },
+            "hash": "N6Z1oSWhjHrmWOJ30eICyOkIDy8zGqBpU0siF5ZNcZY="
+          },
+          {
+            "sequence": "22",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "y8F+uNJY/M9MZcbH+2lNYy4pZjSdsq2SWLzOpOZGo/8="
+          },
+          {
+            "sequence": "23",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "rkuT6geZ7le912auBh/O5hWOzehDMrLjasZFfpq2kLI="
+          }
+        ],
+        "next": "24"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "24"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "D0",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "0"
+            },
+            "hash": "Y/T87KAVvxplcRAOvWXu1RpZ7X2aY/UOQbP78NQUVq0="
+          },
+          {
+            "sequence": "1",
+            "source": "D01",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "01"
+            },
+            "hash": "xqxRWJ6tjdBWBOHrWN3zldzFX8ZPACymImlemn8IMXQ="
+          },
+          {
+            "sequence": "2",
+            "source": "D123",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "123"
+            },
+            "hash": "mmDSo+Nq6XdS+poC1Svo+XONgIRfsD229qUDm4Bb/ms="
+          },
+          {
+            "sequence": "3",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "MRmr46M2tbwcraEeCatCHK+97nuPZOIRIgo+DGqlcBA="
+          },
+          {
+            "sequence": "4",
+            "source": "DA1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "A1"
+            },
+            "hash": "AtBF/Z5GBGHwCKGPRboszlbACmwuG1OI6jWs/E1e5nE="
+          },
+          {
+            "sequence": "5",
+            "source": "Email",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "a@b.c"
+            },
+            "hash": "33TmUcJDQjKFGgvbbY3DH8pNYE0bRoiu17cuYOaWzlg="
+          },
+          {
+            "sequence": "6",
+            "source": "Dot",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "."
+            },
+            "hash": "fMuag/+rPWnxaFAW84xmzvZRbeL/6CV6Fk0+5gf6ifA="
+          },
+          {
+            "sequence": "7",
+            "source": "At",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "@"
+            },
+            "hash": "ZPBS6Xa9Uiz/Hq+1jIHltUQthxoAXWmIWS8q46pv+xc="
+          },
+          {
+            "sequence": "8",
+            "source": "Under",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "_"
+            },
+            "hash": "cdM+m3Tl7LttFwCisI9jC/0MUcKVTDo/qGL85rVhkMw="
+          },
+          {
+            "sequence": "9",
+            "source": "Dash",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "-"
+            },
+            "hash": "5WcLOL3qNRffcYxu2CY77Xkd8CsySyllut5ILR8HbEY="
+          },
+          {
+            "sequence": "10",
+            "source": "Colon",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": ":"
+            },
+            "hash": "N2zyA63w01EyVKZTVtct2vuJh+D1rcvp3E+oiJMWyGk="
+          },
+          {
+            "sequence": "11",
+            "source": "Pipe",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "|"
+            },
+            "hash": "qtNEFpg3aNdprJgob2JslU+9F/6HpiOtp+cG+OoL1Ek="
+          },
+          {
+            "sequence": "12",
+            "source": "Braces",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "{}"
+            },
+            "hash": "C/FuzvUa4Jv0IF28l5gaJ3/MinqJCsw4yASkSg2EqD4="
+          },
+          {
+            "sequence": "13",
+            "source": "Dollar",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "$"
+            },
+            "hash": "LtgtJnAAANOJ7EjpAkRzRUdjNOX9yirbOOF5WXUoEgU="
+          },
+          {
+            "sequence": "14",
+            "source": "Empty",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": ""
+            },
+            "hash": "VTuDpxszWoIoJ5K4Dw3WwWMBy/kEzVdEcr/708pZebs="
+          },
+          {
+            "sequence": "15",
+            "source": "Space",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " "
+            },
+            "hash": "H8UMefPmRQF5PKlq6lul13PaDne1XF+28LG+y+KzgEQ="
+          },
+          {
+            "sequence": "16",
+            "source": "Padded",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": " A1 "
+            },
+            "hash": "mfgJ4XUC4hIWy2ZorU4S7isxNl+FkD4a/OFTfTtyc3A="
+          },
+          {
+            "sequence": "17",
+            "source": "Unicode",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "é"
+            },
+            "hash": "wkHK0oeIkvIkDs0uOkgoipRMeSQh6TCwKpgi1zP9yoQ="
+          },
+          {
+            "sequence": "18",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "19",
+            "source": "FlagTrue",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": true
+            },
+            "hash": "3eK/cVS4m22sXi8etXrVaIoJYNv/n16v1XzYw2F2lK8="
+          },
+          {
+            "sequence": "20",
+            "source": "FlagFalse",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainFlag",
+            "content": {
+              "key": false
+            },
+            "hash": "vVyxINF56CyRbVhQ0pWTxlGmohKoRmppwmMJ7hIKbhI="
+          },
+          {
+            "sequence": "21",
+            "source": "StringLower",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "true"
+            },
+            "hash": "N6Z1oSWhjHrmWOJ30eICyOkIDy8zGqBpU0siF5ZNcZY="
+          },
+          {
+            "sequence": "22",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainText",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "y8F+uNJY/M9MZcbH+2lNYy4pZjSdsq2SWLzOpOZGo/8="
+          },
+          {
+            "sequence": "23",
+            "source": "BatchFresh",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "v:1"
+            },
+            "hash": "rkuT6geZ7le912auBh/O5hWOzehDMrLjasZFfpq2kLI="
+          },
+          {
+            "sequence": "24",
+            "source": "AfterRollback",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainShared",
+            "content": {
+              "key": "v:2"
+            },
+            "hash": "ccxDvZx01JIGOKpy2R0X8u80dB6vpIYofmVOax0H/Bk="
+          }
+        ],
+        "next": "25"
+      }
+    ]
+  }
+}

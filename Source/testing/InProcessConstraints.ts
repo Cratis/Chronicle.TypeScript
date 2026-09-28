@@ -12,9 +12,24 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 export type WireConstraintViolation = ContractsConstraintViolation;
 
 const unavailable = '18446744073709551615';
+// Only the key characters captured by the packaged oracle, not every valid event-content character.
+const provenString = /^[A-Za-z0-9 .@_:\-|{}$\u00e9]*$/;
+
+function kernelKeyString(value: unknown, name: string): string {
+    if (typeof value === 'string' && provenString.test(value)) return value;
+    if (typeof value === 'boolean') return value ? 'True' : 'False';
+    throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+        'Only fixture-backed scalar string and boolean keys are supported.');
+}
+
+function keyHash(value: string): string {
+    return createHash('sha256').update(value).digest('hex');
+}
 
 /** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
+    private readonly _constrainedProperties = new Map<string, Set<string>>();
+
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
         const coveredTypes = new Set<string>();
         for (const [name, capture] of _definitions) {
@@ -30,6 +45,11 @@ export class InProcessConstraints {
                     unique.eventDefinitions.length === 0 || unique.eventDefinitions.some(entry => entry.properties.length !== 1 ||
                         !/^[a-z][a-zA-Z0-9]*$/.test(entry.properties[0]))) {
                     throw this.unsupported(name, 'Case folding, removal and composite or nested keys are not fixture-backed.');
+                }
+                for (const entry of unique.eventDefinitions) {
+                    const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();
+                    properties.add(entry.properties[0]);
+                    this._constrainedProperties.set(entry.eventTypeId, properties);
                 }
             } else if (capture.uniqueEventType) {
                 const unique = capture.uniqueEventType;
@@ -48,6 +68,10 @@ export class InProcessConstraints {
         }
     }
 
+    isConstrainedProperty(eventTypeId: string, property: string): boolean {
+        return this._constrainedProperties.get(eventTypeId)?.has(property) ?? false;
+    }
+
     /** Validate against committed history and all earlier entries of this append, without changing state. */
     validate(history: readonly AppendedEvent[], incoming: readonly AppendedEvent[]): WireConstraintViolation[] {
         const violations: WireConstraintViolation[] = [];
@@ -59,12 +83,8 @@ export class InProcessConstraints {
             for (const [name, definition] of this._definitions) {
                 const property = definition.uniqueConstraint?.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties[0];
                 if (property !== undefined) {
-                    const raw = event.content[property];
-                    // The oracle proves ordinal ASCII casing and significant spaces; no .NET Unicode folding or conversion is inferred.
-                    if (typeof raw !== 'string' || !/^[A-Za-z ]+$/.test(raw)) {
-                        throw this.unsupported(name, 'Only nonempty ASCII letter and space string keys are fixture-backed.');
-                    }
-                    const key = createHash('sha256').update(raw).digest('hex');
+                    const raw = kernelKeyString(event.content[property], name);
+                    const key = keyHash(raw);
                     const claims = new Map<string, { source: string; sequence: string }>();
                     const owners = new Map<string, string>();
                     for (const prior of history) {
@@ -72,9 +92,10 @@ export class InProcessConstraints {
                             entry.eventTypeId === prior.eventType.id.value)?.properties[0];
                         if (priorProperty !== undefined) {
                             const priorValue = prior.content[priorProperty];
-                            if (typeof priorValue !== 'string') throw this.unsupported(name, 'History has an unproven key.');
-                            owners.set(prior.context.eventSourceId, createHash('sha256').update(priorValue).digest('hex'));
-                            claims.set(createHash('sha256').update(priorValue).digest('hex'), {
+                            if (typeof priorValue !== 'string' && typeof priorValue !== 'boolean') throw this.unsupported(name, 'History has an unproven key.');
+                            const priorHash = keyHash(kernelKeyString(priorValue, name));
+                            owners.set(prior.context.eventSourceId, priorHash);
+                            claims.set(priorHash, {
                                 source: prior.context.eventSourceId, sequence: prior.context.sequenceNumber.toString()
                             });
                         }
