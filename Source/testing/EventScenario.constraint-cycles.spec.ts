@@ -139,7 +139,7 @@ describe('fixture-backed unique event type cycles', () => {
         });
     }
 
-    it('rolls back an in-batch release in a failing setup call without results or notifications', async () => {
+    it('rolls back a release and reclaim in a failing setup call without results or notifications', async () => {
         const scenario = new EventScenario({ artifacts: { eventTypes: siblingTypes, constraints: [CycleFirst, CycleSibling] } });
         const notifications = scenario.eventSequence.appendOperations[Symbol.asyncIterator]();
         try {
@@ -184,7 +184,7 @@ describe('fixture-backed unique event type cycles', () => {
         subject.results.length.should.equal(2);
     });
 
-    it('rejects a request outside the scenario domain without applying an earlier in-batch release', async () => {
+    it('rejects unsupported input in a batch and leaves history and results unchanged', async () => {
         const scenario = new EventScenario({ artifacts: { eventTypes: siblingTypes, constraints: [CycleFirst, CycleSibling] } });
         (await scenario.append('A', new OracleCycleFirst('claim'))).isSuccess.should.be.true;
         const before = historyOf(scenario);
