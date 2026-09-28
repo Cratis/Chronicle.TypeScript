@@ -6,7 +6,7 @@ title: Test events, reactors and read models without a kernel
 
 ## EventScenario: fixture-backed appends
 
-`EventScenario` is a scenario-local event sequence for single and batch accepted appends. No kernel, storage, or observers are started. The scenario uses the production constraint compiler, then evaluates only the fixture-backed unscoped subset. For selected event types with default constraint discovery, it compiles the entire globally discovered catalog first, then keeps definitions referencing a selected event type (as constrained or removal event); incomplete or unsupported definitions reject rather than being approximated. Supply an isolated event catalog and explicitly disable constraints only when the behavior under test does not depend on them:
+`EventScenario` is a scenario-local event sequence for single and batch accepted appends. No kernel, storage, or observers are started. The scenario uses the production constraint compiler, then evaluates only the fixture-backed unscoped subset. For selected event types with default constraint discovery, it compiles globally discovered fluent constraints and the union of globally discovered and selected event constructors (deduplicated by constructor), then keeps definitions referencing a selected event type (as constrained or removal event). Selected decorators still apply when the discovery registry was cleared. Different constructors with the same event type ID, incomplete definitions and unsupported definitions reject with `UnsupportedEventSequenceOperation` rather than being approximated. Supply an isolated event catalog and explicitly disable constraints only when the behavior under test does not depend on them:
 
 ```typescript
 import { field } from '@cratis/fundamentals';

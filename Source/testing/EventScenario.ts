@@ -46,10 +46,20 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                // Default discovery compiles the whole production catalog before selecting definitions.
-                // Filtering inputs before merging can lose a global decorator's message or coverage.
-                const compiled = compileConstraints({ eventTypes: discoveredArtifacts?.eventTypes ?? eventTypes,
-                    constraints: discovered ?? [] });
+                // Include selected constructors even if discovery was cleared or shadowed; retain all
+                // global contributions so filtering cannot lose a decorator's message or coverage.
+                const compiledEventTypes = [...new Set([...(discoveredArtifacts?.eventTypes ?? []), ...eventTypes])];
+                const constructorsById = new Map<string, Function>();
+                for (const type of compiledEventTypes) {
+                    const id = getEventTypeFor(type).id.value;
+                    const previous = constructorsById.get(id);
+                    if (previous && previous !== type) {
+                        throw new UnsupportedEventSequenceOperation('artifacts.eventTypes', id,
+                            'Conflicting constructors share an event type ID; constraint discovery cannot choose one.');
+                    }
+                    constructorsById.set(id, type);
+                }
+                const compiled = compileConstraints({ eventTypes: compiledEventTypes, constraints: discovered ?? [] });
                 const selectedIds = new Set(eventTypes.map(type => getEventTypeFor(type).id.value));
                 const definitions = discoveredArtifacts ? new Map([...compiled].filter(([, capture]) => {
                     const constrained = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
