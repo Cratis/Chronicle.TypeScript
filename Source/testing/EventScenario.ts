@@ -54,8 +54,8 @@ export class EventScenario {
                     'Every selected constraint must have @constraint metadata.');
             }
             try {
-                // Keep global decorator contributions, but let the selected constructor win when
-                // a shadowed ID has no decorators that could change compiled constraints.
+                // Keep global decorator contributions. A shadowed ID is accepted only when neither
+                // constructor has constraint decorators, so either one compiles to the same constraints.
                 const compiledEventTypes = [...new Set([...(discoveredArtifacts?.eventTypes ?? []), ...eventTypes])];
                 const constructorsById = new Map<string, (typeof eventTypes)[number]>();
                 for (const type of compiledEventTypes) {
