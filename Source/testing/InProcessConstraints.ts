@@ -30,6 +30,7 @@ function keyHash(value: string): string {
 export class InProcessConstraints {
     private readonly _constrainedProperties = new Map<string, Set<string>>();
     private readonly _removalTypes = new Set<string>();
+    private readonly _propertyRemovalTypes = new Set<string>();
 
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
         const coveredTypes = new Map<string, string>();
@@ -56,6 +57,7 @@ export class InProcessConstraints {
                     }
                     removalOwners.set(id, name);
                     this._removalTypes.add(id);
+                    this._propertyRemovalTypes.add(id);
                 }
                 for (const entry of unique.eventDefinitions) {
                     const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();
@@ -64,9 +66,23 @@ export class InProcessConstraints {
                 }
             } else if (capture.uniqueEventType) {
                 const unique = capture.uniqueEventType;
-                if (unique.removedWithEventTypeIds?.length || (unique.eventTypeIds?.length ?? 1) !== 1) {
-                    throw this.unsupported(name, 'Removal and multi-type unique event cycles are not fixture-backed.');
+                const ids = unique.eventTypeIds ?? [unique.eventTypeId];
+                const removals = unique.removedWithEventTypeIds ?? [];
+                const shared = ids.filter(id => removals.includes(id)).length;
+                // Exactly the shapes installed by the pinned fixtures: one covered type without removal
+                // (constraints.json), two covered types with two separate removers
+                // (constraints-event-type-siblings.json), and three covered types with three removers of
+                // which one is also covered (constraints-event-type-cycles.json).
+                if (!(ids.length === 1 && removals.length === 0) &&
+                    !(ids.length === 2 && removals.length === 2 && shared === 0) &&
+                    !(ids.length === 3 && removals.length === 3 && shared === 1)) {
+                    throw this.unsupported(name, 'This unique event type set and removal combination is not fixture-backed.');
                 }
+                // Each cycle fixture installs its definition alone; interaction with other definitions is unproven.
+                if (removals.length && _definitions.size !== 1) {
+                    throw this.unsupported(name, 'Unique event cycles alongside other definitions are not fixture-backed.');
+                }
+                removals.forEach(id => this._removalTypes.add(id));
             } else {
                 throw this.unsupported(name, 'Unknown constraint definition.');
             }
@@ -89,7 +105,7 @@ export class InProcessConstraints {
     }
 
     isRemovalOnlyType(eventTypeId: string): boolean {
-        return this._removalTypes.has(eventTypeId) && !this._constrainedProperties.has(eventTypeId);
+        return this._propertyRemovalTypes.has(eventTypeId) && !this._constrainedProperties.has(eventTypeId);
     }
 
     hasRemovalType(eventTypeId: string): boolean { return this._removalTypes.has(eventTypeId); }
@@ -126,10 +142,11 @@ export class InProcessConstraints {
             owners.set(name, claims);
         }
         const stagedKeys = new Map<string, Map<string, string>>();
-        const stagedTypes = new Set<string>();
+        const stagedCycles = new Map<string, Map<string, 'open' | 'released'>>();
         for (const event of incoming) {
             const type = event.eventType.id.value;
             const source = event.context.eventSourceId;
+            const violationCount = violations.length;
             for (const [name, definition] of this._definitions) {
                 const property = definition.uniqueConstraint?.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties[0];
                 if (property !== undefined) {
@@ -151,15 +168,41 @@ export class InProcessConstraints {
                 }
                 const uniqueType = definition.uniqueEventType;
                 if (uniqueType && (uniqueType.eventTypeIds ?? [uniqueType.eventTypeId]).includes(type)) {
-                    const first = history.find(prior => prior.context.eventSourceId === source &&
-                        (uniqueType.eventTypeIds ?? [uniqueType.eventTypeId]).includes(prior.eventType.id.value));
-                    const staged = stagedTypes.has(`${name}\u0000${source}`);
-                    if (first || staged) {
-                        violations.push({ EventTypeId: type, SequenceNumber: first?.context.sequenceNumber ?? BigInt(unavailable), ConstraintType: 2,
+                    const covered = uniqueType.eventTypeIds ?? [uniqueType.eventTypeId];
+                    const removals = uniqueType.removedWithEventTypeIds ?? [];
+                    // Durable answer: the earliest covered event after the latest removal for this source.
+                    let first: AppendedEvent | undefined;
+                    for (const prior of history) {
+                        if (prior.context.eventSourceId !== source) continue;
+                        const priorType = prior.eventType.id.value;
+                        if (removals.includes(priorType)) first = undefined;
+                        else if (!first && covered.includes(priorType)) first = prior;
+                    }
+                    const cycles = stagedCycles.get(name) ?? new Map<string, 'open' | 'released'>();
+                    const state = cycles.get(source);
+                    // A cycle state recorded earlier in this append overrides durable history.
+                    if (state === 'open' || state === undefined && first) {
+                        // Durable storage supplies the sequence even when a staged claim causes rejection.
+                        const sequence = first?.context.sequenceNumber.toString() ?? unavailable;
+                        violations.push({ EventTypeId: type, SequenceNumber: BigInt(sequence), ConstraintType: 2,
                             ConstraintName: name,
-                            Message: `Event '${type}' violated a unique event type constraint on sequence number ${first?.context.sequenceNumber.toString() ?? unavailable}`,
+                            Message: `Event '${type}' violated a unique event type constraint on sequence number ${sequence}`,
                             Details: {} });
-                    } else stagedTypes.add(`${name}\u0000${source}`);
+                    } else {
+                        cycles.set(source, 'open');
+                        stagedCycles.set(name, cycles);
+                    }
+                }
+            }
+            // Kernel batch observers release a cycle only after the entire event validates.
+            // A covered-and-removal event first attempts its claim, then releases it.
+            if (violations.length === violationCount) {
+                for (const [name, definition] of this._definitions) {
+                    if (definition.uniqueEventType?.removedWithEventTypeIds?.includes(type)) {
+                        const cycles = stagedCycles.get(name) ?? new Map<string, 'open' | 'released'>();
+                        cycles.set(source, 'released');
+                        stagedCycles.set(name, cycles);
+                    }
                 }
             }
         }
