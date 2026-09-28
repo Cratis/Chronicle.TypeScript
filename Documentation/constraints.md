@@ -11,6 +11,10 @@ Constraints are shared Chronicle behavior. The shared docs explain the consisten
 - [Unique event types with decorators](/chronicle/constraints/model-bound/unique-event-type/)
 - [TypeScript client setup](./getting-started.md)
 
+## Kernel-free scenario coverage
+
+`EventScenario` and its `ReactorScenario` input compile the same selected decorator/fluent definitions as production registration. The pinned-kernel `constraints.json` fixture proves unscoped, case-sensitive unique values for a **single string property** (nonempty ASCII letters and spaces), and one covered unique event type per constraint (decorated or fluent `uniqueFor`). It checks same-source reclaims, conflicts across sources and event types, case and whitespace distinctions, message/details resolution, in-batch conflicts and atomic rollback. Leave constraints enabled when testing these behaviors: `new EventScenario({ artifacts: { eventTypes: [Registered] } })`. Scoped, case-insensitive, composite, removal, replacement, multi-type unique-event and other unproven definitions reject with `UnsupportedEventSequenceOperation`; use a kernel-backed test. See [Testing](./testing.md) for the exact supported boundary and example.
+
 ## TypeScript client notes
 
 - `@unique(name?, message?)` on an event property prevents another event source from claiming the same value. On an event class, it allows one occurrence of that event type per event source. Without a name, a property constraint uses the property name and a class constraint uses the class name.

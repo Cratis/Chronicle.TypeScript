@@ -1,0 +1,1210 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "constraintOperations": [
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "key",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "shared",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "key",
+          "value": "Alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "key",
+          "value": "alpha"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "C",
+          "type": "key",
+          "value": " Alpha "
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "D",
+          "type": "shared",
+          "value": "Alpha"
+        },
+        {
+          "source": "E",
+          "type": "key",
+          "value": "unused"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "D",
+          "type": "key",
+          "value": "new"
+        },
+        {
+          "source": "E",
+          "type": "shared",
+          "value": "new"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "F",
+          "type": "once",
+          "value": "one"
+        },
+        {
+          "source": "F",
+          "type": "once",
+          "value": "two"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "G",
+          "type": "once",
+          "value": "one"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "G",
+          "type": "once",
+          "value": "two"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "H",
+          "type": "once",
+          "value": "first"
+        },
+        {
+          "source": "I",
+          "type": "once",
+          "value": "other"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "E",
+          "type": "key",
+          "value": "unused"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "P",
+          "type": "plain",
+          "value": "plain"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Q",
+          "type": "plain",
+          "value": "plain"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "X",
+          "type": "key",
+          "value": " Alpha "
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Y",
+          "type": "key",
+          "value": "alpha"
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "X",
+          "type": "shared",
+          "value": "Alpha"
+        },
+        {
+          "source": "Z",
+          "type": "plain",
+          "value": "plain"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "V",
+          "type": "fluentOnce",
+          "value": "first"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "V",
+          "type": "fluentOnce",
+          "value": "second"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key=Alpha",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "3"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key=Alpha",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key=new",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "new"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleOnce",
+            "message": "Event 'OracleOnceRecorded' violated a unique event type constraint on sequence number 18446744073709551615",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "4"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleOnce",
+            "message": "Event 'OracleOnceRecorded' violated a unique event type constraint on sequence number 4",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "5",
+          "6"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "7"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          }
+        ],
+        "next": "8"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "8"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "BatchUniqueKey",
+            "message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 8",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "plain"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key= Alpha ",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": " Alpha "
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key=alpha",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "alpha"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleKey",
+            "message": "Already claimed: key=Alpha",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "Alpha"
+            }
+          },
+          {
+            "id": "BatchUniqueKey",
+            "message": "Event 'BatchUniqueRecorded' on member 'key' violated a unique constraint on sequence number 8",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "plain"
+            }
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "9"
+        ],
+        "violations": [],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          }
+        ],
+        "next": "10"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFluentOnceConstraint",
+            "message": "Event 'OracleFluentOnce' violated a unique event type constraint on sequence number 9",
+            "details": {}
+          }
+        ],
+        "errors": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "type": "OracleKeyClaimed",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "1",
+            "source": "A",
+            "type": "OracleKeyShared",
+            "value": "Alpha"
+          },
+          {
+            "sequence": "2",
+            "source": "B",
+            "type": "OracleKeyClaimed",
+            "value": "alpha"
+          },
+          {
+            "sequence": "3",
+            "source": "C",
+            "type": "OracleKeyClaimed",
+            "value": " Alpha "
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "type": "OracleOnceRecorded",
+            "value": "one"
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "type": "OracleOnceRecorded",
+            "value": "first"
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "type": "OracleOnceRecorded",
+            "value": "other"
+          },
+          {
+            "sequence": "7",
+            "source": "E",
+            "type": "OracleKeyClaimed",
+            "value": "unused"
+          },
+          {
+            "sequence": "8",
+            "source": "P",
+            "type": "BatchUniqueRecorded",
+            "value": "plain"
+          },
+          {
+            "sequence": "9",
+            "source": "V",
+            "type": "OracleFluentOnce",
+            "value": "first"
+          }
+        ],
+        "next": "10"
+      }
+    ]
+  }
+}

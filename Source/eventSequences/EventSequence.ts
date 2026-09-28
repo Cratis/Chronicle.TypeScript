@@ -8,6 +8,7 @@ import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
+import { createAppendResult } from './createAppendResult.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
@@ -20,7 +21,6 @@ import { AppendOptions } from './AppendOptions.js';
 import { AppendResult } from './AppendResult.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
 import { CompleteStreamResult } from './CompleteStreamResult.js';
-import { ConcurrencyViolation } from './ConcurrencyViolation.js';
 import { ConstraintViolation } from './ConstraintViolation.js';
 import { EventForEventSourceId } from './EventForEventSourceId.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -590,37 +590,8 @@ export class EventSequence implements IEventSequence {
         errors: string[],
         concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
     ): AppendResult {
-        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
-            const mapped = {
-                constraintId: violation.ConstraintId ?? '',
-                message: violation.Message ?? '',
-                details: violation.Details ?? {}
-            };
-            return this._resolveConstraintMessage?.(mapped) ?? mapped;
-        });
-
-        const mappedErrors = errors.map(message => ({ message }));
-
-        const mappedConcurrencyViolation: ConcurrencyViolation | undefined = concurrencyViolation
-            ? {
-                eventSourceId: concurrencyViolation.EventSourceId ?? '',
-                expectedSequenceNumber: new EventSequenceNumber(concurrencyViolation.ExpectedSequenceNumber ?? 0n),
-                actualSequenceNumber: new EventSequenceNumber(concurrencyViolation.ActualSequenceNumber ?? 0n)
-            }
-            : undefined;
-
-        const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
-        const eventSequenceNumber = new EventSequenceNumber(safeSequenceNumber);
-        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0 && !mappedConcurrencyViolation;
-
-        return {
-            sequenceNumber: eventSequenceNumber,
-            constraintViolations: mappedViolations,
-            concurrencyViolation: mappedConcurrencyViolation,
-            errors: mappedErrors,
-            isSuccess,
-            waitForCompletion: (options?: number | WaitForCompletionOptions) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, options)
-        };
+        return createAppendResult(sequenceNumber, constraintViolations, errors, concurrencyViolation,
+            this._resolveConstraintMessage, (sequence, success, options) => this.waitForObserverCompletion(sequence, success, options));
     }
 
     /**

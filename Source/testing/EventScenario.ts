@@ -10,8 +10,10 @@ import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { IEventSequence } from '../eventSequences/IEventSequence.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
-import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
-import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
+import { getEventTypeFor, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
+import { compileConstraints } from '../events/constraints/Constraints.js';
+import { getConstraintMetadata } from '../events/constraints/constraint.js';
+import { InProcessConstraints } from './InProcessConstraints.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { EventScenarioGivenBuilder } from './EventScenarioGivenBuilder.js';
 import { EventScenarioWhenBuilder } from './EventScenarioWhenBuilder.js';
@@ -32,19 +34,41 @@ export class EventScenario {
             throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'empty constraint catalog',
                 'An empty selected catalog cannot silently disable constraint discovery; set constraints: disabled explicitly.');
         }
-        const discovered = options.artifacts?.constraints ?? new DefaultClientArtifactsProvider(TypeDiscoverer.default).constraints;
-        if (options.constraints !== 'disabled' && (discovered.length || eventTypes.some(type => {
-            const metadata = getEventTypeMetadata(type);
-            return getUniqueEventMetadata(type) || [...(metadata?.members.keys() ?? [])].some(key => getUniquePropertyMetadata(type, key));
-        }))) {
-            throw new UnsupportedEventSequenceOperation('artifacts.constraints', discovered.map(type => type.name).join(', ') || 'event metadata',
-                'Constraint definitions are rejected until kernel-backed constraint fixtures are available.');
+        const discovered = options.artifacts?.constraints ?? artifacts.constraints;
+        let constraints: InProcessConstraints | undefined;
+        if (options.constraints !== 'disabled') {
+            for (const type of discovered ?? []) {
+                if (!getConstraintMetadata(type)) throw new UnsupportedEventSequenceOperation('artifacts.constraints', type.name,
+                    'Every selected constraint must have @constraint metadata.');
+            }
+            try {
+                const definitions = compileConstraints({ ...artifacts, eventTypes, constraints: discovered ?? [] });
+                constraints = new InProcessConstraints(definitions);
+                for (const [name, capture] of definitions) {
+                    const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
+                        capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
+                    if (ids.some(id => !eventTypes.some(type => getEventTypeFor(type).id.value === id))) {
+                        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                            'Every constrained event type must be in the selected catalog.');
+                    }
+                    for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
+                        const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
+                        if (getEventTypeMetadata(type)?.schema.properties?.[entry.properties[0]]?.type !== 'string') {
+                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                                'The constrained property must be a schema-backed string.');
+                        }
+                    }
+                }
+            } catch (error) {
+                if (error instanceof UnsupportedEventSequenceOperation) throw error;
+                throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'compiler', `Invalid constraint definition: ${String(error)}.`);
+            }
         }
         if (artifacts.eventTypeMigrations?.length) {
             throw new UnsupportedEventSequenceOperation('artifacts.eventTypeMigrations', artifacts.eventTypeMigrations.map(type => type.name).join(', '),
                 'Migrations are not fixture-backed.');
         }
-        const sequence = new InProcessEventSequence(options, eventTypes);
+        const sequence = new InProcessEventSequence(options, eventTypes, constraints);
         this.eventSequence = sequence;
         registerScenarioSeed(this, (source, events) => sequence.seed(source, events));
         this.given = new EventScenarioGivenBuilder(this);

@@ -34,10 +34,32 @@ public record BoundaryRecorded(string FirstName, string Label);
 [EventType("BatchUniqueRecorded")]
 public record BatchUniqueRecorded([property: Unique("BatchUniqueKey")] string Key);
 
+[EventType("OracleKeyClaimed")]
+public record OracleKeyClaimed([property: Unique("OracleKey", "Already claimed: {PropertyName}={PropertyValue}")] string Key);
+
+[EventType("OracleKeyShared")]
+public record OracleKeyShared([property: Unique("OracleKey")] string Key);
+
+[EventType("OracleOnceRecorded")]
+[Unique("OracleOnce")]
+public record OracleOnceRecorded(string Label);
+
+[EventType("OracleOnceShared")]
+public record OracleOnceShared(string Label);
+
+[EventType("OracleFluentOnce")]
+public record OracleFluentOnce(string Label);
+
+public class OracleFluentOnceConstraint : IConstraint
+{
+    public void Define(IConstraintBuilder builder) => builder.Unique<OracleFluentOnce>(name: "OracleFluentOnceConstraint");
+}
+
 internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
+        if (fixture["constraintOperations"] is JsonArray) return await RunConstraints(fixture);
         if (fixture["routeCases"] is JsonArray) return await RunOmittedRoutes(fixture);
         if (fixture["operations"] is JsonArray) return await RunBatches(fixture);
         using var scenario = new EventScenario();
@@ -145,6 +167,79 @@ internal static class EventScenarioOracle
             ["hasSourceA"] = await scenario.EventLog.HasEventsFor("A")
         };
     }
+
+    // Every operation goes through the packaged testing client and its in-process kernel.
+    // Include both wire-facing violation details and committed history to prove rollback.
+    static async Task<JsonNode> RunConstraints(JsonObject fixture)
+    {
+        using var scenario = new EventScenario();
+        var outcomes = new JsonArray();
+        foreach (var operation in fixture["constraintOperations"]!.AsArray())
+        {
+            var events = operation!["events"]!.AsArray().Select(item => new EventForEventSourceId(
+                item!["source"]!.GetValue<string>(), item["type"]!.GetValue<string>() switch
+                {
+                    "key" => new OracleKeyClaimed(item["value"]!.GetValue<string>()),
+                    "plain" => new BatchUniqueRecorded(item["value"]!.GetValue<string>()),
+                    "shared" => new OracleKeyShared(item["value"]!.GetValue<string>()),
+                    "once" => new OracleOnceRecorded(item["value"]!.GetValue<string>()),
+                    "onceShared" => new OracleOnceShared(item["value"]!.GetValue<string>()),
+                    "fluentOnce" => new OracleFluentOnce(item["value"]!.GetValue<string>()),
+                    _ => throw new InvalidOperationException("Unknown constraint fixture event")
+                })).ToArray();
+            var single = operation["mode"]!.GetValue<string>() == "single";
+            if (single && events.Length != 1) throw new InvalidOperationException("Single fixture must contain exactly one event.");
+            if (single)
+            {
+                var result = await scenario.EventLog.Append(events[0].EventSourceId, events[0].Event);
+                outcomes.Add(new JsonObject
+                {
+                    ["success"] = result.IsSuccess,
+                    ["sequences"] = new JsonArray(JsonValue.Create(result.SequenceNumber.Value.ToString())),
+                    ["violations"] = Violations(result.ConstraintViolations),
+                    ["errors"] = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray())
+                });
+            }
+            else
+            {
+                var result = await scenario.EventLog.AppendMany(events);
+                outcomes.Add(new JsonObject
+                {
+                    ["success"] = result.IsSuccess,
+                    ["sequences"] = new JsonArray(result.SequenceNumbers.Select(number => (JsonNode?)JsonValue.Create(number.Value.ToString())).ToArray()),
+                    ["violations"] = Violations(result.ConstraintViolations),
+                    ["errors"] = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray())
+                });
+            }
+            var committed = await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
+            outcomes[^1]!["history"] = new JsonArray(committed.Select(entry => (JsonNode?)new JsonObject
+            {
+                ["sequence"] = entry.Context.SequenceNumber.Value.ToString(),
+                ["source"] = entry.Context.EventSourceId.Value,
+                ["type"] = entry.Context.EventType.Id.Value,
+                ["value"] = entry.Content switch
+                {
+                    OracleKeyClaimed key => key.Key,
+                    BatchUniqueRecorded plain => plain.Key,
+                    OracleKeyShared shared => shared.Key,
+                    OracleOnceRecorded once => once.Label,
+                    OracleOnceShared once => once.Label,
+                    OracleFluentOnce once => once.Label,
+                    _ => throw new InvalidOperationException("Unexpected constrained history")
+                }
+            }).ToArray());
+            outcomes[^1]!["next"] = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString();
+        }
+        return new JsonObject { ["outcomes"] = outcomes };
+    }
+
+    static JsonArray Violations(IEnumerable<ConstraintViolation> violations) =>
+        new(violations.Select(violation => (JsonNode?)new JsonObject
+        {
+            ["id"] = violation.ConstraintName.Value,
+            ["message"] = violation.Message.Value,
+            ["details"] = new JsonObject(violation.Details.ToDictionary(pair => pair.Key, pair => (JsonNode?)JsonValue.Create(pair.Value)))
+        }).ToArray());
 
     // Bypass the .NET convenience type, which eagerly fills in routing defaults. This request
     // reaches the pinned in-process kernel service with truly absent or empty route fields.

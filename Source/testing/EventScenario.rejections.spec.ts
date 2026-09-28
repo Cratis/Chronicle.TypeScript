@@ -85,7 +85,7 @@ async function rejects(action: () => Promise<unknown>, operation: string): Promi
 
 describe('when the fixture-bounded event sequence encounters unproven operations', () => {
     for (const [type, operation] of [
-        [PropertyUnique, 'artifacts.constraints'], [RemovesConstraint, 'artifacts.eventTypes.constraints'], [Tagged, 'tags'],
+        [RemovesConstraint, 'artifacts.eventTypes.constraints'], [Tagged, 'tags'],
         [LaterGeneration, 'artifacts.eventTypes'], [Tombstone, 'artifacts.eventTypes'],
         [CommaId, 'artifacts.eventTypes.id'], [PaddedId, 'artifacts.eventTypes.id'],
         [NonAsciiPaddedId, 'artifacts.eventTypes.id']
@@ -93,10 +93,17 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         it(`should reject ${type.name} during catalog validation`, () => {
             const subject = scenario();
             rejected(() => new EventScenario({ artifacts: { eventTypes: [type] },
-                ...(type === PropertyUnique || type === RemovesConstraint ? {} : { constraints: 'disabled' as const }) }), operation);
+                ...(type === RemovesConstraint ? {} : { constraints: 'disabled' as const }) }), operation);
             clean(subject);
         });
     }
+
+    it('should discover property-level uniqueness instead of silently discarding it', async () => {
+        const subject = new EventScenario({ artifacts: { eventTypes: [PropertyUnique] } });
+        (await subject.append('A', new PropertyUnique())).isSuccess.should.be.true;
+        (await subject.append('B', new PropertyUnique())).constraintViolations[0].constraintId.should.equal('name');
+        subject.appendedEvents.length.should.equal(1);
+    });
 
     it('should reject duplicate event IDs in the catalog', () => {
         const subject = scenario();

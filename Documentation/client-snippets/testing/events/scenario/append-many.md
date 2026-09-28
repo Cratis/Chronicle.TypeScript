@@ -20,5 +20,6 @@ const multipleSources = await batchScenario.appendMany([
     { eventSourceId: 'message-2', event: new BatchMessageRecorded('fourth') }
 ]);
 // Each batch is atomic; oneSource and multipleSources contain one AppendResult per event.
-// Constraint-bearing batches still require a kernel-backed test.
+// Unscoped single-string-property and unique-event-type constraints are fixture-backed.
+// Scoped, composite, replacement and removal behavior still needs a kernel-backed test.
 ```
