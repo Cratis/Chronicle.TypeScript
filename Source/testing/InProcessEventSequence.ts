@@ -94,7 +94,8 @@ export class InProcessEventSequence implements IEventSequence {
             if (eventType.generation.value !== 1 || eventType.tombstone) {
                 throw this.unsupported('artifacts.eventTypes', type.name, 'Only generation 1, non-tombstone events are proven.');
             }
-            if (options.constraints !== 'disabled' && getRemovedConstraintNames(type).length) {
+            if (options.constraints !== 'disabled' && getRemovedConstraintNames(type).length &&
+                !this._constraints?.hasRemovalType(eventType.id.value)) {
                 throw this.unsupported('artifacts.eventTypes.constraints', type.name, 'Constraint removal is not fixture-backed.');
             }
             if (getTagsFor(type).length) throw this.unsupported('artifacts.eventTypes.tags', type.name, 'Tagged events are not fixture-backed.');
@@ -104,7 +105,8 @@ export class InProcessEventSequence implements IEventSequence {
                 schema.enum !== undefined || schema.items !== undefined || schema.format !== undefined ||
                 schema.additionalProperties !== false ||
                 schema.required?.length !== Object.keys(schema.properties ?? {}).length ||
-                !schema.properties || Object.keys(schema.properties).length === 0 ||
+                !schema.properties || (Object.keys(schema.properties).length === 0 &&
+                    !this._constraints?.isRemovalOnlyType(eventType.id.value)) ||
                 Object.entries(schema.properties).some(([key, property]) =>
                     !/^[a-z][a-zA-Z0-9]*$/.test(key) || !['string', 'boolean'].includes(property.type ?? '') ||
                     property.format !== undefined || property.compliance?.length || property.security?.length ||

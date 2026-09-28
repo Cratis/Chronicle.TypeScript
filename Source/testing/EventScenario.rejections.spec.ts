@@ -85,7 +85,7 @@ async function rejects(action: () => Promise<unknown>, operation: string): Promi
 
 describe('when the fixture-bounded event sequence encounters unproven operations', () => {
     for (const [type, operation] of [
-        [RemovesConstraint, 'artifacts.eventTypes.constraints'], [Tagged, 'tags'],
+        [RemovesConstraint, 'artifacts.constraints'], [Tagged, 'tags'],
         [LaterGeneration, 'artifacts.eventTypes'], [Tombstone, 'artifacts.eventTypes'],
         [CommaId, 'artifacts.eventTypes.id'], [PaddedId, 'artifacts.eventTypes.id'],
         [NonAsciiPaddedId, 'artifacts.eventTypes.id']
