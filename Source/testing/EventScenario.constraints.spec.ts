@@ -175,6 +175,23 @@ describe('fixture-backed unscoped constraints', () => {
             .message.should.include('multi-type unique event cycles');
     });
 
+    it('rejects removal of a selected unique-event-type constraint before changing scenario state', async () => {
+        class Once { @field(String) label = 'recorded'; }
+        eventType('OnceWithRemoval')(Once);
+        unique('OnceName')(Once);
+        class Removal { @field(String) label = 'removed'; }
+        eventType('OnceNameRemoval')(Removal);
+        removeConstraint('OnceName')(Removal);
+        const subject = scenario();
+        await subject.append('A', new OracleKeyClaimed('Alpha'));
+        const beforeEvents = subject.appendedEvents;
+        const beforeResults = subject.results;
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [Once, Removal] } }), 'artifacts.constraints')
+            .message.should.include('Removal');
+        subject.appendedEvents.should.deep.equal(beforeEvents);
+        subject.results.should.deep.equal(beforeResults);
+    });
+
     it('rejects a global removal decorator targeting a selected constraint', () => {
         class SelectedClaim { @field(String) @unique('ScenarioRemovedGlobally') key = 'Alpha'; }
         eventType('SelectedClaim')(SelectedClaim);

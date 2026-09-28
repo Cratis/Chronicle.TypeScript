@@ -33,6 +33,7 @@ export class InProcessConstraints {
 
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
         const coveredTypes = new Map<string, string>();
+        const removalOwners = new Map<string, string>();
         for (const [name, capture] of _definitions) {
             if (capture.uniqueConstraint && capture.uniqueEventType) {
                 throw this.unsupported(name, 'A definition with both constraint kinds is not fixture-backed.');
@@ -48,7 +49,13 @@ export class InProcessConstraints {
                     throw this.unsupported(name, 'Case folding and composite or nested keys are not fixture-backed.');
                 }
                 for (const id of [unique.removedWithEventTypeId, ...(unique.removedWithEventTypeIds ?? [])]) {
-                    if (id !== undefined) this._removalTypes.add(id);
+                    if (id === undefined) continue;
+                    const owner = removalOwners.get(id);
+                    if (owner !== undefined && owner !== name) {
+                        throw this.unsupported(name, 'Removal type shared by several definitions is not fixture-backed.');
+                    }
+                    removalOwners.set(id, name);
+                    this._removalTypes.add(id);
                 }
                 for (const entry of unique.eventDefinitions) {
                     const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();

@@ -182,6 +182,30 @@ describe('fixture-backed unique-property lifecycle', () => {
         subject.results.length.should.equal(3);
     });
 
+    it('rejects a removal type shared by two definitions without claiming kernel semantics', async () => {
+        class FirstClaim { @field(String) key = 'Alpha'; }
+        eventType('FirstRemovalClaim')(FirstClaim);
+        class SecondClaim { @field(String) key = 'Beta'; }
+        eventType('SecondRemovalClaim')(SecondClaim);
+        class SharedRemoval { @field(String) label = 'end'; }
+        eventType('SharedRemoval')(SharedRemoval);
+        class FirstKey implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(FirstClaim, event => event.key).removedWith(SharedRemoval));
+            }
+        }
+        constraint('FirstRemovalKey')(FirstKey);
+        class SecondKey implements IConstraint {
+            define(builder: IConstraintBuilder) {
+                builder.unique(key => key.on(SecondClaim, event => event.key).removedWith(SharedRemoval));
+            }
+        }
+        constraint('SecondRemovalKey')(SecondKey);
+        await unsupported(() => new EventScenario({ artifacts: {
+            eventTypes: [FirstClaim, SecondClaim, SharedRemoval], constraints: [FirstKey, SecondKey]
+        } }), 'Removal type shared by several definitions is not fixture-backed.');
+    });
+
     it('rejects unresolved removal names and unproven cross-definition interactions before mutation', async () => {
         class Missing { @field(String) label = 'missing'; }
         eventType('MissingLifecycleRemoval')(Missing);
