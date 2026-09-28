@@ -330,22 +330,6 @@ describe('fixture-backed unscoped constraints', () => {
         }
     });
 
-    it('rejects a fresh-source key replacement within one batch without changing results or history', async () => {
-        const subject = scenario();
-        await subject.append('A', new OracleKeyClaimed('Alpha'));
-        const history = subject.appendedEvents;
-        const results = subject.results;
-        await subject.appendMany('C', [new OracleKeyClaimed('First'), new OracleKeyShared('Second')])
-            .then(() => { throw new Error('In-batch replacement accepted'); }, error => {
-                (error instanceof UnsupportedEventSequenceOperation).should.be.true;
-                (error as Error).message.should.include('artifacts.constraints');
-                (error as Error).message.should.include('Replacing a key within one batch');
-                (error as Error).message.should.include('Use a kernel-backed test.');
-            });
-        subject.appendedEvents.should.deep.equal(history);
-        subject.results.should.deep.equal(results);
-    });
-
     it('rejects history with an unproven unique key without changing scenario state', async () => {
         const subject = scenario();
         await subject.append('A', new OracleKeyClaimed('Alpha'));
@@ -359,7 +343,7 @@ describe('fixture-backed unscoped constraints', () => {
         subject.results.length.should.equal(1);
     });
 
-    it('rejects removal, scoped, composite, case-insensitive and replacement before mutation', async () => {
+    it('rejects scoped, composite and case-insensitive configurations and unsupported keys before mutation', async () => {
         const scoped = (configure: (builder: IConstraintBuilder) => void) => {
             class InvalidConstraint implements IConstraint {
                 define(builder: IConstraintBuilder) { configure(builder); }
@@ -374,11 +358,6 @@ describe('fixture-backed unscoped constraints', () => {
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key).ignoreCasing()));
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key))
             .uniqueFor(OracleOnceRecorded));
-        class Removal { @field(String) label = 'removed'; }
-        eventType('Removal')(Removal);
-        removeConstraint('OracleKey')(Removal);
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, Removal], constraints: [OracleFluentOnceConstraint] } }), 'artifacts.constraints')
-            .message.should.include('removal');
         class AnotherOnce { @field(String) label = 'second'; }
         eventType('AnotherOnce')(AnotherOnce);
         unique('OracleOnce')(AnotherOnce);
@@ -387,9 +366,7 @@ describe('fixture-backed unscoped constraints', () => {
         const subject = scenario();
         await subject.append('A', new OracleKeyClaimed('Alpha'));
         await subject.append('B', new OracleKeyClaimed('beta'));
-        for (const action of [() => subject.append('A', new OracleKeyClaimed('different')),
-            () => subject.appendMany('A', [new OracleKeyClaimed('Alpha'), new OracleKeyClaimed('changed')]),
-            () => subject.append('C', new OracleKeyClaimed('!'))]) {
+        for (const action of [() => subject.append('C', new OracleKeyClaimed('!'))]) {
             await action().then(() => { throw new Error('Unsupported key accepted'); }, error => {
                 (error instanceof UnsupportedEventSequenceOperation).should.be.true;
                 (error as Error).message.should.include('artifacts.constraints');

@@ -77,6 +77,14 @@ export class EventScenario {
                         ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
                     return [...constrained, ...removedWith].some(id => id !== undefined && selectedIds.has(id));
                 })) : compiled;
+                for (const type of eventTypes) {
+                    for (const name of getRemovedConstraintNames(type)) {
+                        if (!definitions.has(name)) {
+                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                                'Unresolved removal constraint name in the selected catalog.');
+                        }
+                    }
+                }
                 constraints = new InProcessConstraints(definitions);
                 for (const [name, capture] of definitions) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
@@ -86,7 +94,7 @@ export class EventScenario {
                         ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
                     if ([...ids, ...removedWith].some(id => id !== undefined && !selectedIds.has(id))) {
                         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                            'Every constrained event type must be in the selected catalog.');
+                            'Every constrained event type must be in the selected catalog. Claiming and removal references must be complete.');
                     }
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
