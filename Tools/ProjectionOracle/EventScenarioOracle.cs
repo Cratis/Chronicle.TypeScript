@@ -76,6 +76,15 @@ public record OracleCycleExpired(string Label);
 [EventType("OracleCycleRenewed")]
 public record OracleCycleRenewed(string Label);
 
+[EventType("OracleCompositeName")]
+public record OracleCompositeName(string First, string Last);
+
+[EventType("OracleCompositeAlias")]
+public record OracleCompositeAlias(string Given, string Family);
+
+[EventType("OracleCompositeTriple")]
+public record OracleCompositeTriple(string First, string Middle, string Last);
+
 // The fixture explicitly selects the definitions installed in the packaged testing scenario.
 // No constraint validation is implemented here: the packaged kernel owns that operation.
 sealed class OracleConstraintProvider(ImmutableArray<IConstraintDefinition> definitions) : ICanProvideConstraints
@@ -333,26 +342,32 @@ internal static class EventScenarioOracle
         if (fixture["isolatedConstraintOperations"]!.AsArray().Count == 0)
             throw new InvalidOperationException("Isolated constraint fixture must contain operations.");
         var schema = fixture["eventSchemas"]!.AsObject();
-        var allowed = new Dictionary<string, (Type Type, string? Property, string? SchemaType)>
+        // Properties are listed in record (and serialized) order; composite types take a "values" object.
+        var allowed = new Dictionary<string, (Type Type, string[] Properties, string? SchemaType)>
         {
-            ["string"] = (typeof(OracleDomainText), "key", "string"),
-            ["shared"] = (typeof(OracleDomainShared), "key", "string"),
-            ["boolean"] = (typeof(OracleDomainFlag), "key", "boolean"),
-            ["removed"] = (typeof(OracleDomainRemoved), "label", "string"),
-            ["expired"] = (typeof(OracleDomainExpired), "label", "string"),
-            ["cleared"] = (typeof(OracleDomainCleared), null, null),
-            ["first"] = (typeof(OracleCycleFirst), "label", "string"),
-            ["sibling"] = (typeof(OracleCycleSibling), "label", "string"),
-            ["cycleRemoved"] = (typeof(OracleCycleRemoved), "label", "string"),
-            ["cycleExpired"] = (typeof(OracleCycleExpired), "label", "string"),
-            ["renewed"] = (typeof(OracleCycleRenewed), "label", "string")
+            ["string"] = (typeof(OracleDomainText), ["key"], "string"),
+            ["shared"] = (typeof(OracleDomainShared), ["key"], "string"),
+            ["boolean"] = (typeof(OracleDomainFlag), ["key"], "boolean"),
+            ["removed"] = (typeof(OracleDomainRemoved), ["label"], "string"),
+            ["expired"] = (typeof(OracleDomainExpired), ["label"], "string"),
+            ["cleared"] = (typeof(OracleDomainCleared), [], null),
+            ["first"] = (typeof(OracleCycleFirst), ["label"], "string"),
+            ["sibling"] = (typeof(OracleCycleSibling), ["label"], "string"),
+            ["cycleRemoved"] = (typeof(OracleCycleRemoved), ["label"], "string"),
+            ["cycleExpired"] = (typeof(OracleCycleExpired), ["label"], "string"),
+            ["renewed"] = (typeof(OracleCycleRenewed), ["label"], "string"),
+            ["name"] = (typeof(OracleCompositeName), ["first", "last"], "string"),
+            ["alias"] = (typeof(OracleCompositeAlias), ["given", "family"], "string"),
+            ["triple"] = (typeof(OracleCompositeTriple), ["first", "middle", "last"], "string")
         };
         var known = allowed.Where(pair => schema.ContainsKey(pair.Key)).ToDictionary();
+        static bool Claiming((Type Type, string[] Properties, string? SchemaType) kind) =>
+            kind.Properties is ["key"] || kind.Properties.Length > 1;
         if (schema.Count == 0 || schema.Count != known.Count ||
             known.Any(pair => schema[pair.Key]?["eventTypeId"]?.GetValue<string>() != pair.Value.Type.Name ||
                 schema[pair.Key]?["properties"] is not JsonObject properties ||
-                properties.Count != (pair.Value.Property is null ? 0 : 1) ||
-                (pair.Value.Property is not null && properties[pair.Value.Property]?.GetValue<string>() != pair.Value.SchemaType)))
+                !properties.Select(property => property.Key).SequenceEqual(pair.Value.Properties) ||
+                properties.Any(property => property.Value?.GetValue<string>() != pair.Value.SchemaType)))
             throw new InvalidOperationException("Isolated constraint fixture must declare exactly the installed event schemas.");
         var definitions = fixture["constraintDefinitions"]!.AsArray().Select(node =>
         {
@@ -376,23 +391,27 @@ internal static class EventScenarioOracle
             var events = node["events"]!.AsArray().Select(entry =>
             {
                 var alias = entry!["type"]!.GetValue<string>();
+                // Declared property order is passed through unchanged; distinct paths only (the kernel
+                // builds a dictionary keyed by path, so duplicates are not a behavior to capture here).
                 if (!known.TryGetValue(alias, out var kind) || entry["properties"] is not JsonArray properties ||
-                    properties.Count != 1 || properties[0]?.GetValue<string>() != kind.Property)
+                    properties.Count == 0 || properties.Select(item => item?.GetValue<string>()).Distinct().Count() != properties.Count ||
+                    properties.Any(item => item?.GetValue<string>() is not string path || !kind.Properties.Contains(path)))
                     throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
-                return new UniqueConstraintEventDefinition(kind.Type.Name, [kind.Property!]);
+                return new UniqueConstraintEventDefinition(kind.Type.Name, properties.Select(item => item!.GetValue<string>()).ToArray());
             }).ToArray();
             if (events.Length == 0 || events.Select(entry => entry.EventTypeId.Value).Distinct().Count() != events.Length ||
-                node["kind"]?.GetValue<string>() != "uniqueProperty" || node["ignoreCasing"]?.GetValue<bool>() != false ||
+                node["kind"]?.GetValue<string>() != "uniqueProperty" || node["ignoreCasing"] is not JsonValue ignoreCasingValue ||
+                !ignoreCasingValue.TryGetValue<bool>(out var ignoreCasing) ||
                 node["removedWithEventTypeIds"] is not JsonArray removalNames)
                 throw new InvalidOperationException($"Unsupported fixture definition for {name}.");
             var removals = removalNames.Select(item => item!.GetValue<string>()).ToArray();
             if (removals.Distinct().Count() != removals.Length || removals.Any(alias =>
                 !known.TryGetValue(alias, out var kind) ||
-                (kind.Property == "key" && !events.Any(entry => entry.EventTypeId.Value == kind.Type.Name))))
+                (Claiming(kind) && !events.Any(entry => entry.EventTypeId.Value == kind.Type.Name))))
                 throw new InvalidOperationException($"Unsupported fixture removal for {name}.");
             var message = node["message"]?.GetValue<string>() ?? "";
             return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events,
-                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), false);
+                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), ignoreCasing);
         }).ToImmutableArray();
         if (definitions.Length == 0 || definitions.Select(definition => definition.Name.Value).Distinct().Count() != definitions.Length)
             throw new InvalidOperationException("Fixture definitions must be present and have distinct names.");
@@ -416,7 +435,9 @@ internal static class EventScenarioOracle
                 continue;
             }
             if (installed[index] is not KernelUnique actual || actual.Name.Value != definition.Name.Value ||
-                actual.IgnoreCasing || actual.Scope is not null ||
+                actual.IgnoreCasing != ((UniqueConstraintDefinition)definition).IgnoreCasing ||
+                actual.IgnoreCasing != fixture["constraintDefinitions"]![index]!["ignoreCasing"]!.GetValue<bool>() ||
+                actual.Scope is not null ||
                 !actual.RemovedWith.Select(id => id.Value).SequenceEqual(
                     fixture["constraintDefinitions"]![index]!["removedWithEventTypeIds"]!.AsArray()
                         .Select(alias => known[alias!.GetValue<string>()].Type.Name)) ||
@@ -434,10 +455,14 @@ internal static class EventScenarioOracle
             var events = entries.Select(entry =>
             {
                 var alias = entry!["type"]!.GetValue<string>();
-                if (!known.ContainsKey(alias) || entry["source"] is null ||
-                    (known[alias].Property is not null && entry["value"] is null) ||
-                    (known[alias].Property is null && entry["value"] is not null))
+                if (!known.TryGetValue(alias, out var kind) || entry["source"] is null ||
+                    (kind.Properties.Length > 1
+                        ? entry["value"] is not null || entry["values"] is not JsonObject values ||
+                            !values.Select(value => value.Key).Order().SequenceEqual(kind.Properties.Order()) ||
+                            values.Any(value => value.Value is null)
+                        : entry["values"] is not null || (kind.Properties.Length == 1) != (entry["value"] is not null)))
                     throw new InvalidOperationException("Unknown fixture event or missing value.");
+                string Part(string property) => entry["values"]![property]!.GetValue<string>();
                 object value = alias switch
                 {
                     "string" => new OracleDomainText(entry["value"]!.GetValue<string>()),
@@ -451,6 +476,9 @@ internal static class EventScenarioOracle
                     "cycleRemoved" => new OracleCycleRemoved(entry["value"]!.GetValue<string>()),
                     "cycleExpired" => new OracleCycleExpired(entry["value"]!.GetValue<string>()),
                     "renewed" => new OracleCycleRenewed(entry["value"]!.GetValue<string>()),
+                    "name" => new OracleCompositeName(Part("first"), Part("last")),
+                    "alias" => new OracleCompositeAlias(Part("given"), Part("family")),
+                    "triple" => new OracleCompositeTriple(Part("first"), Part("middle"), Part("last")),
                     _ => throw new InvalidOperationException("Unknown fixture event.")
                 };
                 var options = operation["options"];
@@ -510,6 +538,8 @@ internal static class EventScenarioOracle
                         EventType = new KernelEventType { Id = known[alias].Type.Name, Generation = 1 },
                         Content = entry["type"]!.GetValue<string>() switch
                         {
+                            "name" or "alias" or "triple" => new JsonObject(known[alias].Properties.Select(property =>
+                                KeyValuePair.Create<string, JsonNode?>(property, entry["values"]![property]!.DeepClone()))).ToJsonString(),
                             "removed" or "expired" or "first" or "sibling" or "cycleRemoved" or "cycleExpired" or "renewed" =>
                                 JsonSerializer.Serialize(new { label = entry["value"]!.DeepClone() }),
                             "cleared" => "{}",
@@ -575,6 +605,9 @@ internal static class EventScenarioOracle
                     OracleCycleRemoved removed => new JsonObject { ["label"] = removed.Label },
                     OracleCycleExpired expired => new JsonObject { ["label"] = expired.Label },
                     OracleCycleRenewed renewed => new JsonObject { ["label"] = renewed.Label },
+                    OracleCompositeName name => new JsonObject { ["first"] = name.First, ["last"] = name.Last },
+                    OracleCompositeAlias alias => new JsonObject { ["given"] = alias.Given, ["family"] = alias.Family },
+                    OracleCompositeTriple triple => new JsonObject { ["first"] = triple.First, ["middle"] = triple.Middle, ["last"] = triple.Last },
                     _ => throw new InvalidOperationException("Unexpected constrained history")
                 },
                 ["hash"] = entry.Context.Hash.Value
