@@ -64,3 +64,48 @@ jobs:
       - name: Test JS/TS
         working-directory: ./Source
         run: yarn test
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    # A development kernel (MongoDB included) that the kernel-backed specifications (*.integration.spec.ts) run against.
+    services:
+      chronicle:
+        image: cratis/chronicle:19.22.1-development
+        ports:
+          - 35000:35000
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23.x
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/cache@v4
+        id: yarn-cache
+        with:
+          path: |
+            .yarn/cache
+            **/node_modules
+            **/.eslintcache
+            **/yarn.lock
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package.json') }}
+
+      - name: Yarn install
+        run: yarn
+
+      - name: Wait for the kernel
+        run: timeout 180 bash -c 'until curl -skf https://localhost:35000/health > /dev/null; do sleep 2; done'
+
+      - name: Kernel-backed specifications
+        working-directory: ./Source
+        env:
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
+        run: yarn test:integration

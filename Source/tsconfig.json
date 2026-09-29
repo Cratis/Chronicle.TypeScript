@@ -32,6 +32,7 @@
         "**/*.spec.ts",
         "**/*.example.ts",
         "**/*.fixture.ts",
-        "vitest.config.ts"
+        "vitest.config.ts",
+        "vitest.integration.config.ts"
     ]
 }
