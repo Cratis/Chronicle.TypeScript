@@ -18,7 +18,8 @@ import { subject } from '../../subject.js';
 
 chai.should();
 
-// Runs against a real Chronicle kernel; skipped unless the connection string is set (see vitest.integration.config.ts).
+// Runs against a real Chronicle kernel; skipped locally unless the connection string is set (see vitest.integration.config.ts).
+// In CI it never skips, so a missing connection string or unreachable kernel fails instead of passing vacuously.
 const connectionString = process.env.CHRONICLE_INTEGRATION_CONNECTION_STRING;
 
 @eventType()
@@ -72,7 +73,7 @@ async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boole
     return value;
 }
 
-describe.skipIf(!connectionString)('when erasing a subject against a kernel', () => {
+describe.skipIf(!connectionString && !process.env.CI)('when erasing a subject against a kernel', () => {
     const name = 'Eve Jackson';
     const eventSourceId = randomUUID();
     const personId = randomUUID();
