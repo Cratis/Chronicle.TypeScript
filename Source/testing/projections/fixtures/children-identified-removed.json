@@ -1,0 +1,501 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Shape emitted by the TypeScript ProjectionDefinitionCompiler for a fluent children(m => m.lines, c => c.identifiedBy(l => l.lineId).from(ItemAdded/ItemRenamed, f => f.usingKey(e => e.itemId)).removedWith(ItemRemoved, r => r.usingKey(e => e.itemId))) (child item schema given explicitly); verified by kernel conversion and execution.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-children-removed",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [],
+    "Join": [],
+    "Children": {
+      "lines": {
+        "IdentifiedBy": "lineId",
+        "From": [
+          {
+            "Key": {
+              "Id": "ItemAdded",
+              "Generation": 1
+            },
+            "Value": {
+              "Properties": {},
+              "Key": "itemId",
+              "ParentKey": ""
+            }
+          },
+          {
+            "Key": {
+              "Id": "ItemRenamed",
+              "Generation": 1
+            },
+            "Value": {
+              "Properties": {},
+              "Key": "itemId",
+              "ParentKey": ""
+            }
+          }
+        ],
+        "Join": [],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [
+          {
+            "Key": {
+              "Id": "ItemRemoved",
+              "Generation": 1
+            },
+            "Value": {
+              "Key": "itemId",
+              "ParentKey": ""
+            }
+          }
+        ],
+        "RemovedWithJoin": [],
+        "AutoMap": 0,
+        "Nested": {},
+        "NoAutoMapProperties": []
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lineId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "ItemAdded",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ItemRenamed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ItemRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "a",
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "itemId": "b",
+        "name": "second"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRenamed",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
+      "content": {
+        "itemId": "b",
+        "name": "renamed"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {
+        "itemId": "a"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:04Z"
+      },
+      "content": {
+        "itemId": "missing"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-1",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:05Z"
+      },
+      "content": {
+        "itemId": "a",
+        "name": "back"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "cart-2",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:06Z"
+      },
+      "content": {
+        "itemId": "a"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "cart-1": {
+          "__initialized": false,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            },
+            {
+              "lineId": "b",
+              "name": "second"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            },
+            {
+              "lineId": "b",
+              "name": "second"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            },
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "a",
+              "name": "first"
+            },
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            },
+            {
+              "lineId": "a",
+              "name": "back"
+            }
+          ],
+          "__subject": "cart-1"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            },
+            {
+              "lineId": "a",
+              "name": "back"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "cart-1": {
+          "__initialized": true,
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            },
+            {
+              "lineId": "a",
+              "name": "back"
+            }
+          ],
+          "__subject": "cart-1"
+        },
+        "cart-2": {
+          "__initialized": false,
+          "id": "cart-2",
+          "lines": [],
+          "__subject": "cart-2"
+        }
+      },
+      "publicRead": {
+        "cart-1": {
+          "id": "cart-1",
+          "lines": [
+            {
+              "lineId": "b",
+              "name": "renamed"
+            },
+            {
+              "lineId": "a",
+              "name": "back"
+            }
+          ]
+        },
+        "cart-2": {
+          "id": "cart-2",
+          "lines": []
+        }
+      }
+    }
+  ]
+}

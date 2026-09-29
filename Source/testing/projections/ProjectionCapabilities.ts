@@ -6,8 +6,9 @@ import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
 import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
-import { getEventTypeMapKey } from '../../projections/modelBound/childrenAndNestedBuilder.js';
+import { getEventTypeMapKey, type ChildrenDefinitionLike } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
+import { ProjectionChildrenCapabilities } from './ProjectionChildrenCapabilities.js';
 import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
 /** Validates *all* subscribed operations against the bounded scenario subset, before replay. */
@@ -36,11 +37,11 @@ export class ProjectionCapabilities {
         if (wire.IsActive === false) reject('IsActive', 'passive projections require a kernel-backed test');
         if (wire.SubscribesToAllEvents === true) reject('SubscribesToAllEvents', 'subscribe-to-all projections require a kernel-backed test');
         if (wire.EventSequenceId !== EventSequenceId.eventLog.value) reject('EventSequenceId', 'non-default event sequences require a kernel-backed test');
-        for (const section of ['Join', 'Children', 'Nested', 'RemovedWithJoin'] as const) {
+        for (const section of ['Join', 'Nested', 'RemovedWithJoin'] as const) {
             const value = wire[section];
             const paths = Array.isArray(value) ? value.map((entry: { Key: ContractEventType }) => eventContractPath(section, entry.Key))
                 : Object.keys(value as Record<string, unknown> ?? {}).map(property => `${section}.${property}`);
-            if (paths.length) reject(paths[0], `${section === 'Children' ? 'children projections' : section === 'Nested' ? 'nested projections' : section === 'Join' ? 'joins' : 'removedWithJoin'} require a kernel-backed test`);
+            if (paths.length) reject(paths[0], `${section === 'Nested' ? 'nested projections' : section === 'Join' ? 'joins' : 'removedWithJoin'} require a kernel-backed test`);
         }
         if ((wire.FromEvery as unknown[] | undefined)?.length) reject('FromEvery', 'derivative projections require a kernel-backed test');
         if (wire.FromEventProperty) reject('FromEventProperty', 'event-property subscriptions require a kernel-backed test');
@@ -110,6 +111,12 @@ export class ProjectionCapabilities {
                 this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject);
             }
         }
+        ProjectionChildrenCapabilities.validate(wire.Children as Record<string, ChildrenDefinitionLike> ?? {}, {
+            schema: schema!, rootAutoMap: wire.AutoMap as AutoMap, hasInitialModelState: Object.keys(initial as object).length > 0, from, removedWith, requireEventSchema, reject,
+            declarationFor: path => provenance.find(entry => entry.contractPath === path)?.declaration,
+            checkMapping: (modelSchema, eventSchema, destination, expression, path) =>
+                this.checkMapping(modelSchema, eventSchema, destination, expression, path, reject)
+        });
     }
 
     private static checkAutoMap(
