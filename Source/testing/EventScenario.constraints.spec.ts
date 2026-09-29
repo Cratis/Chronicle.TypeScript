@@ -172,7 +172,7 @@ describe('fixture-backed unscoped constraints', () => {
         const production = compileConstraints({ eventTypes: [GlobalOnce, SelectedOnce], constraints: [] });
         production.get('ScenarioSharedOnce')!.uniqueEventType!.eventTypeIds.should.deep.equal(['GlobalOnce', 'SelectedOnce']);
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [SelectedOnce] } }), 'artifacts.constraints')
-            .message.should.include('multi-type unique event cycles');
+            .message.should.include('This unique event type set and removal combination is not fixture-backed.');
     });
 
     it('rejects removal of a selected unique-event-type constraint at construction', () => {
@@ -183,8 +183,8 @@ describe('fixture-backed unscoped constraints', () => {
         eventType('OnceNameRemoval')(Removal);
         removeConstraint('OnceName')(Removal);
         const message = unsupported(() => new EventScenario({ artifacts: { eventTypes: [Once, Removal] } }), 'artifacts.constraints').message;
-        message.should.include('Removal');
-        message.should.include('Use a kernel-backed test.');
+        message.should.include('OnceName');
+        message.should.include('This unique event type set and removal combination is not fixture-backed.');
     });
 
     it('rejects a global removal decorator targeting a selected constraint', () => {
@@ -374,7 +374,7 @@ describe('fixture-backed unscoped constraints', () => {
         eventType('AnotherOnce')(AnotherOnce);
         unique('OracleOnce')(AnotherOnce);
         unsupported(() => new EventScenario({ artifacts: { eventTypes: [...types, AnotherOnce], constraints: [OracleFluentOnceConstraint] } }), 'artifacts.constraints')
-            .message.should.include('multi-type unique event cycles');
+            .message.should.include('This unique event type set and removal combination is not fixture-backed.');
         const subject = scenario();
         await subject.append('A', new OracleKeyClaimed('Alpha'));
         await subject.append('B', new OracleKeyClaimed('beta'));

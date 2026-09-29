@@ -17,6 +17,7 @@ using KernelBatchEvent = KernelContracts::Cratis.Chronicle.Contracts.Sequences.E
 using KernelEventType = KernelContracts::Cratis.Chronicle.Contracts.Sequences.EventType;
 using KernelStore = KernelStorage::Cratis.Chronicle.Storage.IStorage;
 using KernelUnique = KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.UniqueConstraintDefinition;
+using KernelUniqueType = KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.UniqueEventTypeConstraintDefinition;
 using KernelStoreName = KernelConcepts::Cratis.Chronicle.Concepts.EventStoreName;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Auditing;
@@ -59,6 +60,21 @@ public record OracleDomainExpired(string Label);
 
 [EventType("OracleDomainCleared")]
 public record OracleDomainCleared();
+
+[EventType("OracleCycleFirst")]
+public record OracleCycleFirst(string Label);
+
+[EventType("OracleCycleSibling")]
+public record OracleCycleSibling(string Label);
+
+[EventType("OracleCycleRemoved")]
+public record OracleCycleRemoved(string Label);
+
+[EventType("OracleCycleExpired")]
+public record OracleCycleExpired(string Label);
+
+[EventType("OracleCycleRenewed")]
+public record OracleCycleRenewed(string Label);
 
 // The fixture explicitly selects the definitions installed in the packaged testing scenario.
 // No constraint validation is implemented here: the packaged kernel owns that operation.
@@ -324,7 +340,12 @@ internal static class EventScenarioOracle
             ["boolean"] = (typeof(OracleDomainFlag), "key", "boolean"),
             ["removed"] = (typeof(OracleDomainRemoved), "label", "string"),
             ["expired"] = (typeof(OracleDomainExpired), "label", "string"),
-            ["cleared"] = (typeof(OracleDomainCleared), null, null)
+            ["cleared"] = (typeof(OracleDomainCleared), null, null),
+            ["first"] = (typeof(OracleCycleFirst), "label", "string"),
+            ["sibling"] = (typeof(OracleCycleSibling), "label", "string"),
+            ["cycleRemoved"] = (typeof(OracleCycleRemoved), "label", "string"),
+            ["cycleExpired"] = (typeof(OracleCycleExpired), "label", "string"),
+            ["renewed"] = (typeof(OracleCycleRenewed), "label", "string")
         };
         var known = allowed.Where(pair => schema.ContainsKey(pair.Key)).ToDictionary();
         if (schema.Count == 0 || schema.Count != known.Count ||
@@ -336,6 +357,22 @@ internal static class EventScenarioOracle
         var definitions = fixture["constraintDefinitions"]!.AsArray().Select(node =>
         {
             var name = node!["name"]!.GetValue<string>();
+            if (node["kind"]?.GetValue<string>() == "uniqueEventType")
+            {
+                if (node["events"] is not null || node["ignoreCasing"] is not null ||
+                    node["eventTypes"] is not JsonArray types || types.Count == 0 ||
+                    node["removedWithEventTypeIds"] is not JsonArray removalTypes)
+                    throw new InvalidOperationException($"Unsupported event-type fixture definition for {name}.");
+                var covered = types.Select(item => item!.GetValue<string>()).ToArray();
+                var cycleRemovals = removalTypes.Select(item => item!.GetValue<string>()).ToArray();
+                if (covered.Distinct().Count() != covered.Length || cycleRemovals.Distinct().Count() != cycleRemovals.Length ||
+                    covered.Any(alias => !known.ContainsKey(alias)) || cycleRemovals.Any(alias => !known.ContainsKey(alias)))
+                    throw new InvalidOperationException($"Unknown or repeated event-type fixture alias for {name}.");
+                var cycleMessage = node["message"]?.GetValue<string>() ?? "";
+                return (IConstraintDefinition)new UniqueEventTypeConstraintDefinition(name, _ => cycleMessage,
+                    covered.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(),
+                    cycleRemovals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray());
+            }
             var events = node["events"]!.AsArray().Select(entry =>
             {
                 var alias = entry!["type"]!.GetValue<string>();
@@ -369,6 +406,15 @@ internal static class EventScenarioOracle
         if (installed.Length != definitions.Length) throw new InvalidOperationException("Fixture definitions were not all installed.");
         foreach (var (definition, index) in definitions.Select((value, index) => (value, index)))
         {
+            if (definition is UniqueEventTypeConstraintDefinition uniqueType)
+            {
+                if (installed[index] is not KernelUniqueType actualType || actualType.Name.Value != definition.Name.Value ||
+                    actualType.Scope is not null ||
+                    !actualType.EventTypeIds.Select(id => id.Value).SequenceEqual(uniqueType.EventTypeIds.Select(id => id.Value)) ||
+                    !actualType.RemovedWith.Select(id => id.Value).SequenceEqual(uniqueType.RemovedWith.Select(id => id.Value)))
+                    throw new InvalidOperationException($"Installed kernel event-type definition does not match fixture {definition.Name.Value}.");
+                continue;
+            }
             if (installed[index] is not KernelUnique actual || actual.Name.Value != definition.Name.Value ||
                 actual.IgnoreCasing || actual.Scope is not null ||
                 !actual.RemovedWith.Select(id => id.Value).SequenceEqual(
@@ -400,6 +446,11 @@ internal static class EventScenarioOracle
                     "removed" => new OracleDomainRemoved(entry["value"]!.GetValue<string>()),
                     "expired" => new OracleDomainExpired(entry["value"]!.GetValue<string>()),
                     "cleared" => new OracleDomainCleared(),
+                    "first" => new OracleCycleFirst(entry["value"]!.GetValue<string>()),
+                    "sibling" => new OracleCycleSibling(entry["value"]!.GetValue<string>()),
+                    "cycleRemoved" => new OracleCycleRemoved(entry["value"]!.GetValue<string>()),
+                    "cycleExpired" => new OracleCycleExpired(entry["value"]!.GetValue<string>()),
+                    "renewed" => new OracleCycleRenewed(entry["value"]!.GetValue<string>()),
                     _ => throw new InvalidOperationException("Unknown fixture event.")
                 };
                 var options = operation["options"];
@@ -459,7 +510,8 @@ internal static class EventScenarioOracle
                         EventType = new KernelEventType { Id = known[alias].Type.Name, Generation = 1 },
                         Content = entry["type"]!.GetValue<string>() switch
                         {
-                            "removed" or "expired" => JsonSerializer.Serialize(new { label = entry["value"]!.DeepClone() }),
+                            "removed" or "expired" or "first" or "sibling" or "cycleRemoved" or "cycleExpired" or "renewed" =>
+                                JsonSerializer.Serialize(new { label = entry["value"]!.DeepClone() }),
                             "cleared" => "{}",
                             _ => JsonSerializer.Serialize(new { key = entry["value"]!.DeepClone() })
                         },
@@ -518,6 +570,11 @@ internal static class EventScenarioOracle
                     OracleDomainRemoved removed => new JsonObject { ["label"] = removed.Label },
                     OracleDomainExpired expired => new JsonObject { ["label"] = expired.Label },
                     OracleDomainCleared => new JsonObject(),
+                    OracleCycleFirst first => new JsonObject { ["label"] = first.Label },
+                    OracleCycleSibling sibling => new JsonObject { ["label"] = sibling.Label },
+                    OracleCycleRemoved removed => new JsonObject { ["label"] = removed.Label },
+                    OracleCycleExpired expired => new JsonObject { ["label"] = expired.Label },
+                    OracleCycleRenewed renewed => new JsonObject { ["label"] = renewed.Label },
                     _ => throw new InvalidOperationException("Unexpected constrained history")
                 },
                 ["hash"] = entry.Context.Hash.Value
