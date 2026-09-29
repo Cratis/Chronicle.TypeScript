@@ -17,8 +17,8 @@ import { unique } from '../../unique.js';
 
 chai.should();
 
-// Kernel-backed: skipped unless CHRONICLE_INTEGRATION_CONNECTION_STRING points at a running kernel, e.g.
-// chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
+// Runs against a real Chronicle kernel; skipped locally unless the connection string is set (see vitest.integration.config.ts).
+// In CI it never skips, so a missing connection string or unreachable kernel fails instead of passing vacuously.
 const connectionString = process.env.CHRONICLE_INTEGRATION_CONNECTION_STRING;
 
 const constraintName = 'UniqueUserName';
@@ -81,7 +81,7 @@ function shouldHaveExactlyOneWinner(results: AppendResult[], name: string, messa
     }
 }
 
-describe.skipIf(!connectionString)('when appending unique values concurrently against a kernel', () => {
+describe.skipIf(!connectionString && !process.env.CI)('when appending unique values concurrently against a kernel', () => {
     const storeName = `Unique${randomUUID().replaceAll('-', '').slice(0, 12)}`;
     let first: ChronicleClient;
     let second: ChronicleClient;
