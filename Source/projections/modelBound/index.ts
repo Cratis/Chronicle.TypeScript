@@ -21,7 +21,7 @@ export type { DecrementMetadata } from './decrement.js';
 export { count, getCountMetadata } from './count.js';
 export type { CountMetadata } from './count.js';
 export { childrenFrom, getChildrenFromMetadata } from './childrenFrom.js';
-export type { ChildrenFromMetadata } from './childrenFrom.js';
+export type { ChildrenFromMetadata, ChildrenFromOptions } from './childrenFrom.js';
 export { nested, isNested } from './nested.js';
 export { clearWith, getClearWithClassMetadata, getClearWithPropertyMetadata } from './clearWith.js';
 export type { ClearWithMetadata } from './clearWith.js';
