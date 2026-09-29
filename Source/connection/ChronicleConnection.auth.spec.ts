@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { createServer, ServerError, type ServiceImplementation } from 'nice-grpc';
 import { ConnectionServiceDefinition, EventStoresDefinition, ServerDefinition } from '@cratis/chronicle.contracts';
 import { status } from '@grpc/grpc-js';
@@ -233,6 +233,8 @@ describe('ChronicleConnection authentication', () => {
 
     it('keeps retrying proxy 403 responses without an OAuth error code', async () => {
         const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+        // Restore even when the test times out, so a hang cannot leak the stub into later tests.
+        onTestFinished(() => random.mockRestore());
         let fourthCheck!: () => void;
         const reachedFourthCheck = new Promise<void>(resolve => fourthCheck = resolve);
         const checks = vi.fn(() => { if (checks.mock.calls.length === 4) fourthCheck(); });
@@ -242,17 +244,13 @@ describe('ChronicleConnection authentication', () => {
         clients.push(client);
         let settled = false;
         const pending = client.getEventStores().then(() => undefined, error => error as Error).finally(() => settled = true);
-        try {
-            // Wait for the fourth attempt itself rather than a wall-clock window; a credential
-            // rejection would stop after three attempts and settle the call instead.
-            await Promise.race([reachedFourthCheck, pending]);
-            expect(settled).toBe(false);
-            expect(checks.mock.calls.length).toBeGreaterThanOrEqual(4);
-            client.dispose();
-            expect((await pending).message).toMatch(/disposed/);
-        } finally {
-            random.mockRestore();
-        }
+        // Wait for the fourth attempt itself rather than a wall-clock window; a credential
+        // rejection would stop after three attempts and settle the call instead.
+        await Promise.race([reachedFourthCheck, pending]);
+        expect(settled).toBe(false);
+        expect(checks.mock.calls.length).toBeGreaterThanOrEqual(4);
+        client.dispose();
+        expect((await pending).message).toMatch(/disposed/);
     }, 15000);
 
     it('rejects an API key after three unauthenticated kernel responses', async () => {
