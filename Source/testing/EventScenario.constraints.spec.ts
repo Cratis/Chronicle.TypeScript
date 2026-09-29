@@ -367,7 +367,7 @@ describe('fixture-backed unscoped constraints', () => {
         scoped(builder => builder.perEventStreamType().unique(key => key.on(OracleKeyClaimed, event => event.key)));
         scoped(builder => builder.perEventSourceType().unique(key => key.on(OracleKeyClaimed, event => event.key)));
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key, event => event.key)));
-        scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key).ignoreCasing()));
+        scoped(builder => builder.perEventStreamId().unique(key => key.on(OracleKeyClaimed, event => event.key).ignoreCasing()));
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key))
             .uniqueFor(OracleOnceRecorded));
         class AnotherOnce { @field(String) label = 'second'; }

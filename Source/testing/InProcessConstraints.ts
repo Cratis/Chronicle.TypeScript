@@ -26,6 +26,29 @@ function keyHash(value: string): string {
     return createHash('sha256').update(value).digest('hex');
 }
 
+type UniqueCapture = NonNullable<ConstraintCapture['uniqueConstraint']>;
+type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
+
+/**
+ * The kernel key: each declared property's string in declared order, joined with a literal '-'
+ * (UniqueConstraintDefinitionExtensions.GetPropertiesAndValues/GetValue at Chronicle 8fe5d30). Not a tuple:
+ * ['a-b', 'c'] and ['a', 'b-c'] claim the same key, as constraints-composite.json captures.
+ */
+function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, content: Record<string, unknown>): Claim | undefined {
+    const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === eventTypeId)?.properties;
+    if (properties === undefined) return undefined;
+    const parts = properties.map(property => ({ property, raw: kernelKeyString(content[property], name) }));
+    const joined = parts.map(part => part.raw).join('-');
+    if (!unique.ignoreCasing) return { key: keyHash(joined), parts };
+    // The kernel applies .NET ToLowerInvariant to the joined value. constraints-ignore-casing.json proves
+    // only the ASCII key domain, where that is exactly A-Z to a-z; host Unicode case tables are not used.
+    if (!/^[\x20-\x7e]*$/.test(joined)) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Case-insensitive keys outside the ASCII key domain are not fixture-backed.');
+    }
+    return { key: keyHash(joined.replace(/[A-Z]/g, letter => String.fromCharCode(letter.charCodeAt(0) + 32))), parts };
+}
+
 /** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
     private readonly _constrainedProperties = new Map<string, Set<string>>();
@@ -44,10 +67,13 @@ export class InProcessConstraints {
             }
             if (capture.uniqueConstraint) {
                 const unique = capture.uniqueConstraint;
-                if (unique.ignoreCasing || unique.eventDefinitions.length === 0 ||
-                    unique.eventDefinitions.some(entry => entry.properties.length !== 1 ||
-                        !/^[a-z][a-zA-Z0-9]*$/.test(entry.properties[0]))) {
-                    throw this.unsupported(name, 'Case folding and composite or nested keys are not fixture-backed.');
+                // constraints-composite.json installs one, two and three flat properties per event type.
+                // The kernel keys properties by path with ToDictionary, so duplicate paths are not a key shape.
+                if (unique.eventDefinitions.length === 0 || unique.eventDefinitions.some(entry =>
+                    entry.properties.length < 1 || entry.properties.length > 3 ||
+                    new Set(entry.properties).size !== entry.properties.length ||
+                    entry.properties.some(property => !/^[a-z][a-zA-Z0-9]*$/.test(property)))) {
+                    throw this.unsupported(name, 'Only one to three distinct flat properties per event type are fixture-backed; nested, indexed or repeated key paths are not.');
                 }
                 for (const id of [unique.removedWithEventTypeId, ...(unique.removedWithEventTypeIds ?? [])]) {
                     if (id === undefined) continue;
@@ -61,7 +87,7 @@ export class InProcessConstraints {
                 }
                 for (const entry of unique.eventDefinitions) {
                     const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();
-                    properties.add(entry.properties[0]);
+                    entry.properties.forEach(property => properties.add(property));
                     this._constrainedProperties.set(entry.eventTypeId, properties);
                 }
             } else if (capture.uniqueEventType) {
@@ -132,11 +158,12 @@ export class InProcessConstraints {
                     claims.delete(source);
                     continue;
                 }
-                const property = unique.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties[0];
-                if (property === undefined) continue;
-                const value = prior.content[property];
-                if (typeof value !== 'string' && typeof value !== 'boolean') throw this.unsupported(name, 'History has an unproven key.');
-                claims.set(source, { key: keyHash(kernelKeyString(value, name)),
+                const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties;
+                if (properties === undefined) continue;
+                if (properties.some(property => !['string', 'boolean'].includes(typeof prior.content[property]))) {
+                    throw this.unsupported(name, 'History has an unproven key.');
+                }
+                claims.set(source, { key: claimOf(name, unique, type, prior.content)!.key,
                     sequence: prior.context.sequenceNumber.toString() });
             }
             owners.set(name, claims);
@@ -148,19 +175,21 @@ export class InProcessConstraints {
             const source = event.context.eventSourceId;
             const violationCount = violations.length;
             for (const [name, definition] of this._definitions) {
-                const property = definition.uniqueConstraint?.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties[0];
-                if (property !== undefined) {
-                    const raw = kernelKeyString(event.content[property], name);
-                    const key = keyHash(raw);
+                const claim = definition.uniqueConstraint && claimOf(name, definition.uniqueConstraint, type, event.content);
+                if (claim) {
+                    const key = claim.key;
                     const existing = [...owners.get(name)!.entries()].find(([, claim]) => claim.key === key);
                     const batchClaims = stagedKeys.get(name) ?? new Map<string, string>();
                     const batchOwner = batchClaims.get(key);
                     if (existing && existing[0] !== source || batchOwner !== undefined && batchOwner !== source) {
-                        const details = { PropertyName: property, PropertyValue: raw };
-                        violations.push({ EventTypeId: type, SequenceNumber: BigInt(existing?.[1].sequence ?? unavailable), ConstraintType: 1,
-                            ConstraintName: name,
-                            Message: `Event '${type}' on member '${property}' violated a unique constraint on sequence number ${existing?.[1].sequence ?? unavailable}`,
-                            Details: details });
+                        // One violation per declared property, in declared order, each with its own original value.
+                        const sequence = existing?.[1].sequence ?? unavailable;
+                        for (const { property, raw } of claim.parts) {
+                            violations.push({ EventTypeId: type, SequenceNumber: BigInt(sequence), ConstraintType: 1,
+                                ConstraintName: name,
+                                Message: `Event '${type}' on member '${property}' violated a unique constraint on sequence number ${sequence}`,
+                                Details: { PropertyName: property, PropertyValue: raw } });
+                        }
                     } else {
                         batchClaims.set(key, source);
                         stagedKeys.set(name, batchClaims);
