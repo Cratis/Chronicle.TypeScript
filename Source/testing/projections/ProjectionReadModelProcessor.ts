@@ -146,9 +146,9 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         }
         const item = index >= 0 ? collection[index] : { [child.identifiedBy]: identity };
         if (index < 0) collection.push(item);
-        const explicit = Object.fromEntries(Object.entries(child.from.Value.Properties ?? {}).filter(([name]) => name !== child.identifiedBy));
+        // Validation admits only the identifier mapping explicitly; other fields come from same-name AutoMap.
         // Kernel AutoMap is schema-driven: an untyped child item schema maps nothing (children-untyped-items).
-        const properties = child.items.properties ? this.withAutoMap(explicit, eventSchema, child.items, [child.identifiedBy]) : explicit;
+        const properties = child.items.properties ? this.withAutoMap({}, eventSchema, child.items, [child.identifiedBy]) : {};
         this.apply(properties, content, event, child.items, item);
     }
 

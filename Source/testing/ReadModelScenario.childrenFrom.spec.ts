@@ -53,9 +53,9 @@ describe('when a read model scenario evaluates keyed children from the options f
         order!.items.map(item => ({ id: item.id, name: item.name })).should.deep.equal([{ id: 'a', name: '' }, { id: 'b', name: '' }]);
     });
 
-    it('should reject child mappings into an untyped child item schema', () => {
+    it('should reject explicit child property mappings', () => {
         (() => new ReadModelScenario(ScenarioNamedOrder, artifacts))
             .should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('Children.items').and.includes('mappings into an untyped child item schema');
+            .with.property('message').that.includes('Children.items').and.includes('explicit child property mappings');
     });
 });

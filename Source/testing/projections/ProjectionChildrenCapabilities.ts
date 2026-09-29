@@ -17,6 +17,7 @@ export type CheckMapping = (modelSchema: JsonSchema, eventSchema: JsonSchema, de
 export interface ChildrenValidationContext {
     readonly schema: JsonSchema;
     readonly rootAutoMap: AutoMap;
+    readonly hasInitialModelState: boolean;
     readonly from: readonly FromRecord[];
     readonly removedWith: readonly RemovedWithRecord[];
     readonly declarationFor: (path: string) => string | undefined;
@@ -38,6 +39,9 @@ export class ProjectionChildrenCapabilities {
      * @param context - Shared root validation state.
      */
     static validate(children: Record<string, ChildrenDefinitionLike>, context: ChildrenValidationContext): void {
+        if (Object.keys(children).length && context.hasInitialModelState) {
+            context.reject('InitialModelState', `children with initial model state ${kernelBacked}`);
+        }
         const owners = new Map<string, string>();
         for (const [property, child] of Object.entries(children)) {
             const base = `Children.${property}`;
@@ -97,8 +101,7 @@ export class ProjectionChildrenCapabilities {
                         if (expression !== entry.Value.Key) reject(mappingPath, `mapping the child identifier from anything but the child key ${kernelBacked}`);
                         continue;
                     }
-                    if (!typed) reject(mappingPath, `mappings into an untyped child item schema ${kernelBacked}; declare the child's fields`);
-                    context.checkMapping(items!, eventSchema, destination, expression, mappingPath);
+                    reject(mappingPath, `explicit child property mappings (renames, event context, constants, nulls) ${kernelBacked}; only same-name AutoMap into typed children is supported`);
                 }
                 if (!typed) continue;
                 for (const destination of Object.keys(items!.properties ?? {})) {

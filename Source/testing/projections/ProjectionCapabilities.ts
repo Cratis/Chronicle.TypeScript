@@ -112,7 +112,7 @@ export class ProjectionCapabilities {
             }
         }
         ProjectionChildrenCapabilities.validate(wire.Children as Record<string, ChildrenDefinitionLike> ?? {}, {
-            schema: schema!, rootAutoMap: wire.AutoMap as AutoMap, from, removedWith, requireEventSchema, reject,
+            schema: schema!, rootAutoMap: wire.AutoMap as AutoMap, hasInitialModelState: Object.keys(initial as object).length > 0, from, removedWith, requireEventSchema, reject,
             declarationFor: path => provenance.find(entry => entry.contractPath === path)?.declaration,
             checkMapping: (modelSchema, eventSchema, destination, expression, path) =>
                 this.checkMapping(modelSchema, eventSchema, destination, expression, path, reject)
