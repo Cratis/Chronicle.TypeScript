@@ -27,6 +27,18 @@ Non-ASCII keys under `ignoreCasing` stay rejected by design: the scenario mainta
 
 Fieldless schemas are fixture-backed only for unique-property removal-only events. These are constrained-key rules, not a relaxation of the scenario's general event-content domain. The oracle captures accepted event content/hashes as well as raw violations and mapped results; failed single and batch operations leave history and the next sequence unchanged.
 
+## Concurrent appends
+
+The kernel checks and claims unique values one append at a time per event sequence and namespace, so racing writers cannot both win. This holds whether the appends come from parallel promises on one client or from separate clients:
+
+- When several appends claim the same unique value at the same time, exactly one succeeds. Each of the others returns `isSuccess: false` with one `constraintViolations` entry whose `constraintId` is the constraint name and whose `message` is the configured message.
+- An event source may claim its own value again. Only a different event source is rejected.
+- A batch from `appendMany` is all or nothing. If any event in it violates a constraint, including two event sources in the same batch claiming one value, no event from the batch is committed.
+- Namespaces keep separate constraint indexes, so the same value can be claimed once in each namespace.
+- After a removal event releases a value, the next claim succeeds. If several claims race for the released value, exactly one wins.
+
+The kernel-backed specification `when_appending_unique_values_concurrently.integration.spec.ts` checks these guarantees. Run it with `yarn test:integration` from `Source/`, with `CHRONICLE_INTEGRATION_CONNECTION_STRING` set to a running kernel.
+
 ## TypeScript client notes
 
 - `@unique(name?, message?)` on an event property prevents another event source from claiming the same value. On an event class, it allows one occurrence of that event type per event source. Without a name, a property constraint uses the property name and a class constraint uses the class name.

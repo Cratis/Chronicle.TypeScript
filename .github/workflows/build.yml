@@ -64,3 +64,15 @@ jobs:
       - name: Test JS/TS
         working-directory: ./Source
         run: yarn test
+
+      # Kernel-backed specifications (*.integration.spec.ts) skip themselves without a kernel, so start one here.
+      - name: Start Chronicle kernel
+        run: |
+          docker run -d --name chronicle -p 35000:35000 cratis/chronicle:19.22.1-development
+          timeout 180 sh -c 'until docker logs chronicle 2>&1 | grep -q "ready and listening"; do sleep 2; done'
+
+      - name: Integration test JS/TS
+        working-directory: ./Source
+        env:
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
+        run: yarn test:integration

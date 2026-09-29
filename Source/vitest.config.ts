@@ -23,7 +23,8 @@ export default defineConfig({
     }],
     test: {
         include: ['**/*.spec.ts', '**/*.spec.js'],
-        exclude: ['node_modules', 'dist'],
+        // Kernel-backed specifications run through vitest.integration.config.ts.
+        exclude: ['node_modules', 'dist', '**/*.integration.spec.ts'],
         environment: 'node'
     }
 });
