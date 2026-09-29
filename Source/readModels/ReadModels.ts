@@ -29,6 +29,7 @@ import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import { MaterializedReadModels } from './MaterializedReadModels.js';
 import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
 import { deserializeReadModel } from './deserializeReadModel.js';
+import type { ReadModelNamingPolicy } from './ReadModelNamingPolicy.js';
 import type { IReadModels } from './IReadModels.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
@@ -58,7 +59,8 @@ export class ReadModels implements IReadModels {
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _defaultSinkTypeId: string,
-        private readonly _isModelBoundProjectionRegistered?: (readModelType: Constructor) => boolean
+        private readonly _isModelBoundProjectionRegistered?: (readModelType: Constructor) => boolean,
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {
         this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
     }
@@ -349,7 +351,8 @@ export class ReadModels implements IReadModels {
             // None sink and the kernel resolves them via immediate projection instead of an empty sink.
             sinkTypeId: readModel.isActive ? this._defaultSinkTypeId : WellKnownSinks.None,
             observerType: readModel.observerType,
-            observerIdentifier: readModel.observerIdentifier
+            observerIdentifier: readModel.observerIdentifier,
+            namingPolicy: this._readModelNamingPolicy
         });
     }
 

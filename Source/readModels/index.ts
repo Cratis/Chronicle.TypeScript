@@ -10,5 +10,6 @@ export { MaterializedReadModels } from './MaterializedReadModels.js';
 export { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
 export type { ReadModelChangeset } from './ReadModelChangeset.js';
 export type { ReadModelSnapshot } from './ReadModelSnapshot.js';
+export type { ReadModelNamingPolicy } from './ReadModelNamingPolicy.js';
 export { readModel, getReadModelMetadata, isReadModel } from './readModel.js';
 export type { ReadModelMetadata } from './readModel.js';

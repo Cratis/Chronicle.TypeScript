@@ -6,6 +6,7 @@ import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
+import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
 
 type ChronicleOptionsConstructorParams = {
     connectionString: ChronicleConnectionString;
@@ -17,6 +18,7 @@ type ChronicleOptionsConstructorParams = {
     defaultSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
+    readModelNamingPolicy?: ReadModelNamingPolicy;
 };
 
 type ChronicleOptionsFactoryParams = {
@@ -25,6 +27,7 @@ type ChronicleOptionsFactoryParams = {
     defaultSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
+    readModelNamingPolicy?: ReadModelNamingPolicy;
 };
 
 /**
@@ -79,6 +82,14 @@ export class ChronicleOptions {
     /** Optional per-delivery reactor/reducer activator; absent means one instance per observation stream. */
     readonly artifactActivator?: ClientArtifactsActivator;
 
+    /**
+     * Optional policy that names the container (collection, table, or file) each read model is stored in.
+     * It changes only the container name sent at registration; read model identifiers are unchanged.
+     * Absent means the container is named by the read model identifier. Arc's MongoDB integration
+     * reads collections through its own naming policy, so supply a policy that yields the same names.
+     */
+    readonly readModelNamingPolicy?: ReadModelNamingPolicy;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -89,6 +100,7 @@ export class ChronicleOptions {
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
+        this.readModelNamingPolicy = options.readModelNamingPolicy;
     }
 
     private static defaultDiscoveryPatterns(): string[] {
@@ -131,7 +143,8 @@ export class ChronicleOptions {
             discoveryPatterns: options?.discoveryPatterns,
             defaultSinkTypeId: options?.defaultSinkTypeId,
             reactorResultHandler: options?.reactorResultHandler,
-            artifactActivator: options?.artifactActivator
+            artifactActivator: options?.artifactActivator,
+            readModelNamingPolicy: options?.readModelNamingPolicy
         });
     }
 
