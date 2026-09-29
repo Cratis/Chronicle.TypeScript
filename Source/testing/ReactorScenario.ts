@@ -140,6 +140,8 @@ export class ReactorScenario {
     get produced(): readonly unknown[] { return Object.freeze(this._effects.map(effect => effect.value)); }
     get sideEffects(): readonly RecordedReactorSideEffect[] { return Object.freeze([...this._effects]); }
     get results(): readonly ReactorDeliveryResult[] { return Object.freeze([...this._results]); }
+    /** Committed input and explicit service appends; recorded returned effects are not part of this history. */
+    get appendedEvents(): readonly AppendedEvent[] { return this._events.appendedEvents; }
     /** Assertion view, deliberately not a callable Promise-like `then`. */
     get then(): { readonly produced: readonly unknown[]; readonly sideEffects: readonly RecordedReactorSideEffect[];
         readonly results: readonly ReactorDeliveryResult[] } {
