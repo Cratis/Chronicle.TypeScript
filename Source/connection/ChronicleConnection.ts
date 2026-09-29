@@ -35,6 +35,7 @@ import { EventStoreSubscriptionsDefinition } from '../eventStoreSubscriptions/co
 import { ChronicleConnectionString, type ChronicleServerAddress } from './ChronicleConnectionString.js';
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
 import { ChronicleServices } from './ChronicleServices.js';
+import './encodeExplicitFalse.js';
 import { CompatibilityPreflight } from './CompatibilityPreflight.js';
 import { formatServerAddress } from './formatServerAddress.js';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
