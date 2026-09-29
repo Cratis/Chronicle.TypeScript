@@ -19,6 +19,7 @@ import { ReducerEventDispatcher } from './ReducerEventDispatcher.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
+import type { ReadModelNamingPolicy } from '../readModels/ReadModelNamingPolicy.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import type { IEventStore } from '../IEventStore.js';
@@ -117,6 +118,9 @@ export class Reducers implements IReducers {
      * @param _namespace - The namespace within the event store.
      * @param lifecycle - The connection lifecycle used to react to disconnect events.
      * @param _defaultSinkTypeId - The default sink type identifier used when registering read models.
+     * @param _eventStore - The event store handed to reducers that request it.
+     * @param _artifactActivator - Optional per-delivery activator.
+     * @param _readModelNamingPolicy - Optional policy naming the container of each read model.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
@@ -126,7 +130,8 @@ export class Reducers implements IReducers {
         lifecycle: ConnectionLifecycle,
         private readonly _defaultSinkTypeId: string,
         private readonly _eventStore?: IEventStore,
-        private readonly _artifactActivator?: ClientArtifactsActivator
+        private readonly _artifactActivator?: ClientArtifactsActivator,
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
@@ -190,7 +195,8 @@ export class Reducers implements IReducers {
                 schema: this.getReducerSchema(reducerType, readModelName),
                 sinkTypeId: this._defaultSinkTypeId,
                 observerType: ReadModelObserverType.Reducer,
-                observerIdentifier: id
+                observerIdentifier: id,
+                namingPolicy: this._readModelNamingPolicy
             });
         });
 

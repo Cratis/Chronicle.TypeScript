@@ -12,6 +12,7 @@ import { JobId } from '../jobs/JobId.js';
 import { FailedPartition } from '../observation/FailedPartition.js';
 import { FailedPartitions } from '../observation/FailedPartitions.js';
 import { toObserverRunningState } from '../observation/toObserverRunningState.js';
+import type { ReadModelNamingPolicy } from '../readModels/ReadModelNamingPolicy.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { assertUniqueReadModelIds } from '../readModels/assertUniqueReadModelIds.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
@@ -44,13 +45,15 @@ export class Projections implements IProjections {
      * @param _connection - Chronicle connection.
      * @param _clientArtifacts - Provider for discovered client artifact types.
      * @param _defaultSinkTypeId - The identifier of the default read model sink.
+     * @param _readModelNamingPolicy - Optional policy naming the container of each read model.
      */
     constructor(
         private readonly _eventStore: string,
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {
         this._failedPartitions = new FailedPartitions(_eventStore, _namespace, _connection);
     }
@@ -104,7 +107,7 @@ export class Projections implements IProjections {
             .map(type => getProjectionMetadata(type)?.readModelType)
             .filter((type): type is Constructor => type !== undefined);
         assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred]);
-        const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId)
+        const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
             .compile(this._declarative.values(), this._modelBound.values());
         const projections = compiled.definitions;
 

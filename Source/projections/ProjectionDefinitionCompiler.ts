@@ -9,6 +9,7 @@ import { getEventTypeFor, getEventTypeJsonSchemaFor } from '../events/eventTypeD
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
+import type { ReadModelNamingPolicy } from '../readModels/ReadModelNamingPolicy.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
@@ -64,10 +65,12 @@ export class ProjectionDefinitionCompiler {
     /**
      * @param _clientArtifacts - Discovered artifact types used to resolve schemas, variants, and read models.
      * @param _defaultSinkTypeId - Sink identifier for active read models.
+     * @param _readModelNamingPolicy - Optional policy naming the container of each read model.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {}
 
     /**
@@ -178,7 +181,8 @@ export class ProjectionDefinitionCompiler {
                 // resolving the instance by key instead of reading an empty sink and returning null.
                 sinkTypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId,
                 observerType: ReadModelObserverType.Projection,
-                observerIdentifier: projection.Identifier
+                observerIdentifier: projection.Identifier,
+                namingPolicy: this._readModelNamingPolicy
             }));
         }
         return Array.from(byReadModel.values());
