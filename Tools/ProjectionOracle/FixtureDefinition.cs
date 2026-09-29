@@ -10,6 +10,7 @@ using ContractEventType = KernelContracts::Cratis.Chronicle.Contracts.Events.Eve
 using ContractFrom = KernelContracts::Cratis.Chronicle.Contracts.Projections.FromDefinition;
 using ContractRemoval = KernelContracts::Cratis.Chronicle.Contracts.Projections.RemovedWithDefinition;
 using ContractDefinition = KernelContracts::Cratis.Chronicle.Contracts.Projections.ProjectionDefinition;
+using ContractChildren = KernelContracts::Cratis.Chronicle.Contracts.Projections.ChildrenDefinition;
 
 namespace ProjectionOracle;
 
@@ -54,7 +55,14 @@ internal static class FixtureDefinition
         {
             throw new NotSupportedException("Oracle fixtures support root-level projections only.");
         }
-        foreach (var name in new[] { "Join", "Children", "FromEvery", "RemovedWithJoin", "Nested" })
+        if (node["Children"] is JsonObject children)
+        {
+            foreach (var (property, child) in children)
+            {
+                definition.Children.Add(property, ReadChildren(child!.AsObject()));
+            }
+        }
+        foreach (var name in new[] { "Join", "FromEvery", "RemovedWithJoin", "Nested" })
         {
             if (node[name] is JsonArray array && array.Count != 0 || node[name] is JsonObject map && map.Count != 0)
             {
@@ -71,6 +79,44 @@ internal static class FixtureDefinition
             throw new NotSupportedException("Oracle fixture has unsupported All, FromEventProperty, SubscribesToAllEvents or LastUpdated operation.");
         }
         return definition;
+    }
+
+    /// <summary>
+    /// Reads one level of children (From and RemovedWith only); every other child operation fails closed.
+    /// </summary>
+    static ContractChildren ReadChildren(JsonObject node)
+    {
+        Only(node, "IdentifiedBy", "From", "Join", "Children", "All", "FromEventProperty", "RemovedWith",
+            "RemovedWithJoin", "AutoMap", "Nested", "NoAutoMapProperties");
+        var children = new ContractChildren
+        {
+            IdentifiedBy = node["IdentifiedBy"]!.GetValue<string>(),
+            AutoMap = (KernelContracts::Cratis.Chronicle.Contracts.Projections.AutoMap)node["AutoMap"]!.GetValue<int>(),
+            NoAutoMapProperties = node["NoAutoMapProperties"]?.AsArray().Select(item => item!.GetValue<string>()).ToList() ?? []
+        };
+        foreach (var entry in node["From"]!.AsArray())
+        {
+            Only(entry!.AsObject(), "Key", "Value");
+            children.From.Add(entry["Key"]!.Deserialize<ContractEventType>(_strict)!, entry["Value"]!.Deserialize<ContractFrom>(_strict)!);
+        }
+        foreach (var entry in node["RemovedWith"]!.AsArray())
+        {
+            Only(entry!.AsObject(), "Key", "Value");
+            children.RemovedWith.Add(entry["Key"]!.Deserialize<ContractEventType>(_strict)!, entry["Value"]!.Deserialize<ContractRemoval>(_strict)!);
+        }
+        foreach (var name in new[] { "Join", "Children", "RemovedWithJoin", "Nested" })
+        {
+            if (node[name] is JsonArray array && array.Count != 0 || node[name] is JsonObject map && map.Count != 0)
+            {
+                throw new NotSupportedException($"Oracle fixture contains unsupported child {name} operation.");
+            }
+        }
+        if (node["All"] is JsonObject all && (all["Properties"] is JsonObject properties && properties.Count != 0 ||
+            all["IncludeChildren"]?.GetValue<bool>() == true || all["AutoMap"]?.GetValue<int>() != 0) || node["FromEventProperty"] is not null)
+        {
+            throw new NotSupportedException("Oracle fixture has unsupported child All or FromEventProperty operation.");
+        }
+        return children;
     }
 
     static void Only(JsonObject node, params string[] fields)
