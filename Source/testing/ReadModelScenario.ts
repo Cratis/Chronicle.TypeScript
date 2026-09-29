@@ -23,6 +23,8 @@ import type { IReadModelProcessor } from './IReadModelProcessor.js';
 import type { ReadModelState } from './ReadModelState.js';
 import { ReducerReadModelProcessor } from './ReducerReadModelProcessor.js';
 import type { ScenarioEvent } from './ScenarioEvent.js';
+import type { EventScenario } from './EventScenario.js';
+import type { ReactorScenario } from './ReactorScenario.js';
 import { ProjectionReadModelProcessor } from './projections/ProjectionReadModelProcessor.js';
 import { UnsupportedProjectionOperation } from './projections/UnsupportedProjectionOperation.js';
 
@@ -39,6 +41,7 @@ export class ReadModelScenario<TReadModel extends object> {
     private readonly _modelName: string;
     private readonly _events: ScenarioEvent[] = [];
     private _results: Promise<Map<string, ReadModelState<TReadModel>>> | undefined;
+    private _observed: EventScenario | ReactorScenario | undefined;
 
     /** Selects the reducer (when present) or a single applicable compiled projection. */
     constructor(readModelType: Constructor<TReadModel>, artifacts?: ScenarioArtifacts) {
@@ -109,8 +112,20 @@ export class ReadModelScenario<TReadModel extends object> {
         return (await this.process()).get(id)?.deleted ?? false;
     }
 
+    /**
+     * Reads the committed history of an EventScenario or ReactorScenario instead of seeded events.
+     * Every read replays that shared sequence as it is at the time of the read.
+     */
+    observe(source: EventScenario | ReactorScenario): this {
+        if (this._observed || this._events.length) throw this.mixedHistory();
+        this._observed = source;
+        this._results = undefined;
+        return this;
+    }
+
     /** Collects events for a source; subsequent reads replay the complete seeded history. */
     collectEventsFor(id: string, events: readonly object[]): void {
+        if (this._observed) throw this.mixedHistory();
         for (const event of events) {
             const metadata = getEventTypeMetadata(event.constructor);
             if (!metadata) throw new Error(`Event '${event.constructor.name}' has no @eventType metadata.`);
@@ -139,13 +154,32 @@ export class ReadModelScenario<TReadModel extends object> {
     }
 
     private process(): Promise<Map<string, ReadModelState<TReadModel>>> {
-        if (!this._results) {
-            const events = [...this._events];
-            this._results = this._processor.process(events).catch(error => {
-                if (!(this._processor instanceof ProjectionReadModelProcessor) || error instanceof UnsupportedProjectionOperation) throw error;
-                throw new Error(`Projection replay for read model '${this._modelName}' failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
-            });
-        }
+        if (this._observed) return this.replay(this.observedEvents(this._observed));
+        this._results ??= this.replay([...this._events]);
         return this._results;
+    }
+
+    private replay(events: ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
+        return this._processor.process(events).catch(error => {
+            if (!(this._processor instanceof ProjectionReadModelProcessor) || error instanceof UnsupportedProjectionOperation) throw error;
+            throw new Error(`Projection replay for read model '${this._modelName}' failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+        });
+    }
+
+    private observedEvents(source: EventScenario | ReactorScenario): ScenarioEvent[] {
+        return source.appendedEvents.map(event => {
+            const { eventSourceType = 'Default', eventStreamType = 'All', eventStreamId = 'Default' } = event.context;
+            // No fixture establishes how the evaluator should treat an explicitly routed event; the kernel decides.
+            if (eventSourceType !== 'Default' || eventStreamType !== 'All' || eventStreamId !== 'Default') {
+                throw new UnsupportedProjectionOperation(this._modelName, 'observe', `${eventSourceType}/${eventStreamType}/${eventStreamId}`,
+                    'observed events must use the default event source type and stream; routed events require a kernel-backed test');
+            }
+            return { sourceId: event.context.eventSourceId, content: event.content, context: event.context };
+        });
+    }
+
+    private mixedHistory(): UnsupportedProjectionOperation {
+        return new UnsupportedProjectionOperation(this._modelName, 'observe', 'given.events',
+            'a scenario replays either its own seeded events or one observed event sequence, not both');
     }
 }
