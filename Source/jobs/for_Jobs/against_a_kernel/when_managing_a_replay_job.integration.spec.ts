@@ -84,7 +84,12 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
 
         listed = await store.jobs.getJobs();
         stopped = await eventually(() => store.jobs.getJob(jobId), _ => _?.Status === JobStatus.JOB_STATUS_Stopped);
-        steps = await store.jobs.getJobSteps(jobId);
+
+        // The job reports Stopped as soon as it stops accepting further work; individual steps settle into
+        // their own Stopped status shortly after, so wait for the steps rather than assuming they are already consistent.
+        steps = await eventually(
+            () => store.jobs.getJobSteps(jobId),
+            _ => _.length > 0 && _.every(step => step.Status === JobStepStatus.JOB_STEP_STATUS_Stopped));
 
         await store.jobs.delete(jobId);
         afterDelete = await eventually(() => store.jobs.getJob(jobId), _ => _ === undefined);
