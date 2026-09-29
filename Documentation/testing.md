@@ -94,6 +94,8 @@ For the mixed-source overload, per-entry source/stream routing, subject, occurre
 | Composites | Folding applies across the whole joined key, so `['Ab-C', 'd']` and `['ab', 'c-D']` collide; `['AB', 'C-E']` does not. |
 | Still rejected | Any non-ASCII character (including `é`, which case-sensitive keys accept), because the pinned fixtures do not establish the kernel's Unicode lowercasing and host JavaScript case tables are not a substitute; boolean keys under `ignoreCasing`; `@unique` merged with a case-insensitive fluent definition (a compiler conflict). Use a kernel-backed test. |
 
+Rejecting non-ASCII keys under `ignoreCasing` is a deliberate, permanent default, not a pending gap: the scenario maintains no Unicode case mapping of its own, so it cannot drift from the kernel's. Test non-ASCII case-insensitive keys against a kernel.
+
 | Unique event type cycle | In-process support |
 | --- | --- |
 | Definition shapes | Exactly the two pinned shapes, each as the **only** definition in the scenario: two covered types with two separate removers (`constraints-event-type-siblings.json`), or three covered types with three removers where one covered type is also a remover (`constraints-event-type-cycles.json`). Same-named class-level `@unique` or fluent `uniqueFor` declarations compile to one definition; removers use `@removeConstraint('Name')` and must have at least one field. |
@@ -194,3 +196,38 @@ Without a reducer, `ReadModelScenario` compiles the same model-bound or declarat
 A subscribed event materializes an identifier-only model even if it changes no mapped properties. Missing content resolves to null but does not add an absent null-valued member; `$null` clears a previously populated member. Public reads omit null fields and apply the kernel's schema defaults (zero, false, empty GUID, and minimum date-time) to missing non-nullable scalar fields; supported non-empty scalar initial state is schema-converted before mappings run; object-shaped initial values are rejected until fixture-backed. The in-memory sink's typed key populates lowercase `id`; phase 1 rejects mappings that write that sink-managed property. A seeded event with the same ID but a different generation from the subscribed event is rejected before replay. Identifiers whose text would canonicalize to a different key (for example `01` as a numeric key or mixed-case GUID text) are rejected to avoid merging distinct sources.
 
 The flat evaluator is checked against committed, per-step fixtures from the pinned production Chronicle projection pipeline (`Source/testing/projections/fixtures/`); `kind: oracleGuard` describes kernel behavior outside the narrowed phase-1 surface (or oracle safety boundaries): the evaluator must reject these fixtures rather than reproduce their kernel snapshots. Failing oracle fixtures also assert the pinned kernel's expected error. Run `yarn oracle:check` to detect drift and use the oracle's update mode only when reviewing changes to the pinned kernel. A green in-process scenario is **not** evidence for persisted reads, observer scheduling, event migrations, compliance encryption, storage conversion, or advanced projection relationships. For broader projections, use ChronicleKernelScenario or a live-kernel test rather than the in-process evaluator.
+
+## Composing scenarios: read models over a shared event sequence
+
+`ReadModelScenario.observe(source)` makes a read-model scenario read the committed history of an `EventScenario` or a `ReactorScenario` instead of its own seeded events. Nothing is copied: every read (`instance`, `instanceForEventSourceId`, `wasDeletedForEventSourceId`) replays the source's accepted history as it is at that moment, through the same reducer or validated projection that seeded events use. Append with the event scenario, then read the resulting models:
+
+```typescript
+import { field } from '@cratis/fundamentals';
+import { eventType, fromEvent } from '@cratis/chronicle';
+import { EventScenario, ReadModelScenario } from '@cratis/chronicle/testing';
+
+@eventType()
+class TestingCompositionAuthorRegistered {
+    @field(String) name: string;
+    constructor(name: string) { this.name = name; }
+}
+
+@fromEvent(TestingCompositionAuthorRegistered)
+class TestingCompositionAuthor {
+    @field(String) id = '';
+    @field(String) name = '';
+}
+
+const compositionEvents = new EventScenario({ artifacts: { eventTypes: [TestingCompositionAuthorRegistered] } });
+const compositionAuthors = new ReadModelScenario(TestingCompositionAuthor).observe(compositionEvents);
+
+await compositionEvents.given.forEventSource('author-1').events(new TestingCompositionAuthorRegistered('Ursula'));
+await compositionEvents.when.forEventSource('author-2').events(new TestingCompositionAuthorRegistered('Octavia'));
+
+const compositionAuthor = await compositionAuthors.instanceForEventSourceId('author-2');
+if (compositionAuthor?.name !== 'Octavia') throw new Error('Expected the appended author');
+```
+
+`ReactorScenario.appendedEvents` exposes the reactor's shared history: its `given`/`when` input events and any events a handler appends explicitly through `services.eventStore.eventLog`. A value a handler **returns** is recorded in `produced`/`sideEffects`, not appended, so it never reaches an observing read model; this matches the reactor section above. Observing is one-way and explicit. No observer is scheduled, and the read model does not feed back into the reactor.
+
+A scenario reads either its own seeded events or one observed sequence: calling `given...events` on an observing scenario, observing after seeding, or observing twice rejects with `UnsupportedProjectionOperation`. An observed event with a non-default event source type or stream (from the mixed-source `appendMany` overload) also rejects on read, because no fixture establishes how projections treat routed events. Rejected appends are not in the accepted history, so they never reach the read model. Every other rule in [Projection capabilities](#projection-capabilities) applies unchanged. Command recording and read-model snapshots taken from reactor services are not part of this composition; use a kernel-backed test for those.

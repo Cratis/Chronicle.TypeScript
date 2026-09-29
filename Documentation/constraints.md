@@ -23,6 +23,8 @@ Constraints are shared Chronicle behavior. The shared docs explain the consisten
 | Atomic batches | Validation checks the pre-batch index and earlier claims, without releasing property claims mid-batch. `[remove A, B claims A's key]` and `[A replaces its key, B claims A's old key]` still fail and commit nothing. A successful batch of two replacements by A commits both events but only the last value remains owned afterward. Separate successful appends can release and reclaim the old key. |
 | Still rejected | Numeric-valued or null/missing keys, unproven punctuation, Unicode or escaped strings, arrays, objects, dates, concepts, schema/value mismatches, non-ASCII or boolean keys under `ignoreCasing`, composites with non-string, repeated or more than three properties, and scopes. Use a kernel-backed test. |
 
+Non-ASCII keys under `ignoreCasing` stay rejected by design: the scenario maintains no Unicode case mapping, so it never approximates the kernel's lowercasing. Use a kernel-backed test for them.
+
 Fieldless schemas are fixture-backed only for unique-property removal-only events. These are constrained-key rules, not a relaxation of the scenario's general event-content domain. The oracle captures accepted event content/hashes as well as raw violations and mapped results; failed single and batch operations leave history and the next sequence unchanged.
 
 ## TypeScript client notes
