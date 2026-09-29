@@ -233,14 +233,20 @@ describe('ChronicleConnection authentication', () => {
 
     it('keeps retrying proxy 403 responses without an OAuth error code', async () => {
         const random = vi.spyOn(Math, 'random').mockReturnValue(0);
-        const checks = vi.fn();
+        let fourthCheck!: () => void;
+        const reachedFourthCheck = new Promise<void>(resolve => fourthCheck = resolve);
+        const checks = vi.fn(() => { if (checks.mock.calls.length === 4) fourthCheck(); });
         const port = await listenAuthenticated(checks);
         fetchToken.mockRejectedValue(new OAuthTokenHttpError(403, '<html>blocked</html>'));
         const client = new ChronicleClient(ChronicleOptions.fromConnectionString(`chronicle://user:secret@127.0.0.1:${port}?disableTls=true`, { discoveryPatterns: [] }));
         clients.push(client);
-        const pending = client.getEventStores().then(() => undefined, error => error as Error);
+        let settled = false;
+        const pending = client.getEventStores().then(() => undefined, error => error as Error).finally(() => settled = true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 3900));
+            // Wait for the fourth attempt itself rather than a wall-clock window; a credential
+            // rejection would stop after three attempts and settle the call instead.
+            await Promise.race([reachedFourthCheck, pending]);
+            expect(settled).toBe(false);
             expect(checks.mock.calls.length).toBeGreaterThanOrEqual(4);
             client.dispose();
             expect((await pending).message).toMatch(/disposed/);
