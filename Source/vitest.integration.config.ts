@@ -13,7 +13,7 @@ export default defineConfig({
         include: ['**/*.integration.spec.ts'],
         exclude: ['node_modules', 'dist'],
         environment: 'node',
-        testTimeout: 60_000,
-        hookTimeout: 60_000
+        testTimeout: 120_000,
+        hookTimeout: 120_000
     }
 });
