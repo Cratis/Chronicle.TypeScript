@@ -70,7 +70,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
             discoveryPatterns: [],
             clientArtifactsProvider: artifacts
         }));
-        store = await client.getEventStore(`JobsEndToEnd${randomUUID().replaceAll('-', '')}`);
+        store = await client.getEventStore(`Jobs${randomUUID().replaceAll('-', '').slice(0, 12)}`);
 
         // Enough events that the replay is still running when it is stopped; a stopped job stays until deleted,
         // where a completed one is removed and could not be listed reliably.
