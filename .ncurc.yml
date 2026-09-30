@@ -10,3 +10,4 @@ dep:
   - dev
   - peer
   - optional
+  - packageManager
