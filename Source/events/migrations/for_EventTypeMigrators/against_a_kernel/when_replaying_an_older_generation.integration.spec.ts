@@ -99,7 +99,7 @@ async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boole
 }
 
 describe.skipIf(!connectionString && !process.env.CI)('when replaying an older generation against a kernel', () => {
-    const eventStoreName = `MigrationReplay${randomUUID().replaceAll('-', '')}`;
+    const eventStoreName = `Migration${randomUUID().replaceAll('-', '').slice(0, 12)}`;
     const eventSourceId = randomUUID();
     let firstGenerationClient: ChronicleClient;
     let secondGenerationClient: ChronicleClient;
@@ -134,7 +134,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
 
         // Registering a second generation without a migration from the first is rejected.
         const missingMigrationClient = clientWith(artifactsWith({ eventTypes: [AuthorRegisteredV1, AuthorRegistered] }));
-        missingMigrationError = await missingMigrationClient.getEventStore(`MigrationReplayMissing${randomUUID().replaceAll('-', '')}`).catch((error: unknown) => error);
+        missingMigrationError = await missingMigrationClient.getEventStore(`Missing${randomUUID().replaceAll('-', '').slice(0, 12)}`).catch((error: unknown) => error);
         missingMigrationClient.dispose();
     });
 

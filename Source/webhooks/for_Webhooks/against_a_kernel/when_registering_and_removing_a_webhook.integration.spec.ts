@@ -62,7 +62,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when registering and remo
             discoveryPatterns: [],
             clientArtifactsProvider: artifacts
         }));
-        store = await client.getEventStore(`WebhooksEndToEnd${randomUUID().replaceAll('-', '')}`);
+        store = await client.getEventStore(`Webhooks${randomUUID().replaceAll('-', '').slice(0, 12)}`);
 
         await store.webhooks.register(webhookId, targetUrl, _ => _
             .withEventType(OrderShipped)

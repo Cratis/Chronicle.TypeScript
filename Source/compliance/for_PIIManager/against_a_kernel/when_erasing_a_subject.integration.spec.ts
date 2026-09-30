@@ -96,7 +96,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when erasing a subject ag
             discoveryPatterns: [],
             clientArtifactsProvider: artifacts
         }));
-        store = await client.getEventStore(`PiiEndToEnd${randomUUID().replaceAll('-', '')}`);
+        store = await client.getEventStore(`Pii${randomUUID().replaceAll('-', '').slice(0, 12)}`);
 
         // The event source is the registration; the explicit subject is the person the PII belongs to.
         appended = await store.eventLog.append(eventSourceId, Object.assign(new PersonRegistered(), { personId, name, department: 'Accounting' }), { subject: personId });
