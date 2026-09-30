@@ -7,8 +7,8 @@
     "commit": "8fe5d30"
   },
   "tsContracts": {
-    "version": "19.6.1",
-    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+    "version": "19.8.1",
+    "descriptorSha256": "c56d4fb2797c57aa1f21cec1a07b6f75c92d32cbd936c61872dfbb18cef85edb"
   },
   "definitionSource": "Verify the protected identifier reaches the kernel compliance boundary without mappings or initial values.",
   "wireDefinition": {
