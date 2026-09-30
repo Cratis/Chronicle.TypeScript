@@ -22,12 +22,12 @@ export class ComplianceReadModelsEmployeeRegistered {
     }
 }
 
-// Chronicle's projection pipeline carries PII lineage automatically from the source event
-// property into the read model - no @pii() is needed here even though `name` is a plain
-// string. It is still encrypted at rest because it came from a PII-marked event property.
+// The kernel encrypts a projected read model from the read model's own schema, so mark the
+// personal property with @pii() here as well. Without it, `name` is stored in plain text even
+// though it came from a PII-marked event property.
 @fromEvent(ComplianceReadModelsEmployeeRegistered)
 export class ComplianceReadModelsEmployee {
-    @field(String) name = '';
+    @pii() @field(String) name = '';
     @field(String) department = '';
 }
 ```

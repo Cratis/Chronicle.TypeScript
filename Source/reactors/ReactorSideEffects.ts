@@ -72,6 +72,26 @@ export async function appendReactorSideEffects(
         return noSideEffects;
     }
 
+    const events = normalizeReactorSideEffects(handlerResult, triggeringEventSourceId,
+        triggeringEventStreamType, triggeringEventStreamId);
+    if (events.length === 0) {
+        return noSideEffects;
+    }
+
+    const results = await eventLog.appendMany(events);
+    const errors = results
+        .filter(result => !result.isSuccess)
+        .flatMap(result => [
+            ...result.constraintViolations.map(violation => violation.message),
+            ...result.errors.map(error => error.message)
+        ]);
+
+    return { isSuccess: errors.length === 0, errors };
+}
+
+/** Production return-shape normalization; unknown values are ignored by production dispatch. */
+export function normalizeReactorSideEffects(handlerResult: unknown, triggeringEventSourceId: string,
+    triggeringEventStreamType: string, triggeringEventStreamId: string): EventForEventSourceId[] {
     const items = Array.isArray(handlerResult) ? handlerResult : [handlerResult];
     const events: EventForEventSourceId[] = [];
 
@@ -92,17 +112,5 @@ export async function appendReactorSideEffects(
         // silently ignored, the same as a handler that returns Task/void.
     }
 
-    if (events.length === 0) {
-        return noSideEffects;
-    }
-
-    const results = await eventLog.appendMany(events);
-    const errors = results
-        .filter(result => !result.isSuccess)
-        .flatMap(result => [
-            ...result.constraintViolations.map(violation => violation.message),
-            ...result.errors.map(error => error.message)
-        ]);
-
-    return { isSuccess: errors.length === 0, errors };
+    return events;
 }

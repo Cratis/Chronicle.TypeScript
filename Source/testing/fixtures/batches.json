@@ -1,0 +1,393 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "operations": [
+    {
+      "overload": "same",
+      "clientCausation": true,
+      "events": [
+        {
+          "source": "A",
+          "name": "first",
+          "active": true
+        },
+        {
+          "source": "A",
+          "type": "alternate",
+          "label": "second"
+        }
+      ]
+    },
+    {
+      "overload": "mixed",
+      "clientCausation": true,
+      "options": {
+        "sourceType": "Group",
+        "streamType": "Archive",
+        "streamId": "stream1",
+        "subject": "shared",
+        "occurred": "2025-01-02T03:04:05.000Z",
+        "correlationId": "11111111-2222-3333-4444-555555555555",
+        "tags": [
+          "shared",
+          "both"
+        ]
+      },
+      "events": [
+        {
+          "source": "B",
+          "name": "third",
+          "active": false,
+          "tags": [
+            "local",
+            "both"
+          ],
+          "subject": "entry",
+          "sourceType": "Custom",
+          "streamType": "Other",
+          "streamId": "stream2",
+          "occurred": "2025-02-03T04:05:06.000Z"
+        },
+        {
+          "source": "A",
+          "type": "alternate",
+          "label": "fourth"
+        }
+      ]
+    },
+    {
+      "overload": "same",
+      "events": []
+    },
+    {
+      "overload": "mixed",
+      "clientCausation": true,
+      "events": [
+        {
+          "source": "B",
+          "name": "fifth",
+          "active": true
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0",
+          "1"
+        ],
+        "violations": 0,
+        "violationIds": [],
+        "errors": 0,
+        "concurrencyViolation": false
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2",
+          "3"
+        ],
+        "violations": 0,
+        "violationIds": [],
+        "errors": 0,
+        "concurrencyViolation": false
+      },
+      {
+        "rejection": "Command failed: At least one event is required."
+      },
+      {
+        "success": true,
+        "sequences": [
+          "4"
+        ],
+        "violations": 0,
+        "violationIds": [],
+        "errors": 0,
+        "concurrencyViolation": false
+      }
+    ],
+    "notifications": [
+      [
+        {
+          "sequence": "0",
+          "source": "A",
+          "type": "OracleEventRecorded",
+          "success": true
+        },
+        {
+          "sequence": "1",
+          "source": "A",
+          "type": "AlternateRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "2",
+          "source": "B",
+          "type": "OracleEventRecorded",
+          "success": true
+        },
+        {
+          "sequence": "3",
+          "source": "A",
+          "type": "AlternateRecorded",
+          "success": true
+        }
+      ],
+      [
+        {
+          "sequence": "4",
+          "source": "B",
+          "type": "OracleEventRecorded",
+          "success": true
+        }
+      ]
+    ],
+    "notificationHistoryLengths": [
+      2,
+      4,
+      5
+    ],
+    "history": [
+      {
+        "sequence": "0",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Root",
+            "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.AppendMany",
+            "properties": {
+              "count": "2"
+            }
+          }
+        ],
+        "hash": "QZ/qJhBY8Eq/nz7xQGqQv+0g4BndTDisqc21PZCdruw=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "first",
+          "active": true
+        }
+      },
+      {
+        "sequence": "1",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "A",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Root",
+            "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.AppendMany",
+            "properties": {
+              "count": "2"
+            }
+          }
+        ],
+        "hash": "swXR8ZrQHp4Q1ZG02ncOrlf3/8oN75W4iOILRWAvsxc=",
+        "type": "AlternateRecorded",
+        "content": {
+          "label": "second"
+        }
+      },
+      {
+        "sequence": "2",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "B",
+        "sourceType": "Custom",
+        "streamType": "Other",
+        "streamId": "stream2",
+        "subject": "entry",
+        "occurredValid": true,
+        "explicitOccurred": "2025-02-03T04:05:06.000Z",
+        "correlationValid": true,
+        "explicitCorrelation": "11111111-2222-3333-4444-555555555555",
+        "tags": [
+          "local",
+          "both",
+          "shared"
+        ],
+        "causation": [
+          {
+            "type": "Root",
+            "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.AppendMany",
+            "properties": {
+              "count": "2"
+            }
+          }
+        ],
+        "hash": "4y4K5gls1kSRrFkbd6zc1nQCxr5FQTdUDl3Ue/bM2tc=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "third",
+          "active": false
+        }
+      },
+      {
+        "sequence": "3",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "A",
+        "sourceType": "Group",
+        "streamType": "Archive",
+        "streamId": "stream1",
+        "subject": "shared",
+        "occurredValid": true,
+        "explicitOccurred": "2025-01-02T03:04:05.000Z",
+        "correlationValid": true,
+        "explicitCorrelation": "11111111-2222-3333-4444-555555555555",
+        "tags": [
+          "shared",
+          "both"
+        ],
+        "causation": [
+          {
+            "type": "Root",
+            "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.AppendMany",
+            "properties": {
+              "count": "2"
+            }
+          }
+        ],
+        "hash": "xF3o1cfJke1MR1Hu3EdpOVWiJNlFn5VoEZsC6pSfn1I=",
+        "type": "AlternateRecorded",
+        "content": {
+          "label": "fourth"
+        }
+      },
+      {
+        "sequence": "4",
+        "store": "test-event-store",
+        "namespace": "default",
+        "observationState": 1,
+        "causedByName": "[System]",
+        "generation": 1,
+        "source": "B",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default",
+        "subject": "B",
+        "occurredValid": true,
+        "explicitOccurred": null,
+        "correlationValid": true,
+        "explicitCorrelation": null,
+        "tags": [],
+        "causation": [
+          {
+            "type": "Root",
+            "properties": {}
+          },
+          {
+            "type": "TypeScriptClient.AppendMany",
+            "properties": {
+              "count": "1"
+            }
+          }
+        ],
+        "hash": "iy9bp2n8bOBGuVIQ8PdVsgb8iauyxZCE5/j0nn3cKA4=",
+        "type": "OracleEventRecorded",
+        "content": {
+          "name": "fifth",
+          "active": true
+        }
+      }
+    ],
+    "next": "5",
+    "tail": "4",
+    "tailA": "3",
+    "tailByType": "3",
+    "fromOneByType": [
+      "1",
+      "3"
+    ],
+    "byRoute": [
+      "0"
+    ],
+    "byAllStreamType": [
+      "1",
+      "3"
+    ],
+    "byDefaultRoute": [
+      "2",
+      "4"
+    ],
+    "tailByAll": "3",
+    "byCustomRoute": [
+      "2"
+    ],
+    "tailByRoute": "2",
+    "byStreamTypeOnly": [
+      "3"
+    ],
+    "tailByStreamTypeOnly": "3",
+    "byStreamIdOnly": [
+      "3"
+    ],
+    "tailByStreamIdOnly": "3",
+    "bySourceTypeOnly": [
+      "2"
+    ],
+    "tailBySourceTypeOnly": "2",
+    "byMixedRoute": [
+      "3"
+    ],
+    "tailByMixedRoute": "3"
+  }
+}

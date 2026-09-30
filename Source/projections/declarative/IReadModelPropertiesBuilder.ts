@@ -107,7 +107,24 @@ export interface IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder> {
     count(readModelPropertyAccessor: PropertyAccessor<TReadModel>): TBuilder;
 
     /**
-     * Adds a child model from the event to a collection property on the read model.
+     * Adds a child model configured through a child builder to a collection on the read model.
+     * Event members remain available while TypeScript resolves the two function-shaped overloads.
+     * @param targetPropertyAccessor - Accessor for the collection property on the read model.
+     * @param builderCallback - Callback configuring the child identifier and keys.
+     * @returns This builder for fluent chaining.
+     */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, builderCallback: (builder: IAddChildBuilder<TChildModel, TEvent> & TEvent) => void): TBuilder;
+
+    /**
+     * Adds a child model directly from an event property to a collection on the read model.
+     * @param targetPropertyAccessor - Accessor for the collection property on the read model.
+     * @param eventPropertyAccessor - Accessor for the event property holding the child value.
+     * @returns This builder for fluent chaining.
+     */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, eventPropertyAccessor: PropertyAccessor<TEvent>): TBuilder;
+
+    /**
+     * Retains support for arbitrary read model accessors and explicitly selected child types.
      * @param targetPropertyAccessor - Accessor for the collection property on the read model.
      * @param eventPropertyAccessorOrBuilderCallback - Either a direct event property accessor or a builder callback.
      * @returns This builder for fluent chaining.

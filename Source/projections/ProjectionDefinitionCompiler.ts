@@ -5,15 +5,26 @@ import { AutoMap, ReadModelObserverType, type ProjectionDefinition } from '@crat
 import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { getEventTypeFor, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
+import type { ReadModelNamingPolicy } from '../readModels/ReadModelNamingPolicy.js';
 import { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';
 import { JsonSchemaGenerator } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { TypeIntrospector } from '../types/index.js';
+import { canonicalStringify } from './canonicalStringify.js';
 import { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
+import { captureProjectionProvenance } from './captureProjectionProvenance.js';
+import { eventContractPath } from './eventContractPath.js';
+import { getProjectionBuilderProvenance } from './declarative/projectionBuilderProvenance.js';
+import type { ProjectionCapabilityProvenance } from './ProjectionCapabilityProvenance.js';
+import type { ProjectionEventSchema } from './ProjectionEventSchema.js';
 import { constantValueExpression } from './constantValueExpression.js';
+import { eventContextPropertyExpression } from './eventContextPropertyExpression.js';
+import { InvalidEventContextPropertyError } from './InvalidEventContextPropertyError.js';
+import { invalidEventContextPropertyInProjection } from './invalidEventContextPropertyInProjection.js';
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
@@ -38,6 +49,14 @@ import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } f
 import { getVariantOfMetadata } from './modelBound/variantOf.js';
 import { getEntersOnMetadata } from './modelBound/entersOn.js';
 import { getGlobalForMetadata } from './modelBound/globalFor.js';
+import { getSetFromMetadata } from './modelBound/setFrom.js';
+import { getSetFromContextMetadata } from './modelBound/setFromContext.js';
+import { getSetValueMetadata } from './modelBound/setValue.js';
+import { getAddFromMetadata } from './modelBound/addFrom.js';
+import { getSubtractFromMetadata } from './modelBound/subtractFrom.js';
+import { getCountMetadata } from './modelBound/count.js';
+import { getIncrementMetadata } from './modelBound/increment.js';
+import { getDecrementMetadata } from './modelBound/decrement.js';
 import type { JoinRecord } from './declarative/ProjectionBuilderCore.js';
 import { BuiltProjection, crossWireGroups, mergeGlobalHandlers, reclassify, VariantDeclaration } from './VariantReclassifier.js';
 
@@ -46,10 +65,12 @@ export class ProjectionDefinitionCompiler {
     /**
      * @param _clientArtifacts - Discovered artifact types used to resolve schemas, variants, and read models.
      * @param _defaultSinkTypeId - Sink identifier for active read models.
+     * @param _readModelNamingPolicy - Optional policy naming the container of each read model.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
-        private readonly _defaultSinkTypeId: string
+        private readonly _defaultSinkTypeId: string,
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {}
 
     /**
@@ -60,8 +81,9 @@ export class ProjectionDefinitionCompiler {
      */
     compile(declarative: Iterable<Constructor>, modelBound: Iterable<Constructor>): CompiledProjectionDefinitions {
         const builtProjections: BuiltProjection[] = [
-            ...Array.from(declarative, type => this.buildDeclarativeDefinition(type)),
-            ...Array.from(modelBound, type => this.buildModelBoundDefinition(type))
+            ...Array.from(declarative, type => this.buildWithContextValidation(type, () => this.buildDeclarativeDefinition(type),
+                getProjectionMetadata(type)?.readModelType)),
+            ...Array.from(modelBound, type => this.buildWithContextValidation(type, () => this.buildModelBoundDefinition(type), type))
         ];
         // A sibling's entering event adds RemovedWith to each variant. Hash only after
         // every variant has been cross-wired, so repeated registrations remain stable.
@@ -74,10 +96,63 @@ export class ProjectionDefinitionCompiler {
         // existing sparse wire objects: adding those default-valued fields would change the payload.
         // Evaluators must tolerate absent optional contract fields (for example NoAutoMapProperties).
         const definitions = builtProjections.map(built => built.definition as unknown as ProjectionDefinition);
+        const provenance = new Map<ProjectionDefinition, readonly ProjectionCapabilityProvenance[]>();
+        const eventSchemas = new Map<ProjectionDefinition, ReadonlyMap<string, ProjectionEventSchema>>();
+        const availableEvents = new Map<string, Constructor>(this._clientArtifacts.eventTypes.map(type => {
+            const event = getEventTypeFor(type);
+            return [`${event.id.value}:${event.generation.value}`, type] as const;
+        }));
+        for (let index = 0; index < definitions.length; index++) {
+            provenance.set(definitions[index], builtProjections[index].provenance ?? []);
+            eventSchemas.set(definitions[index], this.buildEventSchemaCatalog(definitions[index], availableEvents));
+        }
         return {
             definitions,
-            readModels: this.buildReadModelDefinitions(definitions)
+            readModels: this.buildReadModelDefinitions(definitions),
+            provenance,
+            eventSchemas
         };
+    }
+
+    private buildEventSchemaCatalog(definition: ProjectionDefinition, availableEvents: ReadonlyMap<string, Constructor>): ReadonlyMap<string, ProjectionEventSchema> {
+        const catalog = new Map<string, ProjectionEventSchema>();
+        const collect = (node: Record<string, unknown>) => {
+            for (const section of ['From', 'Join', 'RemovedWith', 'RemovedWithJoin'] as const) {
+                for (const entry of node[section] as Array<{ Key: ContractEventType }> ?? []) {
+                    const eventType = entry.Key;
+                    const key = getEventTypeMapKey(eventType);
+                    const type = availableEvents.get(`${eventType.Id}:${eventType.Generation}`);
+                    if (type && !catalog.has(key)) {
+                        // Registration uses this exact schema path. Clone it so a compile or consumer
+                        // cannot mutate metadata or another compile's catalog.
+                        catalog.set(key, { eventType: { ...eventType }, schema: structuredClone(getEventTypeJsonSchemaFor(type)) });
+                    }
+                }
+            }
+            const fromEventProperty = node.FromEventProperty as { Event?: ContractEventType } | undefined;
+            if (fromEventProperty?.Event) {
+                const key = getEventTypeMapKey(fromEventProperty.Event);
+                const type = availableEvents.get(`${fromEventProperty.Event.Id}:${fromEventProperty.Event.Generation}`);
+                if (type && !catalog.has(key)) catalog.set(key, { eventType: { ...fromEventProperty.Event }, schema: structuredClone(getEventTypeJsonSchemaFor(type)) });
+            }
+            for (const section of ['Children', 'Nested'] as const) {
+                for (const child of Object.values(node[section] as Record<string, Record<string, unknown>> ?? {})) collect(child);
+            }
+        };
+        collect(definition as unknown as Record<string, unknown>);
+        return catalog;
+    }
+
+    private buildWithContextValidation(type: Constructor, build: () => BuiltProjection, readModelType?: Constructor): BuiltProjection {
+        try {
+            return build();
+        } catch (error) {
+            if (error instanceof InvalidEventContextPropertyError) {
+                const readModel = readModelType ? getReadModelId(readModelType) : type.name;
+                throw invalidEventContextPropertyInProjection(error, type.name, readModel);
+            }
+            throw error;
+        }
     }
 
     private buildReadModelDefinitions(projections: ProjectionDefinition[]): ReturnType<typeof buildReadModelDefinition>[] {
@@ -106,7 +181,8 @@ export class ProjectionDefinitionCompiler {
                 // resolving the instance by key instead of reading an empty sink and returning null.
                 sinkTypeId: projection.IsActive === false ? WellKnownSinks.None : this._defaultSinkTypeId,
                 observerType: ReadModelObserverType.Projection,
-                observerIdentifier: projection.Identifier
+                observerIdentifier: projection.Identifier,
+                namingPolicy: this._readModelNamingPolicy
             }));
         }
         return Array.from(byReadModel.values());
@@ -148,6 +224,12 @@ export class ProjectionDefinitionCompiler {
             }
         }
 
+        const declarations = getProjectionBuilderProvenance(builder);
+        const provenance = captureProjectionProvenance(definition, false,
+            new Map([...declarations.keys, ...declarations.children]));
+        if (declarations.fromEvery && !provenance.some(entry => entry.contractPath === 'All')) {
+            provenance.push({ contractPath: 'All', declaration: '.fromEvery' });
+        }
         let variant: VariantDeclaration | undefined;
         const variantDeclaration = builder.getVariantDeclaration();
         if (variantDeclaration) {
@@ -157,8 +239,11 @@ export class ProjectionDefinitionCompiler {
             definition.From = reclassified.from;
             definition.Join = reclassified.join;
             variant = variantDeclaration;
+            provenance.push({ contractPath: 'Variant', declaration: '.variantOf' });
+            provenance.push({ contractPath: 'Variant.Key', declaration: '.variantOf' });
+            for (const entering of variant.enteringEventTypes) provenance.push({ contractPath: eventContractPath('EntersOn', entering), declaration: '.entersOn' });
         }
-        return { typeName: type.name, definition, variant };
+        return { typeName: type.name, definition, variant, provenance };
     }
 
     private inferReadModelIdentifier(mappedProperties: string[]): string | undefined {
@@ -186,6 +271,16 @@ export class ProjectionDefinitionCompiler {
         const eventSequenceId = getEventSequenceMetadata(type);
         const properties = TypeIntrospector.getTrackedProperties(type);
         const prototype = type.prototype;
+        const overrides = new Map<string, string>();
+        const declaredFrom = new Set(getFromEventMetadata(type).map(entry => getEventTypeMapKey(toContractEventType(entry.eventType))));
+        const recordMappings = (property: string, metadata: Array<{ eventType: Function }>, declaration: string) => {
+            for (const mapping of metadata) {
+                const eventType = toContractEventType(mapping.eventType);
+                const path = eventContractPath('From', eventType);
+                overrides.set(`${path}.Properties.${property}`, declaration);
+                if (!declaredFrom.has(getEventTypeMapKey(eventType)) && !overrides.has(path)) overrides.set(path, declaration);
+            }
+        };
 
         const fromByEventType = new Map<string, FromRecord>();
         const joinByEventType = new Map<string, { Key: ContractEventType; Value: { On: string; Properties: Record<string, string>; Key: string } }>();
@@ -227,6 +322,23 @@ export class ProjectionDefinitionCompiler {
         }
 
         for (const property of properties) {
+            recordMappings(property, getSetFromMetadata(prototype, property), '@setFrom');
+            recordMappings(property, getSetFromContextMetadata(prototype, property), '@setFromContext');
+            recordMappings(property, getSetValueMetadata(prototype, property), '@setValue');
+            recordMappings(property, getAddFromMetadata(prototype, property), '@addFrom');
+            recordMappings(property, getSubtractFromMetadata(prototype, property), '@subtractFrom');
+            recordMappings(property, getIncrementMetadata(prototype, property), '@increment');
+            recordMappings(property, getDecrementMetadata(prototype, property), '@decrement');
+            recordMappings(property, getCountMetadata(prototype, property), '@count');
+            for (const [declaration, mappings] of [
+                ['@increment', getIncrementMetadata(prototype, property)],
+                ['@decrement', getDecrementMetadata(prototype, property)],
+                ['@count', getCountMetadata(prototype, property)]
+            ] as const) {
+                for (const mapping of mappings) {
+                    if (mapping.constantKey) overrides.set(`${eventContractPath('From', toContractEventType(mapping.eventType))}.Key`, declaration);
+                }
+            }
             applyPropertyMappings(prototype, property, fromByEventType);
             for (const mapping of getJoinMetadata(prototype, property)) {
                 const entry = this.ensureJoinEntry(joinByEventType, mapping.eventType);
@@ -261,6 +373,7 @@ export class ProjectionDefinitionCompiler {
                 for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
                     const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
                     entry.Value.Properties[property] = '$null';
+                    overrides.set(`${eventContractPath('From', toContractEventType(clearWith.eventType))}.Properties.${property}`, '@clearWith');
                 }
             }
         }
@@ -270,13 +383,15 @@ export class ProjectionDefinitionCompiler {
             const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
-                    ? fromEvery.contextProperty
+                    ? eventContextPropertyExpression(fromEvery.contextProperty)
                     : (fromEvery.property ?? property);
             }
         }
 
         let from = Array.from(fromByEventType.values());
         let join = Array.from(joinByEventType.values());
+        let preLoweringFrom = from;
+        let preLoweringJoin = join;
         let variant: VariantDeclaration | undefined;
         const variantMetadata = getVariantOfMetadata(type);
         if (variantMetadata) {
@@ -286,6 +401,7 @@ export class ProjectionDefinitionCompiler {
                 if (entersOn.key) {
                     const entry = ensureFromEntry(fromByEventType, entersOn.eventType);
                     entry.Value.Key = entersOn.key;
+                    overrides.set(`${eventContractPath('From', contractType)}.Key`, '@entersOn');
                 }
                 return contractType;
             });
@@ -294,11 +410,21 @@ export class ProjectionDefinitionCompiler {
             for (const handlerType of this._clientArtifacts.globalForHandlers) {
                 const globalForMetadata = getGlobalForMetadata(handlerType);
                 if (globalForMetadata?.identity === variantMetadata.identity) {
-                    globalHandlers.set(handlerType.name, this.buildFromRecordsForType(handlerType));
+                    const records = this.buildFromRecordsForType(handlerType);
+                    globalHandlers.set(handlerType.name, records);
+                    for (const record of records) {
+                        const path = eventContractPath('From', record.Key);
+                        overrides.set(path, `@globalFor(${handlerType.name})`);
+                        for (const property of Object.keys(record.Value.Properties)) {
+                            overrides.set(`${path}.Properties.${property}`, `@globalFor(${handlerType.name})`);
+                        }
+                    }
                 }
             }
             const memberNames = new Set(getReadModelMetadata(type)?.members.keys() ?? TypeIntrospector.getMembers(type).keys());
             const merged = mergeGlobalHandlers(type.name, memberNames, from, globalHandlers);
+            preLoweringFrom = merged;
+            preLoweringJoin = join;
             const reclassified = reclassify(type.name, merged, join, enteringEventTypes, variantMetadata.key);
             from = reclassified.from;
             join = reclassified.join;
@@ -329,7 +455,25 @@ export class ProjectionDefinitionCompiler {
             NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
             Nested: nestedByProperty
         };
-        return { typeName: type.name, definition, variant };
+        const provenance = captureProjectionProvenance({ ...definition, From: preLoweringFrom, Join: preLoweringJoin }, true, overrides);
+        if (Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
+            getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property))) {
+            const index = provenance.findIndex(entry => entry.contractPath === 'All');
+            if (index >= 0) provenance[index] = { contractPath: 'All', declaration: '@fromAll' };
+        }
+        for (const property of Object.keys(allProperties)) {
+            if (getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property)) {
+                const path = `All.Properties.${property}`;
+                const index = provenance.findIndex(entry => entry.contractPath === path);
+                if (index >= 0) provenance[index] = { contractPath: path, declaration: '@fromAll' };
+            }
+        }
+        if (variant) {
+            provenance.push({ contractPath: 'Variant', declaration: '@variantOf' });
+            provenance.push({ contractPath: 'Variant.Key', declaration: '@variantOf' });
+            for (const entering of variant.enteringEventTypes) provenance.push({ contractPath: eventContractPath('EntersOn', entering), declaration: '@entersOn' });
+        }
+        return { typeName: type.name, definition, variant, provenance };
     }
 
     /**
@@ -373,10 +517,10 @@ export class ProjectionDefinitionCompiler {
         return created;
     }
 
-    /** Hash the final wire definition, excluding LastUpdated itself, to avoid unnecessary replays. */
+    /** Hash the final wire definition, excluding LastUpdated itself, for stable metadata. */
     private computeStableLastUpdated(definition: Record<string, unknown>): string {
         const { LastUpdated: _omit, ...rest } = definition;
-        const content = JSON.stringify(rest, Object.keys(rest).sort());
+        const content = canonicalStringify(rest);
         let hash = 5381;
         for (let i = 0; i < content.length; i++) {
             hash = ((hash << 5) + hash + content.charCodeAt(i)) >>> 0;

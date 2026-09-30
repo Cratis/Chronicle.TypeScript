@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { IAddChildBuilder } from './IAddChildBuilder.js';
 
 /**
@@ -14,8 +15,10 @@ export interface ChildAdditionEntry {
     targetProperty: string;
     /** The child model property used to identify instances, when set via the builder callback overload. */
     identifiedBy?: string;
-    /** The event property used as the key, when set via the builder callback overload. */
+    /** The event property or context expression used as the key, when set via the builder callback overload. */
     usingKey?: string;
+    /** The event context expression used as the parent key, when set via the builder callback overload. */
+    usingParentKey?: string;
     /** The event property whose value becomes the child directly, when set via the plain accessor overload. */
     fromEventProperty?: string;
 }
@@ -36,8 +39,9 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
     private _usedAsBuilder = false;
     private _identifiedByProperty: string | undefined;
     private _usingKeyProperty: string | undefined;
+    private _usingParentKeyProperty: string | undefined;
 
-    /** Whether any builder member (`identifiedBy`/`usingKey`) was invoked on the probe. */
+    /** Whether any builder member (`identifiedBy`, `usingKey`, `usingKeyFromContext`, or `usingParentKeyFromContext`) was invoked on the probe. */
     get usedAsBuilder(): boolean {
         return this._usedAsBuilder;
     }
@@ -50,6 +54,11 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
     /** The event property captured via `usingKey()`, if any. */
     get usingKeyProperty(): string | undefined {
         return this._usingKeyProperty;
+    }
+
+    /** The parent key expression captured via `usingParentKeyFromContext()`, if any. */
+    get usingParentKeyProperty(): string | undefined {
+        return this._usingParentKeyProperty;
     }
 
     /** The event property path captured when the probe was used as a plain accessor. */
@@ -77,10 +86,26 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
         return this;
     }
 
+    /** @inheritdoc */
+    usingKeyFromContext(contextPropertyName: string): IAddChildBuilder<TChildModel, TEvent> {
+        this._usingKeyProperty = eventContextPropertyExpression(contextPropertyName);
+        this._usedAsBuilder = true;
+        return this;
+    }
+
+    /** @inheritdoc */
+    usingParentKeyFromContext(contextPropertyName: string): IAddChildBuilder<TChildModel, TEvent> {
+        this._usingParentKeyProperty = eventContextPropertyExpression(contextPropertyName);
+        this._usedAsBuilder = true;
+        return this;
+    }
+
     /**
      * Proxy `get` trap: known builder members dispatch to the real implementation above;
      * anything else (a plain event property accessed by the accessor overload) falls through
      * to path-capturing so the accessor overload keeps working against the same probe.
+     * The builder member names are therefore reserved: an event property with one of these names
+     * cannot be selected through the accessor overload.
      * @param _target - The proxy's (unused) empty target object.
      * @param prop - The accessed property name.
      * @returns The resolved member.
@@ -91,6 +116,12 @@ export class AddChildBuilder<TChildModel, TEvent> implements IAddChildBuilder<TC
         }
         if (prop === 'usingKey') {
             return this.usingKey.bind(this);
+        }
+        if (prop === 'usingKeyFromContext') {
+            return this.usingKeyFromContext.bind(this);
+        }
+        if (prop === 'usingParentKeyFromContext') {
+            return this.usingParentKeyFromContext.bind(this);
         }
         return Reflect.get(this._pathProxy as object, prop);
     }

@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "actions": [],
+  "expected": {
+    "sourceA": [],
+    "byType": [],
+    "tailA": "18446744073709551615",
+    "fromOne": [],
+    "results": [],
+    "history": [],
+    "next": "0",
+    "tail": "18446744073709551615",
+    "hasSourceA": false
+  }
+}

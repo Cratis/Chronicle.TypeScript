@@ -1,0 +1,4071 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+  },
+  "constraintDescriptorSha256": "8de18d804165220f6c491cfed59ca31bf55c84eb6eb7a94a2a83b092b12bbf84",
+  "eventSchemas": {
+    "string": {
+      "eventTypeId": "OracleDomainText",
+      "properties": {
+        "key": "string"
+      }
+    },
+    "removed": {
+      "eventTypeId": "OracleDomainRemoved",
+      "properties": {
+        "label": "string"
+      }
+    },
+    "name": {
+      "eventTypeId": "OracleCompositeName",
+      "properties": {
+        "first": "string",
+        "last": "string"
+      }
+    },
+    "alias": {
+      "eventTypeId": "OracleCompositeAlias",
+      "properties": {
+        "given": "string",
+        "family": "string"
+      }
+    },
+    "triple": {
+      "eventTypeId": "OracleCompositeTriple",
+      "properties": {
+        "first": "string",
+        "middle": "string",
+        "last": "string"
+      }
+    }
+  },
+  "constraintDefinitions": [
+    {
+      "kind": "uniqueProperty",
+      "name": "OracleFullName",
+      "events": [
+        {
+          "type": "name",
+          "properties": [
+            "first",
+            "last"
+          ]
+        },
+        {
+          "type": "alias",
+          "properties": [
+            "family",
+            "given"
+          ]
+        },
+        {
+          "type": "string",
+          "properties": [
+            "key"
+          ]
+        }
+      ],
+      "ignoreCasing": false,
+      "removedWithEventTypeIds": [
+        "removed"
+      ],
+      "message": "Taken: {PropertyName}={PropertyValue}"
+    },
+    {
+      "kind": "uniqueProperty",
+      "name": "OracleTriple",
+      "events": [
+        {
+          "type": "triple",
+          "properties": [
+            "first",
+            "middle",
+            "last"
+          ]
+        }
+      ],
+      "ignoreCasing": false,
+      "removedWithEventTypeIds": [],
+      "message": ""
+    }
+  ],
+  "isolatedConstraintOperations": [
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Byron"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "B",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "C",
+          "type": "name",
+          "values": {
+            "first": "Lovelace",
+            "last": "Ada"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D",
+          "type": "alias",
+          "values": {
+            "given": "Lovelace",
+            "family": "Ada"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "D",
+          "type": "alias",
+          "values": {
+            "given": "Byron",
+            "family": "Ada"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "E",
+          "type": "name",
+          "values": {
+            "first": "a-b",
+            "last": "c"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "F",
+          "type": "name",
+          "values": {
+            "first": "a",
+            "last": "b-c"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "F",
+          "type": "string",
+          "value": "a-b-c"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "G",
+          "type": "name",
+          "values": {
+            "first": "",
+            "last": "q-r"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "H",
+          "type": "name",
+          "values": {
+            "first": "-q",
+            "last": "r"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "H",
+          "type": "name",
+          "values": {
+            "first": "q-r",
+            "last": ""
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "I",
+          "type": "name",
+          "values": {
+            "first": "",
+            "last": ""
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "J",
+          "type": "string",
+          "value": "-"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "K",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "A",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "King"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "K",
+          "type": "name",
+          "values": {
+            "first": "Ada",
+            "last": "Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "K",
+          "type": "removed",
+          "value": "gone"
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "L",
+          "type": "alias",
+          "values": {
+            "given": "Lovelace",
+            "family": "Ada"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "M",
+          "type": "name",
+          "values": {
+            "first": "x",
+            "last": "y"
+          }
+        },
+        {
+          "source": "N",
+          "type": "alias",
+          "values": {
+            "given": "y",
+            "family": "x"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "batch",
+      "events": [
+        {
+          "source": "M",
+          "type": "name",
+          "values": {
+            "first": "p",
+            "last": "q"
+          }
+        },
+        {
+          "source": "N",
+          "type": "name",
+          "values": {
+            "first": "p",
+            "last": "q-"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "T1",
+          "type": "triple",
+          "values": {
+            "first": "a",
+            "middle": "b",
+            "last": "c-d"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "T2",
+          "type": "triple",
+          "values": {
+            "first": "a-b",
+            "middle": "c",
+            "last": "d"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "T3",
+          "type": "triple",
+          "values": {
+            "first": "a",
+            "middle": "b",
+            "last": "c"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "P",
+          "type": "name",
+          "values": {
+            "first": "Zoé",
+            "last": "X"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "single",
+      "events": [
+        {
+          "source": "Q",
+          "type": "name",
+          "values": {
+            "first": "Zoé",
+            "last": "X"
+          }
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "outcomes": [
+      {
+        "success": true,
+        "sequences": [
+          "0"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          }
+        ],
+        "next": "1"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "1"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: first=Ada",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: last=Lovelace",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "0",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'first' violated a unique constraint on sequence number 0",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "0",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'last' violated a unique constraint on sequence number 0",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          }
+        ],
+        "next": "2"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "2"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: family=Ada",
+            "details": {
+              "PropertyName": "family",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: given=Lovelace",
+            "details": {
+              "PropertyName": "given",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "0",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'family' violated a unique constraint on sequence number 0",
+            "Details": {
+              "PropertyName": "family",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "0",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'given' violated a unique constraint on sequence number 0",
+            "Details": {
+              "PropertyName": "given",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: family=Ada",
+            "details": {
+              "PropertyName": "family",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: given=Byron",
+            "details": {
+              "PropertyName": "given",
+              "PropertyValue": "Byron"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'family' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "family",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "1",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'given' violated a unique constraint on sequence number 1",
+            "Details": {
+              "PropertyName": "given",
+              "PropertyValue": "Byron"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          }
+        ],
+        "next": "3"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "3"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: first=a",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "a"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: last=b-c",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "b-c"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "3",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'first' violated a unique constraint on sequence number 3",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "a"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "3",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'last' violated a unique constraint on sequence number 3",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "b-c"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: key=a-b-c",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "a-b-c"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "3",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 3",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "a-b-c"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          }
+        ],
+        "next": "4"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "4"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: first=-q",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "-q"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: last=r",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "r"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "4",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'first' violated a unique constraint on sequence number 4",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "-q"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "4",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'last' violated a unique constraint on sequence number 4",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "r"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          }
+        ],
+        "next": "5"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "5"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          }
+        ],
+        "next": "6"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "6"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: key=-",
+            "details": {
+              "PropertyName": "key",
+              "PropertyValue": "-"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleDomainText",
+            "SequenceNumber": "6",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleDomainText' on member 'key' violated a unique constraint on sequence number 6",
+            "Details": {
+              "PropertyName": "key",
+              "PropertyValue": "-"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          }
+        ],
+        "next": "7"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "7"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          }
+        ],
+        "next": "8"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: first=Ada",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: last=Lovelace",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "7",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'first' violated a unique constraint on sequence number 7",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "Ada"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "7",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'last' violated a unique constraint on sequence number 7",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "Lovelace"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          }
+        ],
+        "next": "8"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "8"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          }
+        ],
+        "next": "9"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "9"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          }
+        ],
+        "next": "10"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "10"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          }
+        ],
+        "next": "11"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "11"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": false,
+        "sequences": [],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: family=x",
+            "details": {
+              "PropertyName": "family",
+              "PropertyValue": "x"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: given=y",
+            "details": {
+              "PropertyName": "given",
+              "PropertyValue": "y"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'family' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "family",
+              "PropertyValue": "x"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeAlias",
+            "SequenceNumber": "18446744073709551615",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeAlias' on member 'given' violated a unique constraint on sequence number 18446744073709551615",
+            "Details": {
+              "PropertyName": "given",
+              "PropertyValue": "y"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          }
+        ],
+        "next": "12"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "12",
+          "13"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          }
+        ],
+        "next": "14"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "14"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          },
+          {
+            "sequence": "14",
+            "source": "T1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c-d"
+            },
+            "hash": "WRiYCfAXdVIgMrdX1gqf+hUl6AfdscG+qXSeX+niA1s="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleTriple",
+            "message": "Event 'OracleCompositeTriple' on member 'first' violated a unique constraint on sequence number 14",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "a-b"
+            }
+          },
+          {
+            "id": "OracleTriple",
+            "message": "Event 'OracleCompositeTriple' on member 'middle' violated a unique constraint on sequence number 14",
+            "details": {
+              "PropertyName": "middle",
+              "PropertyValue": "c"
+            }
+          },
+          {
+            "id": "OracleTriple",
+            "message": "Event 'OracleCompositeTriple' on member 'last' violated a unique constraint on sequence number 14",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "d"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeTriple",
+            "SequenceNumber": "14",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleTriple",
+            "Message": "Event 'OracleCompositeTriple' on member 'first' violated a unique constraint on sequence number 14",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "a-b"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeTriple",
+            "SequenceNumber": "14",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleTriple",
+            "Message": "Event 'OracleCompositeTriple' on member 'middle' violated a unique constraint on sequence number 14",
+            "Details": {
+              "PropertyName": "middle",
+              "PropertyValue": "c"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeTriple",
+            "SequenceNumber": "14",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleTriple",
+            "Message": "Event 'OracleCompositeTriple' on member 'last' violated a unique constraint on sequence number 14",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "d"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          },
+          {
+            "sequence": "14",
+            "source": "T1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c-d"
+            },
+            "hash": "WRiYCfAXdVIgMrdX1gqf+hUl6AfdscG+qXSeX+niA1s="
+          }
+        ],
+        "next": "15"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "15"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          },
+          {
+            "sequence": "14",
+            "source": "T1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c-d"
+            },
+            "hash": "WRiYCfAXdVIgMrdX1gqf+hUl6AfdscG+qXSeX+niA1s="
+          },
+          {
+            "sequence": "15",
+            "source": "T3",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c"
+            },
+            "hash": "SHXHh2dW7CVQNgYWrztiBUUrxY9ouqqgBY6K8m2ERT8="
+          }
+        ],
+        "next": "16"
+      },
+      {
+        "success": true,
+        "sequences": [
+          "16"
+        ],
+        "violations": [],
+        "errors": [],
+        "wireViolations": [],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          },
+          {
+            "sequence": "14",
+            "source": "T1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c-d"
+            },
+            "hash": "WRiYCfAXdVIgMrdX1gqf+hUl6AfdscG+qXSeX+niA1s="
+          },
+          {
+            "sequence": "15",
+            "source": "T3",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c"
+            },
+            "hash": "SHXHh2dW7CVQNgYWrztiBUUrxY9ouqqgBY6K8m2ERT8="
+          },
+          {
+            "sequence": "16",
+            "source": "P",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Zoé",
+              "last": "X"
+            },
+            "hash": "qOZGuVr1pVerQRTr78uZZ9OgGWCpfeyRC97I6d+oViw="
+          }
+        ],
+        "next": "17"
+      },
+      {
+        "success": false,
+        "sequences": [
+          "18446744073709551615"
+        ],
+        "violations": [
+          {
+            "id": "OracleFullName",
+            "message": "Taken: first=Zoé",
+            "details": {
+              "PropertyName": "first",
+              "PropertyValue": "Zoé"
+            }
+          },
+          {
+            "id": "OracleFullName",
+            "message": "Taken: last=X",
+            "details": {
+              "PropertyName": "last",
+              "PropertyValue": "X"
+            }
+          }
+        ],
+        "errors": [],
+        "wireViolations": [
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "16",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'first' violated a unique constraint on sequence number 16",
+            "Details": {
+              "PropertyName": "first",
+              "PropertyValue": "Zoé"
+            }
+          },
+          {
+            "EventTypeId": "OracleCompositeName",
+            "SequenceNumber": "16",
+            "ConstraintType": 1,
+            "ConstraintName": "OracleFullName",
+            "Message": "Event 'OracleCompositeName' on member 'last' violated a unique constraint on sequence number 16",
+            "Details": {
+              "PropertyName": "last",
+              "PropertyValue": "X"
+            }
+          }
+        ],
+        "history": [
+          {
+            "sequence": "0",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "1",
+            "source": "B",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Byron"
+            },
+            "hash": "lMe9g+jiS5EaI0D6mOuAjnCa4XB5pee61zJRPnPaYmM="
+          },
+          {
+            "sequence": "2",
+            "source": "C",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Lovelace",
+              "last": "Ada"
+            },
+            "hash": "HQXGIF/WsKSm3tkElTbeA+1SskTFoIED47ofWeZdZPg="
+          },
+          {
+            "sequence": "3",
+            "source": "E",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "a-b",
+              "last": "c"
+            },
+            "hash": "cLEbA3VlK3gWFAOrLO7cLnDS5OZJ9L0Pzg8h8DApF3Y="
+          },
+          {
+            "sequence": "4",
+            "source": "G",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": "q-r"
+            },
+            "hash": "I3ccRuFKxCaIhZKqpBBlvludP3icCbf01YjWGQksE0o="
+          },
+          {
+            "sequence": "5",
+            "source": "H",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "q-r",
+              "last": ""
+            },
+            "hash": "iFRIRpb7A0Gnu0PcaIGq2OttqZucf8ddTY+RGKVTTTw="
+          },
+          {
+            "sequence": "6",
+            "source": "I",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "",
+              "last": ""
+            },
+            "hash": "2f9nAmr3y/9zahfhL4Jf8HnGxSvh2qU1AkxX0K3z6Rc="
+          },
+          {
+            "sequence": "7",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "Lav/0gdUAgdDPPNE/9NwsYdwWAVj0KrK9c1K5v9Z0R0="
+          },
+          {
+            "sequence": "8",
+            "source": "A",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "King"
+            },
+            "hash": "iur3mHbZ6UC0l+7Zz9g9M+8yQnWjcDgNdqOfBSuElv8="
+          },
+          {
+            "sequence": "9",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Ada",
+              "last": "Lovelace"
+            },
+            "hash": "1K/iyTOLu+WU/i4o280+beP3nKLWZ6YKL7eI6HN8XKU="
+          },
+          {
+            "sequence": "10",
+            "source": "K",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleDomainRemoved",
+            "content": {
+              "label": "gone"
+            },
+            "hash": "1ekTgxTsjg8V0dHpTfGtOtHtHg52OmK28Tt+kxLr6Hg="
+          },
+          {
+            "sequence": "11",
+            "source": "L",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeAlias",
+            "content": {
+              "given": "Lovelace",
+              "family": "Ada"
+            },
+            "hash": "wB9z7MkD3OFuvEbr9To9+sq8U7XcPElLV9waGTwKNHk="
+          },
+          {
+            "sequence": "12",
+            "source": "M",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q"
+            },
+            "hash": "47F1X8dXAFXGcw8u6YvC7Ifcc4QAeaN7O/0KJI5yRPQ="
+          },
+          {
+            "sequence": "13",
+            "source": "N",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "p",
+              "last": "q-"
+            },
+            "hash": "S8x+ZzEAOqKjFGshuc8uyODedOfns8lL73ZgFESi9jM="
+          },
+          {
+            "sequence": "14",
+            "source": "T1",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c-d"
+            },
+            "hash": "WRiYCfAXdVIgMrdX1gqf+hUl6AfdscG+qXSeX+niA1s="
+          },
+          {
+            "sequence": "15",
+            "source": "T3",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeTriple",
+            "content": {
+              "first": "a",
+              "middle": "b",
+              "last": "c"
+            },
+            "hash": "SHXHh2dW7CVQNgYWrztiBUUrxY9ouqqgBY6K8m2ERT8="
+          },
+          {
+            "sequence": "16",
+            "source": "P",
+            "sourceType": "Default",
+            "streamType": "All",
+            "streamId": "Default",
+            "type": "OracleCompositeName",
+            "content": {
+              "first": "Zoé",
+              "last": "X"
+            },
+            "hash": "qOZGuVr1pVerQRTr78uZZ9OgGWCpfeyRC97I6d+oViw="
+          }
+        ],
+        "next": "17"
+      }
+    ]
+  }
+}

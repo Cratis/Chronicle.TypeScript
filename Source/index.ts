@@ -35,6 +35,7 @@ export type { IEventStore } from './IEventStore.js';
 export { EventStoreName } from './EventStoreName.js';
 export { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 export { Guid } from '@cratis/fundamentals';
+export { ReplayState } from '@cratis/chronicle.contracts';
 export { ChronicleInstrumentationName, ChronicleTracer } from './Tracing.js';
 export { ChronicleMeter, ChronicleMeterName, ChronicleMetrics } from './Metrics.js';
 

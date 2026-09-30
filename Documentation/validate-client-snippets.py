@@ -21,6 +21,7 @@ GENERATED_INVALID_CHECK = GENERATED_DIR / "invalid-check.mjs"
 GENERATED_TSCONFIG = GENERATED_DIR / "tsconfig.json"
 FENCE_RE = re.compile(r"```([^\s`]+)[^\n]*\n(.*?)\n```", re.DOTALL)
 NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle['\"];?\s*$")
+TESTING_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle/testing['\"];?\s*$")
 CONTRACTS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/chronicle\.contracts['\"];?\s*$")
 FUNDAMENTALS_NAMED_IMPORT_RE = re.compile(r"^import\s+\{([^}]+)\}\s+from\s+['\"]@cratis/fundamentals['\"];?\s*$")
 SIDE_EFFECT_IMPORT_RE = re.compile(r"^import\s+['\"]([^'\"]+)['\"];?\s*$")
@@ -144,9 +145,18 @@ def extract_snippet(path: Path) -> str | None:
     return code.strip()
 
 
+def validate_schema_validation_example() -> None:
+    path = SNIPPET_ROOT / "events" / "appending" / "schema-validation.md"
+    snippet = extract_snippet(path)
+    if (snippet is None or "result.constraintViolations" not in snippet or "SchemaValidation" not in snippet
+            or "details.path" not in snippet or "result.errors" in snippet):
+        raise ValueError(f"{path.relative_to(REPO_ROOT)} must show schema constraint violations and their path")
+
+
 def split_imports(
     code: str,
     named_imports: set[str],
+    testing_named_imports: set[str],
     contracts_named_imports: set[str],
     fundamentals_named_imports: set[str],
     side_effect_imports: set[str],
@@ -159,6 +169,14 @@ def split_imports(
                 imported = imported.strip()
                 if imported:
                     named_imports.add(imported)
+            continue
+
+        testing_named_match = TESTING_NAMED_IMPORT_RE.match(line)
+        if testing_named_match:
+            for imported in testing_named_match.group(1).split(","):
+                imported = imported.strip()
+                if imported:
+                    testing_named_imports.add(imported)
             continue
 
         contracts_named_match = CONTRACTS_NAMED_IMPORT_RE.match(line)
@@ -198,10 +216,11 @@ def generate_source(runtime: bool = False) -> str:
 
     named_imports = {"IEventStore"}
     if runtime:
-        named_imports.update({"getEventTypeMetadata", "getReadModelMetadata", "TypeDiscoverer", "hasModelBoundProperties", "DefaultClientArtifactsProvider", "validateArtifactSchemas"})
+        named_imports.update({"getEventTypeMetadata", "getReadModelMetadata", "TypeDiscoverer", "hasModelBoundProperties", "DefaultClientArtifactsProvider", "validateArtifactSchemas", "ProjectionDefinitionCompiler", "isModelBoundProjection", "rootReadModelTypes"})
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
+    testing_named_imports: set[str] = set()
     declarations: list[str] = [textwrap.dedent(declaration).strip() for declaration in COMMON_DECLARATIONS]
     functions: list[str] = []
     classes: list[tuple[str, str]] = []
@@ -212,7 +231,7 @@ def generate_source(runtime: bool = False) -> str:
         if snippet is None or (runtime and relative_path in RUNTIME_INVALID_ERRORS):
             continue
 
-        body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+        body = split_imports(snippet, named_imports, testing_named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
         if runtime and not CLASS_RE.search(body):
             continue
 
@@ -229,6 +248,8 @@ def generate_source(runtime: bool = False) -> str:
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
         f"import {{ {', '.join(sorted(named_imports))} }} from '{'../sdk.mjs' if runtime else '../index'}';",
     ]
+    if testing_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(testing_named_imports))} }} from '{'../sdk.mjs' if runtime else '../testing/index.js'}';")
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
     if fundamentals_named_imports:
@@ -265,6 +286,55 @@ def generate_source(runtime: bool = False) -> str:
         "// Also exercise the complete artifact set as EventStore does at startup.",
         "validateArtifactSchemas(artifacts);",
         "console.log(`Standard decorators: ${checkedSchemas} event/read-model schemas validated.`);",
+        "// Compile each root separately: independent snippets can intentionally share read-model IDs.",
+        "const modelBoundReadModels = rootReadModelTypes(artifacts).filter(isModelBoundProjection);",
+        "const declarativeProjections = artifacts.projections;",
+        "const projectionPaths = new Map(snippetClasses.map(([path, type]) => [type, path]));",
+        "const definitions = [];",
+        "for (const [type, modelBound] of [",
+        "    ...declarativeProjections.map(type => [type, false]),",
+        "    ...modelBoundReadModels.map(type => [type, true]),",
+        "]) {",
+        "    const path = projectionPaths.get(type) ?? type.name;",
+        "    try {",
+        "        const compiled = new ProjectionDefinitionCompiler(artifacts, 'docs-snippet-sink')",
+        "            .compile(modelBound ? [] : [type], modelBound ? [type] : []);",
+        "        if (compiled.definitions.length !== 1) throw new Error('Expected one projection definition.');",
+        "        definitions.push(...compiled.definitions);",
+        "    } catch (error) {",
+        "        throw new Error(`${path}: projection definition compilation failed: ${String(error)}`, { cause: error });",
+        "    }",
+        "}",
+        "if (!definitions.length) throw new Error('No projection definitions were checked.');",
+        "// A child or nested scalar clear must map to $null, never remove its containing object.",
+        "for (const [path, model, section, member, property] of [",
+        "    ['projections/model-bound/clearing/child', 'MbClearingTaskList', 'Children', 'tasks', 'due'],",
+        "    ['projections/model-bound/clearing/nested-member', 'MbClearingEmployee', 'Nested', 'contract', 'noticeGiven'],",
+        "    ['projections/model-bound/clearing/set-value-null', 'MbClearingInvoice', 'Root', '', 'reference'],",
+        "    ['projections/model-bound/clearing/fluent', 'MbClearingFluentProjectProjection', 'Root', '', 'note'],",
+        "    ['projections/model-bound/clearing/fluent', 'MbClearingFluentProjectProjection', 'Nested', 'summary', 'note'],",
+        "    ['projections/model-bound/clearing/fluent', 'MbClearingFluentProjectProjection', 'Children', 'tasks', 'note'],",
+        "]) {",
+        "    const type = snippetClasses.find(([snippetPath, candidate]) => snippetPath === path && candidate.name === model)?.[1];",
+        "    const definition = definitions.find(candidate => candidate.Identifier === type?.name);",
+        "    const child = section === 'Root' ? definition : definition?.[section]?.[member];",
+        "    const mapping = child?.From?.find(from => from.Value.Properties[property] === '$null');",
+        "    if (!mapping || child.RemovedWith.some(removed => removed.Key.Id === mapping.Key.Id && removed.Key.Generation === mapping.Key.Generation)) {",
+        "        throw new Error(`${path}: ${property} must map to $null, not RemovedWith.`);",
+        "    }",
+        "}",
+        "// The working noAutoMap examples must disable automatic mapping on their child/nested definitions.",
+        "for (const [path, model, section, member] of [",
+        "    ['projections/model-bound/children/no-automap', 'MbChildrenNoAutoMapOrder', 'Children', 'items'],",
+        "    ['projections/model-bound/nested/no-automap', 'SliceWithNestedCommandNoAutoMap', 'Nested', 'command'],",
+        "]) {",
+        "    const type = snippetClasses.find(([snippetPath, candidate]) => snippetPath === path && candidate.name === model)?.[1];",
+        "    const definition = definitions.find(candidate => candidate.Identifier === type?.name);",
+        "    if (!type || definition?.[section]?.[member]?.AutoMap !== 1) {",
+        "        throw new Error(`${path}: ${section}.${member}.AutoMap must be Disabled (1).`);",
+        "    }",
+        "}",
+        "console.log(`Standard decorators: ${definitions.length} projection definitions compiled.`);",
     ] if runtime else []
     return "\n\n".join([
         "// This file is generated by Documentation/validate-client-snippets.py.",
@@ -281,10 +351,11 @@ def generate_invalid_source(path: Path) -> str:
     if snippet is None:
         raise ValueError(f"Expected an intentionally invalid TypeScript snippet in {path}")
     named_imports = {"getEventTypeMetadata"}
+    testing_named_imports: set[str] = set()
     contracts_named_imports: set[str] = set()
     fundamentals_named_imports: set[str] = set()
     side_effect_imports = {"reflect-metadata"}
-    body = split_imports(snippet, named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
+    body = split_imports(snippet, named_imports, testing_named_imports, contracts_named_imports, fundamentals_named_imports, side_effect_imports)
     classes = CLASS_RE.findall(body)
     if not classes:
         raise ValueError(f"No classes found in intentionally invalid snippet {path}")
@@ -292,6 +363,8 @@ def generate_invalid_source(path: Path) -> str:
         *[f"import '{module_name}';" for module_name in sorted(side_effect_imports)],
         f"import {{ {', '.join(sorted(named_imports))} }} from '../sdk.mjs';",
     ]
+    if testing_named_imports:
+        imports.append(f"import {{ {', '.join(sorted(testing_named_imports))} }} from '../sdk.mjs';")
     if contracts_named_imports:
         imports.append(f"import {{ {', '.join(sorted(contracts_named_imports))} }} from '@cratis/chronicle.contracts';")
     if fundamentals_named_imports:
@@ -319,6 +392,7 @@ def generate_tsconfig(standard: bool, runtime: bool = False) -> str:
 
 
 def main() -> int:
+    validate_schema_validation_example()
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     GENERATED_SOURCE.write_text(generate_source(), encoding="utf-8")
     files = [path for path in snippet_files() if extract_snippet(path) is not None]
@@ -353,7 +427,8 @@ def main() -> int:
             }
             console.log(`Standard decorators: ${cases.length} intentionally invalid snippets rejected with expected errors.`);
         """), encoding="utf-8")
-        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\n", encoding="utf-8")
+        # Bundle root and testing together so their decorator metadata and artifact registries are shared.
+        GENERATED_SDK_ENTRY.write_text("export * from '../index.js';\nexport * from '../testing/index.js';\nexport { hasModelBoundProperties } from '../types/TypeDiscoverer.js';\nexport { validateArtifactSchemas } from '../artifacts/validateArtifactSchemas.js';\nexport { ProjectionDefinitionCompiler } from '../projections/ProjectionDefinitionCompiler.js';\nexport { isModelBoundProjection } from '../projections/modelBound/isModelBoundProjection.js';\nexport { rootReadModelTypes } from '../readModels/rootReadModelTypes.js';\n", encoding="utf-8")
         subprocess.run([
             "yarn", "exec", "esbuild", ".docs-snippets/sdk-entry.ts", "--bundle", "--packages=external",
             "--platform=node", "--format=esm", "--target=es2022", "--outfile=.docs-snippets/sdk.mjs",

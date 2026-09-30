@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { ISetBuilder } from './ISetBuilder.js';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 
 /**
  * Concrete implementation of {@link ISetBuilder} that records the property mapping
@@ -35,7 +36,7 @@ export class SetBuilder<TEvent, TParentBuilder> implements ISetBuilder<TEvent, T
 
     /** @inheritdoc */
     toEventContextProperty(contextPropertyName: string): TParentBuilder {
-        this._setProperty(this._readModelProperty, `$context.${contextPropertyName}`);
+        this._setProperty(this._readModelProperty, eventContextPropertyExpression(contextPropertyName));
         return this._parent;
     }
 

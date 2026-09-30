@@ -20,8 +20,28 @@ export interface ChildrenFromMetadata {
     readonly parentKey?: string;
 }
 
+/** Options for the options form of the childrenFrom property decorator. */
+export interface ChildrenFromOptions {
+    /** The child type, for TypeScript runtimes without emitted generic metadata. */
+    readonly childType?: Function;
+    /** The event property name used as the key for children. Defaults to the event source identifier. */
+    readonly key?: string;
+    /** The child model property name used to uniquely identify instances in the collection. */
+    readonly identifiedBy?: string;
+    /** The event property name used as the parent key. Defaults to the event source identifier. */
+    readonly parentKey?: string;
+}
+
 const METADATA_KEY = 'chronicle:projection:childrenFrom';
 
+/**
+ * Property decorator that configures a children collection sub-projection from an event type.
+ * Use this form to name the child type and an explicit child key together.
+ * @param eventType - The event constructor.
+ * @param options - The child type, key, identifiedBy and parentKey.
+ * @returns A property decorator.
+ */
+export function childrenFrom(eventType: Function, options: ChildrenFromOptions): ChroniclePropertyDecorator;
 /**
  * Property decorator that configures a children collection sub-projection from an event type.
  * @param eventType - The event constructor.
@@ -30,22 +50,38 @@ const METADATA_KEY = 'chronicle:projection:childrenFrom';
  * @param parentKey - Optional event property name used as the parent key.
  * @returns A property decorator.
  */
+export function childrenFrom(eventType: Function, key?: string | Function, identifiedBy?: string, parentKey?: string): ChroniclePropertyDecorator;
 export function childrenFrom(
     eventType: Function,
-    key?: string | Function,
+    keyOrOptions?: string | Function | ChildrenFromOptions,
     identifiedBy?: string,
     parentKey?: string
 ): ChroniclePropertyDecorator {
+    const metadata = toMetadata(eventType, keyOrOptions, identifiedBy, parentKey);
     return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         const propKey = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, propKey);
         const existing: ChildrenFromMetadata[] = Reflect.getMetadata(METADATA_KEY, target, propKey) ?? [];
-        const metadata: ChildrenFromMetadata = {
-            eventType, key: typeof key === 'string' ? key : undefined,
-            childType: typeof key === 'function' ? key : undefined, identifiedBy, parentKey
-        };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, propKey);
     });
+}
+
+function toMetadata(
+    eventType: Function,
+    keyOrOptions: string | Function | ChildrenFromOptions | undefined,
+    identifiedBy: string | undefined,
+    parentKey: string | undefined
+): ChildrenFromMetadata {
+    if (typeof keyOrOptions === 'object' && keyOrOptions !== null) {
+        return {
+            eventType, childType: keyOrOptions.childType, key: keyOrOptions.key,
+            identifiedBy: keyOrOptions.identifiedBy, parentKey: keyOrOptions.parentKey
+        };
+    }
+    return {
+        eventType, key: typeof keyOrOptions === 'string' ? keyOrOptions : undefined,
+        childType: typeof keyOrOptions === 'function' ? keyOrOptions : undefined, identifiedBy, parentKey
+    };
 }
 
 /**

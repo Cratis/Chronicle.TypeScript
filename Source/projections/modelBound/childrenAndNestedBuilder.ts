@@ -6,6 +6,7 @@ import { AutoMap } from '@cratis/chronicle.contracts';
 import { Constructor, Fields } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../../types/index.js';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { notSetPropertyPath } from '../notSetPropertyPath.js';
 import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
 import { getAddFromMetadata } from './addFrom.js';
@@ -16,6 +17,7 @@ import { getDecrementMetadata } from './decrement.js';
 import { getFromEventMetadata } from './fromEvent.js';
 import { getIncrementMetadata } from './increment.js';
 import { isNested } from './nested.js';
+import { isNoAutoMap, isPropertyNoAutoMap } from './noAutoMap.js';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith.js';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin.js';
 import { getSetFromMetadata } from './setFrom.js';
@@ -43,7 +45,10 @@ export interface ChildrenDefinitionLike {
     RemovedWithJoin: Array<{ Key: ContractEventType; Value: { Key: string } }>;
     AutoMap: AutoMap;
     Nested: Record<string, ChildrenDefinitionLike>;
+    NoAutoMapProperties: string[];
 }
+
+const aggregateExpressions = ['$count', '$increment', '$decrement', '$add', '$subtract'];
 
 /**
  * Resolves the contract event type for a decorated event constructor.
@@ -107,7 +112,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
 
     for (const mapping of getSetFromContextMetadata(prototype, property)) {
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = mapping.contextPropertyName ?? property;
+        entry.Value.Properties[property] = eventContextPropertyExpression(mapping.contextPropertyName ?? property);
     }
 
     for (const mapping of getSetValueMetadata(prototype, property)) {
@@ -150,7 +155,7 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
     }
 }
 
-function createEmptyChildrenDefinition(): ChildrenDefinitionLike {
+function createEmptyChildrenDefinition(parentType: Function, childType: Function | undefined): ChildrenDefinitionLike {
     return {
         IdentifiedBy: '$eventSourceId',
         From: [],
@@ -159,8 +164,10 @@ function createEmptyChildrenDefinition(): ChildrenDefinitionLike {
         All: { Properties: {}, IncludeChildren: false, AutoMap: AutoMap.Inherit },
         RemovedWith: [],
         RemovedWithJoin: [],
-        AutoMap: AutoMap.Enabled,
-        Nested: {}
+        AutoMap: isNoAutoMap(parentType) || (childType !== undefined && isNoAutoMap(childType)) ? AutoMap.Disabled : AutoMap.Enabled,
+        Nested: {},
+        NoAutoMapProperties: childType === undefined ? [] : TypeIntrospector.getTrackedProperties(childType)
+            .filter(property => isPropertyNoAutoMap(childType.prototype, property))
     };
 }
 
@@ -204,23 +211,20 @@ export function resolveNestedType(type: Function, property: string): Function | 
 
 /**
  * Discovers the child model property used to identify instances, by convention: a property
- * named `id` (case-insensitive), matching the C# client's fallback once no `[Key]` attribute
- * is present (TypeScript has no `[Key]` decorator equivalent).
+ * named `id` (case-insensitive), or a property matching the event key when no id is found.
+ * TypeScript has no `[Key]` decorator equivalent.
  * @param childType - The child/nested model type, when resolvable.
+ * @param eventKey - The configured event key, when present.
  * @returns The discovered property name, or undefined when no convention match is found.
  */
-function discoverIdentifiedBy(childType: Function | undefined): string | undefined {
+function discoverIdentifiedBy(childType: Function | undefined, eventKey: string | undefined): string | undefined {
     if (!childType) {
         return undefined;
     }
 
-    for (const name of TypeIntrospector.getMembers(childType).keys()) {
-        if (name.toLowerCase() === 'id') {
-            return name;
-        }
-    }
-
-    return undefined;
+    const members = [...TypeIntrospector.getMembers(childType).keys()];
+    return members.find(name => name.toLowerCase() === 'id') ??
+        (eventKey !== undefined ? members.find(name => name.toLowerCase() === eventKey.toLowerCase()) : undefined);
 }
 
 /**
@@ -274,9 +278,13 @@ function populateFromType(definition: ChildrenDefinitionLike, childType: Functio
     for (const property of TypeIntrospector.getTrackedProperties(childType)) {
         applyPropertyMappings(prototype, property, fromByEventType);
 
-        for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
-            const eventType = toContractEventType(clearWith.eventType);
-            removedWithByEventType.set(getEventTypeMapKey(eventType), { Key: eventType, Value: { Key: '$eventSourceId', ParentKey: '' } });
+        // A clear on the member carrying @nested removes that nested object; a clear on
+        // any other member maps the member to null in this child/nested definition.
+        if (!isNested(prototype, property)) {
+            for (const clearWith of getClearWithPropertyMetadata(prototype, property)) {
+                const entry = ensureFromEntry(fromByEventType, clearWith.eventType);
+                entry.Value.Properties[property] = '$null';
+            }
         }
 
         for (const removed of getRemovedWithPropertyMetadata(prototype, property)) {
@@ -313,10 +321,10 @@ function populateFromType(definition: ChildrenDefinitionLike, childType: Functio
  */
 export function buildChildrenEntry(type: Function, property: string, metadataList: ChildrenFromMetadata[]): ChildrenDefinitionLike {
     const childType = resolveChildElementType(type, property);
-    const definition = createEmptyChildrenDefinition();
+    const definition = createEmptyChildrenDefinition(type, childType);
 
     const explicitIdentifiedBy = metadataList.find(metadata => metadata.identifiedBy)?.identifiedBy;
-    definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType) ?? '$eventSourceId';
+    definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType, metadataList[0]?.key) ?? '$eventSourceId';
 
     for (const metadata of metadataList) {
         const eventType = toContractEventType(metadata.eventType);
@@ -331,6 +339,41 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
     }
 
     populateFromType(definition, childType);
+
+    // For non-aggregate-only creating events, populate an unmapped child identifier from
+    // the creating event's key. IdentifiedBy selects the child property; it is not itself
+    // a property mapping. TypeScript has no [Key] decorator, so an explicit identifiedBy
+    // plays the same role as a discovered id for this default.
+    const identifier = definition.IdentifiedBy;
+    if (definition.AutoMap === AutoMap.Enabled && identifier !== '$eventSourceId') {
+        const prototype = childType?.prototype;
+        const hasExplicitMapping = prototype !== undefined && (
+            getSetFromMetadata(prototype, identifier).length > 0 ||
+            getSetFromContextMetadata(prototype, identifier).length > 0 ||
+            getSetValueMetadata(prototype, identifier).length > 0 ||
+            getAddFromMetadata(prototype, identifier).length > 0 ||
+            getSubtractFromMetadata(prototype, identifier).length > 0);
+        if (!hasExplicitMapping) {
+            for (const metadata of metadataList) {
+                const entry = definition.From.find(candidate => getEventTypeMapKey(candidate.Key) === getEventTypeMapKey(toContractEventType(metadata.eventType)))!;
+                const mappings = Object.values(entry.Value.Properties);
+                // Preserve the kernel's aggregate-only AutoMap exemption: Changeset.AddChild already
+                // initializes the child identifier from the resolved key before applying property mappers.
+                if (mappings.length > 0 && mappings.every(expression =>
+                    aggregateExpressions.some(aggregate => expression.startsWith(aggregate)))) {
+                    continue;
+                }
+                // Child property mappings may replace the creating key (for example, a constant-key count).
+                const key = entry.Value.Key;
+                // When an event property is also the identifier, AutoMap can fill it directly.
+                if (key.toLowerCase() !== identifier.toLowerCase() && !(identifier in entry.Value.Properties)) {
+                    entry.Value.Properties[identifier] = key === '$eventSourceId'
+                        ? eventContextPropertyExpression('eventSourceId')
+                        : key;
+                }
+            }
+        }
+    }
     return definition;
 }
 
@@ -342,7 +385,7 @@ export function buildChildrenEntry(type: Function, property: string, metadataLis
  */
 export function buildNestedEntry(type: Function, property: string): ChildrenDefinitionLike {
     const nestedType = resolveNestedType(type, property);
-    const definition = createEmptyChildrenDefinition();
+    const definition = createEmptyChildrenDefinition(type, nestedType);
     definition.IdentifiedBy = notSetPropertyPath;
 
     // A @clearWith on the property carrying @nested clears this nested object, the same as a

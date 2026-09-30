@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { AddBuilder } from './AddBuilder.js';
 import { AddChildBuilder, ChildAdditionEntry } from './AddChildBuilder.js';
 import { CompositeKeyBuilder } from './CompositeKeyBuilder.js';
@@ -14,6 +15,7 @@ import { ISetBuilder } from './ISetBuilder.js';
 import { ISubtractBuilder } from './ISubtractBuilder.js';
 import { SetBuilder } from './SetBuilder.js';
 import { SubtractBuilder } from './SubtractBuilder.js';
+import { recordKeyDeclaration } from './projectionBuilderProvenance.js';
 
 /**
  * Accumulated property mapping for a from clause.
@@ -57,12 +59,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.key = handler.property;
+        recordKeyDeclaration(this, 'Key', '.from().usingKey');
         return this;
     }
 
     /** @inheritdoc */
     usingKeyFromContext(contextPropertyName: string): this {
-        this.entry.key = `$context.${contextPropertyName}`;
+        this.entry.key = eventContextPropertyExpression(contextPropertyName);
+        recordKeyDeclaration(this, 'Key', '.from().usingKeyFromContext');
         return this;
     }
 
@@ -72,12 +76,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const proxy = new Proxy({}, handler);
         keyAccessor(proxy as TEvent);
         this.entry.parentKey = handler.property;
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentKey');
         return this;
     }
 
     /** @inheritdoc */
     usingParentKeyFromContext(contextPropertyName: string): this {
-        this.entry.parentKey = `$context.${contextPropertyName}`;
+        this.entry.parentKey = eventContextPropertyExpression(contextPropertyName);
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentKeyFromContext');
         return this;
     }
 
@@ -86,6 +92,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.key = compositeKeyBuilder.build();
+        recordKeyDeclaration(this, 'Key', '.from().usingCompositeKey');
         return this;
     }
 
@@ -94,18 +101,21 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         const compositeKeyBuilder = new CompositeKeyBuilder<TKeyType, TEvent>();
         builderCallback(compositeKeyBuilder);
         this.entry.parentKey = compositeKeyBuilder.build();
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingParentCompositeKey');
         return this;
     }
 
     /** @inheritdoc */
     usingConstantKey(value: string): this {
         this.entry.key = constantValueExpression(value);
+        recordKeyDeclaration(this, 'Key', '.from().usingConstantKey');
         return this;
     }
 
     /** @inheritdoc */
     usingConstantParentKey(value: string): this {
         this.entry.parentKey = constantValueExpression(value);
+        recordKeyDeclaration(this, 'ParentKey', '.from().usingConstantParentKey');
         return this;
     }
 
@@ -161,6 +171,14 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
     }
 
     /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, builderCallback: (builder: IAddChildBuilder<TChildModel, TEvent> & TEvent) => void): this;
+    /** @inheritdoc */
+    addChild<TChildModel>(targetPropertyAccessor: (model: TReadModel) => readonly TChildModel[] | null | undefined, eventPropertyAccessor: PropertyAccessor<TEvent>): this;
+    /** @inheritdoc */
+    addChild<TChildModel>(
+        targetPropertyAccessor: PropertyAccessor<TReadModel>,
+        eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
+    ): this;
     addChild<TChildModel>(
         targetPropertyAccessor: PropertyAccessor<TReadModel>,
         eventPropertyAccessorOrBuilderCallback: PropertyAccessor<TEvent> | ((builder: IAddChildBuilder<TChildModel, TEvent>) => void)
@@ -174,7 +192,7 @@ export class FromBuilder<TReadModel, TEvent> implements IFromBuilder<TReadModel,
         (eventPropertyAccessorOrBuilderCallback as (value: unknown) => void)(probeProxy);
 
         this.entry.children.push(probe.usedAsBuilder
-            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty }
+            ? { targetProperty: targetHandler.property, identifiedBy: probe.identifiedByProperty, usingKey: probe.usingKeyProperty, usingParentKey: probe.usingParentKeyProperty }
             : { targetProperty: targetHandler.property, fromEventProperty: probe.capturedEventProperty });
         return this;
     }

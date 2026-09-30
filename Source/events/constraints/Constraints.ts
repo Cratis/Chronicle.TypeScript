@@ -3,8 +3,8 @@
 
 import { ConstraintType } from '@cratis/chronicle.contracts';
 import type { ConstraintViolation } from '../../eventSequences/ConstraintViolation.js';
-import { IClientArtifactsProvider } from '../../artifacts/index.js';
-import { ChronicleConnection } from '../../connection/index.js';
+import type { IClientArtifactsProvider } from '../../artifacts/index.js';
+import type { ChronicleConnection } from '../../connection/index.js';
 import { ConstraintId } from './ConstraintId.js';
 import { IConstraint } from './IConstraint.js';
 import { IConstraints } from './IConstraints.js';
@@ -35,38 +35,22 @@ function assertMatchingScope(name: string, left: ConstraintScopeCapture, right: 
     }
 }
 
-/** Manages discovery and registration of constraints with the Chronicle Kernel. */
-export class Constraints implements IConstraints {
-    private readonly _captures = new Map<string, ConstraintCapture>();
-
-    /**
-     * Creates a new {@link Constraints} instance.
-     * @param _eventStore - The name of the event store these constraints belong to.
-     * @param _connection - The connection used to communicate with the Kernel.
-     * @param _clientArtifacts - Provider for discovered client artifact types.
-     */
-    constructor(
-        private readonly _eventStore: string,
-        private readonly _connection: ChronicleConnection,
-        private readonly _clientArtifacts: IClientArtifactsProvider
-    ) {}
-
-    /** @inheritdoc */
-    async discover(): Promise<void> {
-        this._captures.clear();
-        const fluentIds = new Set<string>();
-        for (const type of this._clientArtifacts.constraints) {
-            const metadata = getConstraintMetadata(type);
+/** Compile decorator and fluent constraints using the production registration rules. */
+export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eventTypes' | 'constraints'>): Map<string, ConstraintCapture> {
+    const captures = new Map<string, ConstraintCapture>();
+    const fluentIds = new Set<string>();
+    for (const definition of provider.constraints) {
+            const metadata = getConstraintMetadata(definition);
             if (!metadata) continue;
-            if (fluentIds.has(metadata.id.value)) throw new Error(`Duplicate constraint id '${metadata.id.value}'.`);
-            fluentIds.add(metadata.id.value);
-
-            const builder = new ConstraintBuilder(metadata.id.value);
-            const instance = new (type as new () => IConstraint)();
+            const id = metadata.id.value;
+            if (fluentIds.has(id)) throw new Error(`Duplicate constraint id '${id}'.`);
+            fluentIds.add(id);
+            const builder = new ConstraintBuilder(id);
+            const instance = new (definition as new () => IConstraint)();
             instance.define(builder);
             const capture = builder.capture;
             const name = wireNameOf(capture);
-            const existing = this._captures.get(name);
+            const existing = captures.get(name);
             if (existing?.uniqueEventType && capture.uniqueEventType) {
                 assertMatchingScope(name, existing.scope, capture.scope);
                 const merged = existing.uniqueEventType;
@@ -82,12 +66,12 @@ export class Constraints implements IConstraints {
             } else if (existing) {
                 throw new Error(`Duplicate constraint name '${name}'.`);
             } else {
-                this._captures.set(name, capture);
+                captures.set(name, capture);
             }
         }
 
         const removalEvents = new Map<string, Function[]>();
-        for (const eventType of this._clientArtifacts.eventTypes) {
+        for (const eventType of provider.eventTypes) {
             for (const name of getRemovedConstraintNames(eventType)) {
                 const events = removalEvents.get(name) ?? [];
                 events.push(eventType);
@@ -95,16 +79,16 @@ export class Constraints implements IConstraints {
             }
         }
 
-        for (const eventType of this._clientArtifacts.eventTypes) {
+        for (const eventType of provider.eventTypes) {
             const eventMetadata = getUniqueEventMetadata(eventType);
             if (eventMetadata) {
                 const name = eventMetadata.name ?? eventType.name;
-                let capture = this._captures.get(name);
+                let capture = captures.get(name);
                 if (!capture) {
                     const builder = new ConstraintBuilder(name);
                     builder.uniqueFor(eventType, eventMetadata.message, name);
                     capture = builder.capture;
-                    this._captures.set(name, capture);
+                    captures.set(name, capture);
                 } else if (!capture.uniqueEventType) {
                     throw new Error(`Constraint '${name}' is not a unique event type constraint.`);
                 } else {
@@ -120,12 +104,12 @@ export class Constraints implements IConstraints {
                 const metadata = getUniquePropertyMetadata(eventType, property);
                 if (!metadata) continue;
                 const name = metadata.name ?? property;
-                let capture = this._captures.get(name);
+                let capture = captures.get(name);
                 if (!capture) {
                     const builder = new ConstraintBuilder(name);
                     builder.unique(() => {});
                     capture = builder.capture;
-                    this._captures.set(name, capture);
+                    captures.set(name, capture);
                 }
                 if (!capture.uniqueConstraint) throw new Error(`Constraint '${name}' is not a unique property constraint.`);
                 assertMatchingScope(name, capture.scope, decoratorScope);
@@ -142,7 +126,7 @@ export class Constraints implements IConstraints {
         }
 
         for (const [name, eventTypes] of removalEvents) {
-            const capture = this._captures.get(name);
+            const capture = captures.get(name);
             if (capture) {
                 if (capture.uniqueConstraint) {
                     const unique = new UniqueConstraintBuilder(capture.uniqueConstraint);
@@ -156,6 +140,40 @@ export class Constraints implements IConstraints {
                 }
             }
         }
+    return captures;
+}
+
+/** Resolve the registered message and detail substitutions without a connection. */
+export function resolveConstraintMessage(captures: ReadonlyMap<string, ConstraintCapture>, violation: ConstraintViolation): ConstraintViolation {
+    const capture = captures.get(violation.constraintId);
+    const message = capture?.uniqueConstraint?.message ?? capture?.uniqueEventType?.message;
+    if (!message) return violation;
+    let resolved = message;
+    for (const [key, value] of Object.entries(violation.details)) {
+        resolved = resolved.replaceAll(`{${key}}`, () => value);
+    }
+    return { ...violation, message: resolved };
+}
+
+/** Manages discovery and registration of constraints with the Chronicle Kernel. */
+export class Constraints implements IConstraints {
+    private _captures = new Map<string, ConstraintCapture>();
+
+    /**
+     * Creates a new {@link Constraints} instance.
+     * @param _eventStore - The name of the event store these constraints belong to.
+     * @param _connection - The connection used to communicate with the Kernel.
+     * @param _clientArtifacts - Provider for discovered client artifact types.
+     */
+    constructor(
+        private readonly _eventStore: string,
+        private readonly _connection: ChronicleConnection,
+        private readonly _clientArtifacts: IClientArtifactsProvider
+    ) {}
+
+    /** @inheritdoc */
+    async discover(): Promise<void> {
+        this._captures = compileConstraints(this._clientArtifacts);
     }
 
     /** @inheritdoc */
@@ -242,14 +260,6 @@ export class Constraints implements IConstraints {
      * @returns The violation with its configured message and substituted details, if available.
      */
     resolveMessageFor(violation: ConstraintViolation): ConstraintViolation {
-        const capture = this._captures.get(violation.constraintId);
-        const message = capture?.uniqueConstraint?.message ?? capture?.uniqueEventType?.message;
-        if (!message) return violation;
-
-        let resolved = message;
-        for (const [key, value] of Object.entries(violation.details)) {
-            resolved = resolved.replaceAll(`{${key}}`, () => value);
-        }
-        return { ...violation, message: resolved };
+        return resolveConstraintMessage(this._captures, violation);
     }
 }

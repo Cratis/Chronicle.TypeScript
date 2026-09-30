@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { IRemovedWithBuilder } from './IRemovedWithBuilder.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 
 /**
  * Accumulated removal configuration for a removedWith clause.
@@ -34,7 +35,7 @@ export class RemovedWithBuilder<TReadModel, TEvent> implements IRemovedWithBuild
 
     /** @inheritdoc */
     usingKeyFromContext(contextPropertyName: string): this {
-        this.entry.key = `$context.${contextPropertyName}`;
+        this.entry.key = eventContextPropertyExpression(contextPropertyName);
         return this;
     }
 }

@@ -1,0 +1,166 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.8.1",
+    "commit": "8fe5d30"
+  },
+  "tsContracts": {
+    "version": "19.6.1",
+    "descriptorSha256": "21df36c38d5b668dbf98487b412c17dbc7954ace55e840c3283735ba35c6d57b"
+  },
+  "definitionSource": "Hand-written generated 19.6.1 contract; id is overwritten by both AutoMap and an explicit content expression.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-ids",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "AutoId",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {},
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "ExplicitId",
+          "Generation": 1
+        },
+        "Value": {
+          "Properties": {
+            "id": "payloadId"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "AutoId",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ExplicitId",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "payloadId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "AutoId",
+          "Generation": 1
+        },
+        "eventSourceId": "source-id",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "id": "auto-id"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ExplicitId",
+          "Generation": 1
+        },
+        "eventSourceId": "source-id",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "payloadId": "explicit-id"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "source-id": {
+          "id": "source-id",
+          "__initialized": true,
+          "__subject": "source-id"
+        }
+      },
+      "publicRead": {
+        "source-id": {
+          "id": "source-id"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "source-id": {
+          "id": "source-id",
+          "__initialized": true,
+          "__subject": "source-id"
+        }
+      },
+      "publicRead": {
+        "source-id": {
+          "id": "source-id"
+        }
+      }
+    }
+  ]
+}

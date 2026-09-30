@@ -10,6 +10,7 @@
         "compile": "yarn workspaces foreach -A -t run compile",
         "build": "yarn workspaces foreach -A -t run build",
         "test": "yarn workspace @cratis/chronicle test",
+        "oracle:check": "dotnet restore Tools/ProjectionOracle/ProjectionOracle.csproj --locked-mode && dotnet run --project Tools/ProjectionOracle/ProjectionOracle.csproj --no-restore -- --check",
         "clean": "yarn workspaces foreach -A -t run clean",
         "ci": "yarn clean && yarn build && yarn workspace @cratis/chronicle test:standard-types && yarn workspace @cratis/chronicle test:native && yarn workspace @cratis/chronicle test",
         "publish-version": "node ./publish-version.js"

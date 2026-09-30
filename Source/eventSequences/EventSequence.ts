@@ -3,14 +3,18 @@
 
 import { ChronicleConnection } from '../connection/index.js';
 import { SpanStatusCode } from '@opentelemetry/api';
-import type { AppendedEventResponse as ContractsAppendedEvent } from '@cratis/chronicle.contracts';
-import { Constructor, Guid, JsonSerializer } from '@cratis/fundamentals';
+import type {
+    AppendedEventResponse as ContractsAppendedEvent,
+    AppendManyResponse as ContractsAppendManyResponse,
+    AppendResponse as ContractsAppendResponse
+} from '@cratis/chronicle.contracts';
+import { Constructor } from '@cratis/fundamentals';
+import { prepareSingleAppend } from './prepareSingleAppend.js';
+import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
-import { Tag } from '../events/Tag.js';
-import { getTagsFor } from '../events/tagDecorator.js';
-import { mergeTags } from '../events/mergeTags.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { toClientFailedPartition } from '../observation/toClientFailedPartition.js';
@@ -18,9 +22,9 @@ import { AppendedEventWithResult } from './AppendedEventWithResult.js';
 import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster.js';
 import { AppendOptions } from './AppendOptions.js';
 import { AppendResult } from './AppendResult.js';
+import { createAppendResult } from './createAppendResult.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
 import { CompleteStreamResult } from './CompleteStreamResult.js';
-import { ConcurrencyViolation } from './ConcurrencyViolation.js';
 import { ConstraintViolation } from './ConstraintViolation.js';
 import { EventForEventSourceId } from './EventForEventSourceId.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -37,7 +41,6 @@ import { ChronicleTracer } from '../Tracing.js';
 import { ChronicleMetrics } from '../Metrics.js';
 import { identityProvider, Identity } from '../identity/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
-import { correlationIdManager } from '../correlation/index.js';
 import { toContractsGuid } from '../connection/Guid.js';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
@@ -64,18 +67,7 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
-        const eventType = getEventTypeFor(event.constructor as Function);
-        const correlationId = options?.correlationId === undefined
-            ? Guid.as(correlationIdManager.current.value)
-            : Guid.as(options.correlationId);
-        const content = JsonSerializer.serialize(event);
-
-        // Merge static tags declared on the event type with tags supplied at append time.
-        const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
-
-        const causationChain = causationManager.run(CausationType.appendEvent, { eventType: eventType.id.value },
-            () => causationManager.getCurrentChain());
-        const identity = identityProvider.getCurrent();
+        const { eventType, correlationId, content, tags, causationChain, identity } = prepareSingleAppend(event, options);
 
         const metricAttributes = {
             'chronicle.event_store': this._eventStoreName,
@@ -149,22 +141,8 @@ export class EventSequence implements IEventSequence {
                 }
 
                 if (this.appendOperations.hasSubscribers) {
-                    this.appendOperations.publish([{
-                        event: {
-                            context: {
-                                sequenceNumber: result.sequenceNumber.value,
-                                eventSourceId,
-                                eventType,
-                                occurred: new Date(),
-                                correlationId: correlationId.toString(),
-                                causation: causationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } })),
-                                tags: tags.map(value => new Tag(value))
-                            },
-                            eventType,
-                            content: event as Record<string, unknown>
-                        },
-                        result
-                    }]);
+                    this.appendOperations.publish([createAppendNotification(eventSourceId, event, result,
+                        correlationId.toString(), mapAppendNotificationCausation(causationChain), tags)]);
                 }
 
                 return result;
@@ -191,74 +169,8 @@ export class EventSequence implements IEventSequence {
         eventsOrOptions?: object[] | AppendOptions,
         options?: AppendOptions
     ): Promise<AppendResult[]> {
-        if (typeof eventSourceIdOrEvents !== 'string' && !Array.isArray(eventSourceIdOrEvents)) {
-            throw new Error('Invalid arguments: first parameter must be an eventSourceId string or an array of { eventSourceId, event }.');
-        }
-        if (typeof eventSourceIdOrEvents === 'string' && !Array.isArray(eventsOrOptions)) {
-            throw new Error('Invalid arguments: use appendMany(eventSourceId, events, options?) where the second parameter is an array of events.');
-        }
-        if (typeof eventSourceIdOrEvents !== 'string' && Array.isArray(eventsOrOptions)) {
-            throw new Error('Invalid arguments: use appendMany(eventsForEventSourceId, options?) where the second parameter is append options.');
-        }
-
-        let eventsForEventSourceIds: EventForEventSourceId[];
-        if (typeof eventSourceIdOrEvents === 'string') {
-            const eventsArray = eventsOrOptions as object[];
-            eventsForEventSourceIds = eventsArray.map((event: object) => ({
-                eventSourceId: eventSourceIdOrEvents,
-                event
-            }));
-        } else {
-            eventsForEventSourceIds = eventSourceIdOrEvents;
-        }
-        const appendOptions = typeof eventSourceIdOrEvents === 'string'
-            ? options
-            : eventsOrOptions as AppendOptions | undefined;
-        if (eventsForEventSourceIds.length === 0 && Object.keys(appendOptions?.concurrencyScopes ?? {}).length > 0) {
-            throw new Error('Chronicle requires at least one event to validate concurrency scopes.');
-        }
-
-        const correlationId = appendOptions?.correlationId === undefined
-            ? Guid.as(correlationIdManager.current.value)
-            : Guid.as(appendOptions.correlationId);
-
-        const batchCausationChain = causationManager.run(CausationType.appendManyEvents, { count: String(eventsForEventSourceIds.length) },
-            () => causationManager.getCurrentChain());
-        const identity = identityProvider.getCurrent();
-
-        // Explicit labels may narrow a different event source than any target in this batch.
-        // Preserve them and supply the shared fallback only for targets without an explicit scope.
-        const concurrencyScopes = new Map<string, ConcurrencyScope | undefined>(Object.entries(appendOptions?.concurrencyScopes ?? {}));
-        for (const { eventSourceId } of eventsForEventSourceIds) {
-            if (!concurrencyScopes.has(eventSourceId)) {
-                concurrencyScopes.set(eventSourceId, appendOptions?.concurrencyScope);
-            }
-        }
-
-        const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, occurred, tags: instanceTags }) => {
-            const eventType = getEventTypeFor(event.constructor as Function);
-
-            // Merge static tags declared on the event type, tags carried by this specific
-            // EventForEventSourceId entry, and tags supplied at call time for the whole batch.
-            const tags = mergeTags(getTagsFor(event.constructor as Function), instanceTags, appendOptions?.tags);
-            const occurrenceTime = occurred ?? appendOptions?.occurred;
-
-            return {
-                EventSourceType: eventSourceType ?? appendOptions?.sourceType,
-                EventSourceId: eventSourceId,
-                EventStreamType: eventStreamType ?? appendOptions?.streamType,
-                EventStreamId: eventStreamId ?? appendOptions?.streamId,
-                EventType: {
-                    Id: eventType.id.value,
-                    Generation: eventType.generation.value,
-                    Tombstone: eventType.tombstone
-                },
-                Content: JsonSerializer.serialize(event),
-                Tags: tags,
-                Occurred: occurrenceTime === undefined ? undefined : { Value: occurrenceTime.toISOString() },
-                Subject: subject ?? appendOptions?.subject ?? eventSourceId
-            };
-        });
+        const { eventsForEventSourceIds, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend } =
+            prepareBatchAppend(eventSourceIdOrEvents, eventsOrOptions, options);
 
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
 
@@ -302,10 +214,11 @@ export class EventSequence implements IEventSequence {
                 // Mirrors the C# client: every per-event AppendResult in a batch carries all
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
-                const firstConcurrencyViolation = (appendManyResponse.ConcurrencyViolations ?? [])[0];
-                const sequenceNumbers = appendManyResponse.SequenceNumbers ?? [];
-                const constraintViolations = appendManyResponse.ConstraintViolations ?? [];
-                const errors = appendManyResponse.Errors ?? [];
+                const firstConcurrencyViolation: ContractsAppendManyResponse['ConcurrencyViolations'][number] | undefined =
+                    (appendManyResponse.ConcurrencyViolations ?? [])[0];
+                const sequenceNumbers: ContractsAppendManyResponse['SequenceNumbers'] = appendManyResponse.SequenceNumbers ?? [];
+                const constraintViolations: ContractsAppendManyResponse['ConstraintViolations'] = appendManyResponse.ConstraintViolations ?? [];
+                const errors: ContractsAppendManyResponse['Errors'] = appendManyResponse.Errors ?? [];
                 const batchWasRejected = sequenceNumbers.length === 0 &&
                     (constraintViolations.length > 0 || errors.length > 0 || firstConcurrencyViolation !== undefined);
                 if (sequenceNumbers.length === 0 && eventsForEventSourceIds.length > 0 && !batchWasRejected) {
@@ -313,11 +226,11 @@ export class EventSequence implements IEventSequence {
                 }
                 const result = batchWasRejected
                     ? eventsForEventSourceIds.map(() => this.mapAppendResponse(0n, constraintViolations, errors, firstConcurrencyViolation))
-                    : sequenceNumbers.map((sequenceNumber: bigint, index: number) =>
+                    : sequenceNumbers.map((sequenceNumber, index) =>
                         this.mapAppendResponse(
                             sequenceNumber,
                             constraintViolations,
-                            errors.filter((_: string, errorIndex: number) => errorIndex === index),
+                            errors.filter((_, errorIndex) => errorIndex === index),
                             firstConcurrencyViolation
                         )
                     );
@@ -346,26 +259,11 @@ export class EventSequence implements IEventSequence {
 
                 if (this.appendOperations.hasSubscribers && result.length > 0) {
                     const occurredAt = new Date();
-                    const causationEntries = batchCausationChain.map(c => ({ type: c.type.name, properties: { ...c.properties } }));
+                    const causationEntries = mapAppendNotificationCausation(batchCausationChain);
                     this.appendOperations.publish(result.map((appendResult: AppendResult, index: number) => {
                         const { eventSourceId, event } = eventsForEventSourceIds[index];
-                        const eventType = getEventTypeFor(event.constructor as Function);
-                        return {
-                            event: {
-                                context: {
-                                    sequenceNumber: appendResult.sequenceNumber.value,
-                                    eventSourceId,
-                                    eventType,
-                                    occurred: occurredAt,
-                                    correlationId: correlationId.toString(),
-                                    causation: causationEntries,
-                                    tags: eventsToAppend[index].Tags.map(value => new Tag(value))
-                                },
-                                eventType,
-                                content: event as Record<string, unknown>
-                            },
-                            result: appendResult
-                        };
+                        return createAppendNotification(eventSourceId, event, appendResult, correlationId.toString(),
+                            causationEntries, eventsToAppend[index].Tags, occurredAt);
                     }));
                 }
 
@@ -692,42 +590,13 @@ export class EventSequence implements IEventSequence {
     }
 
     private mapAppendResponse(
-        sequenceNumber: bigint,
-        constraintViolations: Array<{ ConstraintId?: string; Message?: string; Details?: Record<string, string> }>,
-        errors: string[],
-        concurrencyViolation?: { EventSourceId?: string; ExpectedSequenceNumber?: bigint; ActualSequenceNumber?: bigint }
+        sequenceNumber: ContractsAppendResponse['SequenceNumber'],
+        constraintViolations: ContractsAppendResponse['ConstraintViolations'],
+        errors: ContractsAppendResponse['Errors'],
+        concurrencyViolation: ContractsAppendResponse['ConcurrencyViolation']
     ): AppendResult {
-        const mappedViolations: ConstraintViolation[] = constraintViolations.map(violation => {
-            const mapped = {
-                constraintId: violation.ConstraintId ?? '',
-                message: violation.Message ?? '',
-                details: violation.Details ?? {}
-            };
-            return this._resolveConstraintMessage?.(mapped) ?? mapped;
-        });
-
-        const mappedErrors = errors.map(message => ({ message }));
-
-        const mappedConcurrencyViolation: ConcurrencyViolation | undefined = concurrencyViolation
-            ? {
-                eventSourceId: concurrencyViolation.EventSourceId ?? '',
-                expectedSequenceNumber: new EventSequenceNumber(concurrencyViolation.ExpectedSequenceNumber ?? 0n),
-                actualSequenceNumber: new EventSequenceNumber(concurrencyViolation.ActualSequenceNumber ?? 0n)
-            }
-            : undefined;
-
-        const safeSequenceNumber = sequenceNumber === 18446744073709551615n ? 0n : sequenceNumber;
-        const eventSequenceNumber = new EventSequenceNumber(safeSequenceNumber);
-        const isSuccess = mappedViolations.length === 0 && mappedErrors.length === 0 && !mappedConcurrencyViolation;
-
-        return {
-            sequenceNumber: eventSequenceNumber,
-            constraintViolations: mappedViolations,
-            concurrencyViolation: mappedConcurrencyViolation,
-            errors: mappedErrors,
-            isSuccess,
-            waitForCompletion: (options?: number | WaitForCompletionOptions) => this.waitForObserverCompletion(eventSequenceNumber, isSuccess, options)
-        };
+        return createAppendResult(sequenceNumber, constraintViolations, errors, concurrencyViolation,
+            this._resolveConstraintMessage, (sequence, success, options) => this.waitForObserverCompletion(sequence, success, options));
     }
 
     /**

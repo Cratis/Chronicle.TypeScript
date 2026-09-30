@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
+import { AutoMap } from '@cratis/chronicle.contracts';
 import { describe, expect, it } from 'vitest';
 import { eventType } from '../../events/eventTypeDecorator.js';
 import { ProjectionBuilderFor } from './ProjectionBuilderFor.js';
@@ -58,6 +59,7 @@ interface FromRecord {
 
 interface ChildrenDefinition {
     IdentifiedBy: string;
+    AutoMap: AutoMap;
     From: FromRecord[];
     RemovedWith: Array<{ Key: { Id: string } }>;
     FromEventProperty?: { Event: { Id: string } | undefined; PropertyExpression: string };
@@ -101,6 +103,16 @@ describe('ChildrenBuilder and NestedBuilder', () => {
             const fromEntry = linesDefinition.From.find(candidate => candidate.Key.Id === 'LineAdded')!;
             expect(fromEntry.Value.Properties.quantity).toBe('quantity');
         });
+    });
+
+    it('should allow disabling and enabling AutoMap independently for child and nested builders', () => {
+        const builder = new ProjectionBuilderFor<Order>();
+        builder.children<OrderLine>(order => order.lines, child => child.noAutoMap());
+        builder.nested<OrderSummary>(order => order.summary, summary => summary.noAutoMap().autoMap());
+
+        const definition = builder.build('order', 'Order') as unknown as BuiltDefinition;
+        expect(definition.Children.lines.AutoMap).toBe(AutoMap.Disabled);
+        expect(definition.Nested.summary.AutoMap).toBe(AutoMap.Enabled);
     });
 
     describe('when using nested with clearWith on the top-level builder', () => {

@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { field, Constructor } from '@cratis/fundamentals';
 import { chai, describe, it, vi } from 'vitest';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -45,6 +45,8 @@ class ItemUpdated { name!: string; quantity!: number; }
 eventType()(ItemUpdated);
 class ItemRemoved {}
 eventType()(ItemRemoved);
+class DescriptionCleared {}
+eventType()(DescriptionCleared);
 class LineAdded { productId!: string; }
 eventType()(LineAdded);
 class Joined { name!: string; }
@@ -90,6 +92,7 @@ passive(PassiveModel);
 
 class Detail { description!: string; }
 setFrom(ItemCreated, 'name')(Detail.prototype, 'description');
+clearWith(DescriptionCleared)(Detail.prototype, 'description');
 fromEvent(ItemCreated)(Detail);
 clearWith(ItemRemoved)(Detail);
 class WithNested { id!: string; detail!: Detail; title!: string; }
@@ -150,10 +153,12 @@ class SharedTitle { title!: string; }
 setFrom(TitleChanged, 'title')(SharedTitle.prototype, 'title');
 globalFor(Identity)(SharedTitle);
 
-class Declarative { id!: string; name!: string; quantity!: number; lines!: Line[]; }
+class Declarative { id!: string; name!: string; quantity!: number; lines!: Line[]; contextLines!: Line[]; }
 class DeclarativeProjection implements IProjectionFor<Declarative> {
     define(builder: IProjectionBuilderFor<Declarative>): void {
-        builder.from(ItemCreated, from => from.set(model => model.name).to(event => event.name))
+        builder.from(ItemCreated, from => from.set(model => model.name).to(event => event.name)
+            .addChild<Line>(model => model.contextLines, child => child.identifiedBy(line => line.productId)
+                .usingKeyFromContext('sequenceNumber').usingParentKeyFromContext('eventSourceId')))
             .join(Joined, joined => joined.on(model => model.name).set(model => model.name).to(event => event.name))
             .fromEvery(every => every.set(model => model.name).toEventContextProperty('eventType'))
             .removedWith(ItemRemoved)
@@ -249,8 +254,21 @@ chai.should();
 const goldenUrl = new URL('./ProjectionDefinitionCompiler.registration.golden.json', import.meta.url);
 
 describe('projection registration payload', () => {
+    if (process.env.UPDATE_PROJECTION_GOLDEN === '1') {
+        it('regenerates the golden from registration payloads', async () => {
+            const goldens = JSON.parse(readFileSync(goldenUrl, 'utf8')) as Array<{ name: string; payload: string }>;
+            for (const golden of goldens) {
+                const testCase = cases.find(candidate => candidate.name === golden.name);
+                if (!testCase) throw new Error(`No registration case for golden '${golden.name}'.`);
+                golden.payload = await captureRegistration(artifactsFor(testCase));
+            }
+            if (goldens.length !== cases.length) throw new Error('Registration golden and cases have different lengths.');
+            writeFileSync(goldenUrl, `${JSON.stringify(goldens, null, 2)}\n`);
+        });
+    }
+
     for (const testCase of cases) {
-        it(`should preserve origin/main for ${testCase.name}`, async () => {
+        it(`should match the registration golden for ${testCase.name}`, async () => {
             const actual = await captureRegistration(artifactsFor(testCase));
             const goldens = JSON.parse(readFileSync(goldenUrl, 'utf8')) as Array<{ name: string; payload: string }>;
             actual.should.equal(goldens.find(candidate => candidate.name === testCase.name)?.payload);
@@ -266,6 +284,21 @@ describe('projection registration payload', () => {
             compiledPayload.should.equal(await captureRegistration(artifacts));
         });
     }
+
+    it('should hash nested model-bound mappings after compiling the final definition', () => {
+        const hashFor = (propertyExpression: string): string => {
+            class HashedProjection { id!: string; name!: string; }
+            setFrom(ItemCreated, propertyExpression)(HashedProjection.prototype, 'name');
+            fromEvent(ItemCreated)(HashedProjection);
+            const artifacts = artifactsFor(cases[0]);
+            artifacts.readModels = [HashedProjection];
+            const definition = new ProjectionDefinitionCompiler(artifacts, 'test-sink').compile([], [HashedProjection]).definitions[0];
+            return definition.LastUpdated.Value;
+        };
+
+        hashFor('name').should.not.equal(hashFor('quantity'));
+        hashFor('name').should.equal(hashFor('name'));
+    });
 
     it('should reject multiple projections for one read model', () => {
         const artifacts = artifactsFor(cases.find(testCase => testCase.name === 'declarative')!);
