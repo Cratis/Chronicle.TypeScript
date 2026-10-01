@@ -61,8 +61,18 @@ for (const { name, discover } of discoverers) {
         it('should discover the inherited handler', () => {
             discover(Inherited, registeredTypes)[0].methodName!.should.equal('notify');
         });
-        it('should not retain metadata when the method is overridden', () => {
-            discover(Overridden, registeredTypes).should.have.lengthOf(0);
+        it('should reject an override that hides the base declaration', () => {
+            (() => discover(Overridden, registeredTypes)).should.throw(
+                "Override 'notify' on 'Overridden' hides @handles(AuthorRegistered) declared on 'Base'; redecorate the override.");
+        });
+        it('should reject an inherited undecorated override across multiple levels', () => {
+            class Derived extends Overridden {}
+            (() => discover(Derived, registeredTypes)).should.throw(
+                "Override 'notify' on 'Overridden' hides @handles(AuthorRegistered) declared on 'Base'; redecorate the override.");
+        });
+        it('should allow an override explicitly keeping the same event type', () => {
+            class Reaffirmed extends Base { @handles(AuthorRegistered) notify() {} }
+            discover(Reaffirmed, registeredTypes).should.deep.equal([{ id: 'explicit-author', generation: 2, methodName: 'notify' }]);
         });
         it('should use the override event type instead of the base declaration', () => {
             discover(Remapped, registeredTypes).should.deep.equal([{ id: 'conventional-book', generation: 1, methodName: 'notify' }]);
@@ -110,6 +120,7 @@ for (const { name, discover } of discoverers) {
         }
         class Base { @handles(AuthorRegistered) notify() {} }
         class Inherited extends Base { @handles(AuthorRegistered) archive() {} }
+        class Conventional extends Base { authorRegistered() {} }
         it('should reject two explicit handlers', () => {
             (() => discover(Explicit, registeredTypes)).should.throw(/multiple handlers.*explicit-author.*notify.*archive/);
         });
@@ -118,6 +129,9 @@ for (const { name, discover } of discoverers) {
         });
         it('should include inherited methods in duplicate detection', () => {
             (() => discover(Inherited, registeredTypes)).should.throw(/multiple handlers.*explicit-author.*archive.*notify/);
+        });
+        it('should reject a conventional handler duplicating an inherited explicit handler', () => {
+            (() => discover(Conventional, registeredTypes)).should.throw(/multiple handlers.*explicit-author.*notify.*authorRegistered/);
         });
     });
 }

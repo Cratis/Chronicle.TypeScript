@@ -57,4 +57,8 @@ describe('when a method declares both live and replay roles', () => {
     it('should reject the ambiguous declaration during discovery', () => {
         (() => getReactorEventTypes(Observer, [AuthorRegistered])).should.throw(/notify.*Observer.*cannot combine @handles and @replay/);
     });
+    it('should reject replay above handles too', () => {
+        class Reversed { @replay(AuthorRegistered) @handles(AuthorRegistered) notify() {} }
+        (() => getReactorEventTypes(Reversed, [AuthorRegistered])).should.throw(/notify.*Reversed.*cannot combine @handles and @replay/);
+    });
 });

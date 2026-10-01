@@ -6,6 +6,10 @@ import { handles } from '../../index.js';
 import { getHandledEventType } from '../handles.js';
 import { isOnceOnly, onceOnly } from '../../reactors/onceOnly.js';
 
+// Chai installs this property at runtime; the standalone type-check needs its declaration too.
+declare global {
+    interface Object { should: Chai.Assertion; }
+}
 chai.should();
 
 class AuthorRegistered {}
@@ -65,6 +69,16 @@ describe('when decorating an unsupported standard member', () => {
                 // @ts-expect-error Getters are not event handlers.
                 @handles(AuthorRegistered)
                 get notify() { return () => {}; }
+            }
+            return Invalid;
+        }).should.throw(TypeError, 'Handles requires a public, string-named instance method.');
+    });
+    it('should reject a function-valued field', () => {
+        (() => {
+            class Invalid {
+                // @ts-expect-error Fields are not event handlers.
+                @handles(AuthorRegistered)
+                notify = () => {};
             }
             return Invalid;
         }).should.throw(TypeError, 'Handles requires a public, string-named instance method.');

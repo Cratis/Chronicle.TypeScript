@@ -55,6 +55,28 @@ describe('when decorating a static legacy method', () => {
     });
 });
 
+describe('when decorating an unsupported legacy member', () => {
+    it('should reject a getter without evaluating it', () => {
+        (() => {
+            class Invalid {
+                @handles(AuthorRegistered)
+                get notify() { throw new Error('The getter must not run'); }
+            }
+            return Invalid;
+        }).should.throw(TypeError, 'Handles requires a public, string-named instance method.');
+    });
+    it('should reject a function-valued field', () => {
+        (() => {
+            class Invalid {
+                // @ts-expect-error Fields are not event handlers.
+                @handles(AuthorRegistered)
+                notify = () => {};
+            }
+            return Invalid;
+        }).should.throw(TypeError, 'Handles requires a public, string-named instance method.');
+    });
+});
+
 describe('when declaring handles twice on a legacy method', () => {
     it('should reject metadata that would silently replace an event type', () => {
         (() => {
