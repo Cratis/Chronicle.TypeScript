@@ -18,6 +18,7 @@ export class ReducerReadModelProcessor<TReadModel extends object> implements IRe
     async process(events: readonly ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
         const results = new Map<string, ReadModelState<TReadModel>>();
         const reducer = new (this._reducerType as new () => Record<string, Function>)();
+        this._dispatcher.validateInstance(reducer);
         for (const event of events) {
             const handler = this._dispatcher.handlerFor(event.context.eventType.id.value);
             if (!handler) continue;
