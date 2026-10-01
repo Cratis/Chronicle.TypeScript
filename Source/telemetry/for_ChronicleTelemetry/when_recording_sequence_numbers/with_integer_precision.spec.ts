@@ -14,10 +14,10 @@ for (const [number, expected] of [[42n, 42], [9007199254740991n, Number.MAX_SAFE
             services.tailSequenceNumber.mockResolvedValue({ IsAuthorized: true, Data: { SequenceNumber: number } });
             await sequence.getTailSequenceNumber();
         });
-        it('should emit only exactly representable integers in both registries', () => {
+        it('should keep the legacy string and emit only exactly representable shared integers', () => {
             const attributes = telemetry.spans.getFinishedSpans()[0].attributes;
             should.equal(attributes['cratis.event_sequence.number'], expected);
-            should.equal(attributes['chronicle.sequence_number'], expected);
+            should.equal(attributes['chronicle.sequence_number'], number.toString());
         });
     });
 }

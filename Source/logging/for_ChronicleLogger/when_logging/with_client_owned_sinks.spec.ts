@@ -3,6 +3,7 @@
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { diag, DiagLogLevel } from '@opentelemetry/api';
+import { ClientError, Status } from 'nice-grpc-common';
 import { ChronicleClient } from '../../../ChronicleClient.js';
 import { ChronicleOptions } from '../../../ChronicleOptions.js';
 import { createLogger } from '../../createLogger.js';
@@ -49,6 +50,19 @@ describe('when logging in a correlated trace', () => {
         JSON.stringify(entry).should.not.contain('secret');
     });
 });
+
+for (const error of [new ClientError('/test', Status.UNAVAILABLE, 'secret'), { code: Status.UNAVAILABLE, message: 'secret' }]) {
+    describe('when logging a gRPC failure', () => {
+        let entry: ChronicleLogEntry;
+        beforeEach(() => {
+            createLogger('test', { log: value => { entry = value; } }).error('Operation failed', { error });
+        });
+        it('should retain the numeric status without exporting sensitive exception details', () => {
+            entry.attributes.should.include({ 'rpc.grpc.status_code': Status.UNAVAILABLE });
+            JSON.stringify(entry).should.not.contain('secret');
+        });
+    });
+}
 
 describe('when no logger is configured during the compatibility period', () => {
     it('should still deliver sanitized diagnostics to diag', () => {

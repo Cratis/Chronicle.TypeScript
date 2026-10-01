@@ -113,6 +113,15 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
+        const policy = options.telemetry?.eventSourceId;
+        if (policy !== undefined) {
+            if (policy?.mode !== 'raw' && policy?.mode !== 'hmac') {
+                throw new TypeError('telemetry.eventSourceId.mode must be raw or hmac.');
+            }
+            if (policy.mode === 'hmac' && (!(policy.key instanceof Uint8Array) || policy.key.byteLength === 0)) {
+                throw new TypeError('telemetry.eventSourceId.key must be a non-empty Uint8Array for hmac mode.');
+            }
+        }
         this.telemetry = options.telemetry;
         this.logger = options.logger;
     }

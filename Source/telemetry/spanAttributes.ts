@@ -14,18 +14,25 @@ export function setTelemetryAttribute(span: Span, name: keyof typeof names.legac
     }
 }
 
-/** Records a sequence number only when OpenTelemetry can represent it without loss. */
+/** Preserves the legacy string; records the shared integer only when exactly representable. */
 export function setSequenceNumber(span: Span, value: bigint): void {
+    span.setAttribute(names.legacyAttributes.sequenceNumber, value.toString());
     const number = Number(value);
-    if (Number.isSafeInteger(number)) setTelemetryAttribute(span, 'sequenceNumber', number);
+    if (Number.isSafeInteger(number)) span.setAttribute(names.attributes.sequenceNumber, number);
 }
 
 /** Applies the same privacy policy to both event source identifier names. */
 export function setEventSourceId(span: Span, value: string | undefined, options?: ChronicleTelemetryOptions): void {
-    const policy = options?.eventSourceId;
-    if (value === undefined || !policy || !span.isRecording()) return;
-    const recorded = policy.mode === 'raw' ? value : createHmac('sha256', policy.key).update(value).digest('hex');
-    setTelemetryAttribute(span, 'eventSourceId', recorded);
+    try {
+        const policy = options?.eventSourceId;
+        if (value === undefined || !policy || !span.isRecording()) return;
+        if (policy.mode !== 'raw' && policy.mode !== 'hmac') return;
+        const recorded = policy.mode === 'raw' ? value : createHmac('sha256', policy.key).update(value).digest('hex');
+        setTelemetryAttribute(span, 'eventSourceId', recorded);
+    } catch {
+        // Options are validated at construction, but callers can mutate them later.
+        // Optional telemetry enrichment must never prevent an RPC or span completion.
+    }
 }
 
 /** Classifies failures without serializing arbitrary thrown values, messages or stacks. */

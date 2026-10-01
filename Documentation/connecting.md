@@ -116,7 +116,7 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 ```
 
-Failed attempts appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying`, with the attempt number, delay, and `error.type`/`exception.type`. When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the error type and sends the call without a token, which a kernel with authentication turned off accepts. Tokens, exception messages, and stacks are not included in diagnostics.
+Failed attempts appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying`, with the attempt number, delay, and `error.type`/`exception.type`. gRPC failures also include numeric `rpc.grpc.status_code`, for example `14` (`UNAVAILABLE`), `16` (`UNAUTHENTICATED`), or `4` (`DEADLINE_EXCEEDED`). When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the error type and sends the call without a token, which a kernel with authentication turned off accepts. Tokens, exception messages, and stacks are not included in diagnostics.
 
 To fail fast at startup instead of waiting forever, bound the first call and dispose the client when the time runs out:
 

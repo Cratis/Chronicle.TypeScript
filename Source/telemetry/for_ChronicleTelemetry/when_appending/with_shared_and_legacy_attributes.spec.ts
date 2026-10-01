@@ -42,7 +42,7 @@ describe('when appending with a business correlation override', () => {
             'cratis.event_sequence.id': 'event-log', 'chronicle.event_sequence_id': 'event-log',
             'cratis.event_type.id': 'telemetry-recorded', 'chronicle.event_type_id': 'telemetry-recorded',
             'cratis.event_type.generation': 1, 'chronicle.event_type_generation': 1,
-            'cratis.event_sequence.number': 42, 'chronicle.sequence_number': 42
+            'cratis.event_sequence.number': 42, 'chronicle.sequence_number': '42'
         });
     });
     it('should scope the resolved correlation consistently for propagation', () => {

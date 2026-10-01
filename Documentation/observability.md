@@ -24,13 +24,15 @@ Both `ChronicleOptions.fromConnectionString(connectionString, options)` and `Chr
 | `{ mode: 'raw' }` | Record the unmodified identifier. Use only when your privacy policy permits it. |
 | `{ mode: 'hmac', key: Uint8Array }` | Record a lowercase hexadecimal HMAC-SHA256 using your deployment key. |
 
+Unknown modes and HMAC keys that are not non-empty `Uint8Array` values (including Node.js `Buffer`) are rejected when constructing `ChronicleOptions`.
+
 Keep the HMAC key in your secret store, use a strong random key, and do not log it. Identical identifiers and keys produce identical values; rotating the key changes those values and breaks comparisons with earlier telemetry. Hashing does not make telemetry unrestricted data.
 
 **Upgrade privacy change:** event source identifiers are now off by default, including `chronicle.event_source_id`. Opt in explicitly if you need them. The policy affects telemetry only: identifiers sent to Chronicle are unchanged. Multi-source batches do not record identifier arrays, even with opt-in. Metrics never include event source identifiers or correlation identifiers.
 
 Exceptions in spans and diagnostics contain `error.type` and `exception.type`, not exception messages or stacks. Reactor diagnostics exclude event payloads and partition identifiers. Error details required by Chronicle's failure-reporting wire protocol are separate from telemetry and are unchanged.
 
-Sequence numbers are emitted as integers only when JavaScript can represent them exactly (`Number.isSafeInteger`). Both names are omitted for larger values; event sequence APIs continue to return `bigint` values without loss.
+`cratis.event_sequence.number` is emitted as an integer only when JavaScript can represent it exactly (`Number.isSafeInteger`); larger values are omitted from that attribute. The legacy `chronicle.sequence_number` remains a string for every value, including sentinels. Event sequence APIs continue to return `bigint` values without loss.
 
 ## Trace propagation and correlation
 
@@ -39,6 +41,8 @@ The client injects the active OpenTelemetry context into outgoing gRPC metadata 
 Only `cratis.correlation_id` is allowed in baggage. The client replaces stale propagation headers, preserves authorization and unrelated metadata, and leaves the caller's context and metadata unchanged. It does not install a global propagator or fall back to a private trace format.
 
 An explicit append correlation override, or the resolved append correlation, is used consistently on the span and for outgoing baggage. Other operations use the current scoped business correlation when available. Business correlation and trace identifiers remain separate.
+
+Client-owned background work—keep-alive, reactor/reducer observations, re-observation timers, and connection recovery—starts without the initiating caller's trace or business correlation. Foreground calls retain their caller's context. Host gRPC instrumentation can create independent spans for background RPCs.
 
 Stream metadata describes the context when the stream opens, not individual delivered events. Persisting append trace context with events and linking later observer spans require separate kernel support; this client change does not provide those links.
 
@@ -51,7 +55,7 @@ Set the optional `logger: IChronicleLogger` option to route diagnostics to your 
 | `category` | `string` | Component category, retaining the `@cratis/chronicle/` prefix. |
 | `level` | `ChronicleLogLevel` | `Verbose`, `Debug`, `Info`, `Warn`, or `Error`. |
 | `message` | `string` | Diagnostic description, without serialized exceptions or event payloads. |
-| `attributes` | Read-only OpenTelemetry attributes | Safe diagnostic fields; `cratis.correlation_id` when scoped, and valid `trace_id`/`span_id` when a trace is active. |
+| `attributes` | Read-only OpenTelemetry attributes | Safe diagnostic fields; `cratis.correlation_id` when scoped, valid `trace_id`/`span_id` when a trace is active, and numeric `rpc.grpc.status_code` for gRPC failures. Exception messages and stacks are excluded. |
 
 Each client has its own sink. Sink failures do not change RPC results or observation acknowledgements. The host decides how to ingest these records; do not send them through a second logging path too.
 

@@ -6,6 +6,7 @@ import { beforeEach, chai, describe, it } from 'vitest';
 import { telemetrySession } from '../given/a_telemetry_session.fixture.js';
 import { eventSequence, Recorded } from '../given/an_event_sequence.fixture.js';
 import { EventSequenceNumber } from '../../../eventSequences/EventSequenceNumber.js';
+import { ChronicleOptions } from '../../../ChronicleOptions.js';
 import type { ChronicleTelemetryOptions } from '../../ChronicleTelemetryOptions.js';
 
 const should = chai.should();
@@ -40,6 +41,27 @@ for (const [label, policy, expected] of [
         });
     });
 }
+
+describe('when a validated telemetry policy is later mutated by an untyped caller', () => {
+    beforeEach(async () => {
+        const options = ChronicleOptions.development({ telemetry: { eventSourceId: { mode: 'hmac', key } } });
+        Object.assign(options.telemetry!.eventSourceId!, { key: undefined });
+        const { sequence, services } = eventSequence(options.telemetry);
+        await sequence.append(source, new Recorded());
+        await sequence.getTailSequenceNumber(source);
+        await sequence.redactForEventSource(source, 'reason');
+        services.append.mock.calls.should.have.lengthOf(1);
+        services.tailSequenceNumber.mock.calls.should.have.lengthOf(1);
+        services.redactForEventSource.mock.calls.should.have.lengthOf(1);
+    });
+    it('should omit the failed enrichment without failing business calls or leaving spans open', () => {
+        telemetry.spans.getFinishedSpans().should.have.lengthOf(3);
+        for (const span of telemetry.spans.getFinishedSpans()) {
+            span.attributes.should.not.have.property('cratis.event_source.id');
+            span.attributes.should.not.have.property('chronicle.event_source_id');
+        }
+    });
+});
 
 describe('when appending a batch with multiple event sources', () => {
     beforeEach(async () => {

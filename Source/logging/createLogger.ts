@@ -17,6 +17,8 @@ export function createLogger(category: string, sink: IChronicleLogger = new Diag
             if (key === 'error') {
                 attributes['error.type'] = exceptionType(value);
                 attributes['exception.type'] = exceptionType(value);
+                const code = (value as { code?: unknown } | null)?.code;
+                if (typeof code === 'number') attributes['rpc.grpc.status_code'] = code;
             } else if (key === 'sequenceNumber') {
                 const number = Number(value);
                 if (Number.isSafeInteger(number)) attributes[WellKnownTelemetryNames.attributes.sequenceNumber] = number;
