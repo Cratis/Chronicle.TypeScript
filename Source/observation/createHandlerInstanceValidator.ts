@@ -23,10 +23,20 @@ export function createHandlerInstanceValidator(type: Constructor, names: Iterabl
             let current: object | null = instance;
             while (current && !Object.hasOwn(current, name)) current = Object.getPrototypeOf(current) as object | null;
             const value: unknown = current ? Object.getOwnPropertyDescriptor(current, name)?.value : undefined;
-            if (current === instance && typeof value === 'function' && value.name === `bound ${method.name}`) continue;
+            if (current === instance && typeof value === 'function' && isBoundCopyOf(value, method)) continue;
             if (current === instance || !current || value !== method) {
                 throw new Error(`Override '${name}' on '${type.name}' hides ${declaration} declared on '${declaringType}'; use a method with @handles instead of an instance field.`);
             }
         }
     };
+}
+
+/**
+ * Checks whether a function is a (possibly repeatedly) Function.prototype.bind copy of a method.
+ * @param value - The function found on the instance.
+ * @param method - The declared method.
+ * @returns True when the function name is one or more `bound ` prefixes followed by the method name.
+ */
+function isBoundCopyOf(value: Function, method: Function): boolean {
+    return value.name.startsWith('bound ') && value.name.replace(/^(bound )+/, '') === method.name;
 }

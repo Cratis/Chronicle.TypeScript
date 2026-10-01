@@ -32,6 +32,18 @@ class BoundExplicit {
     notify() { calls.push(this.marker); }
 }
 
+class BoundExplicitBase {
+    readonly marker = 'twice bound explicit';
+    constructor() { this.notify = this.notify.bind(this); }
+    @handles(AuthorRegistered)
+    notify() { calls.push(this.marker); }
+}
+
+@reactor('twice-bound-explicit-reactor')
+class TwiceBoundExplicit extends BoundExplicitBase {
+    constructor() { super(); this.notify = this.notify.bind(this); }
+}
+
 class Conventional {
     authorRegistered() { calls.push('base'); }
 }
@@ -62,6 +74,7 @@ class FieldReplay extends Replay {
 for (const { type, expected, observationState } of [
     { type: BoundConventional, expected: 'bound conventional', observationState: EventObservationState.Initial },
     { type: BoundExplicit, expected: 'bound explicit', observationState: EventObservationState.Initial },
+    { type: TwiceBoundExplicit, expected: 'twice bound explicit', observationState: EventObservationState.Initial },
     { type: FieldConventional, expected: 'field conventional', observationState: EventObservationState.Initial },
     { type: BoundReplay, expected: 'bound replay', observationState: EventObservationState.Replay },
     { type: FieldReplay, expected: 'field replay', observationState: EventObservationState.Replay }
