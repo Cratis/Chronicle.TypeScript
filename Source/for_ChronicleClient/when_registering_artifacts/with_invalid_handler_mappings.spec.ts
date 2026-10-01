@@ -3,6 +3,7 @@
 
 import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { ChronicleClient } from '../../ChronicleClient.js';
+import { ConnectionLifecycle } from '../../connection/ConnectionLifecycle.js';
 import { ChronicleOptions } from '../../ChronicleOptions.js';
 import type { IClientArtifactsProvider } from '../../artifacts/IClientArtifactsProvider.js';
 import { eventType } from '../../events/eventTypeDecorator.js';
@@ -78,8 +79,17 @@ for (const [kind, type, message] of [
         let client: ChronicleClient;
         let artifacts: IClientArtifactsProvider;
         let result: PromiseSettledResult<unknown>;
+        let disconnectedSubscriptions: Set<unknown>;
+        let clientSubscriptionCount: number;
         beforeEach(async () => {
             vi.clearAllMocks();
+            disconnectedSubscriptions = new Set();
+            const onDisconnected = ConnectionLifecycle.prototype.onDisconnected;
+            vi.spyOn(ConnectionLifecycle.prototype, 'onDisconnected').mockImplementation(function (this: ConnectionLifecycle, handler) {
+                disconnectedSubscriptions.add(handler);
+                const unsubscribe = onDisconnected.call(this, handler);
+                return () => { unsubscribe(); disconnectedSubscriptions.delete(handler); };
+            });
             transport.ensureEventStore.mockResolvedValue({ IsAuthorized: true });
             transport.register.mockResolvedValue({});
             transport.observe.mockImplementation(async function* () {
@@ -94,13 +104,19 @@ for (const [kind, type, message] of [
             client = new ChronicleClient(ChronicleOptions.fromConnectionString('chronicle://localhost:35000', {
                 discoveryPatterns: [], clientArtifactsProvider: artifacts
             }));
+            clientSubscriptionCount = disconnectedSubscriptions.size;
             [result] = await Promise.allSettled([client.getEventStore('store')]);
         });
-        afterEach(() => { client.dispose(); });
+        afterEach(() => { client.dispose(); vi.restoreAllMocks(); });
 
         it('should reject getEventStore with the handler validation error', () => {
             result.status.should.equal('rejected');
             if (result.status === 'rejected') (result.reason as Error).message.should.match(message);
+        });
+        it('should leave no discarded-store lifecycle subscriptions after either failed retrieval', async () => {
+            disconnectedSubscriptions.size.should.equal(clientSubscriptionCount);
+            await Promise.allSettled([client.getEventStore('store')]);
+            disconnectedSubscriptions.size.should.equal(clientSubscriptionCount);
         });
         it('should not register any artifacts or begin observations', () => {
             transport.register.mock.calls.should.have.lengthOf(0);

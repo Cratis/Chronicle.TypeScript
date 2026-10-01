@@ -106,6 +106,7 @@ export class Reactors implements IReactors {
 
     private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
+    private readonly _unsubscribeDisconnected: () => void;
     private readonly _reactors = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();
     private readonly _observations = new Map<string, AbortController>();
@@ -134,7 +135,7 @@ export class Reactors implements IReactors {
     ) {
         this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
         this._lifecycle = lifecycle;
-        lifecycle.onDisconnected(async () => {
+        this._unsubscribeDisconnected = lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reactor observations');
             this._registered = false;
             this.disconnectAll();
@@ -143,6 +144,7 @@ export class Reactors implements IReactors {
 
     /** Stops observations permanently when the owning client is disposed. */
     dispose(): void {
+        this._unsubscribeDisconnected();
         this._disposed = true;
         this._registered = false;
         this.disconnectAll();

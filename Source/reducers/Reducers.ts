@@ -105,6 +105,7 @@ export class Reducers implements IReducers {
 
     private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
+    private readonly _unsubscribeDisconnected: () => void;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();
     private readonly _observations = new Map<string, AbortController>();
@@ -136,7 +137,7 @@ export class Reducers implements IReducers {
     ) {
         this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
-        lifecycle.onDisconnected(async () => {
+        this._unsubscribeDisconnected = lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reducer observations');
             this._registered = false;
             this.disconnectAll();
@@ -145,6 +146,7 @@ export class Reducers implements IReducers {
 
     /** Stops observations permanently when the owning client is disposed. */
     dispose(): void {
+        this._unsubscribeDisconnected();
         this._disposed = true;
         this._registered = false;
         this.disconnectAll();
