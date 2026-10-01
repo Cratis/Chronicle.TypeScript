@@ -8,6 +8,10 @@ import { JsonSchemaGenerator } from '../../JsonSchemaGenerator.js';
 
 chai.should();
 
+function should(value: unknown): ReturnType<typeof chai.expect> {
+    return (value as { should: ReturnType<typeof chai.expect> }).should;
+}
+
 class ItemAdded {
     @field(String) itemId!: string;
     @field(String) name!: string;
@@ -48,15 +52,15 @@ describe('for JsonSchemaGenerator', () => {
     describe('when generating children with standard decorators', () => {
         for (const property of ['options', 'positional', 'withoutField', 'fieldMetadata']) {
             it(`should register typed items for ${property}`, () => {
-                schema.properties![property].should.deep.equal({ type: 'array', items: JsonSchemaGenerator.generate(Item) });
-                schema.properties![property].items!.properties!.should.deep.equal({
+                should(schema.properties![property]).deep.equal({ type: 'array', items: JsonSchemaGenerator.generate(Item) });
+                should(schema.properties![property].items!.properties!).deep.equal({
                     id: { type: 'string' }, name: { type: 'string' }, quantity: { type: 'number' }
                 });
             });
         }
 
         it('should still reject an unresolved child type', () => {
-            (() => JsonSchemaGenerator.generate(UnknownOrder)).should.throw(TypeError, 'Cannot determine the element type of UnknownOrder.items');
+            should(() => JsonSchemaGenerator.generate(UnknownOrder)).throw(TypeError, 'Cannot determine the element type of UnknownOrder.items');
         });
     });
 });
