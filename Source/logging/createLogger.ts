@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { context, propagation, trace, isSpanContextValid, type Attributes } from '@opentelemetry/api';
+import { ClientError, ServerError } from 'nice-grpc-common';
 import { correlationIdManager } from '../correlation/index.js';
 import { WellKnownTelemetryNames } from '../WellKnownTelemetryNames.js';
 import { exceptionType } from '../telemetry/spanAttributes.js';
@@ -17,8 +18,7 @@ export function createLogger(category: string, sink: IChronicleLogger = new Diag
             if (key === 'error') {
                 attributes['error.type'] = exceptionType(value);
                 attributes['exception.type'] = exceptionType(value);
-                const code = (value as { code?: unknown } | null)?.code;
-                if (typeof code === 'number') attributes['rpc.grpc.status_code'] = code;
+                if (value instanceof ClientError || value instanceof ServerError) attributes['rpc.grpc.status_code'] = value.code;
             } else if (key === 'sequenceNumber') {
                 const number = Number(value);
                 if (Number.isSafeInteger(number)) attributes[WellKnownTelemetryNames.attributes.sequenceNumber] = number;

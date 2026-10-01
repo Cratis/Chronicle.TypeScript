@@ -3,7 +3,7 @@
 
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { diag, DiagLogLevel } from '@opentelemetry/api';
-import { ClientError, Status } from 'nice-grpc-common';
+import { ClientError, ServerError, Status } from 'nice-grpc-common';
 import { ChronicleClient } from '../../../ChronicleClient.js';
 import { ChronicleOptions } from '../../../ChronicleOptions.js';
 import { createLogger } from '../../createLogger.js';
@@ -51,7 +51,7 @@ describe('when logging in a correlated trace', () => {
     });
 });
 
-for (const error of [new ClientError('/test', Status.UNAVAILABLE, 'secret'), { code: Status.UNAVAILABLE, message: 'secret' }]) {
+for (const error of [new ClientError('/test', Status.UNAVAILABLE, 'secret'), new ServerError(Status.UNAVAILABLE, 'secret')]) {
     describe('when logging a gRPC failure', () => {
         let entry: ChronicleLogEntry;
         beforeEach(() => {
@@ -59,6 +59,19 @@ for (const error of [new ClientError('/test', Status.UNAVAILABLE, 'secret'), { c
         });
         it('should retain the numeric status without exporting sensitive exception details', () => {
             entry.attributes.should.include({ 'rpc.grpc.status_code': Status.UNAVAILABLE });
+            JSON.stringify(entry).should.not.contain('secret');
+        });
+    });
+}
+
+for (const error of [new DOMException('secret', 'TimeoutError'), new DOMException('secret', 'AbortError'), { code: Status.UNAVAILABLE, message: 'secret' }]) {
+    describe('when logging a non-gRPC error with a numeric code', () => {
+        let entry: ChronicleLogEntry;
+        beforeEach(() => {
+            createLogger('test', { log: value => { entry = value; } }).error('Operation failed', { error });
+        });
+        it('should not label its code as a gRPC status', () => {
+            entry.attributes.should.not.have.property('rpc.grpc.status_code');
             JSON.stringify(entry).should.not.contain('secret');
         });
     });
