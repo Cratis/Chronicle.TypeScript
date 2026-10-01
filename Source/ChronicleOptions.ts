@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { types } from 'node:util';
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts/index.js';
 import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
@@ -118,7 +119,7 @@ export class ChronicleOptions {
             if (policy?.mode !== 'raw' && policy?.mode !== 'hmac') {
                 throw new TypeError('telemetry.eventSourceId.mode must be raw or hmac.');
             }
-            if (policy.mode === 'hmac' && (!(policy.key instanceof Uint8Array) || policy.key.byteLength === 0)) {
+            if (policy.mode === 'hmac' && (!types.isUint8Array(policy.key) || policy.key.byteLength === 0)) {
                 throw new TypeError('telemetry.eventSourceId.key must be a non-empty Uint8Array for hmac mode.');
             }
         }
