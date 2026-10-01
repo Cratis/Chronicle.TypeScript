@@ -61,7 +61,9 @@ export class JsonSchemaGenerator {
         const schemaProperties: Record<string, JsonSchema> = {};
         const prototype = target.prototype;
 
-        for (const [memberName, memberType] of membersToUse.entries()) {
+        for (const [memberName, reflectedMemberType] of membersToUse.entries()) {
+            // A children collection is an array even when neither design:type nor an initializer is available.
+            const memberType = reflectedMemberType ?? (getChildrenFromMetadata(prototype, memberName).length > 0 ? Array : undefined);
             if (!memberType && requireResolvedTypes) {
                 throw new TypeError(`Cannot determine the type of ${target.name}.${memberName}; declare @field with its runtime type.`);
             }
@@ -144,7 +146,7 @@ export class JsonSchemaGenerator {
 
     /**
      * Maps an array-typed member to a schema, resolving the element type from a
-     * `@field(Array, { genericArguments: [ItemType] })` declaration when present.
+     * `@childrenFrom` child type or `@field(Array, { genericArguments: [ItemType] })` declaration when present.
      * @param declaringType - The class constructor that declares the array property.
      * @param propertyName - The array property name.
      * @returns The array schema, with the element's own compliance metadata carried onto `items` when the element is a PII concept.
@@ -173,14 +175,15 @@ export class JsonSchemaGenerator {
             return { type: 'array', items: { type: 'object' } };
         }
 
-        if (!requireResolvedTypes) return { type: 'array', items: { type: 'object' } }; // Legacy schema compatibility.
-        return { type: 'array', items: this.mapRuntimeTypeToSchema(elementType, undefined, undefined, true) };
+        const isChildrenCollection = declaringType && propertyName && getChildrenFromMetadata(declaringType.prototype, propertyName).length > 0;
+        if (!requireResolvedTypes && !isChildrenCollection) return { type: 'array', items: { type: 'object' } }; // Legacy schema compatibility outside children.
+        return { type: 'array', items: this.mapRuntimeTypeToSchema(elementType, undefined, undefined, requireResolvedTypes) };
     }
 
     /**
-     * Resolves the element type of an array property from its `@field(Array, { genericArguments: [...] })`
-     * declaration. TypeScript erases generic type arguments at runtime, so without an explicit
-     * `@field` declaration the element type cannot be recovered.
+     * Resolves the element type from an explicit `@childrenFrom` child type, then from
+     * `@field(Array, { genericArguments: [...] })`. TypeScript erases generic type arguments
+     * at runtime, so an explicit declaration is needed to recover the element type.
      * @param declaringType - The class constructor that declares the array property.
      * @param propertyName - The array property name.
      * @returns The element type constructor, or undefined when it cannot be resolved.
