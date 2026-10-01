@@ -121,6 +121,7 @@ internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
+        if (fixture["scopeCases"] is JsonArray) return await RunScopedConstraints(fixture);
         if (fixture["isolatedConstraintOperations"] is JsonArray) return await RunIsolatedConstraints(fixture);
         if (fixture["constraintOperations"] is JsonArray) return await RunConstraints(fixture);
         if (fixture["routeCases"] is JsonArray) return await RunOmittedRoutes(fixture);
@@ -337,7 +338,39 @@ internal static class EventScenarioOracle
 
     // Keep the increment-4 regression runner intact. This runner accepts an explicit fixture
     // definition and schema catalog, so adding another oracle case never installs global definitions.
-    static async Task<JsonNode> RunIsolatedConstraints(JsonObject fixture)
+    static async Task<JsonNode> RunScopedConstraints(JsonObject fixture)
+    {
+        var cases = fixture["scopeCases"]!.AsArray();
+        var names = cases.Select(test => test!["name"]!.GetValue<string>()).ToArray();
+        var required = Enumerable.Range(1, 7).SelectMany(mask => new[] { $"property-{mask}", $"cycle-{mask}", $"once-{mask}" })
+            .Concat(["property-delimiter-alias", "cycle-delimiter-alias"]);
+        if (names.Distinct().Count() != names.Length || required.Any(name => !names.Contains(name)) ||
+            cases.Any(test => test!["kind"]?.GetValue<string>() is not ("kernelSemantics" or "oracleGuard")))
+            throw new InvalidOperationException("Scoped fixtures require every scope combination, both constraint kinds and delimiter guards.");
+        using var encoder = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("node", "Tools/ProjectionOracle/scope-wire.mjs")
+        {
+            RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false
+        }) ?? throw new InvalidOperationException("Could not start the TypeScript wire encoder.");
+        var output = encoder.StandardOutput.ReadToEndAsync();
+        await encoder.StandardInput.WriteAsync(fixture.ToJsonString());
+        encoder.StandardInput.Close();
+        await encoder.WaitForExitAsync();
+        if (encoder.ExitCode != 0) throw new InvalidOperationException("TypeScript wire encoding failed.");
+        var wires = JsonNode.Parse(await output)!.AsArray();
+        if (wires.Count != cases.Count) throw new InvalidOperationException("Incomplete scoped wire fixtures.");
+        var results = new JsonArray();
+        for (var index = 0; index < cases.Count; index++)
+        {
+            var test = cases[index]!.AsObject();
+            results.Add(new JsonObject { ["name"] = test["name"]!.DeepClone(),
+                ["result"] = await RunIsolatedConstraints(test, wires[index]!.AsObject()) });
+        }
+        return new JsonObject { ["cases"] = results };
+    }
+
+    static T Decode<T>(JsonNode bytes) => ProtoBuf.Serializer.Deserialize<T>(new MemoryStream(Convert.FromBase64String(bytes.GetValue<string>())));
+
+    static async Task<JsonNode> RunIsolatedConstraints(JsonObject fixture, JsonObject? wireFixture = null)
     {
         if (fixture["isolatedConstraintOperations"]!.AsArray().Count == 0)
             throw new InvalidOperationException("Isolated constraint fixture must contain operations.");
@@ -369,9 +402,23 @@ internal static class EventScenarioOracle
                 !properties.Select(property => property.Key).SequenceEqual(pair.Value.Properties) ||
                 properties.Any(property => property.Value?.GetValue<string>() != pair.Value.SchemaType)))
             throw new InvalidOperationException("Isolated constraint fixture must declare exactly the installed event schemas.");
-        var definitions = fixture["constraintDefinitions"]!.AsArray().Select(node =>
+        var definitions = fixture["constraintDefinitions"]!.AsArray().Select((node, index) =>
         {
             var name = node!["name"]!.GetValue<string>();
+            ConstraintScope? scope = null;
+            if (wireFixture is not null)
+            {
+                var wireScope = Decode<KernelContracts::Cratis.Chronicle.Contracts.Events.Constraints.ConstraintScope>(wireFixture["scopes"]![index]!);
+                var requested = node["scope"]!.AsObject();
+                var source = requested["perEventSourceType"]!.GetValue<bool>() ? "*" : null;
+                var streamType = requested["perEventStreamType"]!.GetValue<bool>() ? "*" : null;
+                var streamId = requested["perEventStreamId"]!.GetValue<bool>() ? "*" : null;
+                if (wireScope.EventSourceType != source || wireScope.EventStreamType != streamType || wireScope.EventStreamId != streamId)
+                    throw new InvalidOperationException("Decoded TypeScript scope did not preserve protobuf omission semantics.");
+                scope = new ConstraintScope(source is null ? null : (EventSourceType)source,
+                    streamType is null ? null : (EventStreamType)streamType, streamId is null ? null : (EventStreamId)streamId);
+            }
+            else if (node["scope"] is not null) throw new InvalidOperationException("Scoped definitions require encoded TypeScript scope evidence.");
             if (node["kind"]?.GetValue<string>() == "uniqueEventType")
             {
                 if (node["events"] is not null || node["ignoreCasing"] is not null ||
@@ -386,7 +433,7 @@ internal static class EventScenarioOracle
                 var cycleMessage = node["message"]?.GetValue<string>() ?? "";
                 return (IConstraintDefinition)new UniqueEventTypeConstraintDefinition(name, _ => cycleMessage,
                     covered.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(),
-                    cycleRemovals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray());
+                    cycleRemovals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), scope);
             }
             var events = node["events"]!.AsArray().Select(entry =>
             {
@@ -411,7 +458,7 @@ internal static class EventScenarioOracle
                 throw new InvalidOperationException($"Unsupported fixture removal for {name}.");
             var message = node["message"]?.GetValue<string>() ?? "";
             return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events,
-                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), ignoreCasing);
+                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), ignoreCasing, scope);
         }).ToImmutableArray();
         if (definitions.Length == 0 || definitions.Select(definition => definition.Name.Value).Distinct().Count() != definitions.Length)
             throw new InvalidOperationException("Fixture definitions must be present and have distinct names.");
@@ -422,13 +469,16 @@ internal static class EventScenarioOracle
             .Single(field => field.FieldType == typeof(KernelStore)).GetValue(services.Sequences)
             ?? throw new InvalidOperationException("Packaged sequence service has no kernel storage."));
         var installed = (await storage.GetEventStore((KernelStoreName)"test-event-store").Constraints.GetDefinitions()).ToArray();
+        static bool MatchesScope(KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.ConstraintScope? actual, ConstraintScope? expected) =>
+            (actual is null) == (expected is null) && actual?.EventSourceType?.Value == expected?.EventSourceType?.Value &&
+            actual?.EventStreamType?.Value == expected?.EventStreamType?.Value && actual?.EventStreamId?.Value == expected?.EventStreamId?.Value;
         if (installed.Length != definitions.Length) throw new InvalidOperationException("Fixture definitions were not all installed.");
         foreach (var (definition, index) in definitions.Select((value, index) => (value, index)))
         {
             if (definition is UniqueEventTypeConstraintDefinition uniqueType)
             {
                 if (installed[index] is not KernelUniqueType actualType || actualType.Name.Value != definition.Name.Value ||
-                    actualType.Scope is not null ||
+                    !MatchesScope(actualType.Scope, uniqueType.Scope) ||
                     !actualType.EventTypeIds.Select(id => id.Value).SequenceEqual(uniqueType.EventTypeIds.Select(id => id.Value)) ||
                     !actualType.RemovedWith.Select(id => id.Value).SequenceEqual(uniqueType.RemovedWith.Select(id => id.Value)))
                     throw new InvalidOperationException($"Installed kernel event-type definition does not match fixture {definition.Name.Value}.");
@@ -437,7 +487,7 @@ internal static class EventScenarioOracle
             if (installed[index] is not KernelUnique actual || actual.Name.Value != definition.Name.Value ||
                 actual.IgnoreCasing != ((UniqueConstraintDefinition)definition).IgnoreCasing ||
                 actual.IgnoreCasing != fixture["constraintDefinitions"]![index]!["ignoreCasing"]!.GetValue<bool>() ||
-                actual.Scope is not null ||
+                !MatchesScope(actual.Scope, ((UniqueConstraintDefinition)definition).Scope) ||
                 !actual.RemovedWith.Select(id => id.Value).SequenceEqual(
                     fixture["constraintDefinitions"]![index]!["removedWithEventTypeIds"]!.AsArray()
                         .Select(alias => known[alias!.GetValue<string>()].Type.Name)) ||
@@ -446,6 +496,11 @@ internal static class EventScenarioOracle
                         (entry.EventTypeId.Value, Properties: string.Join(",", entry.Properties)))))
                 throw new InvalidOperationException($"Installed kernel definition does not match fixture {definition.Name.Value}.");
         }
+        // A second packaged scenario executes actual ts-proto bytes for every scoped operation,
+        // including accepted requests. The .NET convenience client must agree with this wire path.
+        using var wireScenario = wireFixture is null ? null : new EventScenario(new OracleConstraintProvider(definitions));
+        var wireCreated = wireScenario is null ? null : (ITuple)typeof(EventScenario).GetField("_created", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(wireScenario)!;
+        var wireServices = wireCreated is null ? null : ((KernelServiceAccessor)wireCreated[1]!).Services;
         var outcomes = new JsonArray();
         foreach (var operation in fixture["isolatedConstraintOperations"]!.AsArray())
         {
@@ -524,7 +579,30 @@ internal static class EventScenarioOracle
                 errors = new JsonArray(result.Errors.Select(error => (JsonNode?)JsonValue.Create(error.Value)).ToArray());
             }
             var wireViolations = new JsonArray();
-            if (!success)
+            if (wireFixture is not null)
+            {
+                var bytes = wireFixture["operations"]![outcomes.Count]!;
+                if (single)
+                {
+                    var response = (await wireServices!.Sequences.Append(Decode<KernelAppendRequest>(bytes))).Response
+                        ?? throw new InvalidOperationException("Scoped single wire request failed without a response.");
+                    if (response.IsSuccess != success || response.Errors.Any() || response.SequenceNumber.ToString() != sequences[0]!.GetValue<string>())
+                        throw new InvalidOperationException("Scoped single wire outcome differs from the packaged client.");
+                    wireViolations = WireViolations(response.ConstraintViolations);
+                }
+                else
+                {
+                    var response = (await wireServices!.Sequences.AppendManyForEventSources(Decode<KernelBatchRequest>(bytes))).Response
+                        ?? throw new InvalidOperationException("Scoped batch wire request failed without a response.");
+                    if (response.IsSuccess != success || response.Errors.Any() ||
+                        !response.SequenceNumbers.Select(number => number.ToString()).SequenceEqual(sequences.Select(number => number!.GetValue<string>())))
+                        throw new InvalidOperationException("Scoped batch wire outcome differs from the packaged client.");
+                    wireViolations = WireViolations(response.ConstraintViolations);
+                }
+                if (success && wireViolations.Count != 0 || !success && wireViolations.Count == 0)
+                    throw new InvalidOperationException("Scoped wire violations disagree with append success.");
+            }
+            else if (!success)
             {
                 if (violations.Count == 0 || errors.Count != 0)
                     throw new InvalidOperationException("Expected a constraint rejection, not another append failure.");
@@ -573,6 +651,9 @@ internal static class EventScenarioOracle
             }
             var history = await History();
             var next = (await scenario.EventLog.GetNextSequenceNumber()).Value.ToString();
+            if (wireScenario is not null && (!JsonNode.DeepEquals(history, await History(wireScenario)) ||
+                next != (await wireScenario.EventLog.GetNextSequenceNumber()).Value.ToString()))
+                throw new InvalidOperationException("Scoped wire history or next sequence differs from the packaged client.");
             if (!success && (!JsonNode.DeepEquals(before, history) || nextBefore != next))
                 throw new InvalidOperationException("A rejected constraint operation changed history or the next sequence.");
             outcomes.Add(new JsonObject
@@ -583,7 +664,7 @@ internal static class EventScenarioOracle
         }
         return new JsonObject { ["outcomes"] = outcomes };
 
-        async Task<JsonArray> History() => new((await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First))
+        async Task<JsonArray> History(EventScenario? target = null) => new((await (target ?? scenario).EventLog.GetFromSequenceNumber(EventSequenceNumber.First))
             .Select(entry => (JsonNode?)new JsonObject
             {
                 ["sequence"] = entry.Context.SequenceNumber.Value.ToString(),

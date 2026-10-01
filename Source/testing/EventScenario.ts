@@ -96,9 +96,21 @@ export class EventScenario {
                         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                             'Every constrained event type must be in the selected catalog. Claiming and removal references must be complete.');
                     }
+                    const scoped = Object.values(capture.scope).some(Boolean);
+                    if (scoped && removedWith.some(id => {
+                        const type = eventTypes.find(type => getEventTypeFor(type).id.value === id);
+                        return type && Object.keys(getEventTypeMetadata(type)?.schema.properties ?? {}).length === 0;
+                    })) {
+                        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                            'Scoped fieldless removal events are not fixture-backed.');
+                    }
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
                         const schemaTypes = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]?.type ?? '');
+                        if (scoped && schemaTypes.some(schemaType => schemaType !== 'string')) {
+                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                                'Scoped property keys must be schema-backed strings.');
+                        }
                         if (entry.properties.length === 1 && !['string', 'boolean'].includes(schemaTypes[0])) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'The constrained property must be a schema-backed string or boolean.');

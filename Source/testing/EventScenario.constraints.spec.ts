@@ -355,7 +355,7 @@ describe('fixture-backed unscoped constraints', () => {
         subject.results.length.should.equal(1);
     });
 
-    it('rejects scoped, composite and case-insensitive configurations and unsupported keys before mutation', async () => {
+    it('rejects malformed or overlapping configurations and unsupported keys before mutation', async () => {
         const scoped = (configure: (builder: IConstraintBuilder) => void) => {
             class InvalidConstraint implements IConstraint {
                 define(builder: IConstraintBuilder) { configure(builder); }
@@ -363,9 +363,6 @@ describe('fixture-backed unscoped constraints', () => {
             constraint('ScopedOrComposite')(InvalidConstraint);
             unsupported(() => new EventScenario({ artifacts: { eventTypes: types, constraints: [InvalidConstraint] } }), 'artifacts.constraints');
         };
-        scoped(builder => builder.perEventStreamId().unique(key => key.on(OracleKeyClaimed, event => event.key)));
-        scoped(builder => builder.perEventStreamType().unique(key => key.on(OracleKeyClaimed, event => event.key)));
-        scoped(builder => builder.perEventSourceType().unique(key => key.on(OracleKeyClaimed, event => event.key)));
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key, event => event.key)));
         scoped(builder => builder.perEventStreamId().unique(key => key.on(OracleKeyClaimed, event => event.key).ignoreCasing()));
         scoped(builder => builder.unique(key => key.on(OracleKeyClaimed, event => event.key))
