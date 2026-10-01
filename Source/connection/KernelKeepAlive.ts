@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createLogger } from '../logging/createLogger.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import type { IChronicleLogger } from '../logging/IChronicleLogger.js';
 import type { ConnectRequest } from '@cratis/chronicle.contracts';
 
@@ -80,7 +81,11 @@ export class KernelKeepAlive {
      * @param request - The connect request identifying this client.
      * @param signal - Aborted to stop the keep-alive entirely.
      */
-    async start(request: ConnectRequest, signal: AbortSignal): Promise<void> {
+    start(request: ConnectRequest, signal: AbortSignal): Promise<void> {
+        return runInBackgroundContext(() => this.openStream(request, signal));
+    }
+
+    private async openStream(request: ConnectRequest, signal: AbortSignal): Promise<void> {
         const stream = this.connections.connect(request, { signal });
         const iterator = stream[Symbol.asyncIterator]();
 

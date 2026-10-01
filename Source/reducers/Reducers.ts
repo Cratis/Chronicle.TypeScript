@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
 import { ObservationState, ReadModelObserverType, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -236,21 +237,23 @@ export class Reducers implements IReducers {
     }
 
     private startObservation(id: string, reducerType: Constructor): void {
-        if (this._disposed) return;
-        const metadata = getReducerMetadata(reducerType)!;
-        const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
-        const readModelName = this.getReducerReadModelIdentifier(reducerType);
+        runInBackgroundContext(() => {
+            if (this._disposed) return;
+            const metadata = getReducerMetadata(reducerType)!;
+            const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
+            const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
+            const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
-        this._logger.info('Starting reducer observation', {
-            reducerId: id,
-            eventSequenceId,
-            readModel: readModelName,
-            handlerCount: dispatcher.handlers.length,
-            handlers: dispatcher.handlers.map(e => e.methodName)
+            this._logger.info('Starting reducer observation', {
+                reducerId: id,
+                eventSequenceId,
+                readModel: readModelName,
+                handlerCount: dispatcher.handlers.length,
+                handlers: dispatcher.handlers.map(e => e.methodName)
+            });
+
+            void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
         });
-
-        void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
     }
 
     private async runObservation(
@@ -286,14 +289,14 @@ export class Reducers implements IReducers {
             return;
         }
 
-        const handle = setTimeout(() => {
+        const handle = runInBackgroundContext(() => setTimeout(() => {
             if (!this._registered || this._disposed) {
                 return;
             }
 
             this._logger.info('Re-establishing reducer observation', { reducerId: id });
             this.startObservation(id, reducerType);
-        }, Reducers._reobserveDelayMs);
+        }, Reducers._reobserveDelayMs));
 
         handle.unref?.();
     }

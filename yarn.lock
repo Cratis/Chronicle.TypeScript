@@ -63,6 +63,7 @@ __metadata:
     "@opentelemetry/api": "npm:^1.9.1"
     "@opentelemetry/context-async-hooks": "npm:2.11.0"
     "@opentelemetry/core": "npm:2.11.0"
+    "@opentelemetry/instrumentation-grpc": "npm:0.222.0"
     "@opentelemetry/sdk-metrics": "npm:2.11.0"
     "@opentelemetry/sdk-trace-base": "npm:2.11.0"
     "@types/node": "npm:^26.6.3"
@@ -765,7 +766,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@opentelemetry/instrumentation-grpc@npm:^0.222.0":
+"@opentelemetry/instrumentation-grpc@npm:0.222.0, @opentelemetry/instrumentation-grpc@npm:^0.222.0":
   version: 0.222.0
   resolution: "@opentelemetry/instrumentation-grpc@npm:0.222.0"
   dependencies:

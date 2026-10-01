@@ -28,6 +28,11 @@ export class CorrelationIdManager implements ICorrelationIdAccessor, ICorrelatio
         return this._storage.run(correlationId, callback);
     }
 
+    /** Runs work without inheriting a business correlation, restoring the caller afterward. */
+    runWithout<T>(callback: () => T): T {
+        return this._storage.exit(callback);
+    }
+
     /** @inheritdoc */
     setCurrent(correlationId: CorrelationId): void {
         this._storage.enterWith(correlationId);

@@ -22,6 +22,7 @@ import { IChronicleClient } from './IChronicleClient.js';
 import { IEventStore } from './IEventStore.js';
 import { ChronicleMetrics } from './Metrics.js';
 import { observeOperation } from './telemetry/observeOperation.js';
+import { runInBackgroundContext } from './telemetry/runInBackgroundContext.js';
 import { TypeDiscoverer } from './types/index.js';
 import { takeUnregisteredModelBoundMappings } from './types/modelBoundPropertyMetadata.js';
 import { reachableReadModelTypes } from './readModels/rootReadModelTypes.js';
@@ -81,9 +82,11 @@ export class ChronicleClient implements IChronicleClient {
         });
 
         if (options.discoveryPatterns.length > 0) {
-            this._discoveryOperation = TypeDiscoverer.default.discover(options.discoveryPatterns);
-            this._discoveryOperation.catch(error => {
-                this._logger.error('Artifact file discovery failed', { error });
+            runInBackgroundContext(() => {
+                this._discoveryOperation = TypeDiscoverer.default.discover(options.discoveryPatterns);
+                this._discoveryOperation.catch(error => {
+                    this._logger.error('Artifact file discovery failed', { error });
+                });
             });
         }
 
@@ -279,7 +282,7 @@ export class ChronicleClient implements IChronicleClient {
         }
 
         if (!this._connectOperation) {
-            this._connectOperation = this.connectWithRetry().finally(() => {
+            this._connectOperation = runInBackgroundContext(() => this.connectWithRetry()).finally(() => {
                 this._connectOperation = undefined;
             });
         }
@@ -291,7 +294,7 @@ export class ChronicleClient implements IChronicleClient {
         if (this._connectionFailure) throw this._connectionFailure;
 
         if (!this._reconnectOperation) {
-            this._reconnectOperation = (async () => {
+            this._reconnectOperation = runInBackgroundContext(async () => {
                 this._logger.warn('Reconnecting to Chronicle kernel', {
                     reason,
                     error
@@ -330,7 +333,7 @@ export class ChronicleClient implements IChronicleClient {
                         await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
                     }
                 }
-            })().finally(() => {
+            }).finally(() => {
                 this._reconnectOperation = undefined;
             });
         }
@@ -436,9 +439,9 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private startConnectionWatchdog(): void {
-        this._watchdogHandle = setInterval(() => {
+        this._watchdogHandle = runInBackgroundContext(() => setInterval(() => {
             void this.runHealthCheck().catch(error => this.backgroundConnectionFailed('watchdog-health-check', error));
-        }, ChronicleClient._healthCheckIntervalMs);
+        }, ChronicleClient._healthCheckIntervalMs));
 
         this._watchdogHandle.unref?.();
     }

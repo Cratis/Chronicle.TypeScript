@@ -3,6 +3,7 @@
 
 import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
 import { ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -178,19 +179,21 @@ export class Reactors implements IReactors {
     }
 
     private startObservation(id: string, reactorType: Constructor): void {
-        if (this._disposed) return;
-        const metadata = getReactorMetadata(reactorType)!;
-        const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
+        runInBackgroundContext(() => {
+            if (this._disposed) return;
+            const metadata = getReactorMetadata(reactorType)!;
+            const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
+            const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
 
-        this._logger.info('Starting reactor observation', {
-            reactorId: id,
-            eventSequenceId,
-            handlerCount: eventTypes.length,
-            handlers: eventTypes.map(e => e.methodName)
+            this._logger.info('Starting reactor observation', {
+                reactorId: id,
+                eventSequenceId,
+                handlerCount: eventTypes.length,
+                handlers: eventTypes.map(e => e.methodName)
+            });
+
+            void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
         });
-
-        void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
     }
 
     private async runObservation(
@@ -224,14 +227,14 @@ export class Reactors implements IReactors {
             return;
         }
 
-        const handle = setTimeout(() => {
+        const handle = runInBackgroundContext(() => setTimeout(() => {
             if (!this._registered || this._disposed) {
                 return;
             }
 
             this._logger.info('Re-establishing reactor observation', { reactorId: id });
             this.startObservation(id, reactorType);
-        }, Reactors._reobserveDelayMs);
+        }, Reactors._reobserveDelayMs));
 
         handle.unref?.();
     }
