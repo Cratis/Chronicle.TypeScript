@@ -114,6 +114,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -746,6 +766,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -1308,6 +1348,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -1622,6 +1682,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -2256,6 +2336,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -2818,6 +2918,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -3132,6 +3252,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -3766,6 +3906,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -4328,6 +4488,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -4642,6 +4822,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -5276,6 +5476,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -5838,6 +6058,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -6152,6 +6392,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -6786,6 +7046,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -7348,6 +7628,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -7662,6 +7962,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -8296,6 +8616,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -8858,6 +9198,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -9172,6 +9532,26 @@
               "value": "Alpha"
             }
           ]
+        },
+        {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "EmptyOverride",
+              "type": "shared",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
         },
         {
           "label": "default values are exact not wildcards",
@@ -9806,6 +10186,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "sibling",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -10368,6 +10768,26 @@
           ]
         },
         {
+          "label": "per-entry empty routes override shared options",
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "first",
+              "value": "Alpha",
+              "sourceType": "",
+              "streamType": "",
+              "streamId": ""
+            }
+          ],
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West-1"
+          }
+        },
+        {
           "label": "default values are exact not wildcards",
           "mode": "single",
           "events": [
@@ -10840,6 +11260,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -15281,6 +15744,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -19102,6 +19602,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -20081,6 +20618,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -24510,6 +25090,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -28319,6 +28936,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -29286,6 +29940,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -34660,6 +35357,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -39324,6 +40058,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -40606,6 +41377,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -45023,6 +45837,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -48820,6 +49671,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -49775,6 +50663,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -55125,6 +56056,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -59765,6 +60733,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -61023,6 +62028,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -66349,6 +67397,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -70965,6 +72050,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -72199,6 +73321,49 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedKey",
+                  "message": "Taken: Alpha",
+                  "details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleDomainShared",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 1,
+                  "ConstraintName": "OracleScopedKey",
+                  "Message": "Event 'OracleDomainShared' on member 'key' violated a unique constraint on sequence number 0",
+                  "Details": {
+                    "PropertyName": "key",
+                    "PropertyValue": "Alpha"
+                  }
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "Alpha"
+                  },
+                  "hash": "whZb2iTSR81FGqTl7TCiUFzRRv5THtDOvGt+3x64CMg="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedKey",
@@ -78143,6 +79308,43 @@
               "next": "1"
             },
             {
+              "success": false,
+              "sequences": [],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleSibling",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleSibling' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
               "success": true,
               "sequences": [
                 "1"
@@ -83282,6 +84484,43 @@
               "sequences": [
                 "18446744073709551615"
               ],
+              "violations": [
+                {
+                  "id": "OracleScopedCycle",
+                  "message": "Cycle occupied",
+                  "details": {}
+                }
+              ],
+              "errors": [],
+              "wireViolations": [
+                {
+                  "EventTypeId": "OracleCycleFirst",
+                  "SequenceNumber": "0",
+                  "ConstraintType": 2,
+                  "ConstraintName": "OracleScopedCycle",
+                  "Message": "Event 'OracleCycleFirst' violated a unique event type constraint on sequence number 0",
+                  "Details": {}
+                }
+              ],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleCycleFirst",
+                  "content": {
+                    "label": "Alpha"
+                  },
+                  "hash": "C1DrXEpCPvOPIbOxE/KeI0PxgfjqhddpH+ICD45s4WM="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": false,
+              "sequences": [],
               "violations": [
                 {
                   "id": "OracleScopedCycle",
