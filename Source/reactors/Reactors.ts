@@ -14,6 +14,7 @@ import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
+import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReactors } from './IReactors.js';
 import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
@@ -172,17 +173,18 @@ export class Reactors implements IReactors {
         if (this._disposed) return;
         const registrations = [...this._reactors].map(([id, type]) => ({
             id, type, eventTypes: getReactorEventTypes(type, this._clientArtifacts.eventTypes)
-        }));
+        })).map(registration => ({ ...registration, validateInstance: createHandlerInstanceValidator(registration.type,
+            registration.eventTypes.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name))) }));
         this._logger.info('Registering reactors', { count: this._reactors.size });
-        for (const { id, type, eventTypes } of registrations) {
-            this.startObservation(id, type, eventTypes);
+        for (const { id, type, eventTypes, validateInstance } of registrations) {
+            this.startObservation(id, type, eventTypes, validateInstance);
         }
 
         this._registered = true;
     }
 
     private startObservation(id: string, reactorType: Constructor,
-        eventTypes: ReactorEventTypeEntry[]): void {
+        eventTypes: ReactorEventTypeEntry[], validateInstance: (instance: object) => void): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReactorMetadata(reactorType)!;
@@ -195,7 +197,7 @@ export class Reactors implements IReactors {
                 handlers: eventTypes.map(e => e.methodName)
             });
 
-            void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
+            void this.runObservation(id, reactorType, eventSequenceId, eventTypes, validateInstance);
         });
     }
 
@@ -203,15 +205,16 @@ export class Reactors implements IReactors {
         id: string,
         reactorType: Constructor,
         eventSequenceId: string,
-        eventTypes: ReactorEventTypeEntry[]
+        eventTypes: ReactorEventTypeEntry[],
+        validateInstance: (instance: object) => void
     ): Promise<void> {
         try {
-            await this.observeReactor(id, reactorType, eventSequenceId, eventTypes);
+            await this.observeReactor(id, reactorType, eventSequenceId, eventTypes, validateInstance);
         } catch (error) {
             this._logger.error('Reactor observation loop exited with error', { reactorId: id, error });
         }
 
-        this.scheduleReobserve(id, reactorType, eventTypes);
+        this.scheduleReobserve(id, reactorType, eventTypes, validateInstance);
     }
 
     /**
@@ -223,7 +226,7 @@ export class Reactors implements IReactors {
      * the whole client reconnects. Both endings are therefore retried, and the delay
      * keeps a stream that keeps ending from becoming a hot loop.
      */
-    private scheduleReobserve(id: string, reactorType: Constructor, eventTypes: ReactorEventTypeEntry[]): void {
+    private scheduleReobserve(id: string, reactorType: Constructor, eventTypes: ReactorEventTypeEntry[], validateInstance: (instance: object) => void): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reactor from scratch, so retrying here as well would double up.
         if (!this._registered || this._disposed) {
@@ -236,7 +239,7 @@ export class Reactors implements IReactors {
             }
 
             this._logger.info('Re-establishing reactor observation', { reactorId: id });
-            this.startObservation(id, reactorType, eventTypes);
+            this.startObservation(id, reactorType, eventTypes, validateInstance);
         }, Reactors._reobserveDelayMs));
 
         handle.unref?.();
@@ -246,7 +249,8 @@ export class Reactors implements IReactors {
         id: string,
         reactorType: Constructor,
         eventSequenceId: string,
-        eventTypes: ReactorEventTypeEntry[]
+        eventTypes: ReactorEventTypeEntry[],
+        validateInstance: (instance: object) => void
     ): Promise<void> {
         const queue = new AsyncQueue<ReactorMessage>();
         const controller = new AbortController();
@@ -281,6 +285,7 @@ export class Reactors implements IReactors {
 
         try {
             const reactorInstance = this._artifactActivator ? undefined : new (reactorType as new () => Record<string, Function>)();
+            if (reactorInstance) validateInstance(reactorInstance);
             const services: ReactorServices | undefined = this._eventStore && {
                 eventStore: this._eventStore, readModels: this._eventStore.readModels, signal: controller.signal
             };
@@ -305,9 +310,12 @@ export class Reactors implements IReactors {
                             readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
                             replayState: eventsToObserve.ReplayState
-                        }, this._artifactActivator, artifact => runActivated(artifact, () =>
-                            notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition),
-                            { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState }), this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            validateInstance(artifact.instance);
+                            return runActivated(artifact, () =>
+                                notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition),
+                                { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState });
+                        }, this._connection.logger);
                     } else if (reactorInstance) {
                         await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
                     }
@@ -391,7 +399,10 @@ export class Reactors implements IReactors {
                             readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.Events,
                             eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, processEvents, this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            validateInstance(artifact.instance);
+                            return processEvents(artifact);
+                        }, this._connection.logger);
                     } catch (err) {
                         this._logger.error('Error activating reactor', { reactorId: id, error: err });
                         exceptionMessages.push(String(err));

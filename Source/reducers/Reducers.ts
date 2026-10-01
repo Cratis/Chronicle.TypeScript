@@ -356,6 +356,7 @@ export class Reducers implements IReducers {
 
         try {
             const reducerInstance = this._artifactActivator ? undefined : new (reducerType as new () => Record<string, Function>)();
+            if (reducerInstance) dispatcher.validateInstance(reducerInstance);
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
@@ -379,9 +380,12 @@ export class Reducers implements IReducers {
                             readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
                             replayState: operation.ReplayState
-                        }, this._artifactActivator, artifact => runActivated(artifact, () =>
-                            notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
-                            { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState }), this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            dispatcher.validateInstance(artifact.instance);
+                            return runActivated(artifact, () =>
+                                notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
+                                { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState });
+                        }, this._connection.logger);
                     } else if (reducerInstance) {
                         await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
                     }
@@ -451,7 +455,10 @@ export class Reducers implements IReducers {
                             readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.Events,
                             eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, processEvents, this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            dispatcher.validateInstance(artifact.instance);
+                            return processEvents(artifact);
+                        }, this._connection.logger);
                     } catch (err) {
                         this._logger.error('Error activating reducer', { reducerId: id, error: err });
                         exceptionMessages.push(String(err));

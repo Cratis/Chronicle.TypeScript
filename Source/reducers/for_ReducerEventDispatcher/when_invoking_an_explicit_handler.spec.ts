@@ -20,6 +20,18 @@ class AuthorReducer {
     }
 }
 
+class FieldReducer extends AuthorReducer {
+    override update = () => ({ names: [], id: 'hidden' });
+}
+
+describe('when an instance field hides an inherited reducer handler', () => {
+    it('should reject the field against the preflight method', () => {
+        const dispatcher = new ReducerEventDispatcher(FieldReducer, [AuthorRegistered]);
+        (() => dispatcher.validateInstance(new FieldReducer())).should.throw(
+            "Override 'update' on 'FieldReducer' hides @handles(AuthorRegistered) declared on 'AuthorReducer'; use a method with @handles instead of an instance field.");
+    });
+});
+
 describe('when invoking an explicit reducer handler', () => {
     let result: unknown;
     beforeEach(async () => {

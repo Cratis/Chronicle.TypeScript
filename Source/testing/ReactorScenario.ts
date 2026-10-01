@@ -21,6 +21,7 @@ import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { IReadModels } from '../readModels/IReadModels.js';
 import { getReactorEventTypes, invokeReactorHandler, selectReactorHandler } from '../reactors/ReactorDispatcher.js';
+import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
 import { getReactorMetadata } from '../reactors/reactor.js';
 import { normalizeReactorSideEffects } from '../reactors/ReactorSideEffects.js';
 import type { ReactorServices } from '../reactors/ReactorServices.js';
@@ -40,6 +41,7 @@ export class ReactorScenario {
     private readonly _entries: ReturnType<typeof getReactorEventTypes>;
     private readonly _eventTypes: readonly Constructor[];
     private readonly _instance?: Record<string, Function>;
+    private readonly _validateInstance: (instance: object) => void;
     private readonly _store: IEventStore;
     private readonly _controller = new AbortController();
     private readonly _effects: RecordedReactorSideEffect[] = [];
@@ -76,9 +78,12 @@ export class ReactorScenario {
             eventTypeMigrations: eventTypeMigrations === undefined ? undefined : [...eventTypeMigrations]
         } });
         this._entries = getReactorEventTypes(_reactor, this._eventTypes);
+        this._validateInstance = createHandlerInstanceValidator(_reactor,
+            this._entries.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)));
         // Every unsupported event-sequence operation is latched at its source, whichever result or stream carries it.
         observeUnsupportedOperations(this._events.eventSequence, error => { this.latch(error); });
         this._instance = _options.artifactActivator ? undefined : new (_reactor as new () => Record<string, Function>)();
+        if (this._instance) this._validateInstance(this._instance);
         this._store = _options.servicesEventStore ?? this.scenarioStore();
         this.given = { forEventSource: id => ({ events: (...events) => this.deliver(id, events, true) }) };
         this.when = { forEventSource: id => ({ events: (...events) => this.deliver(id, events, false) }) };
@@ -246,7 +251,10 @@ export class ReactorScenario {
                         artifactId: getReactorMetadata(this._reactor)!.id.value, eventStore: this._store,
                         readModels: services.readModels, eventSequenceId: 'event-log', partition: sourceId,
                         signal: services.signal, delivery: ArtifactDelivery.Events, eventContext: first.context },
-                    this._options.artifactActivator, process);
+                    this._options.artifactActivator, artifact => {
+                        this._validateInstance(artifact.instance);
+                        return process(artifact);
+                    });
                 } else {
                     await process({ instance: this._instance ?? {} });
                 }

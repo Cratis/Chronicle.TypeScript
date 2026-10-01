@@ -65,6 +65,29 @@ describe('when ReactorScenario has an unregistered explicit handler', () => {
     });
 });
 
+@reactor('field-shadowing-scenario')
+class FieldReactor extends AuthorReactor {
+    override notify = () => new AuthorNotified('hidden');
+}
+
+describe('when an instance field hides an inherited ReactorScenario handler', () => {
+    it('should reject the field after constructing the reactor', () => {
+        (() => new ReactorScenario(FieldReactor, options)).should.throw(
+            "Override 'notify' on 'FieldReactor' hides @handles(AuthorRegistered) declared on 'AuthorReactor'; use a method with @handles instead of an instance field.");
+    });
+    it('should reject an activator-created field before delivery and dispose its lease', async () => {
+        let disposed = false;
+        const scenario = new ReactorScenario(FieldReactor, { ...options, artifactActivator: type => ({
+            instance: new type(), dispose: () => { disposed = true; }
+        }) });
+        const [result] = await Promise.allSettled([scenario.when.forEventSource('author').events(new AuthorRegistered('Ada'))]);
+        result.status.should.equal('rejected');
+        if (result.status === 'rejected') (result.reason as Error).message.should.match(/Override 'notify'.*use a method/);
+        scenario.produced.should.have.lengthOf(0);
+        disposed.should.be.true;
+    });
+});
+
 describe('when ReactorScenario has duplicate explicit and conventional handlers', () => {
     @reactor('duplicate-explicit-scenario')
     class Invalid {
