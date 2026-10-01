@@ -1,7 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
+import { createLogger } from './logging/createLogger.js';
+import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
+import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
+import { WellKnownTelemetryNames } from './WellKnownTelemetryNames.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection/index.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
@@ -31,7 +34,7 @@ import { IReadModels } from './readModels/IReadModels.js';
 import { ReadModels } from './readModels/ReadModels.js';
 import { EventSeeding } from './seeding/EventSeeding.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
-import { ChronicleTracer } from './Tracing.js';
+import { observeOperation } from './telemetry/observeOperation.js';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider.js';
 import type { IClientArtifactsProvider } from './artifacts/IClientArtifactsProvider.js';
 import { validateArtifactSchemas } from './artifacts/validateArtifactSchemas.js';
@@ -59,9 +62,7 @@ import { Observers } from './observation/Observers.js';
  * via gRPC using the provided {@link ChronicleConnection}.
  */
 export class EventStore implements IEventStore {
-    private readonly _logger = diag.createComponentLogger({
-        namespace: '@cratis/chronicle/EventStore'
-    });
+    private readonly _logger: ReturnType<typeof createLogger>;
 
     readonly eventLog: IEventLog;
     readonly eventTypes: IEventTypes;
@@ -93,15 +94,17 @@ export class EventStore implements IEventStore {
         private readonly _artifacts: IClientArtifactsProvider = DefaultClientArtifactsProvider.default,
         reactorResultHandler?: ReactorResultHandler,
         artifactActivator?: ClientArtifactsActivator,
-        readModelNamingPolicy?: ReadModelNamingPolicy
+        readModelNamingPolicy?: ReadModelNamingPolicy,
+        private readonly _telemetry?: ChronicleTelemetryOptions
     ) {
+        this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
 
         const artifacts = this._artifacts;
         this._constraints = new Constraints(name.value, _connection, artifacts);
         this.constraints = this._constraints;
         const resolveConstraintMessage = this._constraints.resolveMessageFor.bind(this._constraints);
-        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage);
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
@@ -180,7 +183,7 @@ export class EventStore implements IEventStore {
 
         const sequence = new EventSequence(
             id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager,
-            this._constraints.resolveMessageFor.bind(this._constraints)
+            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry
         );
         this._sequences.set(id.value, sequence);
         return sequence;
@@ -188,16 +191,15 @@ export class EventStore implements IEventStore {
 
     /** @inheritdoc */
     async getNamespaces(): Promise<EventStoreNamespaceName[]> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_store.get_namespaces', async span => {
-            span.setAttribute('chronicle.event_store', this.name.value);
+        return observeOperation(WellKnownTelemetryNames.spans.getNamespaces, async span => {
+            setTelemetryAttribute(span, 'eventStore', this.name.value);
             try {
                 const response = await this._connection.namespaces.allNamespaces({ EventStore: this.name.value });
                 const result = ensureQuerySuccess('get namespaces', response).map(namespace => new EventStoreNamespaceName(namespace.Name));
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();

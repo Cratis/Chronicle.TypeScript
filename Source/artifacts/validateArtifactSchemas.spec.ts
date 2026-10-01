@@ -35,7 +35,7 @@ describe('artifact schema preflight', () => {
     it('blocks every Kernel registration when preflight fails', async () => {
         const register = vi.fn();
         const connection = new Proxy({}, {
-            get: () => new Proxy({}, { get: () => register })
+            get: (_target, property) => property === 'logger' ? undefined : new Proxy({}, { get: () => register })
         }) as ChronicleConnection;
         const lifecycle = { onDisconnected: vi.fn(), onConnected: vi.fn() } as unknown as ConnectionLifecycle;
         const store = new EventStore(new EventStoreName('Test'), EventStoreNamespaceName.default, connection, lifecycle, 'sink');

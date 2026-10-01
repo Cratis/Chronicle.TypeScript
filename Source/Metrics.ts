@@ -1,109 +1,83 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { metrics } from '@opentelemetry/api';
+import { metrics, type Attributes, type Counter, type Histogram } from '@opentelemetry/api';
+import { clientVersion } from './connection/clientVersion.js';
+import { WellKnownTelemetryNames as names } from './WellKnownTelemetryNames.js';
+
+/** The versioned instrumentation scope shared by Chronicle client traces and metrics. */
+export const ChronicleMeterName = names.scope;
+
+/** The Chronicle meter. Applications own SDK configuration and export. */
+export const ChronicleMeter = metrics.getMeter(ChronicleMeterName, clientVersion);
+
+// Resolve instruments at recording time: the OTel metrics API does not proxy a meter
+// acquired before the application installs its provider. SDKs cache these instruments.
+function counter(name: string, description: string, unit: string): Counter {
+    return { add: (value, attributes, context) => metrics.getMeter(ChronicleMeterName, clientVersion)
+        .createCounter(name, { description, unit }).add(value, attributes, context) };
+}
+
+function duration(name: string, unit: 's' | 'ms'): Histogram {
+    const scale = unit === 's' ? 0.001 : 1;
+    return { record: (value, attributes, context) => metrics.getMeter(ChronicleMeterName, clientVersion)
+        .createHistogram(name, {
+            description: 'Duration of completed event append RPCs, including returned rejections.',
+            unit,
+            advice: { explicitBucketBoundaries: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000].map(value => value * scale) }
+        }).record(value, attributes, context) };
+}
+
+/** Shared-convention instruments. Durations are seconds; batch size is not a dimension. */
+export const ChronicleConventionMetrics = {
+    eventsAppended: counter(names.metrics.eventsAppended, 'Number of individual events appended to an event sequence.', '{event}'),
+    batchAppendsPerformed: counter(names.metrics.batchAppendsPerformed, 'Number of batch-append operations.', '{operation}'),
+    eventStoreRetrievals: counter(names.metrics.eventStoreRetrievals, 'Number of event store retrieval operations.', '{operation}'),
+    appendDuration: duration(names.metrics.appendDuration, 's'),
+    appendManyDuration: duration(names.metrics.appendManyDuration, 's'),
+    constraintViolations: counter(names.metrics.constraintViolations, 'Number of constraint violations encountered during event appends.', '{violation}'),
+    appendErrors: counter(names.metrics.appendErrors, 'Number of errors encountered during event appends.', '{error}')
+};
+
+/** Only the existing bounded-by-configuration dimensions belong on the new instruments. */
+function sharedAttributes(attributes: Attributes = {}): Attributes {
+    const result: Attributes = {};
+    for (const name of ['eventStore', 'namespace', 'eventSequenceId', 'eventTypeId'] as const) {
+        const value = attributes[names.attributes[name]] ?? attributes[names.legacyAttributes[name]];
+        if (value !== undefined) result[names.attributes[name]] = value;
+    }
+    return result;
+}
+
+function bridgeCounter(legacy: Counter, shared: Counter): Counter {
+    return { add: (value, attributes, context) => {
+        legacy.add(value, attributes, context);
+        shared.add(value, sharedAttributes(attributes), context);
+    } };
+}
+
+function bridgeDuration(legacy: Histogram, shared: Histogram): Histogram {
+    return { record: (milliseconds, attributes, context) => {
+        legacy.record(milliseconds, attributes, context);
+        shared.record(milliseconds / 1000, sharedAttributes(attributes), context);
+    } };
+}
 
 /**
- * The name of the Chronicle metrics instrumentation library.
- * This matches {@link ChronicleInstrumentationName} from Tracing so that all Chronicle
- * telemetry is grouped under a single instrumentation scope in your observability backend.
- */
-export const ChronicleMeterName = '@cratis/chronicle';
-
-/**
- * The OpenTelemetry meter used by the Chronicle client for all metric instrumentation.
- *
- * If your application has configured an OpenTelemetry SDK (e.g. via {@link https://www.npmjs.com/package/@opentelemetry/sdk-node}),
- * Chronicle metrics will automatically flow through it.
- * If no SDK is configured, the no-op meter is used and no overhead is incurred.
- */
-export const ChronicleMeter = metrics.getMeter(ChronicleMeterName);
-
-/**
- * Pre-built metric instruments for all Chronicle client operations.
- * These are created once and shared across all invocations.
+ * Compatibility instruments: existing callers still record milliseconds and legacy attributes.
+ * Each measurement also records its shared-convention equivalent, without adding sensitive dimensions.
  */
 export const ChronicleMetrics = {
-    /**
-     * Counts the number of individual events appended to an event sequence.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`, `chronicle.event_type_id`
-     */
-    eventsAppended: ChronicleMeter.createCounter('chronicle.events.appended', {
-        description: 'Number of individual events appended to an event sequence.',
-        unit: '{event}'
-    }),
-
-    /**
-     * Counts the number of batch-append operations performed on an event sequence.
-     * Each call to appendMany counts as one batch regardless of how many events it contains.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`, `chronicle.events_count`
-     */
-    batchAppendsPerformed: ChronicleMeter.createCounter('chronicle.events.batch_appends', {
-        description: 'Number of batch-append operations performed on an event sequence.',
-        unit: '{operation}'
-    }),
-
-    /**
-     * Counts the number of event store retrieval operations.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`
-     */
-    eventStoreRetrievals: ChronicleMeter.createCounter('chronicle.client.event_store_retrievals', {
-        description: 'Number of event store retrieval operations.',
-        unit: '{operation}'
-    }),
-
-    /**
-     * Measures the duration of append operations in milliseconds.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`, `chronicle.event_type_id`
-     */
-    appendDuration: ChronicleMeter.createHistogram('chronicle.events.append_duration', {
-        description: 'Duration of individual event append operations.',
-        unit: 'ms',
-        advice: {
-            explicitBucketBoundaries: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-        }
-    }),
-
-    /**
-     * Measures the duration of batch-append operations in milliseconds.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`, `chronicle.events_count`
-     */
-    appendManyDuration: ChronicleMeter.createHistogram('chronicle.events.append_many_duration', {
-        description: 'Duration of batch event append operations.',
-        unit: 'ms',
-        advice: {
-            explicitBucketBoundaries: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-        }
-    }),
-
-    /**
-     * Counts the number of append constraint violations encountered.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`
-     */
-    constraintViolations: ChronicleMeter.createCounter('chronicle.events.constraint_violations', {
-        description: 'Number of constraint violations encountered during event appends.',
-        unit: '{violation}'
-    }),
-
-    /**
-     * Counts the number of append errors encountered.
-     *
-     * Attributes: `chronicle.event_store`, `chronicle.namespace`,
-     * `chronicle.event_sequence_id`
-     */
-    appendErrors: ChronicleMeter.createCounter('chronicle.events.append_errors', {
-        description: 'Number of errors encountered during event appends.',
-        unit: '{error}'
-    })
+    eventsAppended: bridgeCounter(counter(names.legacyMetrics.eventsAppended,
+        'Number of individual events appended to an event sequence.', '{event}'), ChronicleConventionMetrics.eventsAppended),
+    batchAppendsPerformed: bridgeCounter(counter(names.legacyMetrics.batchAppendsPerformed,
+        'Number of batch-append operations.', '{operation}'), ChronicleConventionMetrics.batchAppendsPerformed),
+    eventStoreRetrievals: bridgeCounter(counter(names.legacyMetrics.eventStoreRetrievals,
+        'Number of event store retrieval operations.', '{operation}'), ChronicleConventionMetrics.eventStoreRetrievals),
+    appendDuration: bridgeDuration(duration(names.legacyMetrics.appendDuration, 'ms'), ChronicleConventionMetrics.appendDuration),
+    appendManyDuration: bridgeDuration(duration(names.legacyMetrics.appendManyDuration, 'ms'), ChronicleConventionMetrics.appendManyDuration),
+    constraintViolations: bridgeCounter(counter(names.legacyMetrics.constraintViolations,
+        'Number of constraint violations encountered during event appends.', '{violation}'), ChronicleConventionMetrics.constraintViolations),
+    appendErrors: bridgeCounter(counter(names.legacyMetrics.appendErrors,
+        'Number of errors encountered during event appends.', '{error}'), ChronicleConventionMetrics.appendErrors)
 };

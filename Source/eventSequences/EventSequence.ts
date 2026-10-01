@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { ChronicleConnection } from '../connection/index.js';
-import { SpanStatusCode } from '@opentelemetry/api';
+import { SpanStatusCode, type Span } from '@opentelemetry/api';
 import type {
     AppendedEventResponse as ContractsAppendedEvent,
     AppendManyResponse as ContractsAppendManyResponse,
@@ -37,7 +37,10 @@ import type { WaitForCompletionOptions } from './WaitForCompletionOptions.js';
 
 /** Default timeout for {@link AppendResult.waitForCompletion}, matching the C# client's default. */
 const DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT_MS = 5000;
-import { ChronicleTracer } from '../Tracing.js';
+import { observeOperation } from '../telemetry/observeOperation.js';
+import { setTelemetryAttribute, setEventSourceId, setSequenceNumber, recordSafeException } from '../telemetry/spanAttributes.js';
+import type { ChronicleTelemetryOptions } from '../telemetry/ChronicleTelemetryOptions.js';
+import { WellKnownTelemetryNames as names } from '../WellKnownTelemetryNames.js';
 import { ChronicleMetrics } from '../Metrics.js';
 import { identityProvider, Identity } from '../identity/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
@@ -60,7 +63,8 @@ export class EventSequence implements IEventSequence {
         private readonly _namespace: string,
         private readonly _connection: ChronicleConnection,
         private readonly _unitOfWorkManager: IUnitOfWorkManager,
-        private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation
+        private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
+        private readonly _telemetry?: ChronicleTelemetryOptions
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -76,14 +80,13 @@ export class EventSequence implements IEventSequence {
             'chronicle.event_type_id': eventType.id.value
         };
 
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_source_id', eventSourceId);
-            span.setAttribute('chronicle.event_type_id', eventType.id.value);
-            span.setAttribute('chronicle.event_type_generation', eventType.generation.value);
-            const startTime = Date.now();
+        return observeOperation(names.spans.append, async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, eventSourceId, this._telemetry);
+            setTelemetryAttribute(span, 'eventTypeId', eventType.id.value);
+            setTelemetryAttribute(span, 'eventTypeGeneration', eventType.generation.value);
+            if (options?.sourceType) span.setAttribute(names.attributes.eventSourceType, options.sourceType);
+            const startTime = performance.now();
             try {
                 const response = await this._connection.eventSequences.append({
                     EventStore: this._eventStoreName,
@@ -113,14 +116,14 @@ export class EventSequence implements IEventSequence {
                 });
 
                 const appendResponse = ensureCommandResponse('append event', response);
-                const duration = Date.now() - startTime;
+                const duration = performance.now() - startTime;
                 const result = this.mapAppendResponse(
                     appendResponse.SequenceNumber,
                     appendResponse.ConstraintViolations ?? [],
                     appendResponse.Errors ?? [],
                     appendResponse.ConcurrencyViolation
                 );
-                span.setAttribute('chronicle.sequence_number', result.sequenceNumber.value.toString());
+                setSequenceNumber(span, result.sequenceNumber.value);
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 ChronicleMetrics.eventsAppended.add(1, metricAttributes);
@@ -147,8 +150,7 @@ export class EventSequence implements IEventSequence {
 
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 ChronicleMetrics.appendErrors.add(1, {
                     'chronicle.event_store': this._eventStoreName,
                     'chronicle.namespace': this._namespace,
@@ -158,7 +160,7 @@ export class EventSequence implements IEventSequence {
             } finally {
                 span.end();
             }
-        });
+        }, correlationId);
     }
 
     /** @inheritdoc */
@@ -181,15 +183,13 @@ export class EventSequence implements IEventSequence {
             'chronicle.events_count': eventsForEventSourceIds.length
         };
 
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.append_many', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
+        return observeOperation(names.spans.appendMany, async span => {
+            this.setSequenceAttributes(span);
             if (distinctEventSourceIds.length === 1) {
-                span.setAttribute('chronicle.event_source_id', distinctEventSourceIds[0]);
+                setEventSourceId(span, distinctEventSourceIds[0], this._telemetry);
             }
-            span.setAttribute('chronicle.events_count', eventsForEventSourceIds.length);
-            const startTime = Date.now();
+            setTelemetryAttribute(span, 'eventCount', eventsForEventSourceIds.length);
+            const startTime = performance.now();
             try {
                 const response = await this._connection.eventSequences.appendManyForEventSources({
                     EventStore: this._eventStoreName,
@@ -210,7 +210,7 @@ export class EventSequence implements IEventSequence {
                 });
 
                 const appendManyResponse = ensureCommandResponse('append many events', response);
-                const duration = Date.now() - startTime;
+                const duration = performance.now() - startTime;
                 // Mirrors the C# client: every per-event AppendResult in a batch carries all
                 // constraint violations and the first concurrency violation of the whole batch —
                 // the wire response doesn't correlate either back to a specific event index.
@@ -269,8 +269,7 @@ export class EventSequence implements IEventSequence {
 
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 ChronicleMetrics.appendErrors.add(1, {
                     'chronicle.event_store': this._eventStoreName,
                     'chronicle.namespace': this._namespace,
@@ -280,7 +279,7 @@ export class EventSequence implements IEventSequence {
             } finally {
                 span.end();
             }
-        });
+        }, correlationId);
     }
 
     /** @inheritdoc */
@@ -300,13 +299,9 @@ export class EventSequence implements IEventSequence {
         eventStreamId?: string,
         filterEventTypes?: Constructor[]
     ): Promise<EventSequenceNumber> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_tail_sequence_number', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            if (eventSourceId !== undefined) {
-                span.setAttribute('chronicle.event_source_id', eventSourceId);
-            }
+        return observeOperation(names.spans.getTailSequenceNumber, async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, eventSourceId, this._telemetry);
             try {
                 const response = await this._connection.eventSequences.tailSequenceNumber({
                     EventStore: this._eventStoreName,
@@ -324,12 +319,11 @@ export class EventSequence implements IEventSequence {
 
                 const data = ensureQuerySuccess('get tail sequence number', response);
                 const result = new EventSequenceNumber(data?.SequenceNumber ?? 0n);
-                span.setAttribute('chronicle.sequence_number', result.value.toString());
+                setSequenceNumber(span, result.value);
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -345,11 +339,9 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async hasEventsFor(eventSourceId: string): Promise<boolean> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.has_events_for', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_source_id', eventSourceId);
+        return observeOperation(names.spans.hasEventsFor, async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, eventSourceId, this._telemetry);
             try {
                 const response = await this._connection.eventSequences.hasEventsForEventSourceId({
                     EventStore: this._eventStoreName,
@@ -359,12 +351,11 @@ export class EventSequence implements IEventSequence {
                 });
 
                 const result = ensureQuerySuccess('has events for event source', response)?.HasEvents ?? false;
-                span.setAttribute('chronicle.has_events', result);
+                setTelemetryAttribute(span, 'hasEvents', result);
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -380,11 +371,9 @@ export class EventSequence implements IEventSequence {
         eventStreamId?: string,
         eventSourceType?: string
     ): Promise<AppendedEvent[]> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_for_event_source_id_and_event_types', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_source_id', eventSourceId);
+        return observeOperation(names.spans.getForEventSourceIdAndEventTypes, async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, eventSourceId, this._telemetry);
             try {
                 const response = await this._connection.eventSequences.forEventSourceIdAndEventTypes({
                     EventStore: this._eventStoreName,
@@ -403,8 +392,7 @@ export class EventSequence implements IEventSequence {
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -418,11 +406,10 @@ export class EventSequence implements IEventSequence {
         eventSourceId?: string,
         filterEventTypes?: Constructor[]
     ): Promise<AppendedEvent[]> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.get_from_sequence_number', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
+        return observeOperation(names.spans.getFromSequenceNumber, async span => {
+            this.setSequenceAttributes(span);
+            setSequenceNumber(span, sequenceNumber.value);
+            setEventSourceId(span, eventSourceId, this._telemetry);
             try {
                 const response = await this._connection.eventSequences.fromSequenceNumber({
                     EventStore: this._eventStoreName,
@@ -437,8 +424,7 @@ export class EventSequence implements IEventSequence {
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -452,11 +438,9 @@ export class EventSequence implements IEventSequence {
         const causationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
 
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.sequence_number', sequenceNumber.value.toString());
+        return observeOperation(names.spans.redact, async span => {
+            this.setSequenceAttributes(span);
+            setSequenceNumber(span, sequenceNumber.value);
             try {
                 ensureCommandSuccess('redact event', await this._connection.eventSequences.redact({
                     EventStore: this._eventStoreName,
@@ -473,8 +457,7 @@ export class EventSequence implements IEventSequence {
                 }));
                 span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -489,11 +472,9 @@ export class EventSequence implements IEventSequence {
         const identity = identityProvider.getCurrent();
         const wireEventTypeIds = (eventTypes ?? []).map(constructor => getEventTypeFor(constructor as unknown as Function).id.value);
 
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.redact_for_event_source', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_source_id', eventSourceId);
+        return observeOperation(names.spans.redactForEventSource, async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, eventSourceId, this._telemetry);
             try {
                 ensureCommandSuccess('redact event source', await this._connection.eventSequences.redactForEventSource({
                     EventStore: this._eventStoreName,
@@ -511,8 +492,7 @@ export class EventSequence implements IEventSequence {
                 }));
                 span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
@@ -538,12 +518,10 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async completeStream(eventStreamType: string, eventStreamId: string): Promise<CompleteStreamResult> {
-        return ChronicleTracer.startActiveSpan('chronicle.event_sequences.complete_stream', async span => {
-            span.setAttribute('chronicle.event_store', this._eventStoreName);
-            span.setAttribute('chronicle.namespace', this._namespace);
-            span.setAttribute('chronicle.event_sequence_id', this.id.value);
-            span.setAttribute('chronicle.event_stream_type', eventStreamType);
-            span.setAttribute('chronicle.event_stream_id', eventStreamId);
+        return observeOperation(names.spans.completeStream, async span => {
+            this.setSequenceAttributes(span);
+            setTelemetryAttribute(span, 'eventStreamType', eventStreamType);
+            setTelemetryAttribute(span, 'eventStreamId', eventStreamId);
             try {
                 const response = await this._connection.eventSequences.completeStream({
                     EventStore: this._eventStoreName,
@@ -561,13 +539,18 @@ export class EventSequence implements IEventSequence {
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 throw error;
             } finally {
                 span.end();
             }
         });
+    }
+
+    private setSequenceAttributes(span: Span): void {
+        setTelemetryAttribute(span, 'eventStore', this._eventStoreName);
+        setTelemetryAttribute(span, 'namespace', this._namespace);
+        setTelemetryAttribute(span, 'eventSequenceId', this.id.value);
     }
 
     private toClientCompleteStreamError(error: number): CompleteStreamError {

@@ -18,6 +18,11 @@ export class CorrelationIdManager implements ICorrelationIdAccessor, ICorrelatio
         return this._storage.getStore() ?? CorrelationId.create();
     }
 
+    /** The explicitly scoped identifier, without generating an identifier when no scope exists. */
+    get scoped(): CorrelationId | undefined {
+        return this._storage.getStore();
+    }
+
     /** Runs an async or synchronous operation with a correlation id, restoring the caller afterward. */
     run<T>(correlationId: CorrelationId, callback: () => T): T {
         return this._storage.run(correlationId, callback);

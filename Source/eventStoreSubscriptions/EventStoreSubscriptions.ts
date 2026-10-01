@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { EventStoreName } from '../EventStoreName.js';
 import { EventType, EventTypeGeneration, EventTypeId, IEventTypes } from '../events/index.js';
@@ -15,15 +15,15 @@ import { IEventStoreSubscriptions } from './IEventStoreSubscriptions.js';
  * Represents an implementation of {@link IEventStoreSubscriptions}.
  */
 export class EventStoreSubscriptions implements IEventStoreSubscriptions {
-    private readonly _logger = diag.createComponentLogger({
-        namespace: '@cratis/chronicle/EventStoreSubscriptions'
-    });
+    private readonly _logger: ReturnType<typeof createLogger>;
 
     constructor(
         private readonly _eventTypes: IEventTypes,
         private readonly _targetEventStore: string,
         private readonly _connection: ChronicleConnection
-    ) {}
+    ) {
+        this._logger = createLogger('@cratis/chronicle/EventStoreSubscriptions', _connection.logger);
+    }
 
     /** @inheritdoc */
     async subscribe(

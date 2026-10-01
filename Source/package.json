@@ -184,6 +184,10 @@
     },
     "devDependencies": {
         "@cratis/fundamentals": "7.20.0",
+        "@opentelemetry/context-async-hooks": "2.11.0",
+        "@opentelemetry/core": "2.11.0",
+        "@opentelemetry/sdk-metrics": "2.11.0",
+        "@opentelemetry/sdk-trace-base": "2.11.0",
         "@types/node": "^26.6.3",
         "@typescript/native": "npm:typescript@^7.0.2",
         "esbuild": "^0.28.2",

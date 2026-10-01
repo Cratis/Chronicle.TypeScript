@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
+import type { IChronicleLogger } from '../logging/IChronicleLogger.js';
 import type { ConnectRequest } from '@cratis/chronicle.contracts';
 
 /**
@@ -49,9 +50,7 @@ export class KernelKeepAlive {
     /** How long a single answer may take before the connection is considered dead. */
     static readonly defaultAnswerTimeoutMs = 5000;
 
-    private readonly _logger = diag.createComponentLogger({
-        namespace: '@cratis/chronicle/KernelKeepAlive'
-    });
+    private readonly _logger: ReturnType<typeof createLogger>;
 
     private readonly _idleTimeoutMs: number;
     private readonly _answerTimeoutMs: number;
@@ -65,8 +64,10 @@ export class KernelKeepAlive {
     constructor(
         private readonly connections: IKeepAliveConnections,
         private readonly onConnectionLost: (reason: string, error: unknown) => void,
-        timeouts: KeepAliveTimeouts = {}
+        timeouts: KeepAliveTimeouts = {},
+        logger?: IChronicleLogger
     ) {
+        this._logger = createLogger('@cratis/chronicle/KernelKeepAlive', logger);
         this._idleTimeoutMs = timeouts.idleTimeoutMs ?? KernelKeepAlive.defaultIdleTimeoutMs;
         this._answerTimeoutMs = timeouts.answerTimeoutMs ?? KernelKeepAlive.defaultAnswerTimeoutMs;
     }
@@ -136,7 +137,7 @@ export class KernelKeepAlive {
     private connectionLost(reason: string, error: unknown): void {
         this._logger.warn('Kernel keep-alive lost the connection', {
             reason,
-            error: error instanceof Error ? error.message : String(error)
+            error
         });
         this.onConnectionLost(reason, error);
     }

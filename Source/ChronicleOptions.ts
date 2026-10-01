@@ -7,8 +7,12 @@ import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
+import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
+import type { IChronicleLogger } from './logging/IChronicleLogger.js';
 
 type ChronicleOptionsConstructorParams = {
+    telemetry?: ChronicleTelemetryOptions;
+    logger?: IChronicleLogger;
     connectionString: ChronicleConnectionString;
     programIdentifier?: string;
     softwareVersion?: string;
@@ -22,6 +26,8 @@ type ChronicleOptionsConstructorParams = {
 };
 
 type ChronicleOptionsFactoryParams = {
+    telemetry?: ChronicleTelemetryOptions;
+    logger?: IChronicleLogger;
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
@@ -34,6 +40,12 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
+    /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
+    readonly telemetry?: ChronicleTelemetryOptions;
+
+    /** Application diagnostic sink. Absent uses the OpenTelemetry diag compatibility adapter. */
+    readonly logger?: IChronicleLogger;
+
     /**
      * The connection string used to connect to the Chronicle Kernel.
      */
@@ -101,6 +113,8 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
+        this.telemetry = options.telemetry;
+        this.logger = options.logger;
     }
 
     private static defaultDiscoveryPatterns(): string[] {
@@ -144,7 +158,9 @@ export class ChronicleOptions {
             defaultSinkTypeId: options?.defaultSinkTypeId,
             reactorResultHandler: options?.reactorResultHandler,
             artifactActivator: options?.artifactActivator,
-            readModelNamingPolicy: options?.readModelNamingPolicy
+            readModelNamingPolicy: options?.readModelNamingPolicy,
+            telemetry: options?.telemetry,
+            logger: options?.logger
         });
     }
 

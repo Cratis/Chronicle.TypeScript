@@ -7,6 +7,7 @@ import { EventSequenceId } from './EventSequenceId.js';
 import { IEventLog } from './IEventLog.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import type { ConstraintViolation } from './ConstraintViolation.js';
+import type { ChronicleTelemetryOptions } from '../telemetry/ChronicleTelemetryOptions.js';
 
 /**
  * Implements {@link IEventLog} by extending the base {@link EventSequence}.
@@ -18,8 +19,9 @@ export class EventLog extends EventSequence implements IEventLog {
         namespace: string,
         connection: ChronicleConnection,
         unitOfWorkManager: IUnitOfWorkManager,
-        resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation
+        resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
+        telemetry?: ChronicleTelemetryOptions
     ) {
-        super(EventSequenceId.eventLog, eventStoreName, namespace, connection, unitOfWorkManager, resolveConstraintMessage);
+        super(EventSequenceId.eventLog, eventStoreName, namespace, connection, unitOfWorkManager, resolveConstraintMessage, telemetry);
     }
 }

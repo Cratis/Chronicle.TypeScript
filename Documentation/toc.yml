@@ -28,5 +28,7 @@
       href: auditing.md
     - name: Correlation
       href: correlation.md
+    - name: Observability
+      href: observability.md
     - name: Failed Partitions
       href: failed-partitions.md
