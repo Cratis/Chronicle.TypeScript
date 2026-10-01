@@ -40,6 +40,11 @@ describe('when releasing a document with property subjects', () => {
             contact: properties.contact, contacts: properties.contacts
         });
     });
+    it('should include the array item phone PII metadata in the subject-specific schema', () => {
+        JSON.parse(context.requestFor('contact-owner').Schema).properties.contacts.items.properties.phone.should.deep.equal({
+            type: 'string', compliance: [{ metadataType: 'PII', details: '' }]
+        });
+    });
     it('should combine the released groups and retain properties without a subject', () => result.should.deep.equal({
         id: 'account', name: 'released name', email: 'released email',
         contact: { phone: 'released phone' }, contacts: [{ phone: 'released list phone' }]

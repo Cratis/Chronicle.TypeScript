@@ -15,26 +15,32 @@ import { ReadModels } from '../../ReadModels.js';
 
 class AccountOpened {}
 
-export class ContactDetails { phone!: string; }
-field(String)(ContactDetails.prototype, 'phone');
-pii()(ContactDetails.prototype, 'phone');
+export class ContactDetails {
+    @field(String)
+    @pii()
+    phone!: string;
+}
 
+@fromEvent(AccountOpened)
 export class AccountDocument {
+    @field(String)
+    @subject()
     id!: string;
+
+    @field(String)
+    @pii()
     name!: string;
+
+    @field(String)
+    @pii()
     email!: string;
+
+    @field(ContactDetails)
     contact!: ContactDetails;
+
+    @field(Array, { genericArguments: [ContactDetails] })
     contacts!: ContactDetails[];
 }
-field(String)(AccountDocument.prototype, 'id');
-field(String)(AccountDocument.prototype, 'name');
-field(String)(AccountDocument.prototype, 'email');
-field(ContactDetails)(AccountDocument.prototype, 'contact');
-field(Array, { genericArguments: [ContactDetails] })(AccountDocument.prototype, 'contacts');
-subject()(AccountDocument.prototype, 'id');
-pii()(AccountDocument.prototype, 'name');
-pii()(AccountDocument.prototype, 'email');
-fromEvent(AccountOpened)(AccountDocument);
 
 export class a_stored_read_model {
     readonly release = vi.fn<(request: ReleaseRequest) => Promise<ReleaseResponse>>()
