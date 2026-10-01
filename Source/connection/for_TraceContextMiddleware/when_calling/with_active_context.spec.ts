@@ -5,7 +5,7 @@ import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { context, propagation, trace } from '@opentelemetry/api';
 import { createServer, ServerError, Status, type ServiceImplementation } from 'nice-grpc';
 import { Metadata } from 'nice-grpc-common';
-import { ConnectionServiceDefinition, EventStoresDefinition, ReactorsDefinition } from '@cratis/chronicle.contracts';
+import { ConnectionServiceDefinition, EventSequencesDefinition, EventStoresDefinition, ReactorsDefinition } from '@cratis/chronicle.contracts';
 import { ChronicleConnection } from '../../ChronicleConnection.js';
 import { OAuthTokenProvider } from '../../TokenProvider.js';
 import { CorrelationId, correlationIdManager } from '../../../correlation/index.js';
@@ -46,6 +46,10 @@ beforeEach(async () => {
         ensureEventStore: unused,
         observeEventStores: async function* () { yield { IsAuthorized: true, Data: [] }; }
     } as ServiceImplementation<typeof EventStoresDefinition>);
+    server.add(EventSequencesDefinition, {
+        ...Object.fromEntries(Object.keys(EventSequencesDefinition.methods).map(name => [name, unused])),
+        append: async () => ({ Response: { SequenceNumber: 0n } })
+    } as ServiceImplementation<typeof EventSequencesDefinition>);
     server.add(ReactorsDefinition, {
         ...Object.fromEntries(Object.keys(ReactorsDefinition.methods).map(name => [name, unused])),
         observe: async function* (requests) {
@@ -96,12 +100,19 @@ describe('when calling unary RPCs with active trace context and sensitive baggag
             await connection.eventStores.allEventStores({}, { metadata: original });
         });
     });
-    it('should inject trace context and only correlation baggage on every factory including reconnect and keep-alive', () => {
+    it('should detach connect and reconnect compatibility checks from caller context', () => {
         received.should.have.lengthOf(5);
-        for (const metadata of received) {
-            should.equal(metadata.get('traceparent'), traceparent);
-            should.equal(metadata.get('baggage'), `cratis.correlation_id=${correlation}`);
-            should.equal(metadata.get('api-key'), 'api-secret');
+        for (const index of [0, 3]) {
+            should.equal(received[index].get('traceparent'), undefined);
+            should.equal(received[index].get('baggage'), undefined);
+            should.equal(received[index].get('api-key'), 'api-secret');
+        }
+    });
+    it('should inject trace context and only correlation baggage on business calls and keep-alive', () => {
+        for (const index of [1, 2, 4]) {
+            should.equal(received[index].get('traceparent'), traceparent);
+            should.equal(received[index].get('baggage'), `cratis.correlation_id=${correlation}`);
+            should.equal(received[index].get('api-key'), 'api-secret');
         }
     });
     it('should preserve authentication and unrelated string and binary metadata', () => {
@@ -114,6 +125,24 @@ describe('when calling unary RPCs with active trace context and sensitive baggag
         should.equal(original.get('traceparent'), 'stale');
         should.equal(original.get('baggage'), 'email=private');
         should.equal(original.get('api-key'), undefined);
+    });
+});
+
+describe('when calling an event sequence without a cached compatibility verdict', () => {
+    beforeEach(async () => {
+        await connection.resetChannel();
+        await correlationIdManager.run(new CorrelationId(correlation), () => inContext(async () => {
+            await connection.eventSequences.append({}, { metadata: original });
+            correlationIdManager.scoped!.toString().should.equal(correlation);
+        }));
+    });
+    it('should detach the shared compatibility check while preserving the business caller context', () => {
+        received.should.have.lengthOf(2);
+        should.equal(received[0].get('traceparent'), undefined);
+        should.equal(received[0].get('baggage'), undefined);
+        should.equal(received[1].get('traceparent'), traceparent);
+        should.equal(received[1].get('baggage'), `cratis.correlation_id=${correlation}`);
+        should.equal(received[1].get('authorization'), 'Bearer caller-token');
     });
 });
 
