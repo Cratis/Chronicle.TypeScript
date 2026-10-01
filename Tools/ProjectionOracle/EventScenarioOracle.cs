@@ -341,7 +341,12 @@ internal static class EventScenarioOracle
     static async Task<JsonNode> RunScopedConstraints(JsonObject fixture)
     {
         var cases = fixture["scopeCases"]!.AsArray();
-        if (cases.Count == 0) throw new InvalidOperationException("Scoped fixtures must not be empty.");
+        var names = cases.Select(test => test!["name"]!.GetValue<string>()).ToArray();
+        var required = Enumerable.Range(1, 7).SelectMany(mask => new[] { $"property-{mask}", $"cycle-{mask}", $"once-{mask}" })
+            .Concat(["property-delimiter-alias", "cycle-delimiter-alias"]);
+        if (names.Distinct().Count() != names.Length || required.Any(name => !names.Contains(name)) ||
+            cases.Any(test => test!["kind"]?.GetValue<string>() is not ("kernelSemantics" or "oracleGuard")))
+            throw new InvalidOperationException("Scoped fixtures require every scope combination, both constraint kinds and delimiter guards.");
         using var encoder = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("node", "Tools/ProjectionOracle/scope-wire.mjs")
         {
             RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false

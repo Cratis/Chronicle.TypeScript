@@ -138,8 +138,8 @@ describe('when appending batches against committed kernel fixtures', () => {
             expected: { sequences: string[]; routes: Array<{ source: string; sourceType: string; streamType: string; streamId: string }> };
         };
         const scenario = create();
-        // Explicit empty route values are outside the scenario's domain; omit only those fields here.
-        const supported = routeCases.filter(item => item.sourceType !== '' && item.streamType !== '' && item.streamId !== '');
+        // Scoped wire fixtures additionally prove ts-proto omission of explicit empty routes.
+        const supported = routeCases;
         const results = await scenario.appendMany(supported.map(item => ({ eventSourceId: item.source,
             event: new OracleEventRecorded(item.name, item.active), eventSourceType: item.sourceType,
             eventStreamType: item.streamType, eventStreamId: item.streamId })));
@@ -450,9 +450,6 @@ describe('when appending batches against committed kernel fixtures', () => {
             ['appendMany.correlationId', () => scenario.appendMany('B', [event()], { correlationId: 'bad-guid' })],
             ['appendMany.entry', () => scenario.appendMany([entry({ unknown: 'value' })])],
             ['appendMany.sourceType', () => scenario.appendMany([entry({ eventSourceType: 'bad source' })])],
-            ['appendMany.sourceType', () => scenario.appendMany([entry({ eventSourceType: '' })], { sourceType: 'Group' })],
-            ['appendMany.streamType', () => scenario.appendMany('B', [event()], { streamType: '' })],
-            ['appendMany.streamId', () => scenario.appendMany([entry({ eventStreamId: '' })], { streamId: 'stream1' })],
             ['appendMany.subject', () => scenario.appendMany([entry({ subject: '' })], { subject: 'shared' })],
             ['appendMany.streamType', () => scenario.appendMany([entry({ eventStreamType: 'bad stream' })])],
             ['appendMany.streamId', () => scenario.appendMany([entry({ eventStreamId: 'bad stream' })])],

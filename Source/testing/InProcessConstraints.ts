@@ -8,6 +8,7 @@ import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.
 import { resolveConstraintMessage } from '../events/constraints/Constraints.js';
 import type { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
+import { eventTypeScopeKey, propertyScopeKey, scopeIndex } from './ConstraintScope.js';
 
 export type WireConstraintViolation = ContractsConstraintViolation;
 
@@ -49,7 +50,7 @@ function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, conte
     return { key: keyHash(joined.replace(/[A-Z]/g, letter => String.fromCharCode(letter.charCodeAt(0) + 32))), parts };
 }
 
-/** Narrow, fixture-backed unscoped constraint validation over serialized event snapshots. */
+/** Narrow, fixture-backed constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
     private readonly _constrainedProperties = new Map<string, Set<string>>();
     private readonly _removalTypes = new Set<string>();
@@ -62,11 +63,15 @@ export class InProcessConstraints {
             if (capture.uniqueConstraint && capture.uniqueEventType) {
                 throw this.unsupported(name, 'A definition with both constraint kinds is not fixture-backed.');
             }
-            if (capture.scope.perEventSourceType || capture.scope.perEventStreamType || capture.scope.perEventStreamId) {
-                throw this.unsupported(name, 'Scoped constraints are not fixture-backed.');
+            const scoped = Object.values(capture.scope).some(Boolean);
+            if (scoped && _definitions.size !== 1) {
+                throw this.unsupported(name, 'Scoped constraints alongside other definitions are not fixture-backed.');
             }
             if (capture.uniqueConstraint) {
                 const unique = capture.uniqueConstraint;
+                if (scoped && (unique.ignoreCasing || unique.eventDefinitions.some(entry => entry.properties.length !== 1))) {
+                    throw this.unsupported(name, 'Scoped composite or case-insensitive property keys are not fixture-backed.');
+                }
                 // constraints-composite.json installs one, two and three flat properties per event type.
                 // The kernel keys properties by path with ToDictionary, so duplicate paths are not a key shape.
                 if (unique.eventDefinitions.length === 0 || unique.eventDefinitions.some(entry =>
@@ -84,6 +89,10 @@ export class InProcessConstraints {
                     removalOwners.set(id, name);
                     this._removalTypes.add(id);
                     this._propertyRemovalTypes.add(id);
+                }
+                if (scoped && unique.eventDefinitions.some(entry =>
+                    entry.eventTypeId === unique.removedWithEventTypeId || unique.removedWithEventTypeIds?.includes(entry.eventTypeId))) {
+                    throw this.unsupported(name, 'Scoped covered-and-removal property events are not fixture-backed.');
                 }
                 for (const entry of unique.eventDefinitions) {
                     const properties = this._constrainedProperties.get(entry.eventTypeId) ?? new Set<string>();
@@ -103,6 +112,9 @@ export class InProcessConstraints {
                     !(ids.length === 2 && removals.length === 2 && shared === 0) &&
                     !(ids.length === 3 && removals.length === 3 && shared === 1)) {
                     throw this.unsupported(name, 'This unique event type set and removal combination is not fixture-backed.');
+                }
+                if (scoped && shared !== 0) {
+                    throw this.unsupported(name, 'Scoped covered-and-removal event cycles are not fixture-backed.');
                 }
                 // Each cycle fixture installs its definition alone; interaction with other definitions is unproven.
                 if (removals.length && _definitions.size !== 1) {
@@ -145,15 +157,16 @@ export class InProcessConstraints {
         const violations: WireConstraintViolation[] = [];
         // Durable ownership is one claim per source, not one entry per historical value.
         // Rebuild it from committed history; batch claims below remain independent and are never released.
-        const owners = new Map<string, Map<string, { key: string; sequence: string }>>();
+        const owners = new Map<string, Map<string, Map<string, { key: string; sequence: string }>>>();
         for (const [name, definition] of this._definitions) {
             if (!definition.uniqueConstraint) continue;
-            const claims = new Map<string, { key: string; sequence: string }>();
             const unique = definition.uniqueConstraint;
             const removals = new Set([unique.removedWithEventTypeId, ...(unique.removedWithEventTypeIds ?? [])]);
             for (const prior of history) {
                 const type = prior.eventType.id.value;
                 const source = prior.context.eventSourceId;
+                const claims = scopeIndex(owners, name, propertyScopeKey(definition.scope, prior.context),
+                    () => new Map<string, { key: string; sequence: string }>());
                 if (removals.has(type)) {
                     claims.delete(source);
                     continue;
@@ -166,10 +179,9 @@ export class InProcessConstraints {
                 claims.set(source, { key: claimOf(name, unique, type, prior.content)!.key,
                     sequence: prior.context.sequenceNumber.toString() });
             }
-            owners.set(name, claims);
         }
-        const stagedKeys = new Map<string, Map<string, string>>();
-        const stagedCycles = new Map<string, Map<string, 'open' | 'released'>>();
+        const stagedKeys = new Map<string, Map<string, Map<string, string>>>();
+        const stagedCycles = new Map<string, Map<string, Map<string, 'open' | 'released'>>>();
         for (const event of incoming) {
             const type = event.eventType.id.value;
             const source = event.context.eventSourceId;
@@ -178,8 +190,10 @@ export class InProcessConstraints {
                 const claim = definition.uniqueConstraint && claimOf(name, definition.uniqueConstraint, type, event.content);
                 if (claim) {
                     const key = claim.key;
-                    const existing = [...owners.get(name)!.entries()].find(([, claim]) => claim.key === key);
-                    const batchClaims = stagedKeys.get(name) ?? new Map<string, string>();
+                    const scope = propertyScopeKey(definition.scope, event.context);
+                    const durableClaims = owners.get(name)?.get(scope);
+                    const existing = [...(durableClaims?.entries() ?? [])].find(([, claim]) => claim.key === key);
+                    const batchClaims = scopeIndex(stagedKeys, name, scope, () => new Map<string, string>());
                     const batchOwner = batchClaims.get(key);
                     if (existing && existing[0] !== source || batchOwner !== undefined && batchOwner !== source) {
                         // One violation per declared property, in declared order, each with its own original value.
@@ -192,7 +206,6 @@ export class InProcessConstraints {
                         }
                     } else {
                         batchClaims.set(key, source);
-                        stagedKeys.set(name, batchClaims);
                     }
                 }
                 const uniqueType = definition.uniqueEventType;
@@ -200,14 +213,15 @@ export class InProcessConstraints {
                     const covered = uniqueType.eventTypeIds ?? [uniqueType.eventTypeId];
                     const removals = uniqueType.removedWithEventTypeIds ?? [];
                     // Durable answer: the earliest covered event after the latest removal for this source.
+                    const scope = eventTypeScopeKey(definition.scope, event.context);
                     let first: AppendedEvent | undefined;
                     for (const prior of history) {
-                        if (prior.context.eventSourceId !== source) continue;
+                        if (prior.context.eventSourceId !== source || eventTypeScopeKey(definition.scope, prior.context) !== scope) continue;
                         const priorType = prior.eventType.id.value;
                         if (removals.includes(priorType)) first = undefined;
                         else if (!first && covered.includes(priorType)) first = prior;
                     }
-                    const cycles = stagedCycles.get(name) ?? new Map<string, 'open' | 'released'>();
+                    const cycles = scopeIndex(stagedCycles, name, scope, () => new Map<string, 'open' | 'released'>());
                     const state = cycles.get(source);
                     // A cycle state recorded earlier in this append overrides durable history.
                     if (state === 'open' || state === undefined && first) {
@@ -219,7 +233,6 @@ export class InProcessConstraints {
                             Details: {} });
                     } else {
                         cycles.set(source, 'open');
-                        stagedCycles.set(name, cycles);
                     }
                 }
             }
@@ -228,9 +241,9 @@ export class InProcessConstraints {
             if (violations.length === violationCount) {
                 for (const [name, definition] of this._definitions) {
                     if (definition.uniqueEventType?.removedWithEventTypeIds?.includes(type)) {
-                        const cycles = stagedCycles.get(name) ?? new Map<string, 'open' | 'released'>();
+                        const cycles = scopeIndex(stagedCycles, name, eventTypeScopeKey(definition.scope, event.context),
+                            () => new Map<string, 'open' | 'released'>());
                         cycles.set(source, 'released');
-                        stagedCycles.set(name, cycles);
                     }
                 }
             }

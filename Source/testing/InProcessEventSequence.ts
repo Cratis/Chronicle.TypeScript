@@ -169,12 +169,7 @@ export class InProcessEventSequence implements IEventSequence {
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
             if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            if (options && (Reflect.ownKeys(options).length || options.correlationId !== undefined || options.sourceType !== undefined ||
-                options.streamType !== undefined || options.streamId !== undefined || options.subject !== undefined ||
-                options.occurred !== undefined || options.eventSourceId !== undefined || options.concurrencyScope !== undefined ||
-                options.tags !== undefined || options.concurrencyScopes !== undefined)) {
-                throw this.unsupported('append.options', event.constructor.name, 'Append metadata, routing and concurrency are not fixture-backed.');
-            }
+            const route = this.singleAppendRoute(options, event.constructor.name);
             const metadata = this._catalog.get(event.constructor);
             if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
             let prepared: ReturnType<typeof prepareSingleAppend>;
@@ -212,7 +207,7 @@ export class InProcessEventSequence implements IEventSequence {
                 context: {
                     eventStore: this._store, namespace: this._namespace,
                     sequenceNumber: sequenceNumber.value, eventSourceId,
-                    eventSourceType: 'Default', eventStreamType: 'All', eventStreamId: 'Default',
+                    eventSourceType: route.sourceType, eventStreamType: route.streamType, eventStreamId: route.streamId,
                     subject: eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
@@ -295,7 +290,8 @@ export class InProcessEventSequence implements IEventSequence {
                 const wire = eventsToAppend[index];
                 for (const [name, value] of Object.entries({ sourceType: wire.EventSourceType, streamType: wire.EventStreamType,
                     streamId: wire.EventStreamId, subject: wire.Subject })) {
-                    if (value !== undefined && (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value))) {
+                    const identifiers = name === 'subject' ? /^[A-Za-z0-9_-]+$/ : /^[A-Za-z0-9_-]*$/;
+                    if (value !== undefined && (typeof value !== 'string' || !identifiers.test(value))) {
                         throw this.unsupported(`appendMany.${name}`, String(value), 'Only simple metadata identifiers are fixture-backed.');
                     }
                 }
@@ -401,6 +397,26 @@ export class InProcessEventSequence implements IEventSequence {
                 throw this.unsupported(operation, String(filter), 'Only simple, nonblank route filters are fixture-backed.');
             }
         }
+    }
+
+    private singleAppendRoute(options: AppendOptions | undefined, artifact: string): { sourceType: string; streamType: string; streamId: string } {
+        if (options !== undefined && (!options || typeof options !== 'object' || Array.isArray(options))) {
+            throw this.unsupported('append.options', artifact, 'Append options must be an object.');
+        }
+        if (options && (Reflect.ownKeys(options).some(key => !['sourceType', 'streamType', 'streamId'].includes(String(key))) ||
+            options.correlationId !== undefined || options.subject !== undefined || options.occurred !== undefined ||
+            options.eventSourceId !== undefined || options.concurrencyScope !== undefined || options.tags !== undefined ||
+            options.concurrencyScopes !== undefined)) {
+            throw this.unsupported('append.options', artifact, 'Only sourceType, streamType and streamId routing options are fixture-backed for single append.');
+        }
+        const route = { sourceType: options?.sourceType, streamType: options?.streamType, streamId: options?.streamId };
+        for (const [name, value] of Object.entries(route)) {
+            if (value !== undefined && (typeof value !== 'string' || !/^[A-Za-z0-9_-]*$/.test(value))) {
+                throw this.unsupported(`append.${name}`, String(value), 'Only simple routing identifiers or empty defaults are fixture-backed.');
+            }
+        }
+        // ts-proto omits empty strings; the append pipeline resolves omissions to these exact values.
+        return { sourceType: route.sourceType || 'Default', streamType: route.streamType || 'All', streamId: route.streamId || 'Default' };
     }
 
     private validateBatchOptions(options?: AppendOptions): void {
