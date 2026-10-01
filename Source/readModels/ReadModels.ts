@@ -244,22 +244,31 @@ export class ReadModels implements IReadModels {
         const schema = JSON.parse(this.getReadModelSchema(readModelType, readModel.identifier)) as JsonSchema;
         const properties = schema.properties ?? {};
         const stored = this.copyStoredDocument(document);
-        const defaultSubject = stored.__subject;
-        const subjects = stored.__subjects ?? {};
+        const storedDefaultSubject = stored.__subject;
+        const defaultSubject = this.isDocumentSubject(storedDefaultSubject) ? storedDefaultSubject : undefined;
+        const storedSubjects = this.isDocumentObject(stored.__subjects) ? stored.__subjects : {};
+        const subjects = new Map<string, string>();
 
-        if (defaultSubject !== undefined && !this.isDocumentSubject(defaultSubject)) {
+        if (storedDefaultSubject !== undefined && storedDefaultSubject !== null && typeof storedDefaultSubject !== 'string') {
             throw new Error('Stored read model document has an invalid default subject.');
         }
-        if (!this.isDocumentObject(subjects) || stored.__subjects === null) {
-            throw new Error('Stored read model document has invalid property subjects.');
-        }
-        for (const [property, subject] of Object.entries(subjects)) {
-            if (property === '__subject' || property === '__subjects' ||
-                !Object.hasOwn(properties, property) || !Object.hasOwn(stored, property)) {
+        for (const [property, subject] of Object.entries(storedSubjects)) {
+            if (property === '__subject' || property === '__subjects') {
                 throw new Error('Stored read model document has an unknown subject property.');
             }
-            if (!this.isDocumentSubject(subject)) {
+            // The kernel's JSON subject map ignores null/empty strings, but rejects non-string values.
+            if (subject !== null && typeof subject !== 'string') {
                 throw new Error('Stored read model document has an invalid property subject.');
+            }
+            // Cleared or removed properties can leave stale mappings in stored documents.
+            if (!Object.hasOwn(stored, property)) {
+                continue;
+            }
+            if (!Object.hasOwn(properties, property)) {
+                throw new Error('Stored read model document has an unknown subject property.');
+            }
+            if (this.isDocumentSubject(subject)) {
+                subjects.set(property, subject);
             }
         }
 
@@ -270,14 +279,14 @@ export class ReadModels implements IReadModels {
             if (property === '__subject' || property === '__subjects' || !Object.hasOwn(properties, property)) {
                 continue;
             }
-            const subject = Object.hasOwn(subjects, property) ? subjects[property] : defaultSubject;
+            const subject = subjects.get(property) ?? defaultSubject;
             if (subject === undefined) {
                 releasedEntries.push([property, value]);
                 continue;
             }
-            const group = groups.get(subject as string) ?? [];
+            const group = groups.get(subject) ?? [];
             group.push(property);
-            groups.set(subject as string, group);
+            groups.set(subject, group);
         }
 
         for (const [subject, propertyNames] of groups) {
@@ -343,7 +352,7 @@ export class ReadModels implements IReadModels {
     }
 
     private isDocumentSubject(value: unknown): value is string {
-        return typeof value === 'string' && value.trim().length > 0;
+        return typeof value === 'string' && value.length > 0;
     }
 
     private async releaseSnapshotInstances<TReadModel>(readModelType: Constructor<TReadModel>, snapshots: ReadModelSnapshot<TReadModel>[]): Promise<ReadModelSnapshot<TReadModel>[]> {

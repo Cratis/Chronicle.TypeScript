@@ -7,9 +7,10 @@ import { AccountDocument, a_stored_read_model } from '../given/a_stored_read_mod
 chai.should();
 
 describe.each([
-    { __subject: '' }, { __subject: null }, { __subject: 42 },
-    { __subjects: [] }, { __subjects: null }, { __subjects: 'private@example.test' },
-    { __subjects: { name: '' } }, { __subjects: { name: '  ' } }, { __subjects: { name: null } }
+    { __subject: 42 }, { __subject: false }, { __subject: [] }, { __subject: {} },
+    { __subjects: { name: 42 } }, { __subjects: { name: false } },
+    { __subjects: { name: [] } }, { __subjects: { name: { subject: 'private@example.test' } } },
+    { __subjects: { email: 42 } }, { __subjects: { removedProperty: 42 } }
 ])('when releasing a document with invalid subject metadata %j', metadata => {
     let context: a_stored_read_model;
     let error: Error;

@@ -35,18 +35,23 @@ Subject selection follows the stored metadata:
 
 - `__subjects` maps **top-level property names** to non-empty subject strings.
   Each mapping applies to the property's entire subtree, including arrays.
+  Null or empty mapping values are ignored, so those properties use the default
+  subject. A non-object `__subjects` value is treated as an empty map.
   Dotted paths such as `contact.phone` are not supported.
 - `__subject` is a non-empty string used for properties without a mapping.
+  Null or an empty string means there is no default subject. Whitespace-only
+  subject strings are valid and passed through unchanged.
 - Properties with neither subject are copied unchanged, without release. There
   is no fallback to `id` or `@subject()`.
 
 The client makes one release call per distinct subject, using only that
 subject's properties and their schemas. If a call reports `HasError`, fails in
 transport, or returns malformed, missing, or conflicting properties, the whole
-operation rejects. Invalid subject metadata, including mappings to properties
-absent from the document or schema, also rejects. You never receive a partially
-merged document. Errors omit kernel and transport details because they can
-contain PII.
+operation rejects. Non-string subjects other than null, reserved subject-map
+names, and mappings for document properties absent from the schema also reject.
+Mappings for properties absent from the document are ignored after validating
+their subject values. You never receive a partially merged document. Errors omit
+kernel and transport details because they can contain PII.
 
 Chronicle 19.26.2 can replace individual values with empty values after a
 per-property decryption failure while still returning `HasError: false`.
