@@ -5,6 +5,7 @@ import { status, type Channel, type ChannelCredentials, type ChannelOptions } fr
 import { createLogger } from '../logging/createLogger.js';
 import type { IChronicleLogger } from '../logging/IChronicleLogger.js';
 import { traceContextMiddleware } from './TraceContextMiddleware.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import {
     ConnectionServiceDefinition,
     ConstraintsDefinition,
@@ -125,7 +126,7 @@ export class ChronicleConnection implements ChronicleServices {
         this._addressResolver = new ChronicleServerAddressResolver();
         this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
 
-        this._clientsReady = this.createClients();
+        this._clientsReady = runInBackgroundContext(() => this.createClients());
         // Building the initial channel is async (address resolution + load balancer
         // selection), so the constructor cannot await it. Real failures still surface to
         // callers that await connect()/resetChannel(); this only prevents an unhandled
@@ -253,7 +254,7 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         this._isConnected = false;
-        this._clientsReady = this.createClients();
+        this._clientsReady = runInBackgroundContext(() => this.createClients());
         await this._clientsReady;
     }
 
