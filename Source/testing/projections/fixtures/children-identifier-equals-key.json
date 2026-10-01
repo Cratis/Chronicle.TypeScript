@@ -10,10 +10,10 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "Exact shape emitted by the TypeScript ProjectionDefinitionCompiler for legacy-decorator @fromEvent(ItemAdded) and @childrenFrom(ItemAdded, { key: 'itemId', identifiedBy: 'id' }) without childType or element-type metadata, whose child items schema remains untyped; verified by kernel conversion and execution.",
+  "definitionSource": "Shape emitted by the TypeScript ProjectionDefinitionCompiler for legacy-decorator @fromEvent(ItemAdded) and @childrenFrom(ItemAdded, { childType: ScenarioKeyedItem, key: 'itemId' }): the initialized string itemId is discovered as IdentifiedBy, equals the event key, and has no explicit Properties mapping. RemovedWith uses the same key under the event source's parent, as emitted by fluent removedWith(...).usingKey(...).",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-children-untyped",
+    "Identifier": "oracle-children-identifier-equals-key",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
@@ -34,7 +34,7 @@
     "Join": [],
     "Children": {
       "items": {
-        "IdentifiedBy": "id",
+        "IdentifiedBy": "itemId",
         "From": [
           {
             "Key": {
@@ -42,9 +42,7 @@
               "Generation": 1
             },
             "Value": {
-              "Properties": {
-                "id": "itemId"
-              },
+              "Properties": {},
               "Key": "itemId",
               "ParentKey": "$eventSourceId"
             }
@@ -57,7 +55,18 @@
           "IncludeChildren": false,
           "AutoMap": 0
         },
-        "RemovedWith": [],
+        "RemovedWith": [
+          {
+            "Key": {
+              "Id": "ItemRemoved",
+              "Generation": 1
+            },
+            "Value": {
+              "Key": "itemId",
+              "ParentKey": "$eventSourceId"
+            }
+          }
+        ],
         "RemovedWithJoin": [],
         "AutoMap": 2,
         "Nested": {},
@@ -89,7 +98,22 @@
         "items": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "ScenarioKeyedItem",
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "itemId",
+              "name"
+            ],
+            "additionalProperties": false
           }
         }
       }
@@ -108,6 +132,20 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ItemRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
             "type": "string"
           }
         }
@@ -159,6 +197,34 @@
         "itemId": "a",
         "name": "again"
       }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "order-1",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {
+        "itemId": "a"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "order-1",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:04Z"
+      },
+      "content": {
+        "itemId": "missing"
+      }
     }
   ],
   "expected": [
@@ -168,7 +234,8 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "first"
             }
           ],
           "id": "order-1",
@@ -181,7 +248,8 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "first"
             }
           ]
         }
@@ -193,10 +261,12 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "first"
             },
             {
-              "id": "b"
+              "itemId": "b",
+              "name": "second"
             }
           ],
           "id": "order-1",
@@ -209,10 +279,12 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "first"
             },
             {
-              "id": "b"
+              "itemId": "b",
+              "name": "second"
             }
           ]
         }
@@ -224,10 +296,12 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "again"
             },
             {
-              "id": "b"
+              "itemId": "b",
+              "name": "second"
             }
           ],
           "id": "order-1",
@@ -240,10 +314,66 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "itemId": "a",
+              "name": "again"
             },
             {
-              "id": "b"
+              "itemId": "b",
+              "name": "second"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "order-1": {
+          "items": [
+            {
+              "itemId": "b",
+              "name": "second"
+            }
+          ],
+          "id": "order-1",
+          "__initialized": true,
+          "__subject": "order-1"
+        }
+      },
+      "publicRead": {
+        "order-1": {
+          "id": "order-1",
+          "items": [
+            {
+              "itemId": "b",
+              "name": "second"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "order-1": {
+          "items": [
+            {
+              "itemId": "b",
+              "name": "second"
+            }
+          ],
+          "id": "order-1",
+          "__initialized": true,
+          "__subject": "order-1"
+        }
+      },
+      "publicRead": {
+        "order-1": {
+          "id": "order-1",
+          "items": [
+            {
+              "itemId": "b",
+              "name": "second"
             }
           ]
         }

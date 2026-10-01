@@ -8,6 +8,7 @@ import { chai, describe, it } from 'vitest';
 import { eventType } from '../../../events/eventTypeDecorator.js';
 import type { ChildrenDefinitionLike } from '../../../projections/modelBound/childrenAndNestedBuilder.js';
 import { childrenFrom } from '../../../projections/modelBound/childrenFrom.js';
+import type { JsonSchema } from '../../../schemas/JsonSchema.js';
 import { ProjectionCapabilities } from '../ProjectionCapabilities.js';
 import { UnsupportedProjectionOperation } from '../UnsupportedProjectionOperation.js';
 import { Changed } from './given/Changed.js';
@@ -32,10 +33,43 @@ function compileChildren() {
     return { ...result, wire, child: wire.Children.labels };
 }
 
+function compileTypedChildren() {
+    const result = compileChildren();
+    result.child.IdentifiedBy = 'itemId';
+    result.child.From[0].Value.Properties = {};
+    const schema = JSON.parse(result.compiled.readModels[0].Schema) as JsonSchema;
+    schema.properties!.labels.items = {
+        type: 'object', properties: { itemId: { type: 'string' }, name: { type: 'string' } }
+    };
+    result.compiled.readModels[0].Schema = JSON.stringify(schema);
+    return result;
+}
+
 describe('when rejecting unsupported children operations before any event is seeded', () => {
     it('should accept the fixture-backed keyed children shape', () => {
         const { compiled, definition } = compileChildren();
         (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
+    });
+
+    it('should accept AutoMap into a typed child identifier from the entry key alone', () => {
+        const { compiled, definition } = compileTypedChildren();
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
+    });
+
+    it('should reject AutoMap into a typed child identifier from a property other than the entry key', () => {
+        const { compiled, definition, child } = compileTypedChildren();
+        child.From[0].Value.Key = 'name';
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('Children.labels.From[capability-child-added:1].AutoMap.itemId')
+            .and.includes('AutoMap into the child identifier');
+    });
+
+    it('should reject ambiguous AutoMap into a typed child identifier even if one candidate is the entry key', () => {
+        const { compiled, definition } = compileTypedChildren();
+        compiled.eventSchemas.get(definition)!.get('capability-child-added:1:0')!.schema.properties!.ItemId = { type: 'string' };
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+            .with.property('message').that.includes('Children.labels.From[capability-child-added:1].AutoMap.itemId')
+            .and.includes('AutoMap into the child identifier');
     });
 
     const cases: Array<{ name: string; change: (child: ChildrenDefinitionLike, wire: Wire) => void; path: string; reason: string }> = [

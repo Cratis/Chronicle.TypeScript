@@ -30,7 +30,8 @@ const kernelBacked = 'require a kernel-backed test (ChronicleKernelScenario / li
 
 /**
  * Validates one level of children collections against the packaged-kernel fixtures
- * (`children-from-keyed`, `children-identified-removed`, `children-untyped-items`).
+ * (`children-from-keyed`, `children-identified-removed`, `children-typed-items`,
+ * `children-untyped-items`, `children-identifier-equals-key`).
  */
 export class ProjectionChildrenCapabilities {
     /**
@@ -109,7 +110,13 @@ export class ProjectionChildrenCapabilities {
                     const candidates = Object.keys(eventSchema.properties ?? {}).filter(source => source.toLowerCase() === destination.toLowerCase());
                     if (!candidates.length) continue;
                     const mappingPath = `${path}.AutoMap.${destination}`;
-                    if (destination === identifiedBy) reject(mappingPath, `AutoMap into the child identifier ${kernelBacked}`);
+                    if (destination === identifiedBy) {
+                        if (candidates.length !== 1 || candidates[0] !== entry.Value.Key) {
+                            reject(mappingPath, `AutoMap into the child identifier ${kernelBacked}`);
+                        }
+                        // Changeset.AddChild initializes the identifier from this same key.
+                        continue;
+                    }
                     if (candidates.length > 1) reject(mappingPath, `inferred AutoMap source is ambiguous: ${candidates.join(', ')}`);
                     context.checkMapping(items!, eventSchema, destination, candidates[0], mappingPath);
                 }
