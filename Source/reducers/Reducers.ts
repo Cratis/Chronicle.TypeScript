@@ -172,13 +172,16 @@ export class Reducers implements IReducers {
             await this.discover();
         }
 
+        const registrations = [...this._reducers].map(([id, type]) => ({
+            id, type, dispatcher: new ReducerEventDispatcher(type, this._clientArtifacts.eventTypes)
+        }));
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         await this.registerReadModels();
 
         if (this._disposed) return;
         this._logger.info('Registering reducers', { count: this._reducers.size });
-        for (const [id, reducerType] of this._reducers) {
-            this.startObservation(id, reducerType);
+        for (const { id, type, dispatcher } of registrations) {
+            this.startObservation(id, type, dispatcher);
         }
 
         this._registered = true;
@@ -236,12 +239,12 @@ export class Reducers implements IReducers {
         return JSON.stringify(minimalSchema);
     }
 
-    private startObservation(id: string, reducerType: Constructor): void {
+    private startObservation(id: string, reducerType: Constructor,
+        dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes)): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReducerMetadata(reducerType)!;
             const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-            const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
             const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
             this._logger.info('Starting reducer observation', {

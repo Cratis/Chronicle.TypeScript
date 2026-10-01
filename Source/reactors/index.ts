@@ -3,6 +3,7 @@
 
 export { ReactorId } from './ReactorId.js';
 export { reactor, getReactorMetadata, isReactor } from './reactor.js';
+export { handles } from '../events/handles.js';
 export { onceOnly } from './onceOnly.js';
 export { replay } from './replay.js';
 export type { ReactorMetadata } from './reactor.js';

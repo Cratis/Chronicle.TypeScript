@@ -170,20 +170,23 @@ export class Reactors implements IReactors {
         }
 
         if (this._disposed) return;
+        const registrations = [...this._reactors].map(([id, type]) => ({
+            id, type, eventTypes: getReactorEventTypes(type, this._clientArtifacts.eventTypes)
+        }));
         this._logger.info('Registering reactors', { count: this._reactors.size });
-        for (const [id, reactorType] of this._reactors) {
-            this.startObservation(id, reactorType);
+        for (const { id, type, eventTypes } of registrations) {
+            this.startObservation(id, type, eventTypes);
         }
 
         this._registered = true;
     }
 
-    private startObservation(id: string, reactorType: Constructor): void {
+    private startObservation(id: string, reactorType: Constructor,
+        eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes)): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReactorMetadata(reactorType)!;
             const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-            const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
 
             this._logger.info('Starting reactor observation', {
                 reactorId: id,
