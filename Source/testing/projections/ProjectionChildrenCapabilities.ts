@@ -30,7 +30,7 @@ const kernelBacked = 'require a kernel-backed test (ChronicleKernelScenario / li
 
 /**
  * Validates one level of children collections against the packaged-kernel fixtures
- * (`children-from-keyed`, `children-identified-removed`, `children-untyped-items`).
+ * (`children-from-keyed`, `children-identified-removed`, `children-typed-items`, `children-untyped-items`).
  */
 export class ProjectionChildrenCapabilities {
     /**

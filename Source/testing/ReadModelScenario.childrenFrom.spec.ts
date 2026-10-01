@@ -1,11 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { readFileSync } from 'node:fs';
 import { chai, describe, it } from 'vitest';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { childrenFrom } from '../projections/modelBound/childrenFrom.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
 import { setFrom } from '../projections/modelBound/setFrom.js';
+import { JsonSchemaGenerator } from '../schemas/JsonSchemaGenerator.js';
 import { ReadModelScenario, UnsupportedProjectionOperation } from './index.js';
 
 chai.should();
@@ -40,17 +42,36 @@ class ScenarioNamedOrder {
 childrenFrom(ScenarioItemAdded, { childType: ScenarioNamedItem, key: 'itemId' })(ScenarioNamedOrder.prototype, 'items');
 fromEvent(ScenarioItemAdded)(ScenarioNamedOrder);
 
+class ScenarioUnknownOrder {
+    id = '';
+    items: ScenarioItem[] = [];
+}
+childrenFrom(ScenarioItemAdded, { key: 'itemId', identifiedBy: 'id' })(ScenarioUnknownOrder.prototype, 'items');
+fromEvent(ScenarioItemAdded)(ScenarioUnknownOrder);
+
 const artifacts = { eventTypes: [ScenarioItemAdded], reducers: [], projections: [] };
 
 describe('when a read model scenario evaluates keyed children from the options form', () => {
-    it('should add one child per key and update an existing child in place (children-untyped-items)', async () => {
+    it('should add one child per key and update an existing child in place (children-typed-items)', async () => {
         const scenario = new ReadModelScenario(ScenarioOrder, artifacts);
         scenario.given.forEventSource('order-1').events(
             new ScenarioItemAdded('a', 'first'), new ScenarioItemAdded('b', 'second'), new ScenarioItemAdded('a', 'again'));
         const order = await scenario.instanceForEventSourceId('order-1');
         order!.id.should.equal('order-1');
-        // The kernel's AutoMap is schema-driven, and legacy decorators register an untyped child item schema.
-        order!.items.map(item => ({ id: item.id, name: item.name })).should.deep.equal([{ id: 'a', name: '' }, { id: 'b', name: '' }]);
+        // The explicit child type registers a typed item schema, so AutoMap preserves the event's name.
+        order!.items.map(item => ({ id: item.id, name: item.name })).should.deep.equal([{ id: 'a', name: 'again' }, { id: 'b', name: 'second' }]);
+    });
+
+    it('should register the same typed items schema as the oracle fixture', () => {
+        const fixture = JSON.parse(readFileSync(new URL('./projections/fixtures/children-typed-items.json', import.meta.url), 'utf8'));
+        JsonSchemaGenerator.generate(ScenarioOrder).properties!.items.should.deep.equal(fixture.readModel.schema.properties.items);
+    });
+
+    it('should retain only the identifier when the child type is unknown (children-untyped-items)', async () => {
+        const scenario = new ReadModelScenario(ScenarioUnknownOrder, artifacts);
+        scenario.given.forEventSource('order-1').events(new ScenarioItemAdded('a', 'first'));
+        const order = await scenario.instanceForEventSourceId('order-1');
+        order!.items.should.deep.equal([{ id: 'a' }]);
     });
 
     it('should reject explicit child property mappings', () => {

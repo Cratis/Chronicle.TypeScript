@@ -37,7 +37,7 @@ Under runtimes that emit no type metadata, such as `tsx`, name the child type of
 items: Item[] = [];
 ```
 
-Every option is optional; an omitted `key` or `parentKey` defaults to the event source id, and `identifiedBy` is discovered as described above. Declaring the element type with `@field(Array, { genericArguments: [Item] })` and using `@childrenFrom(ItemAdded, 'itemId')` still works and produces the same definition. The `projections/model-bound/children/child-type-with-key` client snippet shows a complete, compiled example.
+Every option is optional; an omitted `key` or `parentKey` defaults to the event source id, and `identifiedBy` is discovered as described above. In both decorator modes, an explicit child type registers a typed item schema so AutoMap maps the child's properties, not just its identifier. TypeScript's emitted `design:type` only identifies the collection as an array, not its element type. With legacy decorators and no element-type metadata, pass `childType`; without it, the item schema remains untyped and AutoMap stores only the identifier. Declaring the element type with `@field(Array, { genericArguments: [Item] })` and using `@childrenFrom(ItemAdded, 'itemId')` still works and produces the same definition. The `projections/model-bound/children/child-type-with-key` client snippet shows a complete, compiled example.
 
 With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.
 

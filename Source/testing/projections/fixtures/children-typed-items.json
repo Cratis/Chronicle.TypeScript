@@ -3,17 +3,17 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.8.1",
+    "commit": "8fe5d30"
   },
   "tsContracts": {
-    "version": "19.26.2",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.8.1",
+    "descriptorSha256": "c56d4fb2797c57aa1f21cec1a07b6f75c92d32cbd936c61872dfbb18cef85edb"
   },
-  "definitionSource": "Exact shape emitted by the TypeScript ProjectionDefinitionCompiler for legacy-decorator @fromEvent(ItemAdded) and @childrenFrom(ItemAdded, { key: 'itemId', identifiedBy: 'id' }) without childType or element-type metadata, whose child items schema remains untyped; verified by kernel conversion and execution.",
+  "definitionSource": "Exact shape emitted by the TypeScript ProjectionDefinitionCompiler for legacy-decorator @fromEvent(ItemAdded) and @childrenFrom(ItemAdded, { childType, key: 'itemId' }), whose child items schema is derived from the explicit childType.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-children-untyped",
+    "Identifier": "oracle-children-typed",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
@@ -89,7 +89,22 @@
         "items": {
           "type": "array",
           "items": {
-            "type": "object"
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "ScenarioItem",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
           }
         }
       }
@@ -168,7 +183,8 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "first"
             }
           ],
           "id": "order-1",
@@ -181,7 +197,8 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "first"
             }
           ]
         }
@@ -193,10 +210,12 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "first"
             },
             {
-              "id": "b"
+              "id": "b",
+              "name": "second"
             }
           ],
           "id": "order-1",
@@ -209,10 +228,12 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "first"
             },
             {
-              "id": "b"
+              "id": "b",
+              "name": "second"
             }
           ]
         }
@@ -224,10 +245,12 @@
         "order-1": {
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "again"
             },
             {
-              "id": "b"
+              "id": "b",
+              "name": "second"
             }
           ],
           "id": "order-1",
@@ -240,10 +263,12 @@
           "id": "order-1",
           "items": [
             {
-              "id": "a"
+              "id": "a",
+              "name": "again"
             },
             {
-              "id": "b"
+              "id": "b",
+              "name": "second"
             }
           ]
         }
