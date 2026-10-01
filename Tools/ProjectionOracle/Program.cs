@@ -66,6 +66,14 @@ internal static class Program
             {
                 throw new InvalidOperationException("Event oracle requires at least four fixtures; refusing a vacuous check.");
             }
+            if (args[0] != "--update-events")
+            {
+                foreach (var required in new[] { "children-typed-items.json", "children-untyped-items.json" })
+                {
+                    if (!projectionFiles.Contains(Path.Combine("Source", "testing", "projections", "fixtures", required)))
+                        throw new InvalidOperationException($"Projection oracle requires {required}; refusing a vacuous check.");
+                }
+            }
             if (args[0] != "--update-events" && projectionFiles.Length < 5)
             {
                 throw new InvalidOperationException("Projection oracle requires at least five fixtures; refusing a vacuous check.");
