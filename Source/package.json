@@ -173,7 +173,7 @@
     },
     "dependencies": {
         "@bufbuild/protobuf": "^2.16.0",
-        "@cratis/chronicle.contracts": "19.26.0",
+        "@cratis/chronicle.contracts": "19.26.2",
         "@grpc/grpc-js": "^1.14.5",
         "@opentelemetry/api": "^1.9.1",
         "glob": "^13.0.6",
@@ -183,7 +183,7 @@
         "undici": "^8.11.2"
     },
     "devDependencies": {
-        "@cratis/fundamentals": "7.19.8",
+        "@cratis/fundamentals": "7.20.0",
         "@types/node": "^26.6.3",
         "@typescript/native": "npm:typescript@^7.0.2",
         "esbuild": "^0.28.2",
@@ -192,6 +192,6 @@
         "vitest": "^5.0.3"
     },
     "peerDependencies": {
-        "@cratis/fundamentals": "^7.19.8"
+        "@cratis/fundamentals": "^7.20.0"
     }
 }

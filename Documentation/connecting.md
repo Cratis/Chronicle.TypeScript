@@ -139,7 +139,7 @@ The TypeScript client and the Chronicle kernel have separate version numbers, an
 
 Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
 
-There is no published compatibility matrix. The examples in these guides were run against the `cratis/chronicle:19.4.8-development` image. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
+There is no published compatibility matrix. The kernel-backed specifications use the `cratis/chronicle:19.26.2-development` image. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
 
 ## Shut down
 

@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.8.1",
-    "commit": "8fe5d30"
+    "version": "19.26.2",
+    "commit": "1f8d832"
   },
   "tsContracts": {
-    "version": "19.8.1",
-    "descriptorSha256": "c56d4fb2797c57aa1f21cec1a07b6f75c92d32cbd936c61872dfbb18cef85edb"
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
   "definitionSource": "Probe p13: numeric 1.5 key; executed against the packaged kernel.",
   "wireDefinition": {

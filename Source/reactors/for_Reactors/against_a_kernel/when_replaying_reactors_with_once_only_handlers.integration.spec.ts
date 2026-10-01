@@ -65,7 +65,10 @@ const artifacts: IClientArtifactsProvider = {
     globalForHandlers: []
 };
 
-async function eventually(accept: () => boolean, timeoutMs = 30_000): Promise<void> {
+// 30s was occasionally too tight for this reactor's initial catch-up under concurrent
+// kernel load in CI (observed timing out at 31.2s on a run that passed cleanly on retry
+// with no code change); 45s keeps the polling assertion honest while tolerating that jitter.
+async function eventually(accept: () => boolean, timeoutMs = 45_000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
     while (!accept()) {
         if (Date.now() > deadline) throw new Error('Timed out waiting for the kernel');

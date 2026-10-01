@@ -41,14 +41,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:19.26.0":
-  version: 19.26.0
-  resolution: "@cratis/chronicle.contracts@npm:19.26.0"
+"@cratis/chronicle.contracts@npm:19.26.2":
+  version: 19.26.2
+  resolution: "@cratis/chronicle.contracts@npm:19.26.2"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.14.0"
     "@grpc/grpc-js": "npm:^1.14.4"
     nice-grpc: "npm:^2.1.17"
-  checksum: 10c0/77928d3b56355f3c4585a03615356d43004669581e0e246c3b39c7751d0cb4fd03e53fa5f38694679788accf8f525183440f4862fbe78f87ffeaf6b5630cc6fc
+  checksum: 10c0/0b06c998441ea1d13e9f4a8ffbca3ae7f1eddea74642a42b1feb6ffb8e8802047cddc9548a66cfb68287d902be4990d19c3941d0612fe13e8807fcc58da90c8e
   languageName: node
   linkType: hard
 
@@ -57,8 +57,8 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.16.0"
-    "@cratis/chronicle.contracts": "npm:19.26.0"
-    "@cratis/fundamentals": "npm:7.19.8"
+    "@cratis/chronicle.contracts": "npm:19.26.2"
+    "@cratis/fundamentals": "npm:7.20.0"
     "@grpc/grpc-js": "npm:^1.14.5"
     "@opentelemetry/api": "npm:^1.9.1"
     "@types/node": "npm:^26.6.3"
@@ -73,14 +73,14 @@ __metadata:
     vite: "npm:^8.3.2"
     vitest: "npm:^5.0.3"
   peerDependencies:
-    "@cratis/fundamentals": ^7.19.8
+    "@cratis/fundamentals": ^7.20.0
   languageName: unknown
   linkType: soft
 
-"@cratis/fundamentals@npm:7.19.8":
-  version: 7.19.8
-  resolution: "@cratis/fundamentals@npm:7.19.8"
-  checksum: 10c0/e30b44a993416126b2ec45611f6f2f18825d7e1218059e3202d0b25362e6fb2f17ab546ac020ee5405f31da7f34e37260168fa0943fb381d61cbda86463f77a8
+"@cratis/fundamentals@npm:7.20.0":
+  version: 7.20.0
+  resolution: "@cratis/fundamentals@npm:7.20.0"
+  checksum: 10c0/5f2e58b632148437b7524d9019a64d44b437ea116cb378ab1c2326d7081ec1d8a627b1ff5e47d8faaf497cb8056c718f8eece7528acba3138284ef78fa349781
   languageName: node
   linkType: hard
 
@@ -2056,7 +2056,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:19.26.0"
+    "@cratis/chronicle.contracts": "npm:19.26.2"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft

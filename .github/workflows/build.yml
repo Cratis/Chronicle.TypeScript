@@ -74,7 +74,7 @@ jobs:
     # A development kernel (MongoDB included) that the kernel-backed specifications (*.integration.spec.ts) run against.
     services:
       chronicle:
-        image: cratis/chronicle:19.22.1-development
+        image: cratis/chronicle:19.26.2-development
         ports:
           - 35000:35000
 

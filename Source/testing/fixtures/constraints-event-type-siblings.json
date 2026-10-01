@@ -4,14 +4,14 @@
   "oracle": "eventScenario",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.8.1",
-    "commit": "8fe5d30"
+    "version": "19.26.2",
+    "commit": "1f8d832"
   },
   "tsContracts": {
-    "version": "19.8.1",
-    "descriptorSha256": "aee2206b2c79b36a34be7c0cf59eab1dfd9e35d9c0dff03c03de7eb659c12a2c"
+    "version": "19.26.2",
+    "descriptorSha256": "4b867c47b2e4d125306bb3cb062b106fa19d7a500accb5650fc1ac709e97596f"
   },
-  "constraintDescriptorSha256": "8de18d804165220f6c491cfed59ca31bf55c84eb6eb7a94a2a83b092b12bbf84",
+  "constraintDescriptorSha256": "6c5ec2367fdfbe95fd9f09c05fcf40645dd43db5c98a3d616443845828d3e253",
   "eventSchemas": {
     "first": {
       "eventTypeId": "OracleCycleFirst",

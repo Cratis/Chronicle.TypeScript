@@ -4,13 +4,13 @@
     "net10.0": {
       "Cratis.Arc": {
         "type": "Direct",
-        "requested": "[22.23.0, )",
-        "resolved": "22.23.0",
-        "contentHash": "428iq+QyJ2PupazMtPuOgpbJu3bqcGUQzwlUmeUSKzlPprt7g4RXTA8KXyI2aWZjTseFMYuKo6aw0tKenyIodg==",
+        "requested": "[22.44.0, )",
+        "resolved": "22.44.0",
+        "contentHash": "qYYRTSis5pYPQgS2eUXIoR8ylqThXCGNK6bn+x+WgqfNByAMWkh6zi2FVsfco60PY8PkPBsrDxSkAtBWIGIBLQ==",
         "dependencies": {
-          "Cratis.Arc.Core": "22.23.0",
-          "Cratis.Fundamentals": "7.19.3",
-          "Cratis.Metrics.Roslyn": "7.19.3",
+          "Cratis.Arc.Core": "22.44.0",
+          "Cratis.Fundamentals": "7.19.6",
+          "Cratis.Metrics.Roslyn": "7.19.4",
           "FluentValidation": "12.1.1",
           "Microsoft.Extensions.DependencyModel": "10.0.12",
           "Microsoft.Extensions.Telemetry": "10.10.0",
@@ -19,16 +19,19 @@
       },
       "Cratis.Chronicle.Testing": {
         "type": "Direct",
-        "requested": "[19.8.1, )",
-        "resolved": "19.8.1",
-        "contentHash": "8KYgWz2CwowDLYkIGtPWPeWebcDWF8LnhCpS1EF4j8kCC42Hc99YNKe+7a62q4wYX/jm0rt9fAgVbyxuz9SyoA==",
+        "requested": "[19.26.2, )",
+        "resolved": "19.26.2",
+        "contentHash": "I8QJYTtULg8EtTo5oh1aQyLW4QjQ9hlNkcxxInX8+0lGc6FomZX9/jHAnQBxMCeSTVvru9S8zoFqPs3lRrpdmw==",
         "dependencies": {
-          "Cratis.Chronicle": "19.8.1",
-          "Cratis.Chronicle.Connections": "19.8.1",
-          "Cratis.Fundamentals": "7.19.4",
-          "Cratis.Orleans": "1.10.1",
-          "Cratis.Orleans.Storage": "1.10.1",
-          "Cratis.Orleans.Storage.MongoDB": "1.10.1",
+          "Cratis.Arc": "22.30.0",
+          "Cratis.Arc.Core": "22.30.0",
+          "Cratis.Chronicle": "19.26.2",
+          "Cratis.Chronicle.Connections": "19.26.2",
+          "Cratis.Fundamentals": "7.19.6",
+          "Cratis.Orleans": "1.12.2",
+          "Cratis.Orleans.Storage": "1.12.2",
+          "Cratis.Orleans.Storage.MongoDB": "1.12.2",
+          "JsonCons.JmesPath": "1.0.0",
           "Microsoft.Extensions.Logging": "10.0.12",
           "Microsoft.Extensions.Logging.Abstractions": "10.0.12"
         }
@@ -88,12 +91,12 @@
       },
       "Cratis.Arc.Core": {
         "type": "Transitive",
-        "resolved": "22.23.0",
-        "contentHash": "cc67BF2qW4lEKXxR6HiWwanpI46IbkJAkTL3ccd3PsuyOGIIR7XhT272XRAo7UNw0aGqM+4XZ9Xc37t5jBnTdQ==",
+        "resolved": "22.44.0",
+        "contentHash": "eUQPQmPMeJb9CKmBhEYYILkEkNazyMoFYI19URmbATiQyl3EaXJ7qOokHRTw8PPgI74nigV9HGBdgrPUqD5g4A==",
         "dependencies": {
-          "Cratis.Arc.Core.CodeAnalysis": "22.23.0",
-          "Cratis.Fundamentals": "7.19.3",
-          "Cratis.Metrics.Roslyn": "7.19.3",
+          "Cratis.Arc.Core.CodeAnalysis": "22.44.0",
+          "Cratis.Fundamentals": "7.19.6",
+          "Cratis.Metrics.Roslyn": "7.19.4",
           "FluentValidation": "12.1.1",
           "Microsoft.Extensions.Configuration.FileExtensions": "10.0.12",
           "Microsoft.Extensions.DependencyModel": "10.0.12",
@@ -106,15 +109,15 @@
       },
       "Cratis.Arc.Core.CodeAnalysis": {
         "type": "Transitive",
-        "resolved": "22.23.0",
-        "contentHash": "YCAZ5iOeOuU2WIR4xCaCkx47rPz5N7vNWCD8Qk5ICG/Nf4Rm5CtvzY0mWjfFFAMbBuJIzSB0StZlrRjLbObfQw=="
+        "resolved": "22.44.0",
+        "contentHash": "2iELBMXCRQdhg4opYmVq7s0alpkHgnElxeMP2ad4wN3pxo/+3EWz5s8pI+lRo04zICuOaMijXLN/N1UZrqE8zg=="
       },
       "Cratis.Arc.MongoDB": {
         "type": "Transitive",
-        "resolved": "22.23.0",
-        "contentHash": "3EYnkEIFNsQ/0m7LKfLDZfljbwSnws5DhcjDpcn1pb+b7Hh7rKZv570frA40N/eaTgJl8tb0NRX8V6reQaXl2w==",
+        "resolved": "22.30.0",
+        "contentHash": "7p0keThdlUrhhgEgXVkK0qKFtHW1WpPiMxbV/iMv7Kdv+qQ1LaaR7xvBE/6dNTPGtc2JMs1ITo09XNRjmeDD6Q==",
         "dependencies": {
-          "Cratis.Arc.Core": "22.23.0",
+          "Cratis.Arc.Core": "22.30.0",
           "Cratis.Fundamentals": "7.19.3",
           "Cratis.Metrics.Roslyn": "7.19.3",
           "FluentValidation": "12.1.1",
@@ -130,12 +133,12 @@
       },
       "Cratis.Chronicle": {
         "type": "Transitive",
-        "resolved": "19.8.1",
-        "contentHash": "hzEJcmMgnhfhJsKL2twgvtEjczP2CphZOfv9ijrDtN4X9qeGYZ7D7et449LSXkLTdfMcjoU3Hc2+BAr3vSMdjg==",
+        "resolved": "19.26.2",
+        "contentHash": "L2ILIUINyw2EN1vEDP9BRIj79imy/8xKBBmRX832WNtS4ku2PQO9HN3nO3OwYOPJp8yhKgt9besgXu164j+7MQ==",
         "dependencies": {
-          "Cratis.Chronicle.CodeAnalysis": "19.8.1",
-          "Cratis.Chronicle.Connections": "19.8.1",
-          "Cratis.Fundamentals": "7.19.4",
+          "Cratis.Chronicle.CodeAnalysis": "19.26.2",
+          "Cratis.Chronicle.Connections": "19.26.2",
+          "Cratis.Fundamentals": "7.19.6",
           "Cratis.Metrics.Roslyn": "7.19.4",
           "Grpc.Net.Client": "2.84.0",
           "Microsoft.Extensions.Hosting": "10.0.12",
@@ -147,15 +150,15 @@
       },
       "Cratis.Chronicle.CodeAnalysis": {
         "type": "Transitive",
-        "resolved": "19.8.1",
-        "contentHash": "XJXqenrPV5yS1Dv/u/fbnBKV9zHZUk062pZ4HlXXG6gTcnBPmiu1BM2jyzoE0WH9ZCtJ1H9PPC6SzdGLYJma8w=="
+        "resolved": "19.26.2",
+        "contentHash": "sRrs6xgDRZ6hgQSB+jd/saohwckT2ADA0t9U3u3evJomRXzuIM5U8R+nkYzojKn9kq8+8RCrS5IXZsxcpczoLQ=="
       },
       "Cratis.Chronicle.Connections": {
         "type": "Transitive",
-        "resolved": "19.8.1",
-        "contentHash": "PuF88z++TluX828dA/iJIg/oLSO46brL5vHztxdAJ8CcYqIikZtIb7ZHp6zDDdBU+iUhVtg9lpDnMBvCz8WZJQ==",
+        "resolved": "19.26.2",
+        "contentHash": "J914h+Nkg06nndEXiJBalQuKLFlzJCtrlBiIeOkAPijjjZTpXxyHOsPgmMiVBcJtDPu9qCI2Njd8FUORaQ5utw==",
         "dependencies": {
-          "Cratis.Fundamentals": "7.19.4",
+          "Cratis.Fundamentals": "7.19.6",
           "DnsClient": "1.8.0",
           "Grpc.Net.Client": "2.84.0",
           "Microsoft.Extensions.Hosting": "10.0.12",
@@ -168,8 +171,8 @@
       },
       "Cratis.Fundamentals": {
         "type": "Transitive",
-        "resolved": "7.19.4",
-        "contentHash": "rSsnHuAlTUhrjpc+sEMIlx6Fn7uweJ9t3ldaPCVIqXXWIY72495EAU/7ISdraUZ3Iqzdh5xU/wVg1k5pL2E8aw==",
+        "resolved": "7.19.6",
+        "contentHash": "/Gmt2GvQnlD35ru1w0OZSAkrtGCCAinEEE9r7Yw0vPoehC9ZGLDjMuVz6KLWtP05GbZatBBs55gl40aZugyOeQ==",
         "dependencies": {
           "Humanizer": "3.0.10",
           "Microsoft.Extensions.DependencyInjection": "10.0.12",
@@ -187,12 +190,13 @@
       },
       "Cratis.Orleans": {
         "type": "Transitive",
-        "resolved": "1.10.1",
-        "contentHash": "XEA9/O1GAfv9fG6zWDTPo++SFsO19U+hwrhMWCS0RigGY7yEOMsiaN3OFe4XCSQawLUXN/ZhCfh0tqibikBzLg==",
+        "resolved": "1.12.2",
+        "contentHash": "/8ncRe3n9e/ILuRcewxK1tpIXcn8mfNKFMjqvofDD7FLvSzuqbOdPluZF/O7pUghCLHvxr6BQobQljvsdcb1oQ==",
         "dependencies": {
-          "Cratis.Fundamentals": "7.19.4",
-          "Cratis.Orleans.Storage": "1.10.1",
+          "Cratis.Fundamentals": "7.19.6",
+          "Cratis.Orleans.Storage": "1.12.2",
           "Microsoft.Orleans.Core.Abstractions": "10.3.1",
+          "Microsoft.Orleans.Reminders": "10.3.1",
           "Microsoft.Orleans.Sdk": "10.3.1",
           "Microsoft.Orleans.Serialization": "10.3.1",
           "Microsoft.Orleans.Serialization.SystemTextJson": "10.3.1",
@@ -206,10 +210,10 @@
       },
       "Cratis.Orleans.Storage": {
         "type": "Transitive",
-        "resolved": "1.10.1",
-        "contentHash": "mYs11hwfLLYsA6v4XgnJTMT89fqGtQH96ket2u+QrY6Dm3gmDD0GJxNB4J2B4E3gPN/beMl+Ta2XH4y6ZPE6gw==",
+        "resolved": "1.12.2",
+        "contentHash": "LauhzqUzn7vOcwbCn0RQOkCKjhq04HM3v+/+gH5Gb8xG6/c0PLYJuggFtARmUAebrOB2PRVI84KFdkSAyDSHxg==",
         "dependencies": {
-          "Cratis.Fundamentals": "7.19.4",
+          "Cratis.Fundamentals": "7.19.6",
           "Microsoft.Orleans.Core.Abstractions": "10.3.1",
           "OneOf": "3.0.271",
           "System.Reactive": "7.0.0"
@@ -217,12 +221,12 @@
       },
       "Cratis.Orleans.Storage.MongoDB": {
         "type": "Transitive",
-        "resolved": "1.10.1",
-        "contentHash": "sy0WxDVnp7FZI9Jx+5WZAfVP0olFUjAtYI7dmpl/hhBY749omHsaxAENOicSUeMoB0RRJlS1t1EVNwvEkvDr3A==",
+        "resolved": "1.12.2",
+        "contentHash": "ikp0P80Lfso+LfMOnW6lytEhJDEdAqdBc315VprEuhlQbYGS1edJCsx4Qc95N6rOCAIfSwleT9abjVyuLtNyvQ==",
         "dependencies": {
-          "Cratis.Arc.MongoDB": "22.23.0",
-          "Cratis.Orleans": "1.10.1",
-          "Cratis.Orleans.Storage": "1.10.1",
+          "Cratis.Arc.MongoDB": "22.30.0",
+          "Cratis.Orleans": "1.12.2",
+          "Cratis.Orleans.Storage": "1.12.2",
           "MongoDB.Driver": "3.12.0",
           "System.Reactive": "7.0.0"
         }
@@ -729,6 +733,11 @@
         "dependencies": {
           "Humanizer.Core": "[3.0.10]"
         }
+      },
+      "JsonCons.JmesPath": {
+        "type": "Transitive",
+        "resolved": "1.0.0",
+        "contentHash": "nAaoyrfGnUH2gaGqK62GAnlts2gWDXh27Z4vynUey0ZodNGWR8IrfuzcTdocNF/BZY4IOuHuCg6CDjgcB+F5FQ=="
       },
       "Microsoft.AspNetCore.Connections.Abstractions": {
         "type": "Transitive",
