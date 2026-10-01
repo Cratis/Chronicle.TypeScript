@@ -240,7 +240,7 @@ export class Reducers implements IReducers {
     }
 
     private startObservation(id: string, reducerType: Constructor,
-        dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes)): void {
+        dispatcher: ReducerEventDispatcher): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReducerMetadata(reducerType)!;
@@ -272,7 +272,7 @@ export class Reducers implements IReducers {
             this._logger.error('Reducer observation loop exited with error', { reducerId: id, error });
         }
 
-        this.scheduleReobserve(id, reducerType);
+        this.scheduleReobserve(id, reducerType, dispatcher);
     }
 
     /**
@@ -285,7 +285,7 @@ export class Reducers implements IReducers {
      * retried, and the delay keeps a stream that keeps ending from becoming a hot
      * loop.
      */
-    private scheduleReobserve(id: string, reducerType: Constructor): void {
+    private scheduleReobserve(id: string, reducerType: Constructor, dispatcher: ReducerEventDispatcher): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reducer from scratch, so retrying here as well would double up.
         if (!this._registered || this._disposed) {
@@ -298,7 +298,7 @@ export class Reducers implements IReducers {
             }
 
             this._logger.info('Re-establishing reducer observation', { reducerId: id });
-            this.startObservation(id, reducerType);
+            this.startObservation(id, reducerType, dispatcher);
         }, Reducers._reobserveDelayMs));
 
         handle.unref?.();

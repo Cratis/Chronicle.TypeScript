@@ -149,8 +149,14 @@ export class ChronicleClient implements IChronicleClient {
                     const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry);
                     this._stores.set(key, created);
 
-                    await this.registerArtifactsForStore(created, 'new-store');
-                    return created;
+                    try {
+                        await this.registerArtifactsForStore(created, 'new-store');
+                        return created;
+                    } catch (error) {
+                        if (this._stores.get(key) === created) this._stores.delete(key);
+                        created.disposeObservations();
+                        throw error;
+                    }
                 });
 
                 ChronicleMetrics.eventStoreRetrievals.add(1, {

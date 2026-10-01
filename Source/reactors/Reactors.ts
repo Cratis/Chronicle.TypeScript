@@ -182,7 +182,7 @@ export class Reactors implements IReactors {
     }
 
     private startObservation(id: string, reactorType: Constructor,
-        eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes)): void {
+        eventTypes: ReactorEventTypeEntry[]): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReactorMetadata(reactorType)!;
@@ -211,7 +211,7 @@ export class Reactors implements IReactors {
             this._logger.error('Reactor observation loop exited with error', { reactorId: id, error });
         }
 
-        this.scheduleReobserve(id, reactorType);
+        this.scheduleReobserve(id, reactorType, eventTypes);
     }
 
     /**
@@ -223,7 +223,7 @@ export class Reactors implements IReactors {
      * the whole client reconnects. Both endings are therefore retried, and the delay
      * keeps a stream that keeps ending from becoming a hot loop.
      */
-    private scheduleReobserve(id: string, reactorType: Constructor): void {
+    private scheduleReobserve(id: string, reactorType: Constructor, eventTypes: ReactorEventTypeEntry[]): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reactor from scratch, so retrying here as well would double up.
         if (!this._registered || this._disposed) {
@@ -236,7 +236,7 @@ export class Reactors implements IReactors {
             }
 
             this._logger.info('Re-establishing reactor observation', { reactorId: id });
-            this.startObservation(id, reactorType);
+            this.startObservation(id, reactorType, eventTypes);
         }, Reactors._reobserveDelayMs));
 
         handle.unref?.();
