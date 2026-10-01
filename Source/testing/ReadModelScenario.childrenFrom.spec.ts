@@ -49,6 +49,18 @@ class ScenarioUnknownOrder {
 childrenFrom(ScenarioItemAdded, { key: 'itemId', identifiedBy: 'id' })(ScenarioUnknownOrder.prototype, 'items');
 fromEvent(ScenarioItemAdded)(ScenarioUnknownOrder);
 
+class ScenarioUnresolvedItem {
+    id!: string;
+    name!: string;
+}
+
+class ScenarioUnresolvedOrder {
+    id = '';
+    items: ScenarioUnresolvedItem[] = [];
+}
+childrenFrom(ScenarioItemAdded, { childType: ScenarioUnresolvedItem, key: 'itemId', identifiedBy: 'id' })(ScenarioUnresolvedOrder.prototype, 'items');
+fromEvent(ScenarioItemAdded)(ScenarioUnresolvedOrder);
+
 const artifacts = { eventTypes: [ScenarioItemAdded], reducers: [], projections: [] };
 
 describe('when a read model scenario evaluates keyed children from the options form', () => {
@@ -72,6 +84,16 @@ describe('when a read model scenario evaluates keyed children from the options f
         scenario.given.forEventSource('order-1').events(new ScenarioItemAdded('a', 'first'));
         const order = await scenario.instanceForEventSourceId('order-1');
         order!.items.should.deep.equal([{ id: 'a' }]);
+    });
+
+    it('should retain only the identifier when the declared child members have no runtime types (children-untyped-items)', async () => {
+        const fixture = JSON.parse(readFileSync(new URL('./projections/fixtures/children-untyped-items.json', import.meta.url), 'utf8'));
+        JsonSchemaGenerator.generate(ScenarioUnresolvedOrder).properties!.items.should.deep.equal(fixture.readModel.schema.properties.items);
+        const scenario = new ReadModelScenario(ScenarioUnresolvedOrder, artifacts);
+        scenario.given.forEventSource('order-1').events(
+            new ScenarioItemAdded('a', 'first'), new ScenarioItemAdded('b', 'second'), new ScenarioItemAdded('a', 'again'));
+        const order = await scenario.instanceForEventSourceId('order-1');
+        order!.items.map(item => ({ id: item.id, name: item.name })).should.deep.equal([{ id: 'a', name: undefined }, { id: 'b', name: undefined }]);
     });
 
     it('should reject explicit child property mappings', () => {

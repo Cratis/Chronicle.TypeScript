@@ -175,9 +175,21 @@ export class JsonSchemaGenerator {
             return { type: 'array', items: { type: 'object' } };
         }
 
-        const isChildrenCollection = declaringType && propertyName && getChildrenFromMetadata(declaringType.prototype, propertyName).length > 0;
-        if (!requireResolvedTypes && !isChildrenCollection) return { type: 'array', items: { type: 'object' } }; // Legacy schema compatibility outside children.
-        return { type: 'array', items: this.mapRuntimeTypeToSchema(elementType, undefined, undefined, requireResolvedTypes) };
+        const childrenMetadata = declaringType && propertyName ? getChildrenFromMetadata(declaringType.prototype, propertyName) : [];
+        if (!requireResolvedTypes && !childrenMetadata.length) return { type: 'array', items: { type: 'object' } }; // Legacy schema compatibility outside children.
+        const items = this.mapRuntimeTypeToSchema(elementType, undefined, undefined, requireResolvedTypes);
+        if (!requireResolvedTypes && childrenMetadata.length) {
+            // Match buildChildrenEntry's identifier discovery, including members whose types are unresolved.
+            const members = [...TypeIntrospector.getMembers(elementType).keys()];
+            const eventKey = childrenMetadata[0]?.key;
+            const identifiedBy = childrenMetadata.find(metadata => metadata.identifiedBy)?.identifiedBy ??
+                members.find(name => name.toLowerCase() === 'id') ??
+                (eventKey !== undefined ? members.find(name => name.toLowerCase() === eventKey.toLowerCase()) : undefined) ?? '$eventSourceId';
+            if (!items.properties || !Object.hasOwn(items.properties, identifiedBy)) {
+                return { type: 'array', items: { type: 'object' } };
+            }
+        }
+        return { type: 'array', items };
     }
 
     /**

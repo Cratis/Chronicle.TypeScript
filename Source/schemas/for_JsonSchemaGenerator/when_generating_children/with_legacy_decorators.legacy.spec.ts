@@ -51,6 +51,51 @@ class DeclaredOrder {
     items!: DeclaredItem[];
 }
 
+class UnresolvedItem {
+    id!: string;
+    name!: string;
+}
+
+class PartiallyResolvedItem {
+    id = '';
+    name!: string;
+}
+
+class MissingIdentifierItem {
+    id!: string;
+    name = '';
+}
+
+class CustomIdentifierItem {
+    itemId = '';
+    name!: string;
+}
+
+class CapitalizedIdentifierItem {
+    Id = '';
+    name!: string;
+}
+
+class FallbackOrder {
+    @childrenFrom(ItemAdded, { childType: UnresolvedItem, key: 'itemId', identifiedBy: 'id' })
+    unresolved!: UnresolvedItem[];
+
+    @childrenFrom(ItemAdded, { childType: MissingIdentifierItem, key: 'itemId', identifiedBy: 'id' })
+    missingIdentifier!: MissingIdentifierItem[];
+
+    @childrenFrom(ItemAdded, { childType: PartiallyResolvedItem, key: 'itemId' })
+    partial!: PartiallyResolvedItem[];
+
+    @childrenFrom(ItemAdded, { childType: CustomIdentifierItem, key: 'itemId' })
+    custom!: CustomIdentifierItem[];
+
+    @childrenFrom(ItemAdded, { childType: CapitalizedIdentifierItem, key: 'itemId' })
+    capitalized!: CapitalizedIdentifierItem[];
+
+    @childrenFrom(ItemAdded, { childType: MissingIdentifierItem, key: 'itemId' })
+    undiscoverableIdentifier!: MissingIdentifierItem[];
+}
+
 const schema = JsonSchemaGenerator.generate(Order);
 
 describe('for JsonSchemaGenerator', () => {
@@ -74,6 +119,22 @@ describe('for JsonSchemaGenerator', () => {
         it('should retain untyped items when the child type is unknown', () => {
             schema.properties!.unknown.should.deep.equal({ type: 'array', items: { type: 'object' } });
         });
+
+        it('should retain untyped items for child members declared only with definite assignment', () => {
+            JsonSchemaGenerator.generate(FallbackOrder).properties!.unresolved.should.deep.equal({ type: 'array', items: { type: 'object' } });
+        });
+
+        for (const property of ['missingIdentifier', 'undiscoverableIdentifier']) {
+            it(`should retain untyped items for ${property} despite a resolved non-identifier property`, () => {
+                JsonSchemaGenerator.generate(FallbackOrder).properties![property].should.deep.equal({ type: 'array', items: { type: 'object' } });
+            });
+        }
+
+        for (const [property, childType] of [['partial', PartiallyResolvedItem], ['custom', CustomIdentifierItem], ['capitalized', CapitalizedIdentifierItem]] as const) {
+            it(`should retain typed items for ${property} with a resolved identifier`, () => {
+                JsonSchemaGenerator.generate(FallbackOrder).properties![property].should.deep.equal({ type: 'array', items: JsonSchemaGenerator.generate(childType) });
+            });
+        }
 
         it('should preserve legacy array schemas outside children collections', () => {
             schema.properties!.unrelated.should.deep.equal({ type: 'array', items: { type: 'object' } });
