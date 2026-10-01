@@ -1,14 +1,19 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { types } from 'node:util';
 import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './artifacts/index.js';
 import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
+import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
+import type { IChronicleLogger } from './logging/IChronicleLogger.js';
 
 type ChronicleOptionsConstructorParams = {
+    telemetry?: ChronicleTelemetryOptions;
+    logger?: IChronicleLogger;
     connectionString: ChronicleConnectionString;
     programIdentifier?: string;
     softwareVersion?: string;
@@ -22,6 +27,8 @@ type ChronicleOptionsConstructorParams = {
 };
 
 type ChronicleOptionsFactoryParams = {
+    telemetry?: ChronicleTelemetryOptions;
+    logger?: IChronicleLogger;
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
@@ -34,6 +41,12 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
+    /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
+    readonly telemetry?: ChronicleTelemetryOptions;
+
+    /** Application diagnostic sink. Absent uses the OpenTelemetry diag compatibility adapter. */
+    readonly logger?: IChronicleLogger;
+
     /**
      * The connection string used to connect to the Chronicle Kernel.
      */
@@ -101,6 +114,17 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
+        const policy = options.telemetry?.eventSourceId;
+        if (policy !== undefined) {
+            if (policy?.mode !== 'raw' && policy?.mode !== 'hmac') {
+                throw new TypeError('telemetry.eventSourceId.mode must be raw or hmac.');
+            }
+            if (policy.mode === 'hmac' && (!types.isUint8Array(policy.key) || policy.key.byteLength === 0)) {
+                throw new TypeError('telemetry.eventSourceId.key must be a non-empty Uint8Array for hmac mode.');
+            }
+        }
+        this.telemetry = options.telemetry;
+        this.logger = options.logger;
     }
 
     private static defaultDiscoveryPatterns(): string[] {
@@ -144,7 +168,9 @@ export class ChronicleOptions {
             defaultSinkTypeId: options?.defaultSinkTypeId,
             reactorResultHandler: options?.reactorResultHandler,
             artifactActivator: options?.artifactActivator,
-            readModelNamingPolicy: options?.readModelNamingPolicy
+            readModelNamingPolicy: options?.readModelNamingPolicy,
+            telemetry: options?.telemetry,
+            logger: options?.logger
         });
     }
 

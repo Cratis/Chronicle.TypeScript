@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import * as os from 'os';
-import { diag } from '@opentelemetry/api';
+import { createLogger } from './logging/createLogger.js';
+import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
+import { WellKnownTelemetryNames } from './WellKnownTelemetryNames.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions.js';
 import { ChronicleConnection } from './connection/index.js';
@@ -19,7 +21,8 @@ import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 import { IChronicleClient } from './IChronicleClient.js';
 import { IEventStore } from './IEventStore.js';
 import { ChronicleMetrics } from './Metrics.js';
-import { ChronicleTracer } from './Tracing.js';
+import { observeOperation } from './telemetry/observeOperation.js';
+import { runInBackgroundContext } from './telemetry/runInBackgroundContext.js';
 import { TypeDiscoverer } from './types/index.js';
 import { takeUnregisteredModelBoundMappings } from './types/modelBoundPropertyMetadata.js';
 import { reachableReadModelTypes } from './readModels/rootReadModelTypes.js';
@@ -45,9 +48,7 @@ export class ChronicleClient implements IChronicleClient {
     private readonly _stores: Map<string, EventStore> = new Map();
     private readonly _lifecycle = new ConnectionLifecycle();
 
-    private readonly _logger = diag.createComponentLogger({
-        namespace: '@cratis/chronicle/ChronicleClient'
-    });
+    private readonly _logger: ReturnType<typeof createLogger>;
 
     private _watchdogHandle?: ReturnType<typeof setInterval>;
     private _connectOperation?: Promise<void>;
@@ -64,6 +65,7 @@ export class ChronicleClient implements IChronicleClient {
      * @param options - The options to configure the client, including the connection string.
      */
     constructor(readonly options: ChronicleOptions) {
+        this._logger = createLogger('@cratis/chronicle/ChronicleClient', options.logger);
         // When TLS is disabled, pass pre-built insecure credentials directly.
         // @cratis/chronicle.contracts ≤15.24.3 always composes call credentials with
         // channel credentials, which gRPC forbids for insecure channels. Passing
@@ -72,7 +74,7 @@ export class ChronicleClient implements IChronicleClient {
         const connectionOptions = options.connectionString.disableTls
             ? { connectionString: options.connectionString, credentials: options.connectionString.createCredentials() }
             : { connectionString: options.connectionString };
-        this._connection = new ChronicleConnection(connectionOptions);
+        this._connection = new ChronicleConnection({ ...connectionOptions, logger: options.logger });
 
         this._logger.info('Created Chronicle client', {
             serverAddress: `${options.connectionString.serverAddress.host}:${options.connectionString.serverAddress.port}`,
@@ -80,9 +82,11 @@ export class ChronicleClient implements IChronicleClient {
         });
 
         if (options.discoveryPatterns.length > 0) {
-            this._discoveryOperation = TypeDiscoverer.default.discover(options.discoveryPatterns);
-            this._discoveryOperation.catch(error => {
-                this._logger.error('Artifact file discovery failed', { error: String(error) });
+            runInBackgroundContext(() => {
+                this._discoveryOperation = TypeDiscoverer.default.discover(options.discoveryPatterns);
+                this._discoveryOperation.catch(error => {
+                    this._logger.error('Artifact file discovery failed', { error });
+                });
             });
         }
 
@@ -120,9 +124,9 @@ export class ChronicleClient implements IChronicleClient {
                 ? new EventStoreNamespaceName(namespace)
                 : namespace;
 
-        return ChronicleTracer.startActiveSpan('chronicle.client.get_event_store', async span => {
-            span.setAttribute('chronicle.event_store', storeName.value);
-            span.setAttribute('chronicle.namespace', namespaceName.value);
+        return observeOperation(WellKnownTelemetryNames.spans.getEventStore, async span => {
+            setTelemetryAttribute(span, 'eventStore', storeName.value);
+            setTelemetryAttribute(span, 'namespace', namespaceName.value);
             try {
                 const store = await this.withReconnect('get_event_store', async () => {
                     await this.ensureConnected();
@@ -142,7 +146,7 @@ export class ChronicleClient implements IChronicleClient {
                     });
                     ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
 
-                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy);
+                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry);
                     this._stores.set(key, created);
 
                     await this.registerArtifactsForStore(created, 'new-store');
@@ -156,12 +160,11 @@ export class ChronicleClient implements IChronicleClient {
                 span.setStatus({ code: SpanStatusCode.OK });
                 return store;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 this._logger.error('Failed getting event store', {
                     eventStore: storeName.value,
                     namespace: namespaceName.value,
-                    error: this.toErrorMessage(error)
+                    error
                 });
                 throw error;
             } finally {
@@ -172,7 +175,7 @@ export class ChronicleClient implements IChronicleClient {
 
     /** @inheritdoc */
     async getEventStores(): Promise<EventStoreName[]> {
-        return ChronicleTracer.startActiveSpan('chronicle.client.get_event_stores', async span => {
+        return observeOperation(WellKnownTelemetryNames.spans.getEventStores, async span => {
             try {
                 const response = await this.withReconnect('get_event_stores', async () => {
                     await this.ensureConnected();
@@ -185,10 +188,9 @@ export class ChronicleClient implements IChronicleClient {
                 span.setStatus({ code: SpanStatusCode.OK });
                 return result;
             } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
-                span.recordException(error as Error);
+                recordSafeException(span, error);
                 this._logger.error('Failed retrieving event stores', {
-                    error: this.toErrorMessage(error)
+                    error
                 });
                 throw error;
             } finally {
@@ -210,7 +212,7 @@ export class ChronicleClient implements IChronicleClient {
         if (this._lifecycle.isConnected) {
             void this._lifecycle.disconnected(error => {
                 this._logger.error('Disconnected lifecycle callback failed during dispose', {
-                    error: this.toErrorMessage(error)
+                    error
                 });
             });
         }
@@ -244,7 +246,7 @@ export class ChronicleClient implements IChronicleClient {
                 await this.startKernelKeepAlive();
                 await this._lifecycle.connected(error => {
                     this._logger.error('Connected lifecycle callback failed', {
-                        error: this.toErrorMessage(error)
+                        error
                     });
                 });
                 return;
@@ -280,7 +282,7 @@ export class ChronicleClient implements IChronicleClient {
         }
 
         if (!this._connectOperation) {
-            this._connectOperation = this.connectWithRetry().finally(() => {
+            this._connectOperation = runInBackgroundContext(() => this.connectWithRetry()).finally(() => {
                 this._connectOperation = undefined;
             });
         }
@@ -292,16 +294,16 @@ export class ChronicleClient implements IChronicleClient {
         if (this._connectionFailure) throw this._connectionFailure;
 
         if (!this._reconnectOperation) {
-            this._reconnectOperation = (async () => {
+            this._reconnectOperation = runInBackgroundContext(async () => {
                 this._logger.warn('Reconnecting to Chronicle kernel', {
                     reason,
-                    error: this.toErrorMessage(error)
+                    error
                 });
 
                 if (this._lifecycle.isConnected) {
                     await this._lifecycle.disconnected(disconnectError => {
                         this._logger.error('Disconnected lifecycle callback failed', {
-                            error: this.toErrorMessage(disconnectError)
+                            error: disconnectError
                         });
                     });
                 }
@@ -317,7 +319,7 @@ export class ChronicleClient implements IChronicleClient {
                         await this.startKernelKeepAlive();
                         await this._lifecycle.connected(connectedError => {
                             this._logger.error('Connected lifecycle callback failed after reconnect', {
-                                error: this.toErrorMessage(connectedError)
+                                error: connectedError
                             });
                         });
                         return;
@@ -331,7 +333,7 @@ export class ChronicleClient implements IChronicleClient {
                         await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
                     }
                 }
-            })().finally(() => {
+            }).finally(() => {
                 this._reconnectOperation = undefined;
             });
         }
@@ -351,7 +353,7 @@ export class ChronicleClient implements IChronicleClient {
         this._logger.warn(message, {
             attempt,
             delayMs,
-            error: this.toErrorMessage(error)
+            error
         });
 
         await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -437,9 +439,9 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private startConnectionWatchdog(): void {
-        this._watchdogHandle = setInterval(() => {
+        this._watchdogHandle = runInBackgroundContext(() => setInterval(() => {
             void this.runHealthCheck().catch(error => this.backgroundConnectionFailed('watchdog-health-check', error));
-        }, ChronicleClient._healthCheckIntervalMs);
+        }, ChronicleClient._healthCheckIntervalMs));
 
         this._watchdogHandle.unref?.();
     }
@@ -477,7 +479,7 @@ export class ChronicleClient implements IChronicleClient {
             }
 
             void this.reconnect(reason, error).catch(failure => this.backgroundConnectionFailed(reason, failure));
-        });
+        }, {}, this.options.logger);
 
         await keepAlive.start(
             {
@@ -511,7 +513,7 @@ export class ChronicleClient implements IChronicleClient {
         this.failConnection(error instanceof Error ? error : new Error(String(error)));
         this._logger.error('Background connection recovery failed; create a new client after correcting the server', {
             reason,
-            error: this.toErrorMessage(error)
+            error
         });
     }
 

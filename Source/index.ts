@@ -37,7 +37,13 @@ export { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 export { Guid } from '@cratis/fundamentals';
 export { ReplayState } from '@cratis/chronicle.contracts';
 export { ChronicleInstrumentationName, ChronicleTracer } from './Tracing.js';
-export { ChronicleMeter, ChronicleMeterName, ChronicleMetrics } from './Metrics.js';
+export { ChronicleMeter, ChronicleMeterName, ChronicleMetrics, ChronicleConventionMetrics } from './Metrics.js';
+export { WellKnownTelemetryNames } from './WellKnownTelemetryNames.js';
+export type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
+export type { IChronicleLogger } from './logging/IChronicleLogger.js';
+export type { ChronicleLogEntry } from './logging/ChronicleLogEntry.js';
+export { ChronicleLogLevel } from './logging/ChronicleLogLevel.js';
+export { DiagChronicleLogger } from './logging/DiagChronicleLogger.js';
 
 export * from './events/index.js';
 export * from './eventSequences/index.js';

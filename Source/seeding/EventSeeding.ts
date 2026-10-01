@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ensureCommandSuccess } from '../connection/callResults.js';
@@ -27,7 +27,7 @@ interface SeedingEntry {
  * with the Chronicle Kernel.
  */
 export class EventSeeding implements IEventSeeding {
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/EventSeeding' });
+    private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _entries: SeedingEntry[] = [];
 
     /**
@@ -40,7 +40,9 @@ export class EventSeeding implements IEventSeeding {
         private readonly _eventStoreName: string,
         private readonly _connection: ChronicleConnection,
         private readonly _clientArtifacts: IClientArtifactsProvider
-    ) {}
+    ) {
+        this._logger = createLogger('@cratis/chronicle/EventSeeding', _connection.logger);
+    }
 
     /** @inheritdoc */
     for<TEvent extends object>(eventSourceId: string, events: Iterable<TEvent>): IEventSeedingBuilder {
@@ -69,7 +71,7 @@ export class EventSeeding implements IEventSeeding {
             } catch (error) {
                 this._logger.warn('Failed to activate or execute event seeder - skipping seeder', {
                     seederType: seederType.name,
-                    error: String(error)
+                    error
                 });
             }
         }

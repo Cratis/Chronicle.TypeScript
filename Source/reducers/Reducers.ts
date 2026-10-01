@@ -2,7 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
 import { ObservationState, ReadModelObserverType, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -102,7 +103,7 @@ export class Reducers implements IReducers {
     /** How long to wait before re-establishing an observation whose stream ended. */
     private static readonly _reobserveDelayMs = 2000;
 
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reducers' });
+    private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();
@@ -133,6 +134,7 @@ export class Reducers implements IReducers {
         private readonly _artifactActivator?: ClientArtifactsActivator,
         private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {
+        this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reducer observations');
@@ -235,21 +237,23 @@ export class Reducers implements IReducers {
     }
 
     private startObservation(id: string, reducerType: Constructor): void {
-        if (this._disposed) return;
-        const metadata = getReducerMetadata(reducerType)!;
-        const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
-        const readModelName = this.getReducerReadModelIdentifier(reducerType);
+        runInBackgroundContext(() => {
+            if (this._disposed) return;
+            const metadata = getReducerMetadata(reducerType)!;
+            const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
+            const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
+            const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
-        this._logger.info('Starting reducer observation', {
-            reducerId: id,
-            eventSequenceId,
-            readModel: readModelName,
-            handlerCount: dispatcher.handlers.length,
-            handlers: dispatcher.handlers.map(e => e.methodName)
+            this._logger.info('Starting reducer observation', {
+                reducerId: id,
+                eventSequenceId,
+                readModel: readModelName,
+                handlerCount: dispatcher.handlers.length,
+                handlers: dispatcher.handlers.map(e => e.methodName)
+            });
+
+            void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
         });
-
-        void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
     }
 
     private async runObservation(
@@ -262,7 +266,7 @@ export class Reducers implements IReducers {
         try {
             await this.observeReducer(id, reducerType, eventSequenceId, readModelName, dispatcher);
         } catch (error) {
-            this._logger.error('Reducer observation loop exited with error', { reducerId: id, error: String(error) });
+            this._logger.error('Reducer observation loop exited with error', { reducerId: id, error });
         }
 
         this.scheduleReobserve(id, reducerType);
@@ -285,14 +289,14 @@ export class Reducers implements IReducers {
             return;
         }
 
-        const handle = setTimeout(() => {
+        const handle = runInBackgroundContext(() => setTimeout(() => {
             if (!this._registered || this._disposed) {
                 return;
             }
 
             this._logger.info('Re-establishing reducer observation', { reducerId: id });
             this.startObservation(id, reducerType);
-        }, Reducers._reobserveDelayMs);
+        }, Reducers._reobserveDelayMs));
 
         handle.unref?.();
     }
@@ -359,7 +363,6 @@ export class Reducers implements IReducers {
 
                 this._logger.debug('Received reduce operation', {
                     reducerId: id,
-                    partition: operation.Partition,
                     count: operation.Events.length,
                     hasInitialState: operation.InitialState !== '',
                     replayState: operation.ReplayState
@@ -375,12 +378,12 @@ export class Reducers implements IReducers {
                             replayState: operation.ReplayState
                         }, this._artifactActivator, artifact => runActivated(artifact, () =>
                             notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
-                            { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState }));
+                            { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState }), this._connection.logger);
                     } else if (reducerInstance) {
                         await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
                     }
                 } catch (err) {
-                    this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: String(err) });
+                    this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: err });
                     if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
                         exceptionMessages.push(String(err.processingError));
                     }
@@ -424,7 +427,7 @@ export class Reducers implements IReducers {
                                 { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName });
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {
-                            this._logger.error('Error handling event in reducer', { reducerId: id, error: String(err) });
+                            this._logger.error('Error handling event in reducer', { reducerId: id, error: err });
                             exceptionMessages.push(String(err));
                             exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                             state = ObservationState.Failed;
@@ -445,9 +448,9 @@ export class Reducers implements IReducers {
                             readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.Events,
                             eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, processEvents);
+                        }, this._artifactActivator, processEvents, this._connection.logger);
                     } catch (err) {
-                        this._logger.error('Error activating reducer', { reducerId: id, error: String(err) });
+                        this._logger.error('Error activating reducer', { reducerId: id, error: err });
                         exceptionMessages.push(String(err));
                         const completionStack = err instanceof Error ? (err.stack ?? '') : '';
                         exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
@@ -483,7 +486,7 @@ export class Reducers implements IReducers {
             if (!this._queues.has(id)) {
                 this._logger.debug('Reducer observation stream closed cleanly', { reducerId: id });
             } else {
-                this._logger.error('Reducer observation stream ended unexpectedly', { reducerId: id, error: String(err) });
+                this._logger.error('Reducer observation stream ended unexpectedly', { reducerId: id, error: err });
             }
         } finally {
             // Only retire our own queue: a reconnect can already have replaced it,

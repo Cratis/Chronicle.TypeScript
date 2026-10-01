@@ -4,7 +4,8 @@
 import { EventContext as WireContext, EventObservationState, EventType, ObservationState, type ReactorMessage } from '@cratis/chronicle.contracts';
 import { ReplayState } from '../../../index.js';
 import { chai, describe, it, vi } from 'vitest';
-import { diag, DiagLogLevel, type DiagLogger } from '@opentelemetry/api';
+import type { IChronicleLogger } from '../../../logging/IChronicleLogger.js';
+import type { ChronicleLogEntry } from '../../../logging/ChronicleLogEntry.js';
 import type { ChronicleConnection } from '../../../connection/index.js';
 import { ConnectionLifecycle } from '../../../connection/ConnectionLifecycle.js';
 import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifactsProvider.js';
@@ -98,7 +99,7 @@ function delivery(events: ReturnType<typeof event>[], replayState = ReplayState.
 }
 
 async function observe(type: Function, batches: ReturnType<typeof delivery>[], namespace = 'tenant-a',
-    activator?: ClientArtifactsActivator, appendResult = true, onAppendMany?: () => void) {
+    activator?: ClientArtifactsActivator, appendResult = true, onAppendMany?: () => void, logger?: IChronicleLogger) {
     const acknowledgements: NonNullable<ReactorMessage['Content']>['Value1'][] = [];
     const append = vi.fn().mockResolvedValue({ isSuccess: appendResult });
     const appendMany = vi.fn().mockImplementation(async () => {
@@ -122,7 +123,7 @@ async function observe(type: Function, batches: ReturnType<typeof delivery>[], n
         await lifecycle.disconnected(error => { throw error; });
         finished();
     }
-    const connection = { reactors: { observe: stream } } as unknown as ChronicleConnection;
+    const connection = { logger, reactors: { observe: stream } } as unknown as ChronicleConnection;
     const artifacts = { reactors: [type], eventTypes: [ActivationEvent] } as unknown as IClientArtifactsProvider;
     await new Reactors(artifacts, connection, 'store', namespace, lifecycle, eventLog, undefined, store, activator).register();
     await complete;
@@ -462,16 +463,15 @@ describe('when delivering reactor batches', () => {
     });
 
     it('should log disposal failure without changing successful acknowledgement', async () => {
-        const errors: string[] = [];
-        diag.setLogger({ error: (...values: unknown[]) => { errors.push(values.map(String).join(' ')); } } as DiagLogger, DiagLogLevel.ERROR);
-        try {
-            const activator: ClientArtifactsActivator = type => ({ instance: new type(), dispose: async () => { throw new Error('cleanup'); } });
-            const result = await observe(ActivationReactor, [delivery([event('live', 1n)])], 'tenant-a', activator);
-            result.acknowledgements[0]?.State.should.equal(ObservationState.Success);
-            result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(1n);
-            errors.some(value => value.includes('Error disposing activated artifact')).should.be.true;
-        } finally {
-            diag.disable();
-        }
+        const entries: ChronicleLogEntry[] = [];
+        const activator: ClientArtifactsActivator = type => ({ instance: new type(), dispose: async () => { throw new Error('private cleanup details'); } });
+        const result = await observe(ActivationReactor, [delivery([event('private payload', 1n)])], 'tenant-a', activator,
+            true, undefined, { log: entry => entries.push(entry) });
+        result.acknowledgements[0]?.State.should.equal(ObservationState.Success);
+        result.acknowledgements[0]?.LastSuccessfulObservation.should.equal(1n);
+        entries.filter(entry => entry.attributes['exception.type'] === 'Error').should.have.lengthOf(1);
+        JSON.stringify(entries).should.not.contain('private cleanup details');
+        JSON.stringify(entries).should.not.contain('private payload');
+        JSON.stringify(entries).should.not.contain('book-1');
     });
 });

@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
 import { ProjectionOwner, type ProjectionDefinition } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -36,7 +36,7 @@ export class Projections implements IProjections {
     private readonly _modelBound = new Map<string, Constructor>();
     private readonly _failedPartitions: FailedPartitions;
 
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/projections' });
+    private readonly _logger: ReturnType<typeof createLogger>;
 
     /**
      * Creates a new {@link Projections} instance.
@@ -55,6 +55,7 @@ export class Projections implements IProjections {
         private readonly _defaultSinkTypeId: string,
         private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
     ) {
+        this._logger = createLogger('@cratis/chronicle/projections', _connection.logger);
         this._failedPartitions = new FailedPartitions(_eventStore, _namespace, _connection);
     }
 
@@ -296,7 +297,7 @@ export class Projections implements IProjections {
                     identifier,
                     attempt,
                     nextAttemptInMs: delay,
-                    error: msg
+                    error
                 });
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay = Math.min(delay * 2, 15000);

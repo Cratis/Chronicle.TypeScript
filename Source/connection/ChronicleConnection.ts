@@ -2,7 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { status, type Channel, type ChannelCredentials, type ChannelOptions } from '@grpc/grpc-js';
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
+import type { IChronicleLogger } from '../logging/IChronicleLogger.js';
+import { traceContextMiddleware } from './TraceContextMiddleware.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import {
     ConnectionServiceDefinition,
     ConstraintsDefinition,
@@ -46,6 +49,9 @@ import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenPr
  * Configuration options for Chronicle connection.
  */
 export interface ChronicleConnectionOptions {
+    /** Optional client-owned diagnostic sink; absent preserves the diag adapter. */
+    logger?: IChronicleLogger;
+
     /**
      * The connection string used to connect to Chronicle.
      */
@@ -120,12 +126,17 @@ export class ChronicleConnection implements ChronicleServices {
         this._addressResolver = new ChronicleServerAddressResolver();
         this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
 
-        this._clientsReady = this.createClients();
+        this._clientsReady = runInBackgroundContext(() => this.createClients());
         // Building the initial channel is async (address resolution + load balancer
         // selection), so the constructor cannot await it. Real failures still surface to
         // callers that await connect()/resetChannel(); this only prevents an unhandled
         // rejection warning from the fire-and-forget initial build.
         this._clientsReady.catch(() => {});
+    }
+
+    /** The diagnostic sink shared by services owned by this connection. */
+    get logger(): IChronicleLogger | undefined {
+        return this._options.logger;
     }
 
     get connectionString(): ChronicleConnectionString {
@@ -243,7 +254,7 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         this._isConnected = false;
-        this._clientsReady = this.createClients();
+        this._clientsReady = runInBackgroundContext(() => this.createClients());
         await this._clientsReady;
     }
 
@@ -283,7 +294,8 @@ export class ChronicleConnection implements ChronicleServices {
 
         this._channel = createChannel(serverAddress, credentials, channelOptions);
 
-        const factory = createClientFactory().use(this.createAuthMiddleware(tokenProvider));
+        // nice-grpc invokes the last middleware first: auth retries re-enter propagation.
+        const factory = createClientFactory().use(traceContextMiddleware).use(this.createAuthMiddleware(tokenProvider));
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
         this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000);
         const eventSequenceFactory = factory.use(this._compatibility.middleware());
@@ -360,7 +372,7 @@ export class ChronicleConnection implements ChronicleServices {
 
     private createAuthMiddleware(tokenProvider: ITokenProvider): ClientMiddleware {
         const connectionString = this._connectionString;
-        const logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/ChronicleConnection' });
+        const logger = createLogger('@cratis/chronicle/ChronicleConnection', this.logger);
         const loggedFailures = new WeakSet<Error>();
 
         return async function* authMiddleware(call, options) {
@@ -373,7 +385,7 @@ export class ChronicleConnection implements ChronicleServices {
                 tokenFailure = error instanceof Error ? error : new Error(String(error));
                 if (!loggedFailures.has(tokenFailure)) {
                     loggedFailures.add(tokenFailure);
-                    logger.warn('Failed to obtain OAuth2 token; sending RPC without authorization', { error: tokenFailure.message });
+                    logger.warn('Failed to obtain OAuth2 token; sending RPC without authorization', { error: tokenFailure });
                 }
             }
             if (!token) tokenFailure ??= tokenProvider.lastTokenFailure;

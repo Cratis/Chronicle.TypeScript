@@ -47,6 +47,8 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
+| `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
+| `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
 
 `ChronicleOptions.development(options)` takes the same second argument.
 
@@ -104,7 +106,9 @@ When the kernel rejects a cached token as unauthenticated, for example after a k
 
 ## Connection diagnostics
 
-The client logs through the OpenTelemetry diagnostics API, which discards messages until you register a logger. Install `@opentelemetry/api` and register one before you create the client:
+Supply `ChronicleOptions.logger` to send structured diagnostics to your application logger. Records include error types, not exception messages or stacks; see the [logging contract](./observability.md#application-diagnostics).
+
+Without a custom logger, the client retains its OpenTelemetry `diag` adapter during the minor-release overlap. It discards messages until you register a diagnostics logger. Existing configuration still works:
 
 ```typescript
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -112,7 +116,7 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
 ```
 
-Failed attempts then appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying` with the attempt number, the delay, and the error, for example `CheckCompatibility UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:35000`. When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the token endpoint and cause, and sends the call without a token, which a kernel with authentication turned off accepts.
+Failed attempts appear as `@cratis/chronicle/ChronicleClient Connection attempt failed, retrying`, with the attempt number, delay, and `error.type`/`exception.type`. gRPC failures also include numeric `rpc.grpc.status_code`, for example `14` (`UNAVAILABLE`), `16` (`UNAUTHENTICATED`), or `4` (`DEADLINE_EXCEEDED`). When a token request fails, the client logs `Failed to obtain OAuth2 token; sending RPC without authorization` with the error type and sends the call without a token, which a kernel with authentication turned off accepts. Tokens, exception messages, and stacks are not included in diagnostics.
 
 To fail fast at startup instead of waiting forever, bound the first call and dispose the client when the time runs out:
 

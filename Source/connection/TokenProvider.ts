@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { fetchOAuthAccessToken, OAuthTokenHttpError, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 
 // Refresh once the token has less than this long left before it expires.
 const TOKEN_REFRESH_MARGIN_MS = 60_000;
@@ -99,7 +100,8 @@ export class OAuthTokenProvider implements ITokenProvider {
             return undefined;
         }
 
-        this._refreshPromise = this.fetchAndCacheAccessToken();
+        // Acquisition is shared client-owned work, not part of the caller's business trace.
+        this._refreshPromise = runInBackgroundContext(() => this.fetchAndCacheAccessToken());
         try {
             return await this._refreshPromise;
         } finally {

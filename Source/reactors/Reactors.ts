@@ -2,7 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import 'reflect-metadata';
-import { diag } from '@opentelemetry/api';
+import { createLogger } from '../logging/createLogger.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
 import { ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
@@ -102,7 +103,7 @@ export class Reactors implements IReactors {
     /** How long to wait before re-establishing an observation whose stream ended. */
     private static readonly _reobserveDelayMs = 2000;
 
-    private readonly _logger = diag.createComponentLogger({ namespace: '@cratis/chronicle/reactors' });
+    private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _reactors = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();
@@ -130,6 +131,7 @@ export class Reactors implements IReactors {
         private readonly _eventStore?: IEventStore,
         private readonly _artifactActivator?: ClientArtifactsActivator
     ) {
+        this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
         this._lifecycle = lifecycle;
         lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reactor observations');
@@ -177,19 +179,21 @@ export class Reactors implements IReactors {
     }
 
     private startObservation(id: string, reactorType: Constructor): void {
-        if (this._disposed) return;
-        const metadata = getReactorMetadata(reactorType)!;
-        const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-        const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
+        runInBackgroundContext(() => {
+            if (this._disposed) return;
+            const metadata = getReactorMetadata(reactorType)!;
+            const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
+            const eventTypes = getReactorEventTypes(reactorType, this._clientArtifacts.eventTypes);
 
-        this._logger.info('Starting reactor observation', {
-            reactorId: id,
-            eventSequenceId,
-            handlerCount: eventTypes.length,
-            handlers: eventTypes.map(e => e.methodName)
+            this._logger.info('Starting reactor observation', {
+                reactorId: id,
+                eventSequenceId,
+                handlerCount: eventTypes.length,
+                handlers: eventTypes.map(e => e.methodName)
+            });
+
+            void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
         });
-
-        void this.runObservation(id, reactorType, eventSequenceId, eventTypes);
     }
 
     private async runObservation(
@@ -201,7 +205,7 @@ export class Reactors implements IReactors {
         try {
             await this.observeReactor(id, reactorType, eventSequenceId, eventTypes);
         } catch (error) {
-            this._logger.error('Reactor observation loop exited with error', { reactorId: id, error: String(error) });
+            this._logger.error('Reactor observation loop exited with error', { reactorId: id, error });
         }
 
         this.scheduleReobserve(id, reactorType);
@@ -223,14 +227,14 @@ export class Reactors implements IReactors {
             return;
         }
 
-        const handle = setTimeout(() => {
+        const handle = runInBackgroundContext(() => setTimeout(() => {
             if (!this._registered || this._disposed) {
                 return;
             }
 
             this._logger.info('Re-establishing reactor observation', { reactorId: id });
             this.startObservation(id, reactorType);
-        }, Reactors._reobserveDelayMs);
+        }, Reactors._reobserveDelayMs));
 
         handle.unref?.();
     }
@@ -286,7 +290,6 @@ export class Reactors implements IReactors {
 
                 this._logger.debug('Received events to observe', {
                     reactorId: id,
-                    partition: eventsToObserve.Partition,
                     count: eventsToObserve.Events.length,
                     replayState: eventsToObserve.ReplayState
                 });
@@ -301,12 +304,12 @@ export class Reactors implements IReactors {
                             replayState: eventsToObserve.ReplayState
                         }, this._artifactActivator, artifact => runActivated(artifact, () =>
                             notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition),
-                            { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState }));
+                            { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState }), this._connection.logger);
                     } else if (reactorInstance) {
                         await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
                     }
                 } catch (err) {
-                    this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: String(err) });
+                    this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: err });
                     if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
                         exceptionMessages.push(String(err.processingError));
                     }
@@ -348,7 +351,6 @@ export class Reactors implements IReactors {
                             }
 
                             const content = JSON.parse(event.Content) as Record<string, unknown>;
-                            this._logger.debug('Event content', { reactorId: id, eventTypeId, contentKeys: Object.keys(content), rawContent: event.Content.substring(0, 200) });
                             const context = toClientEventContext(event.Context!);
 
                             this._logger.info('Invoking reactor handler', {
@@ -364,7 +366,7 @@ export class Reactors implements IReactors {
 
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {
-                            this._logger.error('Error handling event in reactor', { reactorId: id, error: String(err) });
+                            this._logger.error('Error handling event in reactor', { reactorId: id, error: err });
                             exceptionMessages.push(String(err));
                             exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
                             state = ObservationState.Failed;
@@ -386,9 +388,9 @@ export class Reactors implements IReactors {
                             readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.Events,
                             eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, processEvents);
+                        }, this._artifactActivator, processEvents, this._connection.logger);
                     } catch (err) {
-                        this._logger.error('Error activating reactor', { reactorId: id, error: String(err) });
+                        this._logger.error('Error activating reactor', { reactorId: id, error: err });
                         exceptionMessages.push(String(err));
                         const completionStack = err instanceof Error ? (err.stack ?? '') : '';
                         exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
@@ -419,7 +421,7 @@ export class Reactors implements IReactors {
             if (!this._queues.has(id)) {
                 this._logger.debug('Reactor observation stream closed cleanly', { reactorId: id });
             } else {
-                this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error: String(err) });
+                this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error: err });
             }
         } finally {
             // Only retire our own queue: a reconnect can already have replaced it,

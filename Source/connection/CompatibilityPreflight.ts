@@ -6,6 +6,7 @@ import { chronicleDescriptorSet, type ConnectionServiceClient } from '@cratis/ch
 import { ClientError, Status, type ClientMiddleware } from 'nice-grpc-common';
 import { IncompatibleChronicleServer } from './IncompatibleChronicleServer.js';
 import { clientVersion } from './clientVersion.js';
+import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 
 const require = createRequire(import.meta.url);
 const protocolVersion = (require('@cratis/chronicle.contracts/package.json') as { version: string }).version;
@@ -19,7 +20,7 @@ export class CompatibilityPreflight {
     /** Shares in-flight checks and caches verdicts for this channel; transient failures can be retried. */
     verify(): Promise<void> {
         if (!this._verification) {
-            const verification = this.check().catch(error => {
+            const verification = runInBackgroundContext(() => this.check()).catch(error => {
                 if (!(error instanceof IncompatibleChronicleServer) && this._verification === verification) {
                     this._verification = undefined;
                 }
