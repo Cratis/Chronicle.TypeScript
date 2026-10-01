@@ -95,4 +95,19 @@ export interface IReadModels {
      * @returns The read model instances with decrypted PII values.
      */
     releaseMany<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]>;
+
+    /**
+     * Releases PII in a raw stored document using its __subject and per-property __subjects metadata.
+     * Each __subjects key names a top-level property and overrides the default for its entire subtree.
+     * Properties without either subject are copied unchanged; id and @subject() are not fallbacks.
+     * @param readModelType - The discovered read model type supplying the schema.
+     * @param document - A JSON document, with optional non-empty string __subject and a __subjects map of property names to non-empty strings.
+     * @returns A new plain document containing only schema-declared top-level properties, without __subject or __subjects.
+     * The input is never mutated. This does not construct a typed read model instance.
+     * @throws If metadata is invalid, a subject property is absent from the document or schema, any release fails,
+     * or a response is malformed, incomplete, or conflicts with another property's group. No partial result is returned.
+     * @remarks Kernel per-property decryption failures that return HasError: false cannot be detected:
+     * https://github.com/Cratis/Chronicle/issues/4480.
+     */
+    releaseDocument<TReadModel>(readModelType: Constructor<TReadModel>, document: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>>;
 }
