@@ -29,6 +29,18 @@ class ScenarioOrder {
 childrenFrom(ScenarioItemAdded, { childType: ScenarioItem, key: 'itemId' })(ScenarioOrder.prototype, 'items');
 fromEvent(ScenarioItemAdded)(ScenarioOrder);
 
+class ScenarioKeyedItem {
+    itemId = '';
+    name = '';
+}
+
+class ScenarioKeyedOrder {
+    id = '';
+    items: ScenarioKeyedItem[] = [];
+}
+childrenFrom(ScenarioItemAdded, { childType: ScenarioKeyedItem, key: 'itemId' })(ScenarioKeyedOrder.prototype, 'items');
+fromEvent(ScenarioItemAdded)(ScenarioKeyedOrder);
+
 class ScenarioNamedItem {
     id = '';
     name = '';
@@ -77,6 +89,18 @@ describe('when a read model scenario evaluates keyed children from the options f
     it('should register the same typed items schema as the oracle fixture', () => {
         const fixture = JSON.parse(readFileSync(new URL('./projections/fixtures/children-typed-items.json', import.meta.url), 'utf8'));
         JsonSchemaGenerator.generate(ScenarioOrder).properties!.items.should.deep.equal(fixture.readModel.schema.properties.items);
+    });
+
+    it('should add and update typed legacy children whose discovered identifier equals the event key (children-identifier-equals-key)', async () => {
+        const fixture = JSON.parse(readFileSync(new URL('./projections/fixtures/children-identifier-equals-key.json', import.meta.url), 'utf8'));
+        JsonSchemaGenerator.generate(ScenarioKeyedOrder).properties!.items.should.deep.equal(fixture.readModel.schema.properties.items);
+        const scenario = new ReadModelScenario(ScenarioKeyedOrder, artifacts);
+        for (let step = 0; step < 3; step++) {
+            const { itemId, name } = fixture.events[step].content;
+            scenario.given.forEventSource('order-1').events(new ScenarioItemAdded(itemId, name));
+            const order = await scenario.instanceForEventSourceId('order-1');
+            order!.should.deep.equal(fixture.expected[step].publicRead['order-1']);
+        }
     });
 
     it('should retain only the identifier when the child type is unknown (children-untyped-items)', async () => {

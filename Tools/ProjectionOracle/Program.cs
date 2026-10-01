@@ -68,7 +68,7 @@ internal static class Program
             }
             if (args[0] != "--update-events")
             {
-                foreach (var required in new[] { "children-typed-items.json", "children-untyped-items.json" })
+                foreach (var required in new[] { "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json" })
                 {
                     if (!projectionFiles.Contains(Path.Combine("Source", "testing", "projections", "fixtures", required)))
                         throw new InvalidOperationException($"Projection oracle requires {required}; refusing a vacuous check.");
