@@ -19,7 +19,7 @@ import { hasFromEventMetadata } from '../projections/modelBound/fromEvent.js';
 import { hasModelBoundProperties } from '../types/TypeDiscoverer.js';
 import { isPassive } from '../projections/modelBound/passive.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
-import { JsonSchemaGenerator } from '../schemas/index.js';
+import { JsonSchemaGenerator, type JsonSchema } from '../schemas/index.js';
 import { WellKnownSinks } from '../sinks/index.js';
 import { getReadModelMetadata, getReadModelId } from './readModel.js';
 import { buildReadModelDefinition } from './buildReadModelDefinition.js';
@@ -236,6 +236,114 @@ export class ReadModels implements IReadModels {
     async releaseMany<TReadModel>(readModelType: Constructor<TReadModel>, instances: TReadModel[]): Promise<TReadModel[]> {
         const releasePromises = instances.map(instance => this.release(readModelType, instance));
         return Promise.all(releasePromises);
+    }
+
+    /** @inheritdoc */
+    async releaseDocument<TReadModel>(readModelType: Constructor<TReadModel>, document: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+        const readModel = this.resolveReadModel(readModelType);
+        const schema = JSON.parse(this.getReadModelSchema(readModelType, readModel.identifier)) as JsonSchema;
+        const properties = schema.properties ?? {};
+        const stored = this.copyStoredDocument(document);
+        const defaultSubject = stored.__subject;
+        const subjects = stored.__subjects ?? {};
+
+        if (defaultSubject !== undefined && !this.isDocumentSubject(defaultSubject)) {
+            throw new Error('Stored read model document has an invalid default subject.');
+        }
+        if (!this.isDocumentObject(subjects) || stored.__subjects === null) {
+            throw new Error('Stored read model document has invalid property subjects.');
+        }
+        for (const [property, subject] of Object.entries(subjects)) {
+            if (property === '__subject' || property === '__subjects' ||
+                !Object.hasOwn(properties, property) || !Object.hasOwn(stored, property)) {
+                throw new Error('Stored read model document has an unknown subject property.');
+            }
+            if (!this.isDocumentSubject(subject)) {
+                throw new Error('Stored read model document has an invalid property subject.');
+            }
+        }
+
+        const groups = new Map<string, string[]>();
+        const releasedEntries: [string, unknown][] = [];
+        for (const [property, value] of Object.entries(stored)) {
+            // Only schema-declared data is returned, never storage bookkeeping.
+            if (property === '__subject' || property === '__subjects' || !Object.hasOwn(properties, property)) {
+                continue;
+            }
+            const subject = Object.hasOwn(subjects, property) ? subjects[property] : defaultSubject;
+            if (subject === undefined) {
+                releasedEntries.push([property, value]);
+                continue;
+            }
+            const group = groups.get(subject as string) ?? [];
+            group.push(property);
+            groups.set(subject as string, group);
+        }
+
+        for (const [subject, propertyNames] of groups) {
+            const payload = Object.fromEntries(propertyNames.map(property => [property, stored[property]]));
+            const groupSchema: JsonSchema = {
+                ...schema,
+                properties: Object.fromEntries(propertyNames.map(property => [property, properties[property]])),
+                required: schema.required?.filter(property => propertyNames.includes(property))
+            };
+            const released = await this.releaseDocumentProperties(subject, groupSchema, payload);
+            const releasedProperties = Object.keys(released);
+            if (releasedProperties.length !== propertyNames.length ||
+                releasedProperties.some(property => !Object.hasOwn(payload, property))) {
+                throw new Error('Failed to release stored read model document: missing or conflicting properties.');
+            }
+            releasedEntries.push(...Object.entries(released));
+        }
+
+        // Publish only after every subject succeeded. Entire top-level subtrees belong to one group.
+        return Object.fromEntries(releasedEntries);
+    }
+
+    private async releaseDocumentProperties(subject: string, schema: JsonSchema, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+        try {
+            const response = await this._connection.compliance.release({
+                EventStore: this._eventStore,
+                Namespace: this._namespace,
+                Subject: subject,
+                Schema: JSON.stringify(schema),
+                Payload: JSON.stringify(payload)
+            });
+            if (response.HasError !== false || typeof response.Payload !== 'string') {
+                throw new Error();
+            }
+            const released: unknown = JSON.parse(response.Payload);
+            if (!this.isDocumentObject(released)) {
+                throw new Error();
+            }
+            return released;
+        } catch {
+            // Kernel, transport and JSON parser errors can contain PII; do not expose them as causes.
+            throw new Error('Failed to release PII in stored read model document.');
+        }
+    }
+
+    private copyStoredDocument(document: Readonly<Record<string, unknown>>): Record<string, unknown> {
+        try {
+            if (!this.isDocumentObject(document)) {
+                throw new Error();
+            }
+            const copy: unknown = JSON.parse(JSON.stringify(document));
+            if (!this.isDocumentObject(copy)) {
+                throw new Error();
+            }
+            return copy;
+        } catch {
+            throw new Error('Stored read model document must be a JSON object.');
+        }
+    }
+
+    private isDocumentObject(value: unknown): value is Record<string, unknown> {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    private isDocumentSubject(value: unknown): value is string {
+        return typeof value === 'string' && value.trim().length > 0;
     }
 
     private async releaseSnapshotInstances<TReadModel>(readModelType: Constructor<TReadModel>, snapshots: ReadModelSnapshot<TReadModel>[]): Promise<ReadModelSnapshot<TReadModel>[]> {
