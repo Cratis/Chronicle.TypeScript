@@ -7,7 +7,7 @@ import { AppendOperationsBroadcaster } from '../eventSequences/AppendOperationsB
 import { prepareBatchAppend } from '../eventSequences/prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from '../eventSequences/createAppendNotification.js';
 import { createAppendResult } from '../eventSequences/createAppendResult.js';
-import { Guid, type Constructor } from '@cratis/fundamentals';
+import { conceptAsTypeKey, Guid, JsonSerializer, typeKeyOf, type Constructor } from '@cratis/fundamentals';
 import { getEventTypeMetadata, getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
@@ -34,6 +34,15 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 
 // JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
+
+function matchesConstrainedValue(value: unknown, content: unknown): boolean {
+    // Use production serialization for concepts, not their wrapper object's runtime type.
+    // Keep rejecting other unproven conversions, such as a Date assigned to a string field.
+    if (value && typeof value === 'object' && typeKeyOf(value.constructor as Constructor) === conceptAsTypeKey) {
+        return JsonSerializer.serialize(value) === JSON.stringify(content);
+    }
+    return value === content;
+}
 
 // Observers ReactorScenario registers to latch unsupported operations, keyed by sequence.
 const unsupportedObservers = new WeakMap<object, (error: UnsupportedEventSequenceOperation) => void>();
@@ -440,7 +449,7 @@ export class InProcessEventSequence implements IEventSequence {
             Object.keys(content).length !== Object.keys(properties).length ||
             Object.entries(properties).some(([key, property]) => typeof content[key] !== property.type ||
                 (this._constraints?.isConstrainedProperty(metadata.eventType.id.value, key) &&
-                    (typeof Reflect.get(event, key) !== property.type || Reflect.get(event, key) !== content[key])) ||
+                    !matchesConstrainedValue(Reflect.get(event, key), content[key])) ||
                 (property.type === 'string' && !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
             throw this.unsupported(operation, event.constructor.name, mismatchReason);
         }
