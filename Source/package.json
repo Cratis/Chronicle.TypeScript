@@ -187,6 +187,7 @@
         "@opentelemetry/context-async-hooks": "2.11.0",
         "@opentelemetry/core": "2.11.0",
         "@opentelemetry/instrumentation-grpc": "0.222.0",
+        "@opentelemetry/instrumentation-http": "0.222.0",
         "@opentelemetry/sdk-metrics": "2.11.0",
         "@opentelemetry/sdk-trace-base": "2.11.0",
         "@types/node": "^26.6.3",
