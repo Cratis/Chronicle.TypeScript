@@ -25,10 +25,20 @@ describe('when read-model setup receives route options', () => {
     it('should reuse single-append rejection messages without collecting unsupported input', async () => {
         const scenario = create();
         const events = createEvents();
-        for (const value of [{ sourceType: ' ' }, { streamType: null }, { streamId: 1 }, { tags: [] }, { arbitrary: true }, null, []]) {
+        for (const value of [{ sourceType: ' ' }, { streamType: null }, { streamId: 1 }, null, []]) {
             const options = value as AppendOptions;
             const error = await rejection(() => events.append('A', new Claim('Other'), options));
             (await rejection(() => scenario.given.forEventSource('A', options).events(new Claim('Other')))).message.should.equal(error.message);
+        }
+        ((await scenario.instance) === null).should.be.true;
+    });
+
+    it('should list only supported seed options without collecting unsupported input', async () => {
+        const scenario = create();
+        for (const value of [{ tags: [] }, { arbitrary: true }, { subject: 'person-a' }]) {
+            const options = value as AppendOptions;
+            (await rejection(() => scenario.given.forEventSource('A', options).events(new Claim('Other')))).message.should.equal(
+                'UnsupportedEventSequenceOperation: append.options (Claim): Only sourceType, streamType, streamId options are supported for single append. Use a kernel-backed test.');
         }
         ((await scenario.instance) === null).should.be.true;
     });

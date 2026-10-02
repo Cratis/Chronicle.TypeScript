@@ -17,7 +17,7 @@ export function singleAppendRoute(options: AppendOptions | undefined, artifact: 
         options.correlationId !== undefined || (!allowSubject && options.subject !== undefined) || options.occurred !== undefined ||
         options.eventSourceId !== undefined || options.concurrencyScope !== undefined || options.tags !== undefined ||
         options.concurrencyScopes !== undefined)) {
-        throw unsupported('append.options', artifact, 'Only sourceType, streamType, streamId and subject options are supported for single append.');
+        throw unsupported('append.options', artifact, `Only ${allowed.join(', ')} options are supported for single append.`);
     }
     if (options?.subject !== undefined && options.subject !== null && typeof options.subject !== 'string') {
         throw unsupported('append.subject', artifact, 'Subject must be a string.');
