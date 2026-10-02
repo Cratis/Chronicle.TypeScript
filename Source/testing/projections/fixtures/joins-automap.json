@@ -1,0 +1,328 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.26.2 root Join wire shape (fluent .join and model-bound @join); executed by the packaged projection pipeline.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-joins-automap",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": "",
+          "Properties": {}
+        }
+      }
+    ],
+    "Join": [
+      {
+        "Key": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "On": "customerId",
+          "Properties": {
+            "customerName": "name"
+          },
+          "AutoMap": 0
+        }
+      }
+    ],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "OrderRemoved",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 0,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": [
+      "IGNORED"
+    ]
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "ignored": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "OrderPlaced",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "CustomerNamed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ignored": {
+            "type": "string"
+          },
+          "City": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "OrderRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "before",
+        "ignored": "excluded",
+        "City": "Oslo",
+        "customerName": "must not overwrite explicit"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer",
+        "title": "order"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "after",
+        "ignored": "still excluded",
+        "City": "Bergen",
+        "customerName": "must not overwrite explicit"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "before",
+          "city": "Oslo",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "before",
+          "city": "Oslo"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "before",
+          "city": "Oslo",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer",
+          "customerName": "before",
+          "city": "Oslo",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "before",
+          "city": "Oslo"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "before",
+          "city": "Oslo"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "after",
+          "city": "Bergen",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer",
+          "customerName": "after",
+          "city": "Bergen",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer",
+          "title": "order",
+          "customerName": "after",
+          "city": "Bergen"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "after",
+          "city": "Bergen"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.26.2 root Join wire shape (fluent .join and model-bound @join); executed by the packaged projection pipeline.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-joins-initial-state",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{\"customerName\":\"seed\"}",
+    "From": [
+      {
+        "Key": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": "",
+          "Properties": {
+            "customerId": "customerId",
+            "title": "title"
+          }
+        }
+      }
+    ],
+    "Join": [
+      {
+        "Key": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "On": "customerId",
+          "Properties": {
+            "customerName": "name"
+          },
+          "AutoMap": 0
+        }
+      }
+    ],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "OrderRemoved",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "ignored": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "OrderPlaced",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "CustomerNamed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "ignored": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "OrderRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "joined"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "A": {
+          "customerName": "seed",
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "seed"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "customerName": "joined",
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "joined"
+        }
+      }
+    }
+  ]
+}

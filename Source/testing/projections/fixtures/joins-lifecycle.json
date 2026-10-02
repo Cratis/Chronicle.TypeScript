@@ -1,0 +1,854 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.26.2 root Join wire shape (fluent .join and model-bound @join); executed by the packaged projection pipeline.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-joins-lifecycle",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": "",
+          "Properties": {
+            "customerId": "customerId",
+            "title": "title"
+          }
+        }
+      }
+    ],
+    "Join": [
+      {
+        "Key": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "On": "customerId",
+          "Properties": {
+            "customerName": "name"
+          },
+          "AutoMap": 0
+        }
+      }
+    ],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "OrderRemoved",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "ignored": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "OrderPlaced",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "CustomerNamed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "ignored": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "OrderRemoved",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-1",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-1",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "latest"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer-1",
+        "title": "one"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer-1",
+        "title": "two"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "C",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer-2"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-1",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "CUSTOMER-1",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "wrong case"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-2",
+        "sequenceNumber": "7",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "other"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "8",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer-2",
+        "title": "moved"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-1",
+        "sequenceNumber": "9",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "only A"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "10",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CustomerNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer-1",
+        "sequenceNumber": "11",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "after removal"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "12",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer-1"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "absent",
+        "sequenceNumber": "13",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "latest",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "latest"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "latest",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "latest"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "latest"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "7",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-1",
+          "title": "two",
+          "customerName": "updated"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "8",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "updated"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "9",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "only A",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "title": "one",
+          "customerName": "only A"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "10",
+      "engineState": {
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "11",
+      "engineState": {
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "12",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "customerName": "after removal",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "customerName": "after removal"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "13",
+      "engineState": {
+        "A": {
+          "id": "A",
+          "__initialized": true,
+          "customerId": "customer-1",
+          "customerName": "after removal",
+          "__subject": "A"
+        },
+        "B": {
+          "id": "B",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other",
+          "__subject": "B"
+        },
+        "C": {
+          "id": "C",
+          "__initialized": true,
+          "customerId": "customer-2",
+          "__subject": "C",
+          "customerName": "other"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "customerId": "customer-1",
+          "customerName": "after removal"
+        },
+        "B": {
+          "id": "B",
+          "customerId": "customer-2",
+          "title": "moved",
+          "customerName": "other"
+        },
+        "C": {
+          "id": "C",
+          "customerId": "customer-2",
+          "customerName": "other"
+        }
+      }
+    }
+  ]
+}

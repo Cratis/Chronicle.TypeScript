@@ -70,6 +70,8 @@ internal static class Program
             {
                 foreach (var required in new[]
                 {
+                    "joins-lifecycle.json", "joins-missing-values.json", "joins-automap.json", "joins-automap-enabled.json",
+                    "joins-automap-disabled.json", "joins-root-key-collision.json", "joins-custom-key.json", "joins-initial-state.json", "joins-unrelated-root-update.json",
                     "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json",
                     "arithmetic.json", "aggregate-only-automap.json", "rounded-integer-operand.json", "int32-overflow.json", "null-accumulator.json",
                     "arithmetic-numeric-matrix.json", "arithmetic-initial-and-large.json", "arithmetic-integer-boundaries.json",

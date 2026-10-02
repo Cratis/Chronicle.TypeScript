@@ -15,6 +15,8 @@ import type { ScenarioEvent } from '../ScenarioEvent.js';
 import { ProjectionArithmetic } from './ProjectionArithmetic.js';
 import { ProjectionCapabilities } from './ProjectionCapabilities.js';
 import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.js';
+import { ProjectionJoins } from './ProjectionJoins.js';
+import type { ProjectionJoinRecord } from './ProjectionJoinRecord.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
@@ -32,6 +34,8 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     private readonly _initial: Record<string, unknown>;
     private readonly _from: ReadonlyMap<string, FromRecord>;
     private readonly _removed: ReadonlySet<string>;
+    private readonly _join: ProjectionJoinRecord | undefined;
+    private readonly _joinProperties: Record<string, string>;
     private readonly _children: ReadonlyMap<string, ChildBinding>;
     private readonly _eventSchemas: ReadonlyMap<string, JsonSchema>;
     private readonly _bindings: ReadonlyMap<string, { generation: number; path: string; declaration: string }>;
@@ -52,6 +56,11 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             const path = eventContractPath(section, entry.Key);
             return [entry.Key.Id, { generation: entry.Key.Generation, path, declaration: declarationFor(path) ?? 'contract' }] as const;
         });
+        this._join = _definition.Join?.[0] as ProjectionJoinRecord | undefined;
+        if (this._join) {
+            const path = eventContractPath('Join', this._join.Key);
+            bindings.push([this._join.Key.Id, { generation: this._join.Key.Generation, path, declaration: declarationFor(path) ?? 'contract' }]);
+        }
         const children = new Map<string, ChildBinding>();
         for (const [property, child] of Object.entries(wire.Children ?? {})) {
             const items = this._schema.properties![property].items!;
@@ -68,6 +77,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         this._bindings = new Map(bindings);
         this._eventSchemas = new Map([...(compiled.eventSchemas.get(_definition) ?? new Map()).values()]
             .map(entry => [entry.eventType.Id, entry.schema]));
+        this._joinProperties = this._join ? ProjectionJoins.properties(_definition, this._eventSchemas.get(this._join.Key.Id)!, this._schema) : {};
     }
 
     /** A snapshot of the production-style in-memory sink, for kernel conformance fixtures. */
@@ -78,16 +88,33 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     async process(events: readonly ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
         const states = new Map<string, ReadModelState<TReadModel>>();
         const engine: Record<string, Record<string, unknown>> = Object.create(null);
+        // Replay-local event-sequence lookup. Removal deletes a root, never its joined source history.
+        const joinedEvents = new Map<string, { event: ScenarioEvent; content: unknown }>();
         for (const event of events) {
             const typeId = event.context.eventType.id.value;
             const from = this._from.get(typeId);
             const removed = this._removed.has(typeId);
             const child = this._children.get(typeId);
-            if (!from && !removed && !child) continue;
+            const joining = this._join?.Key.Id === typeId;
+            if (!from && !removed && !child && !joining) continue;
             const binding = this._bindings.get(typeId)!;
             if (event.context.eventType.generation.value !== binding.generation) {
                 throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
                     `seeded event generation ${event.context.eventType.generation.value} differs from subscribed generation ${binding.generation}; multi-generation history requires a kernel-backed test`);
+            }
+            if (joining) {
+                const content = ProjectionValueConverter.eventContent(event.content, this._eventSchemas.get(typeId)!);
+                joinedEvents.set(event.sourceId, { event, content });
+                // SetInitialState skips join events: changes are computed against an empty state.
+                // Consequently a missing/null string produces no change, even on a populated row.
+                const changes: Record<string, unknown> = Object.create(null);
+                this.apply(this._joinProperties, content, event, this._schema, changes);
+                for (const [key, state] of Object.entries(engine)) {
+                    if (state[this._join!.Value.On] !== event.sourceId) continue;
+                    Object.assign(state, changes);
+                    states.set(key, { instance: this.materialize(state), deleted: false });
+                }
+                continue;
             }
             const key = this.keyFor(event.sourceId);
             if (removed) {
@@ -111,6 +138,12 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 const properties = this._definition.AutoMap !== AutoMap.Disabled && !ProjectionArithmetic.suppressesAutoMap(explicit)
                     ? this.withAutoMap(explicit, schema, this._schema, excluded) : explicit;
                 this.apply(properties, content, event, this._schema, state);
+                // ResolveJoin is wired only to From clauses that map the join target (including AutoMap).
+                if (this._join && Object.hasOwn(properties, this._join.Value.On)) {
+                    const onValue = state[this._join.Value.On];
+                    const joined = typeof onValue === 'string' ? joinedEvents.get(onValue) : undefined;
+                    if (joined) this.apply(this._joinProperties, joined.content, joined.event, this._schema, state);
+                }
             }
             if (child) this.applyChild(child, content, event, schema, state, binding);
             // InMemorySink.ApplyChanges always restores lowercase id after applying mappings.

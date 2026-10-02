@@ -30,7 +30,7 @@ chai.should();
 describe('when rejecting unsupported operations before any event is seeded', () => {
     const modelBound = [
         { name: 'nested', configure: (model: Function) => nested(model.prototype, 'name'), path: 'Nested.name (@nested)', reason: 'nested projections' },
-        { name: 'join', configure: (model: Function) => join(Removed, 'name')(model.prototype, 'name'), path: 'Join[capability-removed:1] (@join)', reason: 'joins' },
+        { name: 'join on identifier', configure: (model: Function) => join(Removed, 'id')(model.prototype, 'name'), path: 'Join[capability-removed:1].On (@join)', reason: 'direct non-identifier' },
         { name: 'removedWithJoin', configure: (model: Function) => removedWithJoin(Removed)(model), path: 'RemovedWithJoin[capability-removed:1] (@removedWithJoin)', reason: 'removedWithJoin' },
         { name: 'fromEvery', configure: (model: Function) => fromEvery('name')(model.prototype, 'name'), path: 'All (@fromEvery)', reason: 'fromEvery/all' },
         { name: 'fromAll', configure: (model: Function) => fromAll('name')(model.prototype, 'name'), path: 'All (@fromAll)', reason: 'fromEvery/all' },
@@ -74,7 +74,7 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         { name: 'context parent key', define: builder => { builder.from(Changed, from => from.usingParentKeyFromContext('eventSourceId')); }, path: 'From[capability-changed:1].ParentKey (.from().usingParentKeyFromContext)' },
         { name: 'composite key', define: builder => { builder.from(Changed, from => from.usingCompositeKey<{ name: string }>(key => key.set(target => target.name, event => event.name))); }, path: 'From[capability-changed:1].Key (.from().usingCompositeKey)' },
         { name: 'parent key', define: builder => { builder.from(Changed, from => from.usingParentKey(event => event.name)); }, path: 'From[capability-changed:1].ParentKey (.from().usingParentKey)' },
-        { name: 'join', define: builder => { builder.from(Changed).join(Removed, join => join.on(model => model.id)); }, path: 'Join[capability-removed:1] (.join)' },
+        { name: 'join on identifier', define: builder => { builder.from(Changed).join(Removed, join => join.on(model => model.id)); }, path: 'Join[capability-removed:1].On (.join)' },
         { name: 'nested', define: builder => { builder.from(Changed).nested(model => model.details, child => child.clearWith(Removed)); }, path: 'Nested.details (.nested)' },
         { name: 'removedWithJoin', define: builder => { builder.from(Changed).removedWithJoin(Removed); }, path: 'RemovedWithJoin[capability-removed:1] (.removedWithJoin)' },
         { name: 'removal key', define: builder => { builder.from(Removed).removedWith(Changed, removal => removal.usingKey(event => event.name)); }, path: 'RemovedWith[capability-changed:1].Key (.removedWith)' },

@@ -73,7 +73,7 @@ describe('when rejecting unsupported children operations before any event is see
     });
 
     const cases: Array<{ name: string; change: (child: ChildrenDefinitionLike, wire: Wire) => void; path: string; reason: string }> = [
-        { name: 'a join inside children', change: child => { child.Join = [{}]; }, path: 'Children.labels.Join', reason: 'joins require a kernel-backed test' },
+        { name: 'a join inside children', change: child => { child.Join = [{}]; }, path: 'Children.labels.Join', reason: 'joins inside children require a kernel-backed test' },
         { name: 'nested children collections', change: child => { child.Children = { inner: child }; }, path: 'Children.labels.Children', reason: 'nested children collections' },
         { name: 'nested projections inside children', change: child => { child.Nested = { inner: child }; }, path: 'Children.labels.Nested', reason: 'nested projections inside children' },
         { name: 'removedWithJoin inside children', change: child => { child.RemovedWithJoin = [child.RemovedWithJoin[0] ?? { Key: child.From[0].Key, Value: { Key: '' } }]; }, path: 'Children.labels.RemovedWithJoin', reason: 'removedWithJoin inside children' },
