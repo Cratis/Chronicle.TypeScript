@@ -96,6 +96,11 @@
             "import": "./dist/projections/index.js",
             "default": "./dist/projections/index.js"
         },
+        "./patterns": {
+            "types": "./dist/patterns/index.d.ts",
+            "import": "./dist/patterns/index.js",
+            "default": "./dist/patterns/index.js"
+        },
         "./jobs": {
             "types": "./dist/jobs/index.d.ts",
             "import": "./dist/jobs/index.js",

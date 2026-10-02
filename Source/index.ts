@@ -9,6 +9,7 @@ import * as seeding from './seeding/index.js';
 import * as readModels from './readModels/index.js';
 import * as projections from './projections/index.js';
 import * as jobs from './jobs/index.js';
+import * as patterns from './patterns/index.js';
 import * as webhooks from './webhooks/index.js';
 import * as externalServices from './externalServices/index.js';
 import * as identities from './identities/index.js';
@@ -53,6 +54,7 @@ export * from './seeding/index.js';
 export * from './readModels/index.js';
 export * from './projections/index.js';
 export * from './jobs/index.js';
+export * from './patterns/index.js';
 export * from './webhooks/index.js';
 export * from './externalServices/index.js';
 export * from './identities/index.js';
@@ -78,6 +80,7 @@ export {
     readModels,
     projections,
     jobs,
+    patterns,
     webhooks,
     externalServices,
     identities,

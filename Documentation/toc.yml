@@ -16,6 +16,8 @@
       href: sinks.md
     - name: Jobs
       href: jobs.md
+    - name: Behavior Patterns
+      href: patterns.md
     - name: Webhooks
       href: webhooks.md
     - name: External Services

@@ -187,6 +187,19 @@ describe('ReactorScenario live delivery', () => {
         scenario.results[0].completed.should.be.false;
     });
 
+    it('rejects behavior pattern queries through the default event store', async () => {
+        let error: unknown;
+        @reactor('pattern-rejection-reactor')
+        class PatternRejection {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                try { void services.eventStore.patterns; } catch (caught) { error = caught; }
+            }
+        }
+        const scenario = new ReactorScenario(PatternRejection, options);
+        await scenario.when.forEventSource('A').events(new Registered('first')).catch(() => undefined);
+        (error instanceof UnsupportedReactorOperation && String(error).includes('services.eventStore.patterns')).should.be.true;
+    });
+
     it('stops a multi-event delivery at the event whose handler swallowed an unsupported call', async () => {
         const invoked: string[] = [];
         @reactor('swallowed-in-batch-reactor')
