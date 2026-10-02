@@ -149,7 +149,7 @@ export class EventScenario {
         }
         const sequence = new InProcessEventSequence(options, eventTypes, constraints);
         this.eventSequence = sequence;
-        registerScenarioSeed(this, (source, events) => sequence.seed(source, events));
+        registerScenarioSeed(this, (source, events, options) => sequence.seed(source, events, options));
         this.given = new EventScenarioGivenBuilder(this);
         this.when = new EventScenarioWhenBuilder(this);
     }
