@@ -24,6 +24,7 @@ import { getReactorEventTypes, selectReactorHandler, invokeReactorHandler } from
 import type { ReactorEventTypeEntry } from './ReactorDispatcher.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
 import type { ReactorServices } from './ReactorServices.js';
+import { ReactorDelivery } from './ReactorDelivery.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
 import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
@@ -375,7 +376,10 @@ export class Reactors implements IReactors {
 
                             await invokeReactorHandler(artifact, methodName, content, context, services, result =>
                                 dispatchReactorSideEffects(this._eventLog, result, context, reactorType as Function,
-                                    this._eventStoreName, this._namespace, this._resultHandler));
+                                    this._eventStoreName, this._namespace, this._resultHandler),
+                                new ReactorDelivery(id, context.eventStore ?? this._eventStoreName,
+                                    context.namespace ?? this._namespace, eventSequenceId,
+                                    context.eventSourceId, context.sequenceNumber));
 
                             lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
                         } catch (err) {

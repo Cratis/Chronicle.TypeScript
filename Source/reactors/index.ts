@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ReactorId } from './ReactorId.js';
+export { ReactorDelivery } from './ReactorDelivery.js';
 export { reactor, getReactorMetadata, isReactor } from './reactor.js';
 export { handles } from '../events/handles.js';
 export { onceOnly } from './onceOnly.js';

@@ -14,6 +14,7 @@ import { getInstanceMethods } from '../observation/getInstanceMethods.js';
 import { isOnceOnly } from './onceOnly.js';
 import { getReplayEventType } from './replay.js';
 import type { ReactorServices } from './ReactorServices.js';
+import type { ReactorDelivery } from './ReactorDelivery.js';
 
 /** Internal handler catalog shared by live observations and in-process deliveries. */
 export interface ReactorEventTypeEntry {
@@ -83,9 +84,9 @@ export function selectReactorHandler(entries: readonly ReactorEventTypeEntry[], 
 /** Handler and returned effects execute in the same production activation boundary. */
 export async function invokeReactorHandler(artifact: ActivatedArtifact<Record<string, Function>>, methodName: string,
     content: Record<string, unknown>, context: EventContext, services: ReactorServices | undefined,
-    handleResult: (value: unknown) => Promise<void>): Promise<void> {
+    handleResult: (value: unknown) => Promise<void>, delivery: ReactorDelivery): Promise<void> {
     await runActivated(artifact, async () => {
-        const result = await artifact.instance[methodName](content, context, services);
+        const result = await artifact.instance[methodName](content, context, services, delivery);
         await handleResult(result);
     }, { delivery: ArtifactDelivery.Events, eventContext: context, methodName });
 }
