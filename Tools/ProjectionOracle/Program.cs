@@ -68,7 +68,16 @@ internal static class Program
             }
             if (args[0] != "--update-events")
             {
-                foreach (var required in new[] { "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json" })
+                foreach (var required in new[]
+                {
+                    "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json",
+                    "arithmetic.json", "aggregate-only-automap.json", "rounded-integer-operand.json", "int32-overflow.json", "null-accumulator.json",
+                    "arithmetic-numeric-matrix.json", "arithmetic-initial-and-large.json", "arithmetic-integer-boundaries.json",
+                    "arithmetic-rounding.json", "arithmetic-automap.json", "arithmetic-string-operand.json",
+                    "arithmetic-nonnumeric-operand.json", "arithmetic-uint32-overflow.json", "arithmetic-null-initial.json",
+                    "arithmetic-int32-operand-overflow.json", "arithmetic-uint32-operand.json", "arithmetic-unformatted-number.json",
+                    "arithmetic-remove-recreate.json", "arithmetic-zero-operand.json", "arithmetic-assignment.json"
+                })
                 {
                     if (!projectionFiles.Contains(Path.Combine("Source", "testing", "projections", "fixtures", required)))
                         throw new InvalidOperationException($"Projection oracle requires {required}; refusing a vacuous check.");
@@ -109,6 +118,7 @@ internal static class Program
                 {
                     throw new InvalidOperationException($"{path}: fixture version/hash does not match loaded engine and installed TypeScript contracts.");
                 }
+                Console.WriteLine($"Running {path}");
                 var actual = fixture["oracle"]?.GetValue<string>() == "eventScenario"
                     ? await EventScenarioOracle.Run(fixture)
                     : await OracleRunner.Run(fixture);

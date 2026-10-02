@@ -8,6 +8,7 @@ import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import { getEventTypeMapKey, type ChildrenDefinitionLike } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
+import { ProjectionArithmetic } from './ProjectionArithmetic.js';
 import { ProjectionChildrenCapabilities } from './ProjectionChildrenCapabilities.js';
 import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
@@ -95,6 +96,19 @@ export class ProjectionCapabilities {
                 reject(eventContractPath('From', entry.Key), 'events subscribed through both From and RemovedWith require a kernel-backed test (ChronicleKernelScenario / live kernel)');
             }
         }
+        const accumulators = new Set(from.flatMap(entry => Object.entries(entry.Value.Properties ?? {})
+            .filter(([, expression]) => ProjectionArithmetic.isArithmetic(expression)).map(([property]) => property)));
+        if (accumulators.size && Object.keys(wire.Children as object ?? {}).length) {
+            reject('Children', 'root arithmetic combined with children requires a kernel-backed test');
+        }
+        for (const entry of from) {
+            for (const [property, expression] of Object.entries(entry.Value.Properties ?? {})) {
+                if (expression === '$null' && accumulators.has(property)) {
+                    reject(`${eventContractPath('From', entry.Key)}.Properties.${property}`,
+                        'clearing an arithmetic accumulator requires a kernel-backed test; the kernel rejects arithmetic on a present null');
+                }
+            }
+        }
         for (const entry of [...from, ...removedWith]) {
             const section = from.includes(entry as FromRecord) ? 'From' : 'RemovedWith';
             const path = eventContractPath(section, entry.Key);
@@ -105,10 +119,10 @@ export class ProjectionCapabilities {
             const properties = (entry as FromRecord).Value.Properties ?? {};
             for (const [property, expression] of Object.entries(properties)) {
                 const mappingPath = `${path}.Properties.${property}`;
-                this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject);
+                this.checkMapping(schema!, eventSchema, property, expression, mappingPath, reject, accumulators);
             }
-            if (wire.AutoMap !== AutoMap.Disabled) {
-                this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject);
+            if (wire.AutoMap !== AutoMap.Disabled && !ProjectionArithmetic.suppressesAutoMap(properties)) {
+                this.checkAutoMap(schema!, eventSchema, properties, wire.NoAutoMapProperties as string[] ?? [], path, reject, accumulators);
             }
         }
         ProjectionChildrenCapabilities.validate(wire.Children as Record<string, ChildrenDefinitionLike> ?? {}, {
@@ -121,20 +135,20 @@ export class ProjectionCapabilities {
 
     private static checkAutoMap(
         modelSchema: JsonSchema, eventSchema: JsonSchema, explicit: Record<string, string>, exclusions: string[],
-        path: string, reject: (path: string, reason: string) => never
+        path: string, reject: (path: string, reason: string) => never, accumulators: ReadonlySet<string>
     ): void {
         for (const [destination] of Object.entries(modelSchema.properties ?? {})) {
             if (Object.keys(explicit).some(name => name.toLowerCase() === destination.toLowerCase()) ||
                 exclusions.some(name => name.toLowerCase() === destination.toLowerCase())) continue;
             const candidates = Object.keys(eventSchema.properties ?? {}).filter(source => source.toLowerCase() === destination.toLowerCase());
             if (candidates.length > 1) reject(`${path}.AutoMap.${destination}`, `inferred AutoMap source is ambiguous: ${candidates.join(', ')}`);
-            if (candidates.length) this.checkMapping(modelSchema, eventSchema, destination, candidates[0], `${path}.AutoMap.${destination}`, reject);
+            if (candidates.length) this.checkMapping(modelSchema, eventSchema, destination, candidates[0], `${path}.AutoMap.${destination}`, reject, accumulators);
         }
     }
 
     private static checkMapping(
         modelSchema: JsonSchema, eventSchema: JsonSchema, destination: string, expression: string,
-        path: string, reject: (path: string, reason: string) => never
+        path: string, reject: (path: string, reason: string) => never, accumulators?: ReadonlySet<string>
     ): void {
         const fail = (reason: string): never => reject(path, `expression '${expression}': ${reason}`);
         const target = modelSchema.properties?.[destination]
@@ -184,9 +198,10 @@ export class ProjectionCapabilities {
             }
             return;
         }
-        const operation = /^(\$add|\$subtract)\(([^()]+)\)$/.exec(expression);
-        const arithmetic = operation || ['$count', '$increment', '$decrement'].includes(expression);
-        if (arithmetic) fail('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        if (ProjectionArithmetic.isArithmetic(expression)) {
+            ProjectionArithmetic.validate(expression, target, eventSchema, fail);
+            return;
+        }
         if (/^[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*$/.test(expression)) {
             if (['true', 'True', 'false', 'False'].includes(expression)) {
                 fail('kernel resolves this expression as a boolean literal before event content');
@@ -195,6 +210,9 @@ export class ProjectionCapabilities {
             const source = this.propertyAt(eventSchema, expression);
             if (!source) return fail(`event property '${expression}' is absent from the participating event schema`);
             this.checkSchema(source, path, (_path, reason) => fail(reason));
+            if (accumulators?.has(destination) && !this.numeric(source)) {
+                fail('assigning non-numeric event properties to an arithmetic accumulator requires a kernel-backed test; missing values can clear it');
+            }
             if (!this.compatible(source, target)) {
                 fail(`source '${expression}' (${source.type}${source.format ? `/${source.format}` : ''}) to target '${destination}' (${target.type}${target.format ? `/${target.format}` : ''}) requires a kernel-backed test`);
             }

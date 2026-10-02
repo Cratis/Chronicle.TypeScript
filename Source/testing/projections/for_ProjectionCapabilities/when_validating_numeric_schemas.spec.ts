@@ -12,7 +12,7 @@ chai.should();
 
 describe('when validating the numeric capability matrix', () => {
     for (const format of ['int32', 'uint32']) {
-        it(`should accept a finite ${format} literal without admitting arithmetic`, () => {
+        it(`should accept a finite ${format} literal`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from
                 .set(model => model.quantity).toValue(12)));
             const modelSchema = JSON.parse(compiled.readModels[0].Schema) as { properties: { quantity: { type: string; format?: string } } };
@@ -63,13 +63,12 @@ describe('when validating the numeric capability matrix', () => {
         });
     }
 
-    it('should reject a double event operand into an integer accumulator before replay', () => {
+    it('should admit fixture-backed rounding of a double event operand into an int32 accumulator', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
         const schema = JSON.parse(compiled.readModels[0].Schema) as { properties: { total: { type: string; format?: string } } };
         schema.properties.total = { type: 'integer', format: 'int32' };
         compiled.readModels[0].Schema = JSON.stringify(schema);
-        (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('arithmetic requires a kernel-backed test');
+        (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
     });
 
     it('should reject an int32 $value literal with a fractional spelling even if its value is integral', () => {
@@ -96,6 +95,6 @@ describe('when validating the numeric capability matrix', () => {
         const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.add(model => model.total).with(event => event.quantity)));
         compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!.quantity.format = 'int64';
         (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-            .with.property('message').that.includes('arithmetic requires a kernel-backed test');
+            .with.property('message').that.includes('arithmetic operands must have number/double');
     });
 });

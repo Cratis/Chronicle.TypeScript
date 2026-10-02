@@ -10,10 +10,10 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "Kernel rounds fractional double operands to int32; issue #106 enables the fixture-backed ties-to-even conversion.",
+  "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-rounded-integer",
+    "Identifier": "oracle-arithmetic-unformatted-number",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
@@ -21,12 +21,13 @@
     "From": [
       {
         "Key": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "count": "$add(amount)"
+            "total": "$add(amount)",
+            "count": "$count"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -57,9 +58,11 @@
         "id": {
           "type": "string"
         },
+        "total": {
+          "type": "number"
+        },
         "count": {
-          "type": "integer",
-          "format": "int32"
+          "type": "number"
         }
       }
     }
@@ -67,15 +70,14 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "AmountAdded",
+        "Id": "Changed",
         "Generation": 1
       },
       "schema": {
         "type": "object",
         "properties": {
           "amount": {
-            "type": "number",
-            "format": "double"
+            "type": "number"
           }
         }
       }
@@ -85,21 +87,19 @@
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "0",
         "occurred": "2025-01-01T00:00:00Z"
       },
-      "content": {
-        "amount": 2.5
-      }
+      "content": {}
     },
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -107,13 +107,59 @@
         "occurred": "2025-01-01T00:00:01Z"
       },
       "content": {
-        "amount": 1.5
+        "amount": null
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Changed",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
+      "content": {
+        "amount": 0.25
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Changed",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {
+        "amount": -0.5
       }
     }
   ],
   "expected": [
     {
       "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "count": 1,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "total": 0,
+          "count": 1
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
       "engineState": {
         "record-a": {
           "id": "record-a",
@@ -125,23 +171,45 @@
       "publicRead": {
         "record-a": {
           "id": "record-a",
+          "total": 0,
           "count": 2
         }
       }
     },
     {
-      "sequenceNumber": "1",
+      "sequenceNumber": "2",
       "engineState": {
         "record-a": {
           "id": "record-a",
           "__initialized": true,
-          "count": 4,
-          "__subject": "record-a"
+          "count": 3,
+          "__subject": "record-a",
+          "total": 0.25
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
+          "total": 0.25,
+          "count": 3
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "count": 4,
+          "__subject": "record-a",
+          "total": -0.25
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "total": -0.25,
           "count": 4
         }
       }

@@ -10,23 +10,27 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "Kernel rounds fractional double operands to int32; issue #106 enables the fixture-backed ties-to-even conversion.",
+  "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-rounded-integer",
+    "Identifier": "oracle-arithmetic-integer-boundaries",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{}",
+    "InitialModelState": "{\"added\":2147483647,\"subtracted\":-2147483648,\"counted\":2147483647,\"incremented\":2147483647,\"decremented\":-2147483648}",
     "From": [
       {
         "Key": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "count": "$add(amount)"
+            "added": "$add(amount)",
+            "subtracted": "$subtract(amount)",
+            "counted": "$count",
+            "incremented": "$increment",
+            "decremented": "$decrement"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -57,7 +61,23 @@
         "id": {
           "type": "string"
         },
-        "count": {
+        "added": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "subtracted": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "counted": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "incremented": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "decremented": {
           "type": "integer",
           "format": "int32"
         }
@@ -67,15 +87,15 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "AmountAdded",
+        "Id": "Changed",
         "Generation": 1
       },
       "schema": {
         "type": "object",
         "properties": {
           "amount": {
-            "type": "number",
-            "format": "double"
+            "type": "integer",
+            "format": "int32"
           }
         }
       }
@@ -85,7 +105,7 @@
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -93,13 +113,13 @@
         "occurred": "2025-01-01T00:00:00Z"
       },
       "content": {
-        "amount": 2.5
+        "amount": 1
       }
     },
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -107,7 +127,7 @@
         "occurred": "2025-01-01T00:00:01Z"
       },
       "content": {
-        "amount": 1.5
+        "amount": 2
       }
     }
   ],
@@ -116,16 +136,24 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
+          "added": -2147483648,
+          "subtracted": 2147483647,
+          "counted": -2147483648,
+          "incremented": -2147483648,
+          "decremented": 2147483647,
           "id": "record-a",
           "__initialized": true,
-          "count": 2,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "count": 2
+          "added": -2147483648,
+          "subtracted": 2147483647,
+          "counted": -2147483648,
+          "incremented": -2147483648,
+          "decremented": 2147483647
         }
       }
     },
@@ -133,16 +161,24 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
+          "added": -2147483646,
+          "subtracted": 2147483645,
+          "counted": -2147483647,
+          "incremented": -2147483647,
+          "decremented": 2147483646,
           "id": "record-a",
           "__initialized": true,
-          "count": 4,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "count": 4
+          "added": -2147483646,
+          "subtracted": 2147483645,
+          "counted": -2147483647,
+          "incremented": -2147483647,
+          "decremented": 2147483646
         }
       }
     }

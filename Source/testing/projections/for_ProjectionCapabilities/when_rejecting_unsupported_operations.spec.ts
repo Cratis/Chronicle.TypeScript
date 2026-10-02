@@ -148,11 +148,11 @@ describe('when rejecting unsupported operations before any event is seeded', () 
     });
 
     for (const expression of ['$add(quantity)', '$subtract(quantity)', '$count', '$increment', '$decrement']) {
-        it(`should reject all arithmetic ${expression} before replay`, () => {
+        it(`should reject arithmetic ${expression} on non-numeric targets before replay`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.set(model => model.total).toValue(0)));
-            definition.From[0].Value.Properties.total = expression;
+            definition.From[0].Value.Properties = { name: expression };
             (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
-                .with.property('message').that.includes('arithmetic requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
+                .with.property('message').that.includes('arithmetic targets must be number/double or integer/int32');
         });
     }
 
