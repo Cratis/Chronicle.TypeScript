@@ -15,6 +15,9 @@ class PersonalData {
     constructor(personId: string) { this.personId = personId; }
 }
 
+@eventType('subject-standard-derived')
+class DerivedPersonalData extends PersonalData {}
+
 @eventType('subject-standard-concept')
 class ConceptPersonalData {
     @subject() @field(PersonId) personId: PersonId;
@@ -26,8 +29,9 @@ class UnannotatedData { @field(String) id = 'not-the-subject'; }
 
 describe('when appending subject annotations with standard decorators', () => {
     subjectBehaviors({
-        types: [PersonalData, ConceptPersonalData, UnannotatedData],
+        types: [PersonalData, DerivedPersonalData, ConceptPersonalData, UnannotatedData],
         annotated: value => new PersonalData(value),
+        inherited: value => new DerivedPersonalData(value),
         concept: value => new ConceptPersonalData(value),
         unannotated: () => new UnannotatedData()
     });

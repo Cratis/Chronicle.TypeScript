@@ -37,6 +37,11 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 // JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
 
+function resolveStoredSubject(subject: string | undefined, eventSourceId: string): string {
+    // Match the kernel's string.IsNullOrWhiteSpace, including U+0085 but not U+FEFF.
+    return subject && !/^\p{White_Space}*$/u.test(subject) ? subject : eventSourceId;
+}
+
 function matchesConstrainedValue(value: unknown, content: unknown): boolean {
     // Use production serialization for concepts, not their wrapper object's runtime type.
     // Keep rejecting other unproven conversions, such as a Date assigned to a string field.
@@ -207,7 +212,7 @@ export class InProcessEventSequence implements IEventSequence {
                     eventStore: this._store, namespace: this._namespace,
                     sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: route.sourceType, eventStreamType: route.streamType, eventStreamId: route.streamId,
-                    subject: prepared.subject ?? eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
+                    subject: resolveStoredSubject(prepared.subject, eventSourceId), hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: prepared.tags.map(tag => new Tag(tag))
@@ -310,7 +315,7 @@ export class InProcessEventSequence implements IEventSequence {
                 const stored: AppendedEvent = { eventType, content, context: {
                     eventStore: this._store, namespace: this._namespace, sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: wire.EventSourceType || 'Default', eventStreamType: wire.EventStreamType || 'All',
-                    eventStreamId: wire.EventStreamId || 'Default', subject: wire.Subject, hash, causedBy: identity,
+                    eventStreamId: wire.EventStreamId || 'Default', subject: resolveStoredSubject(wire.Subject, eventSourceId), hash, causedBy: identity,
                     observationState: EventObservationState.Initial, eventType, occurred, correlationId: correlationId.toString(),
                     causation: batchCausationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: wire.Tags.map(tag => new Tag(tag))

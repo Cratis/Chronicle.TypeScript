@@ -18,6 +18,7 @@ function check(value: unknown): Assertion { return (value as { should: Assertion
 export function subjectBehaviors(fixtures: {
     types: Constructor[];
     annotated: (value: string) => object;
+    inherited: (value: string) => object;
     concept: (value: string) => object;
     unannotated: () => object;
 }): void {
@@ -39,27 +40,37 @@ export function subjectBehaviors(fixtures: {
     }
 
     const cases = [
-        { name: 'an annotated subject', event: () => fixtures.annotated('person'), expected: 'person' },
-        { name: 'a concept subject', event: () => fixtures.concept('person'), expected: 'person' },
-        { name: 'an empty annotated string', event: () => fixtures.annotated(''), expected: '' },
-        { name: 'a whitespace annotated string', event: () => fixtures.annotated('  '), expected: '  ' },
-        { name: 'an empty concept subject', event: () => fixtures.concept(''), expected: 'source' },
-        { name: 'no annotation despite an id property', event: fixtures.unannotated, expected: 'source' }
+        { name: 'an annotated subject', event: () => fixtures.annotated('person'), expected: 'person', stored: 'person' },
+        { name: 'an inherited annotated subject', event: () => fixtures.inherited('person'), expected: 'person', stored: 'person' },
+        { name: 'a concept subject', event: () => fixtures.concept('person'), expected: 'person', stored: 'person' },
+        { name: 'an empty annotated string', event: () => fixtures.annotated(''), expected: '', stored: 'source' },
+        { name: 'a whitespace annotated string', event: () => fixtures.annotated('  '), expected: '  ', stored: 'source' },
+        { name: 'an empty concept subject', event: () => fixtures.concept(''), expected: 'source', stored: 'source' },
+        { name: 'no annotation despite an id property', event: fixtures.unannotated, expected: 'source', stored: 'source' }
     ];
     for (const testCase of cases) {
         describe(`when appending with ${testCase.name}`, () => {
-            let wireSubject: string;
-            let scenarioSubject: string | undefined;
+            let wireSubjects: string[];
+            let scenarioSubjects: (string | undefined)[];
             beforeEach(async () => {
                 const client = connected();
                 const memory = scenario();
                 await client.sequence.append('source', testCase.event());
                 await memory.append('source', testCase.event());
-                wireSubject = client.append.mock.calls[0][0].Subject;
-                scenarioSubject = memory.appendedEvents[0].context.subject;
+                await client.sequence.appendMany('source', [testCase.event()]);
+                await memory.appendMany('source', [testCase.event()]);
+                await client.sequence.appendMany([{ eventSourceId: 'source', event: testCase.event() }]);
+                await memory.appendMany([{ eventSourceId: 'source', event: testCase.event() }]);
+                wireSubjects = [client.append.mock.calls[0][0].Subject,
+                    ...client.appendManyForEventSources.mock.calls.map(call => call[0].Events[0].Subject)];
+                scenarioSubjects = memory.appendedEvents.map(event => event.context.subject);
             });
-            it('should select the subject using .NET value semantics', () => should.equal(wireSubject, testCase.expected));
-            it('should select the same subject in the scenario', () => should.equal(scenarioSubject, wireSubject));
+            it('should select the wire subject using .NET value semantics in every append overload', () => {
+                check(wireSubjects).deep.equal([testCase.expected, testCase.expected, testCase.expected]);
+            });
+            it('should record the kernel subject in every scenario append overload', () => {
+                check(scenarioSubjects).deep.equal([testCase.stored, testCase.stored, testCase.stored]);
+            });
         });
     }
     for (const testCase of [
@@ -96,7 +107,15 @@ export function subjectBehaviors(fixtures: {
         });
         it('should leave the subject unresolved for source fallback', () => should.equal(selected, undefined));
     });
-    for (const subject of ['explicit', '', '  ']) {
+    for (const { subject, stored } of [
+        { subject: 'explicit', stored: 'explicit' },
+        { subject: '', stored: 'source' },
+        { subject: '  ', stored: 'source' },
+        { subject: '\t\r\n', stored: 'source' },
+        { subject: '\u0085\u00a0', stored: 'source' },
+        { subject: '\ufeff', stored: '\ufeff' },
+        { subject: ' person ', stored: ' person ' }
+    ]) {
         describe(`when overriding the annotation with ${JSON.stringify(subject)}`, () => {
             let wireSubject: string;
             let scenarioSubject: string | undefined;
@@ -109,11 +128,11 @@ export function subjectBehaviors(fixtures: {
                 scenarioSubject = memory.appendedEvents[0].context.subject;
             });
             it('should prefer the explicit subject', () => should.equal(wireSubject, subject));
-            it('should honor the same explicit subject in the scenario', () => should.equal(scenarioSubject, subject));
+            it('should record the kernel subject in the scenario', () => should.equal(scenarioSubject, stored));
         });
     }
     for (const overload of ['single source', 'multiple sources'] as const) {
-        for (const subject of [undefined, 'shared', '']) {
+        for (const subject of [undefined, 'shared', '', '  ']) {
             describe(`when appending a ${overload} batch with shared subject ${JSON.stringify(subject)}`, () => {
                 let wireSubjects: string[];
                 let scenarioSubjects: (string | undefined)[];
@@ -135,19 +154,31 @@ export function subjectBehaviors(fixtures: {
                 it('should prefer entry then shared then annotation then source', () => {
                     check(wireSubjects).deep.equal([overload === 'multiple sources' ? 'entry' : subject ?? 'person', subject ?? 'other', subject ?? 'source']);
                 });
-                it('should select the same subjects in the scenario', () => check(scenarioSubjects).deep.equal(wireSubjects));
+                it('should record the kernel subjects in the scenario', () => {
+                    const stored = subject === '' || subject === '  ' ? 'source' : subject;
+                    check(scenarioSubjects).deep.equal([overload === 'multiple sources' ? 'entry' : stored ?? 'person',
+                        stored ?? 'other', stored ?? 'source']);
+                });
             });
         }
     }
-    describe('when an entry has an explicit empty subject', () => {
-        let subjects: string[];
-        beforeEach(async () => {
-            const client = connected();
-            await client.sequence.appendMany([{ eventSourceId: 'source', event: fixtures.annotated('person'), subject: '' }], { subject: 'shared' });
-            subjects = client.appendManyForEventSources.mock.calls[0][0].Events.map((entry: { Subject: string }) => entry.Subject);
+    for (const subject of ['', '  ', '\t\r\n', '\u0085\u00a0']) {
+        describe(`when an entry has an explicit blank subject ${JSON.stringify(subject)}`, () => {
+            let wireSubjects: string[];
+            let scenarioSubjects: (string | undefined)[];
+            beforeEach(async () => {
+                const client = connected();
+                const memory = scenario();
+                const entries = [{ eventSourceId: 'source', event: fixtures.annotated('person'), subject }];
+                await client.sequence.appendMany(entries, { subject: 'shared' });
+                await memory.appendMany(entries, { subject: 'shared' });
+                wireSubjects = client.appendManyForEventSources.mock.calls[0][0].Events.map((entry: { Subject: string }) => entry.Subject);
+                scenarioSubjects = memory.appendedEvents.map(event => event.context.subject);
+            });
+            it('should not replace the blank entry subject on the wire', () => check(wireSubjects).deep.equal([subject]));
+            it('should record the event source subject in the scenario', () => check(scenarioSubjects).deep.equal(['source']));
         });
-        it('should not replace the empty entry subject', () => check(subjects).deep.equal(['']));
-    });
+    }
     describe('when committing transactional single and batch appends', () => {
         let subjects: string[];
         beforeEach(async () => {
@@ -159,13 +190,15 @@ export function subjectBehaviors(fixtures: {
         });
         it('should resolve each buffered event at append time', () => check(subjects).deep.equal(['person', 'other', 'source']));
     });
-    describe('when seeding a scenario with an annotated event', () => {
-        let subject: string | undefined;
-        beforeEach(async () => {
-            const memory = scenario();
-            await memory.given.forEventSource('source').events(fixtures.annotated('person'));
-            subject = memory.appendedEvents[0].context.subject;
+    for (const testCase of cases) {
+        describe(`when seeding a scenario with ${testCase.name}`, () => {
+            let subject: string | undefined;
+            beforeEach(async () => {
+                const memory = scenario();
+                await memory.given.forEventSource('source').events(testCase.event());
+                subject = memory.appendedEvents[0].context.subject;
+            });
+            it('should record the kernel subject through the append boundary', () => should.equal(subject, testCase.stored));
         });
-        it('should resolve the subject through the append boundary', () => should.equal(subject, 'person'));
-    });
+    }
 }
