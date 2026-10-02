@@ -57,12 +57,12 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
                 if (this.shouldResume()) this.disconnect();
             }));
             this._unsubscribe.push(_lifecycle.onConnected(async () => this.start()));
-            this._unsubscribe.push(_lifecycle.onFailed(async error => this.finish(error, true)));
+            this._unsubscribe.push(_lifecycle.onFailed(async error => this.finish(error, true, true)));
         }
         if (signal.aborted) {
             abort();
         } else if (_lifecycle?.failure) {
-            this.finish(_lifecycle.failure, true);
+            this.finish(_lifecycle.failure, true, true);
         } else if (!_lifecycle || _lifecycle.isConnected) {
             this.start();
         }
@@ -208,7 +208,8 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
             if (this._controller !== controller) return;
             const code = (error as { code?: number })?.code;
             if (this.shouldResume() && code !== undefined && [1, 4, 13, 14].includes(code)) this.restart();
-            else this.finish(error, true);
+            // Let the consumer drain received changes before observing the terminal stream error.
+            else this.finish(error, true, true);
         }
     }
 

@@ -190,6 +190,20 @@ describe('ReactorScenario live delivery', () => {
         scenario.results[0].completed.should.be.false;
     });
 
+    it('should complete delivery if a reactor creates a watch without iterating it', async () => {
+        @reactor('uniterated-watch-reactor')
+        class UniteratedWatch {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                services.readModels.watch(Registered);
+                return new Skipped('produced');
+            }
+        }
+        const scenario = new ReactorScenario(UniteratedWatch, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        scenario.results[0].completed.should.be.true;
+        scenario.shouldHaveProduced(Skipped, event => event.label === 'produced');
+    });
+
     it('rejects behavior pattern queries through the default event store', async () => {
         let error: unknown;
         @reactor('pattern-rejection-reactor')

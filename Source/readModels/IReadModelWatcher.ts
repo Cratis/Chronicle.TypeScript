@@ -3,7 +3,11 @@
 
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 
-/** A single-consumer stream of read model changes, started when createWatcher() is called. */
+/**
+ * A single-consumer stream of read model changes, started when createWatcher() is called.
+ * Terminal stream or connection failures retain buffered changes: iteration drains them
+ * before rejecting with the original error. Overflow and disposal discard buffered changes.
+ */
 export interface IReadModelWatcher<TReadModel> extends AsyncIterable<ReadModelChangeset<TReadModel>> {
     /**
      * Resolves on the kernel's subscription acknowledgment, without requiring iteration.
