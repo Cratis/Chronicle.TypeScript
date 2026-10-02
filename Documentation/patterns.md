@@ -90,7 +90,7 @@ For example, exactly 08:00 is `Morning`, and exactly 22:00 is `Night`.
 ## Query an explicit context
 
 `FacetSet` is a read-only string-to-string record. Use `FacetName` for well-known
-names; custom facet names are allowed. `{}` constrains nothing, and empty values
+names. Any string key is accepted, but the kernel discards facets outside its configured mining vocabulary (by default `CommandType`, `InitiatorType`, `CausedByCommand`, `AggregateType`, `Day` and `TimeBucket`) instead of narrowing the lookup to nothing, so an unmined facet silently widens the result. `{}` constrains nothing, and empty values
 are omitted from queries. Object spread replaces or adds a facet without changing
 the original set.
 

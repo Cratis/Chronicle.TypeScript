@@ -131,7 +131,7 @@ export class ReactorScenario {
             namespace: new EventStoreNamespaceName(this._options.namespace ?? 'default'), eventLog: guardedLog, readModels };
         const unsupportedStoreProperties = new Set(['eventTypes', 'constraints', 'projections', 'reactors', 'reducers',
             'unitOfWorkManager', 'jobs', 'webhooks', 'subscriptions', 'seeding', 'externalServices', 'identities',
-            'pii', 'failedPartitions', 'observers']);
+            'pii', 'failedPartitions', 'observers', 'patterns']);
         return new Proxy(store, { get: (target, key) => {
             if (typeof key !== 'string') return undefined;
             if (Object.hasOwn(target, key)) return target[key as keyof typeof target];

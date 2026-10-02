@@ -3,6 +3,7 @@
 
 /**
  * A partial context of facet names and values. Use {@link FacetName} for well-known names;
- * custom names are also supported. An empty object constrains nothing. Empty values are omitted from queries.
+ * other names are accepted, but the kernel discards facets outside its configured mining vocabulary rather than
+ * narrowing to nothing. An empty object constrains nothing. Empty values are omitted from queries.
  */
 export type FacetSet = Readonly<Record<string, string>>;
