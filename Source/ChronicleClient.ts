@@ -19,7 +19,8 @@ import { EventStoreName } from './EventStoreName.js';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 import { IChronicleClient } from './IChronicleClient.js';
 import { IEventStore } from './IEventStore.js';
-import { ChronicleMetrics } from './Metrics.js';
+import { ChronicleConventionMetrics } from './Metrics.js';
+import { WellKnownTelemetryNames as names } from './WellKnownTelemetryNames.js';
 import { observeOperation } from './telemetry/observeOperation.js';
 import { runInBackgroundContext } from './telemetry/runInBackgroundContext.js';
 import { TypeDiscoverer } from './types/index.js';
@@ -158,9 +159,9 @@ export class ChronicleClient implements IChronicleClient {
                     }
                 });
 
-                ChronicleMetrics.eventStoreRetrievals.add(1, {
-                    'chronicle.event_store': storeName.value,
-                    'chronicle.namespace': namespaceName.value
+                ChronicleConventionMetrics.eventStoreRetrievals.add(1, {
+                    [names.attributes.eventStore]: storeName.value,
+                    [names.attributes.namespace]: namespaceName.value
                 });
                 span.setStatus({ code: SpanStatusCode.OK });
                 return store;
