@@ -66,6 +66,10 @@ function bridgeDuration(legacy: Histogram, shared: Histogram): Histogram {
 /**
  * Compatibility instruments: existing callers still record milliseconds and legacy attributes.
  * Each measurement also records its shared-convention equivalent, without adding sensitive dimensions.
+ * @deprecated Prefer ChronicleConventionMetrics (durations in seconds). This API and its dual recording remain available.
+ * Replacing the earlier "next major" plan, built-in legacy metric emission ends in an upcoming minor after
+ * ADR 0001's one-minor overlap. Compatibility APIs have no removal deadline.
+ * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
  */
 export const ChronicleMetrics = {
     eventsAppended: bridgeCounter(counter(names.legacyMetrics.eventsAppended,

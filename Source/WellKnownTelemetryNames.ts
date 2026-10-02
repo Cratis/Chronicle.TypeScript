@@ -1,10 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-/** Public telemetry names. Legacy names remain available during the minor-release overlap. */
+/** Public telemetry names, including retained TypeScript compatibility constants. */
 export const WellKnownTelemetryNames = {
     scope: 'Cratis.Chronicle.Client',
-    /** @deprecated Use scope. This historical scope is no longer emitted and will be removed in the next major. */
+    /**
+     * @deprecated Use scope. This historical scope is no longer emitted; the constant remains available.
+     * The revised timetable replaces the earlier "next major" plan: built-in legacy emission ends in an
+     * upcoming minor after ADR 0001's one-minor overlap. See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     */
     legacyScope: '@cratis/chronicle',
     attributes: {
         correlationId: 'cratis.correlation_id',
@@ -23,7 +27,12 @@ export const WellKnownTelemetryNames = {
         errorType: 'error.type',
         exceptionType: 'exception.type'
     },
-    /** @deprecated Use attributes. Legacy attribute names will be removed in the next major. */
+    /**
+     * @deprecated Use attributes. These constants remain available without a removal deadline.
+     * Replacing the earlier "next major" plan, built-in legacy attribute emission ends in an upcoming minor
+     * after ADR 0001's one-minor overlap, except the exact-string sequenceNumber attribute.
+     * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     */
     legacyAttributes: {
         eventStore: 'chronicle.event_store',
         namespace: 'chronicle.namespace',
@@ -37,7 +46,11 @@ export const WellKnownTelemetryNames = {
         eventStreamType: 'chronicle.event_stream_type',
         eventStreamId: 'chronicle.event_stream_id'
     },
-    /** @deprecated Use conventionSpans and telemetry.spanNames: 'convention'. Legacy span names will be removed in the next major. */
+    /**
+     * @deprecated Use conventionSpans. These legacy constants remain available without a removal deadline.
+     * Replacing the earlier "next major" plan, built-in legacy span emission ends in an upcoming minor
+     * after ADR 0001's one-minor overlap. See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     */
     spans: {
         append: 'chronicle.event_sequences.append',
         appendMany: 'chronicle.event_sequences.append_many',
@@ -75,7 +88,12 @@ export const WellKnownTelemetryNames = {
         constraintViolations: 'cratis.chronicle.event_sequence.constraint_violations',
         appendErrors: 'cratis.chronicle.event_sequence.append_errors'
     },
-    /** @deprecated Use metrics (duration units are seconds). Legacy metric names will be removed in the next major. */
+    /**
+     * @deprecated Use metrics (duration units are seconds). These constants remain available without a removal deadline.
+     * Replacing the earlier "next major" plan, built-in legacy metric emission ends in an upcoming minor
+     * after ADR 0001's one-minor overlap. ChronicleMetrics retains compatibility recording.
+     * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     */
     legacyMetrics: {
         eventsAppended: 'chronicle.events.appended',
         batchAppendsPerformed: 'chronicle.events.batch_appends',

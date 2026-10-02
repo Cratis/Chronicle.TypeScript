@@ -32,7 +32,7 @@ Keep the HMAC key in your secret store, use a strong random key, and do not log 
 
 Exceptions in spans and diagnostics contain `error.type` and `exception.type`, not exception messages or stacks. Reactor diagnostics exclude event payloads and partition identifiers. Error details required by Chronicle's failure-reporting wire protocol are separate from telemetry and are unchanged.
 
-`cratis.event_sequence.number` is emitted as an integer only when JavaScript can represent it exactly (`Number.isSafeInteger`); larger values are omitted from that attribute. The legacy `chronicle.sequence_number` remains a string for every value, including sentinels. Exact sequence numbers above `Number.MAX_SAFE_INTEGER` are available only in that legacy string attribute and will no longer be available in telemetry after the next major removes it. Event sequence APIs continue to return `bigint` values without loss.
+`cratis.event_sequence.number` is emitted as an integer only when JavaScript can represent it exactly (`Number.isSafeInteger`); larger values are omitted from that attribute. The legacy `chronicle.sequence_number` remains a string for every value, including sentinels. Exact sequence numbers above `Number.MAX_SAFE_INTEGER` remain available in that compatibility string attribute after the naming cutoff. Event sequence APIs continue to return `bigint` values without loss.
 
 ## Trace propagation and correlation
 
@@ -63,11 +63,15 @@ When `logger` is absent, `DiagChronicleLogger` forwards sanitized records to Ope
 
 ## Migrating to the convention names
 
-Use this overlap minor to migrate before the next major removes the legacy names. Each operation still produces one `CLIENT` span, not duplicate spans. Both attribute families and both metric families are emitted in either span naming mode.
+**Revised timetable:** this replaces the earlier “removed in the next major” plan announced in v6.40. Following [ADR 0001's one-minor overlap](https://github.com/Cratis/Architecture/blob/main/decisions/0001-opentelemetry-convention.md), built-in client instrumentation will stop emitting legacy span names, superseded `chronicle.*` attributes, and legacy millisecond metric instruments in an upcoming minor release. Track the cutoff in [the telemetry migration issue](https://github.com/Cratis/Chronicle.TypeScript/issues/171). This notice ships while legacy emission still works; the cutoff follows the promised minor overlap.
+
+The TypeScript compatibility APIs—legacy constants, the `spanNames` option, and `ChronicleMetrics`—remain available without a removal deadline. After the cutoff, both `spanNames` values will be accepted as no-ops. `ChronicleMetrics` retains millisecond inputs, caller attributes, and dual recording. The exact-string `chronicle.sequence_number` attribute remains emitted for lossless sequence numbers.
+
+Use the overlap to migrate dashboards and alerts before that minor release. Each operation still produces one `CLIENT` span, not duplicate spans. Both attribute families and both metric families are emitted in either span naming mode.
 
 1. Opt in to convention span names per client with `telemetry.spanNames: 'convention'`. Other clients in the same process keep their own setting.
 2. Update dashboards, alerts, and SDK Views using the mappings below. Do not sum the legacy and convention instruments together: they describe the same measurements.
-3. Upgrade to the next major after migrating your consumers. It makes convention names the only names, removes legacy attribute and metric emissions, and removes the `spanNames` selector. Remove that option from your configuration at that upgrade.
+3. Upgrade to the cutoff minor only after migrating your consumers. Built-in instrumentation then uses convention names only, except the exact-string sequence number attribute. Removing `spanNames` from your configuration is optional; the option remains accepted but no longer selects names.
 
 For example, configure a local development client (the host still owns OpenTelemetry SDK setup):
 
@@ -81,7 +85,7 @@ const client = new ChronicleClient(ChronicleOptions.development({
 
 The same `telemetry` object works in the second argument of `ChronicleOptions.fromConnectionString`. The optional `spanNames` accepts `'legacy'` (the default) or `'convention'`; any other value is rejected with a `TypeError` when constructing options. It applies to client operations, event stores, event logs, and dynamically created sequences. Scope, privacy policy, correlation, and attribute emission do not depend on the selected mode.
 
-`WellKnownTelemetryNames` exports the scope, span names, metric names, and attribute keys. The following old-to-new mappings are generated from those constants. `spans`, `legacyScope`, `legacyAttributes`, and `legacyMetrics` are deprecated in favor of `conventionSpans`, `scope`, `attributes`, and `metrics`, respectively, ahead of their removal in the next major.
+`WellKnownTelemetryNames` exports the scope, span names, metric names, and attribute keys. The following old-to-new mappings are generated from those constants. `spans`, `legacyScope`, `legacyAttributes`, and `legacyMetrics` are deprecated in favor of `conventionSpans`, `scope`, `attributes`, and `metrics`, respectively. Their original values and literal types remain available; deprecation does not schedule API removal.
 
 <!-- telemetry-reference:start -->
 ### Span names
