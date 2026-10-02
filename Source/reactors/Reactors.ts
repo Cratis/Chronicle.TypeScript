@@ -12,6 +12,8 @@ import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
+import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
@@ -277,8 +279,8 @@ export class Reactors implements IReactors {
                         Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reactorType).map(t => t.value),
-                            EventSourceType: '',
-                            EventStreamType: 'All'
+                            EventSourceType: getEventSourceTypeFor(reactorType),
+                            EventStreamType: getEventStreamTypeFor(reactorType)
                         }
                     }
                 },

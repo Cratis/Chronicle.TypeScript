@@ -3,6 +3,10 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import { ReducerEventDispatcher } from '../reducers/ReducerEventDispatcher.js';
+import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
+import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
+import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import { UnsupportedReducerOperation } from './UnsupportedReducerOperation.js';
 import type { IReadModelProcessor } from './IReadModelProcessor.js';
 import type { ReadModelState } from './ReadModelState.js';
 import type { ScenarioEvent } from './ScenarioEvent.js';
@@ -12,6 +16,15 @@ export class ReducerReadModelProcessor<TReadModel extends object> implements IRe
     private readonly _dispatcher: ReducerEventDispatcher;
 
     constructor(private readonly _readModelType: Constructor<TReadModel>, private readonly _reducerType: Constructor, eventTypes: Constructor[]) {
+        if (getFilterTagsFor(_reducerType).length) {
+            throw new UnsupportedReducerOperation('reducer.filterEventsByTag', _reducerType.name, 'Tag-filtered delivery is not fixture-backed.');
+        }
+        if (getEventSourceTypeFor(_reducerType) !== '') {
+            throw new UnsupportedReducerOperation('reducer.eventSourceType', _reducerType.name, 'Source-type-filtered delivery is not fixture-backed.');
+        }
+        if (getEventStreamTypeFor(_reducerType) !== 'All') {
+            throw new UnsupportedReducerOperation('reducer.eventStreamType', _reducerType.name, 'Stream-type-filtered delivery is not fixture-backed.');
+        }
         this._dispatcher = new ReducerEventDispatcher(_reducerType, eventTypes);
     }
 

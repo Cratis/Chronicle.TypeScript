@@ -51,13 +51,28 @@ With these artifacts registered in your event store, an `AuthorRegistered` event
 
 `ReactorScenario` from `@cratis/chronicle/testing` uses the same handler selection and rejects invalid prototype mappings before constructing the reactor. It also validates instance properties hiding `@handles` methods after construction, allowing methods bound with `Function.prototype.bind` in a constructor (including bound again in a subclass constructor). [Reducers](./reducers.md) also support `@handles`, without changing their handler arguments or returned state.
 
+### Filtering by event source and stream type
+
+To receive only events from a particular source or stream type, put `@eventSourceType('customer')` or `@eventStreamType('payments')` on the reactor class. Import both decorators from `@cratis/chronicle` or `@cratis/chronicle/events`; they support legacy and standard decorators. Derived reactors inherit these filters unless they declare their own value.
+
+| Decorator | Default | Effect |
+| --- | --- | --- |
+| `@eventSourceType(value: string)` | `''` (unspecified) | Restricts delivery to the given source type; `''` removes that restriction. |
+| `@eventStreamType(value: string)` | `'All'` | Restricts delivery to the given stream type; `'All'` removes that restriction. |
+
+The kernel combines source type, stream type, and `@filterEventsByTag` restrictions with **AND**. Multiple filter tags match **any** of those tags. `@tag` labels the observer and does not restrict delivery. These decorators belong on observers and do not filter projections.
+
+On a reactor, they also supply append metadata for **bare returned events**, matching .NET `[EventSourceType]` and `[EventStreamType]`: a non-empty source type sets the returned event's source type, and a non-empty declared stream type overrides the triggering stream type. Without a stream decorator, bare returns keep the triggering stream type; explicitly declaring `'All'` also supplies that value to returned events. Each returned `EventForEventSourceId` keeps its own metadata, including omitted or empty type values, rather than inheriting the reactor's types. Explicit calls to `services.eventStore.eventLog.append` do not inherit these decorators; set `sourceType` and `streamType` in append options to route those events.
+
+`ReactorScenario` rejects non-default source or stream filters with `UnsupportedReactorOperation` rather than silently delivering unfiltered events. Use a kernel-backed specification for filtered delivery.
+
 ### Handler arguments and side effects
 
 The optional third argument, `ReactorServices`, gives the owning observation's `eventStore`, its `readModels` (`services.readModels === services.eventStore.readModels`), and a disconnect/shutdown `signal`. It is the consuming store and namespace, including for imported events, not an application-wide default or the upstream event's provenance. Existing one- and two-argument methods work unchanged; rest-parameter handlers now see this additional argument.
 
 To append explicitly, await `services.eventStore.eventLog.append(context.eventSourceId, event)` and check `result.isSuccess`; a rejected append does not throw automatically. Throw if it failed so the observation is not acknowledged. To read state, use `services.readModels.findInstanceById(Model, context.eventSourceId)` and handle `null`. Read models are eventually consistent: a read may lag the triggering event or be absent, including during replay. There is no automatic historical snapshot at the event's sequence number. If a missing model prevents your side effect, throw rather than acknowledging lost work; make retries safe.
 
-A reactor handler method can return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id, stream, and subject; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
+A reactor handler method can return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id, stream id, and subject, with source and stream types resolved as described above; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
 
 For application-owned return types, pass `reactorResultHandler` to `ChronicleOptions.fromConnectionString(connectionString, { reactorResultHandler })` (or `development({ reactorResultHandler })`). The callback receives the returned value, triggering `EventContext`, reactor class, event store name, and namespace. Return `true` only after handling the entire result; return `false` to let Chronicle append its recognized event returns. Throw on failure so the partition fails instead of acknowledging a lost side effect. The hook is installed before reactor observations begin. It does not provide a transaction across commands and events; handle mixed returns deliberately.
 

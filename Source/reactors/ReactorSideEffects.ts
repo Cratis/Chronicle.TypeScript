@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { hasEventType } from '../events/eventTypeDecorator.js';
+import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
+import { getDeclaredEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventContext } from '../events/EventContext.js';
@@ -25,7 +27,8 @@ export async function dispatchReactorSideEffects(eventLog: IEventLog, result: un
     reactorType: Function, eventStore: string, namespace: string, handler?: ReactorResultHandler): Promise<void> {
     if (await handler?.(result, context, reactorType, eventStore, namespace)) return;
     const appended = await appendReactorSideEffects(eventLog, result, context.eventSourceId,
-        context.eventStreamType ?? 'Default', context.eventStreamId ?? context.eventSourceId);
+        context.eventStreamType ?? 'Default', context.eventStreamId ?? context.eventSourceId,
+        getEventSourceTypeFor(reactorType), getDeclaredEventStreamTypeFor(reactorType));
     if (!appended.isSuccess) throw new Error(`Reactor side effect failed to append: ${appended.errors.join('; ')}`);
 }
 
@@ -58,22 +61,27 @@ function isEventForEventSourceId(value: unknown): value is EventForEventSourceId
  * event returns.
  * @param triggeringEventStreamId - The event stream identifier of the triggering event, used for
  * bare event returns.
+ * @param reactorEventSourceType - Non-empty reactor source type metadata for bare event returns.
+ * @param reactorEventStreamType - Non-empty declared reactor stream type metadata for bare event returns,
+ * overriding the triggering stream type. Omitted metadata preserves the triggering stream type.
  * @returns The outcome of the append. Each {@link EventForEventSourceId} entry keeps its own
- * target (event source id, stream type/id, subject); bare events use the triggering event's.
+ * target metadata; bare events use the triggering target with the reactor's declared types.
  */
 export async function appendReactorSideEffects(
     eventLog: IEventLog,
     handlerResult: unknown,
     triggeringEventSourceId: string,
     triggeringEventStreamType: string,
-    triggeringEventStreamId: string
+    triggeringEventStreamId: string,
+    reactorEventSourceType?: string,
+    reactorEventStreamType?: string
 ): Promise<ReactorSideEffectResult> {
     if (handlerResult === undefined || handlerResult === null) {
         return noSideEffects;
     }
 
     const events = normalizeReactorSideEffects(handlerResult, triggeringEventSourceId,
-        triggeringEventStreamType, triggeringEventStreamId);
+        triggeringEventStreamType, triggeringEventStreamId, reactorEventSourceType, reactorEventStreamType);
     if (events.length === 0) {
         return noSideEffects;
     }
@@ -91,7 +99,8 @@ export async function appendReactorSideEffects(
 
 /** Production return-shape normalization; unknown values are ignored by production dispatch. */
 export function normalizeReactorSideEffects(handlerResult: unknown, triggeringEventSourceId: string,
-    triggeringEventStreamType: string, triggeringEventStreamId: string): EventForEventSourceId[] {
+    triggeringEventStreamType: string, triggeringEventStreamId: string,
+    reactorEventSourceType?: string, reactorEventStreamType?: string): EventForEventSourceId[] {
     const items = Array.isArray(handlerResult) ? handlerResult : [handlerResult];
     const events: EventForEventSourceId[] = [];
 
@@ -102,7 +111,8 @@ export function normalizeReactorSideEffects(handlerResult: unknown, triggeringEv
             events.push({
                 eventSourceId: triggeringEventSourceId,
                 event: item,
-                eventStreamType: triggeringEventStreamType,
+                eventStreamType: reactorEventStreamType || triggeringEventStreamType,
+                ...(reactorEventSourceType ? { eventSourceType: reactorEventSourceType } : {}),
                 eventStreamId: triggeringEventStreamId,
                 subject: triggeringEventSourceId
             });

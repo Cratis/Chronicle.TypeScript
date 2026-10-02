@@ -12,6 +12,8 @@ import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
+import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
@@ -347,8 +349,8 @@ export class Reducers implements IReducers {
                         Tags: getTagsFor(reducerType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reducerType).map(t => t.value),
-                            EventSourceType: '',
-                            EventStreamType: 'All'
+                            EventSourceType: getEventSourceTypeFor(reducerType),
+                            EventStreamType: getEventStreamTypeFor(reducerType)
                         }
                     }
                 },
