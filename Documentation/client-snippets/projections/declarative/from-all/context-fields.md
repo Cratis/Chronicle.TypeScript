@@ -1,3 +1,6 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+
 ```typescript title="Map context fields with FromAll"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
@@ -22,11 +25,10 @@ export class AccountAuditDeclarativeAllProjection implements IProjectionFor<Acco
     define(builder: IProjectionBuilderFor<AccountAuditDeclarativeAll>): void {
         builder
             .from(AccountTouchedDeclarativeAll)
-            .fromEvery(_ => _
+            .fromAll(_ => _
                 .set(m => m.lastUpdated).toEventContextProperty('occurred')
                 .set(m => m.lastEventSequence).toEventContextProperty('sequenceNumber')
-                .set(m => m.lastCorrelationId).toEventContextProperty('correlationId')
-                .excludeChildProjections());
+                .set(m => m.lastCorrelationId).toEventContextProperty('correlationId'));
     }
 }
 ```

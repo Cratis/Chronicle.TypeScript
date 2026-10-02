@@ -9,6 +9,8 @@ import { ChildrenBuilder } from './ChildrenBuilder.js';
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
 import { IProjectionBuilderFor } from './IProjectionBuilderFor.js';
+import type { IFromAllBuilder } from './IFromAllBuilder.js';
+import { FromAllBuilder } from './FromAllBuilder.js';
 import { NestedBuilder } from './NestedBuilder.js';
 import { ChildrenDefinitionLike, ContractEventType, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 
@@ -22,6 +24,7 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
     private _containerName: string | undefined;
     private _rewindable: boolean = true;
     private _active: boolean = true;
+    private _subscribesToAllEvents = false;
     private _variantIdentity: Function | undefined;
     private _variantKey: string | undefined;
     private readonly _enteringEventTypes: ContractEventType[] = [];
@@ -29,6 +32,19 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
     constructor() {
         super();
         this._autoMap = AutoMap.Enabled;
+    }
+
+    /** @inheritdoc */
+    fromAll(builderCallback: (builder: IFromAllBuilder<TReadModel>) => void): this {
+        const builder = new FromAllBuilder<TReadModel>();
+        builderCallback(builder);
+        this._subscribesToAllEvents = true;
+        this._all = {
+            Properties: { ...this._all.Properties, ...builder.properties },
+            IncludeChildren: true,
+            AutoMap: AutoMap.Inherit
+        };
+        return this;
     }
 
     /** @inheritdoc */
@@ -146,6 +162,7 @@ export class ProjectionBuilderFor<TReadModel> extends ProjectionBuilderCore<TRea
             Children: this._children,
             FromEvery: [],
             All: this._all,
+            ...(this._subscribesToAllEvents ? { SubscribesToAllEvents: true } : {}),
             FromEventProperty: undefined,
             RemovedWith: this._removedWith,
             RemovedWithJoin: this._removedWithJoin,

@@ -1,3 +1,9 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+
+`@fromAll` currently aliases `@fromEvery`; this alias behavior is deprecated.
+In the next major, @fromAll subscribes to every event type like fluent fromAll() and .NET [FromAll]; use @fromEvery to keep the current behavior.
+
 ```typescript title="Convention-based fromAll property"
 import { eventType, fromAll, fromEvent } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
@@ -30,6 +36,7 @@ export class ProductVersionFromAllConvention {
     @field(String) name = '';
     @field(Number) price = 0;
 
+    // Deprecated alias: use @fromEvery() to keep mapping only subscribed events.
     @fromAll()
     version = 0;
 }

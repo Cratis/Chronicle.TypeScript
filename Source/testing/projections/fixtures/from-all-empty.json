@@ -1,0 +1,366 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "Root All and SubscribesToAllEvents in the generated @cratis/chronicle.contracts 19.26.2 wire shape, matching TypeScript fromAll/fromEvery emission; converted and executed by the packaged 19.26.2 kernel. All-event operations remain outside the in-process evaluator boundary.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "from-all-empty",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": true,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": true,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "lastSequence": {
+          "type": "string"
+        },
+        "untouched": {
+          "type": "string"
+        },
+        "counted": {
+          "type": "number"
+        },
+        "incremented": {
+          "type": "number"
+        },
+        "decremented": {
+          "type": "number"
+        },
+        "countsByType": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "Declared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "untouched": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "Undeclared",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "untouched": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "Removed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "untouched": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "Undeclared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "title": "first",
+        "untouched": "not automapped"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Declared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "title": "second",
+        "untouched": "declared automap"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Undeclared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-b",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
+      "content": {
+        "title": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Undeclared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03Z"
+      },
+      "content": {
+        "title": "third"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Removed",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:04Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Undeclared",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:05Z"
+      },
+      "content": {
+        "title": "recreated"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        },
+        "record-b": {
+          "id": "record-b",
+          "__subject": "record-b",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        },
+        "record-b": {
+          "id": "record-b",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        },
+        "record-b": {
+          "id": "record-b",
+          "__subject": "record-b",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        },
+        "record-b": {
+          "id": "record-b",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        },
+        "record-b": {
+          "id": "record-b",
+          "__subject": "record-b",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        },
+        "record-b": {
+          "id": "record-b",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__subject": "record-a",
+          "__initialized": true
+        },
+        "record-b": {
+          "id": "record-b",
+          "__subject": "record-b",
+          "__initialized": true
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        },
+        "record-b": {
+          "id": "record-b",
+          "counted": 0,
+          "incremented": 0,
+          "decremented": 0
+        }
+      }
+    }
+  ]
+}

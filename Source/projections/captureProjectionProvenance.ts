@@ -39,6 +39,7 @@ export function captureProjectionProvenance(definition: Record<string, unknown>,
             add(`${section}.${property}`, modelBound ? (section === 'Children' ? '@childrenFrom' : '@nested') : `.${section.toLowerCase()}`);
         }
     }
+    if (definition.SubscribesToAllEvents === true) add('SubscribesToAllEvents', `${prefix}fromAll`);
     const all = definition.All as { Properties?: Record<string, string>; IncludeChildren?: boolean } | undefined;
     if (all?.IncludeChildren || Object.keys(all?.Properties ?? {}).length) add('All', modelBound ? '@fromEvery' : '.fromEvery');
     for (const property of Object.keys(all?.Properties ?? {})) add(`All.Properties.${property}`, modelBound ? '@fromEvery' : '.fromEvery');
