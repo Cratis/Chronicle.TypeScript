@@ -7,6 +7,18 @@ import { Claim, Effect, createEvents, createReactor, rejection, route, routing }
 
 chai.should();
 describe('when delivering routed setup and action events', () => {
+    it('should preserve append metadata in handled and triggering contexts', async () => {
+        const scenario = createReactor();
+        const subject = 'CustomerSubject';
+        const correlationId = '11111111-2222-3333-4444-555555555555';
+        const occurred = new Date('2025-12-01T12:34:56.000Z');
+        const tags = ['Priority', 'Routed'];
+        await scenario.when.forEventSource('A', { ...route, subject, correlationId, occurred, tags }).events(new Claim('Alpha'), new Claim('Beta'));
+        const contexts = [...scenario.results.flatMap(result => result.handled), ...scenario.sideEffects.map(effect => effect.triggeringContext)];
+        contexts.map(context => ({ subject: context.subject, correlationId: context.correlationId, occurred: context.occurred,
+            tags: context.tags.map(tag => tag.value) })).should.deep.equal(Array(4).fill({ subject, correlationId, occurred, tags }));
+    });
+
     it('should expose the recorded route in handled and triggering contexts', async () => {
         const scenario = createReactor();
         await scenario.given.forEventSource('A', route).events(new Claim('Given'));

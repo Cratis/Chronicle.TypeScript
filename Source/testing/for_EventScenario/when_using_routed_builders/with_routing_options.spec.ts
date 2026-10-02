@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { chai, describe, it } from 'vitest';
+import { chai, describe, it, vi } from 'vitest';
 import type { AppendOptions } from '../../../eventSequences/AppendOptions.js';
 import { Claim, createEvents, rejection, route, routing } from '../given/routed_scenario.fixture.js';
 
@@ -31,6 +31,22 @@ describe('when seeding with routed builders', () => {
 });
 
 describe('when acting with routed builders', () => {
+    it('should preserve append metadata identically to direct atomic batches', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-01-02T03:04:05.000Z'));
+        try {
+            const scenario = createEvents();
+            const direct = createEvents();
+            const subject = 'CustomerSubject';
+            const correlationId = '11111111-2222-3333-4444-555555555555';
+            const occurred = new Date('2025-12-01T12:34:56.000Z');
+            const tags = ['Priority', 'Routed'];
+            await scenario.when.forEventSource('A', { ...route, subject, correlationId, occurred, tags }).events(new Claim('Alpha'), new Claim('Beta'));
+            await direct.appendMany('A', [new Claim('Alpha'), new Claim('Beta')], { ...route, subject, correlationId, occurred, tags });
+            scenario.appendedEvents.map(event => event.context).should.deep.equal(direct.appendedEvents.map(event => event.context));
+        } finally { vi.useRealTimers(); }
+    });
+
     it('should use the route for single actions and atomic batches', async () => {
         const scenario = createEvents();
         (await scenario.when.forEventSource('A', route).event(new Claim('Alpha'))).isSuccess.should.be.true;
