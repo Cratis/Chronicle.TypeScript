@@ -15,7 +15,7 @@ class FilteringOrderReport {
 
 @projection('', FilteringOrderReport)
 // Sends a tag with the projection definition; does not filter received events.
-// Chronicle 19.26.2 drops projection tags at registration (Cratis/Chronicle#4512).
+// Chronicle does not store projection tags yet (Cratis/Chronicle#4512).
 @tag('reporting')
 class FilteringOrderReportingProjection implements IProjectionFor<FilteringOrderReport> {
     define(builder: IProjectionBuilderFor<FilteringOrderReport>): void {
