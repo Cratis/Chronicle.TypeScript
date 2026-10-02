@@ -10,6 +10,8 @@
   href: migrate-append-routing.md
 - name: Constraints
   href: constraints.md
+- name: Composite Keys
+  href: composite-keys.md
 - name: Runtime
   items:
     - name: Sinks

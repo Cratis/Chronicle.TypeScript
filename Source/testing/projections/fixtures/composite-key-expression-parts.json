@@ -1,0 +1,335 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "TypeScript composite set-expression overload and .NET CompositeKeyBuilder/SetBuilder at v19.26.2: event property, context Subject, event source id and constant parts; executed by the packaged production pipeline. Composite identifiers remain outside ReadModelScenario's supported subset.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-composite-expression-parts",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "RecordChanged",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$composite(orderId=orderId,subject=$eventContext(Subject),sourceId=$eventSourceId,category=$value(orders))",
+          "ParentKey": "",
+          "Properties": {
+            "title": "title"
+          }
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "sourceId": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "RecordChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "subject": "alice",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "orderId": "order-1",
+        "title": "created"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "subject": "alice",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "orderId": "order-1",
+        "title": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "subject": "bob",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "orderId": "order-1",
+        "title": "another subject"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RecordChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-2",
+        "subject": "alice",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "orderId": "order-1",
+        "title": "another source"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "created",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "created"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "updated",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "updated"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "updated",
+          "__subject": "alice"
+        },
+        "orders_order-1_source-1_bob": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "bob",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "another subject",
+          "__subject": "bob"
+        }
+      },
+      "publicRead": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "updated"
+        },
+        "orders_order-1_source-1_bob": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "bob",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "another subject"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "updated",
+          "__subject": "alice"
+        },
+        "orders_order-1_source-1_bob": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "bob",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "another subject",
+          "__subject": "bob"
+        },
+        "orders_order-1_source-2_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-2",
+            "category": "orders"
+          },
+          "__initialized": true,
+          "title": "another source",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "orders_order-1_source-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "updated"
+        },
+        "orders_order-1_source-1_bob": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "bob",
+            "sourceId": "source-1",
+            "category": "orders"
+          },
+          "title": "another subject"
+        },
+        "orders_order-1_source-2_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "source-2",
+            "category": "orders"
+          },
+          "title": "another source"
+        }
+      }
+    }
+  ]
+}

@@ -23,6 +23,8 @@ For root joins, the production factory wires `ResolveJoin` to each `From` clause
 
 | Fixture | Kernel behavior captured |
 | --- | --- |
+| `composite-key-expression-parts`, `composite-parent-key-expression-parts` | `oracleGuard` — event-property, context, event-source-id and constant parts build composite root identifiers and resolve child parents. Repeated keys update in place; changed context/source parts stay independent. Object identifiers and composite keys remain outside `ReadModelScenario`; these fixtures do not enable them. |
+| `composite-join-key-expression-parts` | `oracleGuard` — the composite expression is accepted on the join wire definition, but the pinned kernel ignores custom join keys for backfill and live updates, matching `joins-custom-key`. Source-id matching still governs joins; the evaluator rejects the custom key before replay. |
 | `from-all-only` | `oracleGuard` — with no explicit subscriptions, otherwise undeclared types create and update source-ID-keyed models; content/context assignments, scalar count/increment/decrement and dynamic dictionary counts run for each event. Missing content clears a previously populated string. |
 | `from-all-mixed`, `from-all-exclude-children` | `oracleGuard` — explicit `From` and all-event mappings combine without double-counting; the all-event assignment wins an overlapping destination. Removal deletes the model; an undeclared event recreates it. Setting `All.IncludeChildren` false through a subsequent `fromEvery` does not narrow the root all-event subscription (these fixtures do not contain children). |
 | `from-all-empty` | `oracleGuard` — even an empty all-event mapping block materializes identifier-only engine state for undeclared events. |
