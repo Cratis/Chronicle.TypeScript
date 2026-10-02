@@ -6,7 +6,7 @@ export interface ChronicleTelemetryOptions {
     /**
      * Retained naming selector. Both 'legacy' and 'convention' are accepted as no-ops;
      * built-in instrumentation always uses conventionSpans, including when this option is absent.
-     * @deprecated No longer selects names. This option has no removal deadline.
+     * @deprecated No longer needed; built-in spans always use convention names. This option has no removal deadline.
      * The minor-release naming cutoff replaces the earlier "next major" plan after ADR 0001's one-minor overlap.
      * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
