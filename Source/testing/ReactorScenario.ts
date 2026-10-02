@@ -13,6 +13,8 @@ import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
+import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
@@ -62,6 +64,12 @@ export class ReactorScenario {
         }
         if (getFilterTagsFor(_reactor).length) {
             throw new UnsupportedReactorOperation('reactor.filterEventsByTag', _reactor.name, 'Tag-filtered delivery is not fixture-backed.');
+        }
+        if (getEventSourceTypeFor(_reactor) !== '') {
+            throw new UnsupportedReactorOperation('reactor.eventSourceType', _reactor.name, 'Source-type-filtered delivery is not fixture-backed.');
+        }
+        if (getEventStreamTypeFor(_reactor) !== 'All') {
+            throw new UnsupportedReactorOperation('reactor.eventStreamType', _reactor.name, 'Stream-type-filtered delivery is not fixture-backed.');
         }
         if (_options.commandTypes?.length) {
             throw new UnsupportedReactorOperation('options.commandTypes', _reactor.name, 'Command classification belongs to the explicit-composition increment.');

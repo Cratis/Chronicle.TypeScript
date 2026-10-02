@@ -51,6 +51,19 @@ With these artifacts registered in your event store, an `AuthorRegistered` event
 
 `ReactorScenario` from `@cratis/chronicle/testing` uses the same handler selection and rejects invalid prototype mappings before constructing the reactor. It also validates instance properties hiding `@handles` methods after construction, allowing methods bound with `Function.prototype.bind` in a constructor (including bound again in a subclass constructor). [Reducers](./reducers.md) also support `@handles`, without changing their handler arguments or returned state.
 
+### Filtering by event source and stream type
+
+To receive only events from a particular source or stream type, put `@eventSourceType('customer')` or `@eventStreamType('payments')` on the reactor class. Import both decorators from `@cratis/chronicle` or `@cratis/chronicle/events`; they support legacy and standard decorators. Derived reactors inherit these filters unless they declare their own value.
+
+| Decorator | Default | Effect |
+| --- | --- | --- |
+| `@eventSourceType(value: string)` | `''` (unspecified) | Restricts delivery to the given source type; `''` removes that restriction. |
+| `@eventStreamType(value: string)` | `'All'` | Restricts delivery to the given stream type; `'All'` removes that restriction. |
+
+The kernel combines source type, stream type, and `@filterEventsByTag` restrictions with **AND**. Multiple filter tags match **any** of those tags. `@tag` labels the observer and does not restrict delivery. These decorators belong on observers: they neither filter projections nor set metadata on appended events. Set `sourceType` and `streamType` in append options to route events to the intended types.
+
+`ReactorScenario` rejects non-default source or stream filters with `UnsupportedReactorOperation` rather than silently delivering unfiltered events. Use a kernel-backed specification for filtered delivery.
+
 ### Handler arguments and side effects
 
 The optional third argument, `ReactorServices`, gives the owning observation's `eventStore`, its `readModels` (`services.readModels === services.eventStore.readModels`), and a disconnect/shutdown `signal`. It is the consuming store and namespace, including for imported events, not an application-wide default or the upstream event's provenance. Existing one- and two-argument methods work unchanged; rest-parameter handlers now see this additional argument.

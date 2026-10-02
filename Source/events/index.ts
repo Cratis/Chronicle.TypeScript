@@ -18,6 +18,8 @@ export { isRegisteredEvent } from './isRegisteredEvent.js';
 export { Tag } from './Tag.js';
 export { tag, tags, getTagsFor } from './tagDecorator.js';
 export { filterEventsByTag, getFilterTagsFor } from './filterEventsByTagDecorator.js';
+export { eventSourceType, getEventSourceTypeFor } from './eventSourceTypeDecorator.js';
+export { eventStreamType, getEventStreamTypeFor } from './eventStreamTypeDecorator.js';
 export { mergeTags } from './mergeTags.js';
 export * from './constraints/index.js';
 export * from './migrations/index.js';

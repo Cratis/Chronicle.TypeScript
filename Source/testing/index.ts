@@ -7,6 +7,7 @@ export type { ReactorScenarioOptions } from './ReactorScenarioOptions.js';
 export type { ReactorDeliveryResult } from './ReactorDeliveryResult.js';
 export type { RecordedReactorSideEffect } from './RecordedReactorSideEffect.js';
 export { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
+export { UnsupportedReducerOperation } from './UnsupportedReducerOperation.js';
 export type { EventScenarioOptions } from './EventScenarioOptions.js';
 export { EventScenarioGivenBuilder } from './EventScenarioGivenBuilder.js';
 export { EventScenarioGiven } from './EventScenarioGiven.js';

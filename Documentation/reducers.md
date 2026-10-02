@@ -19,4 +19,14 @@ Inherited handlers work, but overriding a method carrying `@handles` requires an
 
 Return the new state. Pass the read-model type as the third argument of `@reducer(id, eventSequenceId, ReadModel)` so the client can register its schema.
 
+### Filtering by event source and stream type
+
+Put `@eventSourceType('customer')` and/or `@eventStreamType('shipping')` on the reducer class to fold only events from those types. Import them from `@cratis/chronicle` or `@cratis/chronicle/events`. Both legacy and standard decorators work, and derived reducers inherit filters unless overridden.
+
+The defaults remain `''` for source type (unspecified) and `'All'` for stream type (unrestricted); explicitly declaring those values removes the corresponding inherited restriction. Source and stream filters combine with `@filterEventsByTag` using **AND**, while multiple filter tags match **any** of the declared tags. Observer labels (`@tag`) do not affect delivery. Set `sourceType` and `streamType` in append options; decorating an event class does not set append metadata. Projections do not support these filters.
+
+`ReadModelScenario` rejects a reducer with non-default source or stream filters using `UnsupportedReducerOperation`. Use a kernel-backed specification to verify filtered state instead of an unfiltered in-process fold.
+
+### Activating reducers
+
 By default, the SDK constructs one reducer instance per observation stream. The optional `ChronicleOptions.artifactActivator` also activates reducers: one lease per delivered event batch and separate leases for replay notifications. Its activation context has `kind: ArtifactKind.Reducer`, the owning store/namespace, the partition, event sequence, abort signal, and either the first handled event context or the replay state. `run(callback, invocation)` wraps each handler and receives the current event context and method name (or the replay state for a notification). Existing one-argument `run` implementations still work. `complete()` is awaited once per lease, even after processing fails, before the observation result; a rejected completion fails the partition with `ArtifactCompletionFailed`, retains any processing error, resets the tentative checkpoint, and does not publish tentative read-model state. `dispose()` then runs unconditionally; its errors are only logged. No reducer handler argument changes. State returned by each handler passes to the next handler in the same batch; do not rely on instance fields surviving across batches when using an activator. Reducers should be deterministic during replay: reading mutable external state (including an eventually consistent read model) or appending events from a reducer makes rebuilds unpredictable. Completion failure cannot roll back prior external effects, so make any effects idempotent; see [reactor activation](./reactors.md#activating-artifacts) for the lease contract.
