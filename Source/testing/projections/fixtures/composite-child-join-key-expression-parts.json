@@ -1,0 +1,576 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "TypeScript ProjectionBuilderFor: root From ItemAdded usingCompositeKey, children identifiedBy id with From ItemAdded usingCompositeKey/usingParentCompositeKey, and child Join ItemNamed on id using the same content/Subject/event-source-id/constant expressions. See when_matching_kernel_fixtures.spec.ts. Unlike a root join, the child join resolves its custom key. Chronicle 19.26.2 uses the resolved child-join key as both the root document key and the child identifier, so a child join only updates children whose root has the same identifier (https://github.com/Cratis/Chronicle/issues/4530). Children are created through the `$value` parent-key shortcut; this fixture isolates child-join key evaluation, not parent resolution. Root and child identifiers deliberately coincide; this proves custom-key evaluation and live updates, not arbitrary parent lookup or persistent-sink placement. The in-memory join replaces the matched root state with its join changes, dropping title and __initialized; the untouched subject's root remains unchanged. This is a Chronicle in-memory sink bug: root properties and sibling children are dropped (https://github.com/Cratis/Chronicle/issues/4531), so in-memory results can differ from persistent storage. ReadModelScenario rejects composite identifiers and child joins.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-composite-child-join-expression-parts",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$composite(itemId=itemId,subject=$eventContext(Subject),sourceId=$eventSourceId,category=$value(items))",
+          "ParentKey": "",
+          "Properties": {
+            "title": "title"
+          }
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {
+      "items": {
+        "IdentifiedBy": "id",
+        "From": [
+          {
+            "Key": {
+              "Id": "ItemAdded",
+              "Generation": 1
+            },
+            "Value": {
+              "Key": "$composite(itemId=itemId,subject=$eventContext(Subject),sourceId=$eventSourceId,category=$value(items))",
+              "ParentKey": "$composite(itemId=itemId,subject=$eventContext(Subject),sourceId=$eventSourceId,category=$value(items))",
+              "Properties": {
+                "name": "name"
+              }
+            }
+          }
+        ],
+        "Join": [
+          {
+            "Key": {
+              "Id": "ItemNamed",
+              "Generation": 1
+            },
+            "Value": {
+              "Key": "$composite(itemId=itemId,subject=$eventContext(Subject),sourceId=$eventSourceId,category=$value(items))",
+              "On": "id",
+              "Properties": {
+                "name": "name"
+              },
+              "AutoMap": 1
+            }
+          }
+        ],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [],
+        "RemovedWithJoin": [],
+        "AutoMap": 1,
+        "Nested": {},
+        "NoAutoMapProperties": []
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "object",
+          "properties": {
+            "itemId": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "sourceId": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "object",
+                "properties": {
+                  "itemId": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "sourceId": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  }
+                }
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "ItemAdded",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ItemNamed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "item-source-1",
+        "subject": "alice",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "item-1",
+        "title": "alice item",
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "item-source-1",
+        "subject": "bob",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "item-1",
+        "title": "bob item",
+        "name": "other subject"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "item-source-1",
+        "subject": "alice",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "item-1",
+        "name": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "item-source-1",
+        "subject": "bob",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "item-1",
+        "name": "updated other subject"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "items_item-1_item-source-1_alice": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "first"
+            }
+          ],
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "__initialized": true,
+          "title": "alice item",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "items_item-1_item-source-1_alice": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "title": "alice item",
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "first"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "items_item-1_item-source-1_alice": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "first"
+            }
+          ],
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "__initialized": true,
+          "title": "alice item",
+          "__subject": "alice"
+        },
+        "items_item-1_item-source-1_bob": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "other subject"
+            }
+          ],
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "__initialized": true,
+          "title": "bob item",
+          "__subject": "bob"
+        }
+      },
+      "publicRead": {
+        "items_item-1_item-source-1_alice": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "title": "alice item",
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "first"
+            }
+          ]
+        },
+        "items_item-1_item-source-1_bob": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "title": "bob item",
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "other subject"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "items_item-1_item-source-1_alice": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated"
+            }
+          ],
+          "__subject": "alice",
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          }
+        },
+        "items_item-1_item-source-1_bob": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "other subject"
+            }
+          ],
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "__initialized": true,
+          "title": "bob item",
+          "__subject": "bob"
+        }
+      },
+      "publicRead": {
+        "items_item-1_item-source-1_alice": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated"
+            }
+          ]
+        },
+        "items_item-1_item-source-1_bob": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "title": "bob item",
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "other subject"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "items_item-1_item-source-1_alice": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated"
+            }
+          ],
+          "__subject": "alice",
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          }
+        },
+        "items_item-1_item-source-1_bob": {
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated other subject"
+            }
+          ],
+          "__subject": "bob",
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          }
+        }
+      },
+      "publicRead": {
+        "items_item-1_item-source-1_alice": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "alice",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "alice",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated"
+            }
+          ]
+        },
+        "items_item-1_item-source-1_bob": {
+          "id": {
+            "itemId": "item-1",
+            "subject": "bob",
+            "sourceId": "item-source-1",
+            "category": "items"
+          },
+          "items": [
+            {
+              "id": {
+                "itemId": "item-1",
+                "subject": "bob",
+                "sourceId": "item-source-1",
+                "category": "items"
+              },
+              "name": "updated other subject"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

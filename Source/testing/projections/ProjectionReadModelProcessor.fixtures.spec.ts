@@ -38,6 +38,11 @@ const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json')
     .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
 const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
 const guardErrors: Record<string, { type: string; message: string }> = {
+    'composite-parent-key-without-constant.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
+    'composite-child-join-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
+    'composite-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
+    'composite-parent-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
+    'composite-join-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'join keys other than $eventSourceId' },
     'from-all-only.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
     'from-all-mixed.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
     'from-all-exclude-children.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },

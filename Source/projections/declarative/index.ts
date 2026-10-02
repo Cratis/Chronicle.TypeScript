@@ -26,6 +26,7 @@ export type { IJoinBuilder } from './IJoinBuilder.js';
 export type { IFromEveryBuilder } from './IFromEveryBuilder.js';
 export type { IReadModelPropertiesBuilder } from './IReadModelPropertiesBuilder.js';
 export type { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
+export type { ICompositeKeySetBuilder } from './ICompositeKeySetBuilder.js';
 export type { ISetBuilder } from './ISetBuilder.js';
 export type { IAllSetBuilder } from './IAllSetBuilder.js';
 export type { IAddBuilder } from './IAddBuilder.js';

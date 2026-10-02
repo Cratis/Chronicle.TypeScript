@@ -1,0 +1,261 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.26.2",
+    "commit": "1f8d832"
+  },
+  "tsContracts": {
+    "version": "19.26.2",
+    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+  },
+  "definitionSource": "TypeScript ProjectionBuilderFor: root usingCompositeKey and child usingParentCompositeKey with orderId content, Subject context and event source id, without a constant part. See when_matching_kernel_fixtures.spec.ts. Chronicle 19.26.2 cannot find the existing parent through this composite; the first child event attempts AddFuture and reaches the oracle's fail-closed futures guard, leaving the parent unchanged. The captured NotSupportedException belongs to that guard, not to the kernel; no future is stored or replayed. Composite parent resolution is tracked by Cratis/Chronicle#551.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "oracle-composite-parent-without-constant",
+    "ReadModel": "OracleReadModel",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "OrderCreated",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$composite(orderId=orderId,subject=$eventContext(Subject),sourceId=$eventSourceId)",
+          "ParentKey": "",
+          "Properties": {
+            "title": "title"
+          }
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {
+      "items": {
+        "IdentifiedBy": "id",
+        "From": [
+          {
+            "Key": {
+              "Id": "ItemChanged",
+              "Generation": 1
+            },
+            "Value": {
+              "Key": "itemId",
+              "ParentKey": "$composite(orderId=orderId,subject=$eventContext(Subject),sourceId=$eventSourceId)",
+              "Properties": {
+                "id": "itemId",
+                "name": "name"
+              }
+            }
+          }
+        ],
+        "Join": [],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [],
+        "RemovedWithJoin": [],
+        "AutoMap": 1,
+        "Nested": {},
+        "NoAutoMapProperties": []
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "FromEventProperty": null,
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 1,
+    "Nested": {},
+    "SubscribesToAllEvents": false,
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "object",
+          "properties": {
+            "orderId": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "sourceId": {
+              "type": "string"
+            }
+          }
+        },
+        "title": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "eventSchemas": [
+    {
+      "eventType": {
+        "Id": "OrderCreated",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "eventType": {
+        "Id": "ItemChanged",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "OrderCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "order-1",
+        "subject": "alice",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "title": "created",
+        "orderId": "order-1"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "order-1",
+        "subject": "alice",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "item-1",
+        "name": "first",
+        "orderId": "order-1"
+      },
+      "expectedError": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IProjectionFutures.AddFuture"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "order-1_order-1_alice": {
+          "items": [],
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "order-1"
+          },
+          "__initialized": true,
+          "title": "created",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "order-1_order-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "order-1"
+          },
+          "title": "created",
+          "items": []
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "order-1_order-1_alice": {
+          "items": [],
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "order-1"
+          },
+          "__initialized": true,
+          "title": "created",
+          "__subject": "alice"
+        }
+      },
+      "publicRead": {
+        "order-1_order-1_alice": {
+          "id": {
+            "orderId": "order-1",
+            "subject": "alice",
+            "sourceId": "order-1"
+          },
+          "title": "created",
+          "items": []
+        }
+      },
+      "error": {
+        "type": "System.NotSupportedException",
+        "message": "Oracle fixture called IProjectionFutures.AddFuture"
+      }
+    }
+  ]
+}

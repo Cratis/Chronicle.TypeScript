@@ -90,7 +90,7 @@ internal static class FixtureDefinition
     }
 
     /// <summary>
-    /// Reads one level of children (From and RemovedWith only); every other child operation fails closed.
+    /// Reads one level of children (From, Join and RemovedWith only); every other child operation fails closed.
     /// </summary>
     static ContractChildren ReadChildren(JsonObject node)
     {
@@ -112,7 +112,12 @@ internal static class FixtureDefinition
             Only(entry!.AsObject(), "Key", "Value");
             children.RemovedWith.Add(entry["Key"]!.Deserialize<ContractEventType>(_strict)!, entry["Value"]!.Deserialize<ContractRemoval>(_strict)!);
         }
-        foreach (var name in new[] { "Join", "Children", "RemovedWithJoin", "Nested" })
+        foreach (var entry in node["Join"]!.AsArray())
+        {
+            Only(entry!.AsObject(), "Key", "Value");
+            children.Join.Add(entry["Key"]!.Deserialize<ContractEventType>(_strict)!, entry["Value"]!.Deserialize<ContractJoin>(_strict)!);
+        }
+        foreach (var name in new[] { "Children", "RemovedWithJoin", "Nested" })
         {
             if (node[name] is JsonArray array && array.Count != 0 || node[name] is JsonObject map && map.Count != 0)
             {

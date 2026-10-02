@@ -3,36 +3,53 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
+import { ISetBuilder } from './ISetBuilder.js';
+import { ICompositeKeySetBuilder } from './ICompositeKeySetBuilder.js';
+import { SetBuilder } from './SetBuilder.js';
 
 /**
  * Concrete implementation of {@link ICompositeKeyBuilder} that builds a `$composite(...)` key
- * expression from multiple event properties mapped onto named parts of a key type.
+ * expression from event properties, event context, source identifiers and constants.
  * @template TKeyType - The composite key type.
  * @template TEvent - The event type.
  */
 export class CompositeKeyBuilder<TKeyType, TEvent> implements ICompositeKeyBuilder<TKeyType, TEvent> {
-    private readonly _parts: Array<{ property: string; expression: string }> = [];
+    private readonly _parts: Array<{ property: string; expression?: string }> = [];
 
+    /** @inheritdoc */
+    set<TProperty>(targetPropertyAccessor: (key: TKeyType) => TProperty): ICompositeKeySetBuilder<TKeyType, TEvent, TProperty>;
     /** @inheritdoc */
     set(
         targetPropertyAccessor: PropertyAccessor<TKeyType>,
         sourcePropertyAccessor: PropertyAccessor<TEvent>
-    ): ICompositeKeyBuilder<TKeyType, TEvent> {
+    ): ICompositeKeyBuilder<TKeyType, TEvent>;
+    set(
+        targetPropertyAccessor: PropertyAccessor<TKeyType>,
+        sourcePropertyAccessor?: PropertyAccessor<TEvent>
+    ): ICompositeKeyBuilder<TKeyType, TEvent> | ISetBuilder<TEvent, ICompositeKeyBuilder<TKeyType, TEvent>> {
         const targetHandler = new PropertyPathResolverProxyHandler();
         const targetProxy = new Proxy({}, targetHandler);
         targetPropertyAccessor(targetProxy as TKeyType);
 
-        const sourceHandler = new PropertyPathResolverProxyHandler();
-        const sourceProxy = new Proxy({}, sourceHandler);
-        sourcePropertyAccessor(sourceProxy as TEvent);
+        if (this._parts.some(part => part.property === targetHandler.property)) {
+            throw new Error(`Composite key part '${targetHandler.property}' is already configured.`);
+        }
 
-        this._parts.push({ property: targetHandler.property, expression: sourceHandler.property });
-        return this;
+        const part: { property: string; expression?: string } = { property: targetHandler.property };
+        this._parts.push(part);
+        const setBuilder = new SetBuilder<TEvent, ICompositeKeyBuilder<TKeyType, TEvent>>(
+            part.property, (_property, expression) => { part.expression = expression; }, this);
+        return sourcePropertyAccessor ? setBuilder.to(sourcePropertyAccessor) : setBuilder;
     }
 
     /** @inheritdoc */
     build(): string {
-        const parts = this._parts.map(part => `${part.property}=${part.expression}`).join(',');
+        const parts = this._parts.map(part => {
+            if (part.expression === undefined) {
+                throw new Error(`Composite key part '${part.property}' is missing a to expression.`);
+            }
+            return `${part.property}=${part.expression}`;
+        }).join(',');
         return `$composite(${parts})`;
     }
 }

@@ -82,7 +82,7 @@ internal static class OracleRunner
                 JsonSchema.FromJson(node["schema"]!.ToJsonString()));
         }).ToArray();
         var declaredTypes = wire.From.Keys.Concat(wire.RemovedWith.Keys).Concat(wire.Join.Keys)
-            .Concat(wire.Children.Values.SelectMany(child => child.From.Keys.Concat(child.RemovedWith.Keys)))
+            .Concat(wire.Children.Values.SelectMany(child => child.From.Keys.Concat(child.RemovedWith.Keys).Concat(child.Join.Keys)))
             .Select(type => (type.Id, type.Generation)).ToHashSet();
         var schemaTypes = eventSchemas.Select(schema => (schema.Type.Id.Value, schema.Type.Generation.Value)).ToHashSet();
         if (declaredTypes.Except(schemaTypes).Any() || schemaTypes.Count != eventSchemas.Length)
