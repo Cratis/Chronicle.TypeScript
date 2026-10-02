@@ -5,7 +5,7 @@
 export interface ChronicleTelemetryOptions {
     /**
      * Span naming convention. Defaults to legacy; both modes use the same scope and attribute families.
-     * @deprecated Replacing the earlier "next major" plan, built-in legacy span emission ends in an upcoming
+     * Replacing the earlier "next major" plan, built-in legacy span emission ends in an upcoming
      * minor after ADR 0001's one-minor overlap. Both values will remain accepted as no-ops, without a removal deadline.
      * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
