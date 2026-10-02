@@ -173,7 +173,7 @@ export class InProcessEventSequence implements IEventSequence {
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
             if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason));
+            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason), true);
             const metadata = this._catalog.get(event.constructor);
             if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
             let prepared: ReturnType<typeof prepareSingleAppend>;

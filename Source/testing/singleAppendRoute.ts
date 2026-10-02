@@ -6,13 +6,15 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 
 /** The fixture-proven single-append route boundary, shared with read-model setup. */
 export function singleAppendRoute(options: AppendOptions | undefined, artifact: string,
-    unsupported = (operation: string, artifact: string, reason: string) => new UnsupportedEventSequenceOperation(operation, artifact, reason)
+    unsupported = (operation: string, artifact: string, reason: string) => new UnsupportedEventSequenceOperation(operation, artifact, reason),
+    allowSubject = false
 ): { sourceType: string; streamType: string; streamId: string } {
     if (options !== undefined && (!options || typeof options !== 'object' || Array.isArray(options))) {
         throw unsupported('append.options', artifact, 'Append options must be an object.');
     }
-    if (options && (Reflect.ownKeys(options).some(key => !['sourceType', 'streamType', 'streamId', 'subject'].includes(String(key))) ||
-        options.correlationId !== undefined || options.occurred !== undefined ||
+    const allowed = ['sourceType', 'streamType', 'streamId', ...(allowSubject ? ['subject'] : [])];
+    if (options && (Reflect.ownKeys(options).some(key => !allowed.includes(String(key))) ||
+        options.correlationId !== undefined || (!allowSubject && options.subject !== undefined) || options.occurred !== undefined ||
         options.eventSourceId !== undefined || options.concurrencyScope !== undefined || options.tags !== undefined ||
         options.concurrencyScopes !== undefined)) {
         throw unsupported('append.options', artifact, 'Only sourceType, streamType, streamId and subject options are supported for single append.');

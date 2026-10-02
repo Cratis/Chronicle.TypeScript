@@ -179,6 +179,41 @@ export function subjectBehaviors(fixtures: {
             it('should record the event source subject in the scenario', () => check(scenarioSubjects).deep.equal(['source']));
         });
     }
+    for (const testCase of cases) {
+        describe(`when using routed scenario builders with ${testCase.name}`, () => {
+            let memory: EventScenario;
+            const route = { sourceType: 'people', streamType: 'personal', streamId: 'details' };
+            beforeEach(async () => {
+                memory = scenario();
+                await memory.given.forEventSource('source', route).events(testCase.event());
+                await memory.when.forEventSource('source', route).event(testCase.event());
+                await memory.when.forEventSource('source', route).events(testCase.event());
+            });
+            it('should record the kernel subject for seeds, single appends and batch appends', () => {
+                check(memory.appendedEvents.map(event => event.context.subject)).deep.equal(Array(3).fill(testCase.stored));
+            });
+            it('should retain the selected route on every append path', () => {
+                check(memory.appendedEvents.map(event => ({ sourceType: event.context.eventSourceType,
+                    streamType: event.context.eventStreamType, streamId: event.context.eventStreamId }))).deep.equal(Array(3).fill(route));
+            });
+        });
+    }
+    for (const subject of ['explicit', '', '  ']) {
+        describe(`when routed scenario builders override an annotation with ${JSON.stringify(subject)}`, () => {
+            let subjects: (string | undefined)[];
+            beforeEach(async () => {
+                const memory = scenario();
+                const options = { sourceType: 'people', streamType: 'personal', streamId: 'details', subject };
+                await memory.given.forEventSource('source', options).events(fixtures.annotated('person'));
+                await memory.when.forEventSource('source', options).event(fixtures.annotated('person'));
+                await memory.when.forEventSource('source', options).events(fixtures.annotated('person'));
+                subjects = memory.appendedEvents.map(event => event.context.subject);
+            });
+            it('should prefer the call subject and apply the kernel fallback on every path', () => {
+                check(subjects).deep.equal(Array(3).fill(subject.trim() ? subject : 'source'));
+            });
+        });
+    }
     describe('when committing transactional single and batch appends', () => {
         let subjects: string[];
         beforeEach(async () => {
