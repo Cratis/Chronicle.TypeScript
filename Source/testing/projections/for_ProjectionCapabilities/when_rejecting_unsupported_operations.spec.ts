@@ -79,6 +79,8 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         { name: 'removedWithJoin', define: builder => { builder.from(Changed).removedWithJoin(Removed); }, path: 'RemovedWithJoin[capability-removed:1] (.removedWithJoin)' },
         { name: 'removal key', define: builder => { builder.from(Removed).removedWith(Changed, removal => removal.usingKey(event => event.name)); }, path: 'RemovedWith[capability-changed:1].Key (.removedWith)' },
         { name: 'fromEvery', define: builder => { builder.from(Changed).fromEvery(all => all.set(model => model.name).toEventSourceId()); }, path: 'All (.fromEvery)' },
+        { name: 'fromAll', define: builder => { builder.fromAll(all => all.set(model => model.name).toEventSourceId()); }, path: 'SubscribesToAllEvents (.fromAll)' },
+        { name: 'empty fromAll', define: builder => { builder.fromAll(() => {}); }, path: 'SubscribesToAllEvents (.fromAll)' },
         { name: 'empty fromEvery', define: builder => { builder.from(Changed).fromEvery(all => all.excludeChildProjections()); }, path: 'All (.fromEvery)' },
         { name: 'passive', define: builder => { builder.from(Changed).passive(); }, path: 'IsActive (.passive)' },
         { name: 'event sequence', define: builder => { builder.from(Changed).fromEventSequence('custom'); }, path: 'EventSequenceId (.fromEventSequence)' }

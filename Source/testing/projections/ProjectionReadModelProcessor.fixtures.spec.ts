@@ -38,6 +38,11 @@ const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json')
     .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
 const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
 const guardErrors: Record<string, { type: string; message: string }> = {
+    'from-all-only.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
+    'from-all-mixed.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
+    'from-all-exclude-children.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
+    'from-all-empty.json': { type: 'UnsupportedProjectionOperation', message: 'subscribe-to-all projections require a kernel-backed test' },
+    'from-every-restricted.json': { type: 'UnsupportedProjectionOperation', message: 'fromEvery/all subscriptions require a kernel-backed test' },
     'joins-custom-key.json': { type: 'UnsupportedProjectionOperation', message: 'join keys other than $eventSourceId' },
     'joins-initial-state.json': { type: 'UnsupportedProjectionOperation', message: 'joins with initial model state' },
     'arithmetic-string-operand.json': { type: 'UnsupportedProjectionOperation', message: 'arithmetic operands must have number/double' },

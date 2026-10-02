@@ -1,3 +1,6 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+
 ```typescript title="Declarative FromAll with a dynamic dictionary key"
 import { eventType, IProjectionBuilderFor, IProjectionFor, projection } from '@cratis/chronicle';
 import { field } from '@cratis/fundamentals';
@@ -29,8 +32,8 @@ export class EventTypeCountsReadModel {
 export class EventTypeCountsProjection implements IProjectionFor<EventTypeCountsReadModel> {
     define(builder: IProjectionBuilderFor<EventTypeCountsReadModel>): void {
         builder
-            .fromEvery(_ => _
-                .count(m => m.eventCountByType, 'eventType')
+            .fromAll(_ => _
+                .count(m => m.eventCountByType, 'eventType.id')
                 .set(m => m.lastEventOccurred).toEventContextProperty('occurred'));
     }
 }

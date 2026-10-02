@@ -11,6 +11,8 @@ export { AddChildBuilder } from './AddChildBuilder.js';
 export type { ChildAdditionEntry } from './AddChildBuilder.js';
 export { CompositeKeyBuilder } from './CompositeKeyBuilder.js';
 export { FromBuilder } from './FromBuilder.js';
+export { FromAllBuilder } from './FromAllBuilder.js';
+export type { IFromAllBuilder } from './IFromAllBuilder.js';
 export { JoinBuilder } from './JoinBuilder.js';
 export { SetBuilder } from './SetBuilder.js';
 export { AddBuilder } from './AddBuilder.js';

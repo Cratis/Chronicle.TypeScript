@@ -3,6 +3,7 @@
 
 import { PropertyAccessor } from '@cratis/fundamentals';
 import { IProjectionBuilder } from './IProjectionBuilder.js';
+import type { IFromAllBuilder } from './IFromAllBuilder.js';
 
 /**
  * Defines the top-level projection builder for a specific read model type.
@@ -11,6 +12,14 @@ import { IProjectionBuilder } from './IProjectionBuilder.js';
  */
 export interface IProjectionBuilderFor<TReadModel>
     extends IProjectionBuilder<TReadModel, IProjectionBuilderFor<TReadModel>> {
+    /**
+     * Subscribes to every event type, including types not explicitly declared.
+     * Mappings share the All block with fromEvery. Unlike fromEvery, this expands the subscription.
+     * @param builderCallback - Callback for configuring all-event assignments and counters.
+     * @returns This builder for fluent chaining.
+     */
+    fromAll(builderCallback: (builder: IFromAllBuilder<TReadModel>) => void): IProjectionBuilderFor<TReadModel>;
+
     /**
      * Specifies the event sequence this projection should read from.
      * @param eventSequenceId - The identifier of the event sequence.

@@ -12,6 +12,7 @@ using ContractJoin = KernelContracts::Cratis.Chronicle.Contracts.Projections.Joi
 using ContractRemoval = KernelContracts::Cratis.Chronicle.Contracts.Projections.RemovedWithDefinition;
 using ContractDefinition = KernelContracts::Cratis.Chronicle.Contracts.Projections.ProjectionDefinition;
 using ContractChildren = KernelContracts::Cratis.Chronicle.Contracts.Projections.ChildrenDefinition;
+using ContractAll = KernelContracts::Cratis.Chronicle.Contracts.Projections.FromEveryDefinition;
 
 namespace ProjectionOracle;
 
@@ -35,6 +36,7 @@ internal static class FixtureDefinition
             IsActive = node["IsActive"]!.GetValue<bool>(),
             IsRewindable = node["IsRewindable"]!.GetValue<bool>(),
             InitialModelState = node["InitialModelState"]!.GetValue<string>(),
+            SubscribesToAllEvents = node["SubscribesToAllEvents"]?.GetValue<bool>() ?? false,
             AutoMap = (KernelContracts::Cratis.Chronicle.Contracts.Projections.AutoMap)node["AutoMap"]!.GetValue<int>(),
             NoAutoMapProperties = node["NoAutoMapProperties"]!.AsArray().Select(item => item!.GetValue<string>()).ToList()
         };
@@ -78,11 +80,11 @@ internal static class FixtureDefinition
         if (node["All"] is JsonObject all)
         {
             Only(all, "Properties", "IncludeChildren", "AutoMap");
+            definition.All = all.Deserialize<ContractAll>(_strict)!;
         }
-        if (node["All"] is JsonObject allOperations && (allOperations["Properties"] is JsonObject properties && properties.Count != 0 || allOperations["IncludeChildren"]?.GetValue<bool>() == true || allOperations["AutoMap"]?.GetValue<int>() != 0) ||
-            node["FromEventProperty"] is not null || node["SubscribesToAllEvents"]?.GetValue<bool>() == true || node["LastUpdated"] is not null || node["Tags"] is JsonArray { Count: > 0 })
+        if (node["FromEventProperty"] is not null || node["LastUpdated"] is not null || node["Tags"] is JsonArray { Count: > 0 })
         {
-            throw new NotSupportedException("Oracle fixture has unsupported All, FromEventProperty, SubscribesToAllEvents or LastUpdated operation.");
+            throw new NotSupportedException("Oracle fixture has unsupported FromEventProperty, LastUpdated or Tags operation.");
         }
         return definition;
     }

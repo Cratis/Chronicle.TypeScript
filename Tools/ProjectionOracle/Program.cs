@@ -78,7 +78,8 @@ internal static class Program
                     "arithmetic-rounding.json", "arithmetic-automap.json", "arithmetic-string-operand.json",
                     "arithmetic-nonnumeric-operand.json", "arithmetic-uint32-overflow.json", "arithmetic-null-initial.json",
                     "arithmetic-int32-operand-overflow.json", "arithmetic-uint32-operand.json", "arithmetic-unformatted-number.json",
-                    "arithmetic-remove-recreate.json", "arithmetic-zero-operand.json", "arithmetic-assignment.json"
+                    "arithmetic-remove-recreate.json", "arithmetic-zero-operand.json", "arithmetic-assignment.json",
+                    "from-all-only.json", "from-all-mixed.json", "from-all-exclude-children.json", "from-all-empty.json", "from-every-restricted.json"
                 })
                 {
                     if (!projectionFiles.Contains(Path.Combine("Source", "testing", "projections", "fixtures", required)))
