@@ -59,6 +59,19 @@ describe('when reconnecting a read model watcher', () => {
         (await watcher[Symbol.asyncIterator]().next()).value.key.should.equal('new');
     });
 
+    it('should acknowledge a new subscription before consuming its buffered changes', async () => {
+        context.streams[0].send({ Subscribed: true });
+        await watcher.subscribed;
+        const iterator = watcher[Symbol.asyncIterator]();
+        await context.disconnect();
+        const readiness = watcher.subscribed;
+        await context.connect();
+        context.streams[1].send({ ModelKey: 'new', ReadModel: '{"id":"new"}' });
+        context.streams[1].send({ Subscribed: true });
+        await readiness;
+        (await iterator.next()).value.key.should.equal('new');
+    });
+
     it('should not create duplicate streams for repeated connected notifications', async () => {
         await context.connect();
         context.streams.should.have.lengthOf(1);

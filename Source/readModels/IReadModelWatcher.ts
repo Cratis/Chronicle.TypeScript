@@ -7,7 +7,7 @@ import type { ReadModelChangeset } from './ReadModelChangeset.js';
 export interface IReadModelWatcher<TReadModel> extends AsyncIterable<ReadModelChangeset<TReadModel>> {
     /**
      * Resolves on the kernel's subscription acknowledgment, without requiring iteration.
-     * After a lifecycle disconnect, read this property again for the next subscription.
+     * After a lifecycle disconnect or recoverable stream failure, read this property again for the next subscription.
      * An already pending promise carries across lifecycle reconnects; a previously resolved
      * promise cannot be revoked. Rejects if the watcher stops before acknowledgment.
      */

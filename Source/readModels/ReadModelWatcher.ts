@@ -8,6 +8,9 @@ import type { ReadModelChangeset } from './ReadModelChangeset.js';
 
 /** @internal Owns one cancellable stream per connection generation. */
 export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadModel>, AsyncIterableIterator<ReadModelChangeset<TReadModel>> {
+    private static readonly _restartDelayMs = 1000;
+    private static readonly _bufferLimit = 1024;
+
     private _subscribed!: Promise<void>;
     private _resolveSubscribed!: () => void;
     private _rejectSubscribed!: (error: unknown) => void;
@@ -16,8 +19,8 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
     private _stopped = false;
     private _failed = false;
     private _failure?: unknown;
-    private _buffered?: ReadModelChangeset<TReadModel>;
-    private _resume?: () => void;
+    private readonly _buffered: ReadModelChangeset<TReadModel>[] = [];
+    private _restartTimer?: ReturnType<typeof setTimeout>;
     private readonly _waiting: {
         resolve: (result: IteratorResult<ReadModelChangeset<TReadModel>>) => void;
         reject: (error: unknown) => void;
@@ -28,19 +31,22 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         private readonly _open: (signal: AbortSignal) => AsyncIterable<ContractChangeset>,
         private readonly _convert: (change: ContractChangeset) => Promise<ReadModelChangeset<TReadModel>>,
         signal: AbortSignal,
-        lifecycle?: ConnectionLifecycle
+        private readonly _lifecycle?: ConnectionLifecycle
     ) {
         this.resetReadiness();
         const abort = () => this.finish(signal.reason, false);
         signal.addEventListener('abort', abort, { once: true });
         this._unsubscribe.push(() => signal.removeEventListener('abort', abort));
-        if (lifecycle) {
-            this._unsubscribe.push(lifecycle.onDisconnected(async () => this.disconnect()));
-            this._unsubscribe.push(lifecycle.onConnected(async () => this.start()));
+        if (_lifecycle) {
+            this._unsubscribe.push(_lifecycle.onDisconnected(async () => this.disconnect()));
+            this._unsubscribe.push(_lifecycle.onConnected(async () => this.start()));
+            this._unsubscribe.push(_lifecycle.onFailed(async error => this.finish(error, true)));
         }
         if (signal.aborted) {
             abort();
-        } else if (!lifecycle || lifecycle.isConnected) {
+        } else if (_lifecycle?.failure) {
+            this.finish(_lifecycle.failure, true);
+        } else if (!_lifecycle || _lifecycle.isConnected) {
             this.start();
         }
     }
@@ -54,11 +60,8 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
     }
 
     next(): Promise<IteratorResult<ReadModelChangeset<TReadModel>>> {
-        if (this._buffered) {
-            const value = this._buffered;
-            this._buffered = undefined;
-            this._resume?.();
-            this._resume = undefined;
+        const value = this._buffered.shift();
+        if (value) {
             return Promise.resolve({ done: false, value });
         }
         if (this._failed) return Promise.reject(this._failure);
@@ -88,6 +91,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
 
     private start(): void {
         if (this._stopped || this._controller) return;
+        this.clearRestartTimer();
         const controller = new AbortController();
         this._controller = controller;
         void this.read(controller);
@@ -95,17 +99,33 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
 
     private disconnect(): void {
         if (this._stopped) return;
+        this.clearRestartTimer();
         this.cancelStream();
         if (this._acknowledged) this.resetReadiness();
+    }
+
+    private restart(): void {
+        this.disconnect();
+        if (this._stopped || !this._lifecycle?.isConnected) return;
+        // The watch and keep-alive share a transport, but can fail in either order.
+        // Also recover a watch-only failure if no disconnected notification follows.
+        this._restartTimer = setTimeout(() => {
+            this._restartTimer = undefined;
+            if (this._lifecycle?.isConnected) this.start();
+        }, ReadModelWatcher._restartDelayMs);
+        this._restartTimer.unref?.();
+    }
+
+    private clearRestartTimer(): void {
+        clearTimeout(this._restartTimer);
+        this._restartTimer = undefined;
     }
 
     private cancelStream(): void {
         const controller = this._controller;
         this._controller = undefined;
         controller?.abort();
-        this._buffered = undefined;
-        this._resume?.();
-        this._resume = undefined;
+        this._buffered.length = 0;
     }
 
     private async read(controller: AbortController): Promise<void> {
@@ -117,22 +137,38 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
                     this._resolveSubscribed();
                     continue;
                 }
-                const converted = await this._convert(change);
+                let converted: ReadModelChangeset<TReadModel>;
+                try {
+                    converted = await this._convert(change);
+                } catch (error) {
+                    // Conversion includes compliance RPCs: even transport-coded errors here
+                    // are terminal, not permission to skip an unreleased change.
+                    if (this._controller === controller) this.finish(error, true);
+                    return;
+                }
                 if (this._controller !== controller) return;
                 const waiting = this._waiting.shift();
                 if (waiting) {
                     waiting.resolve({ done: false, value: converted });
                 } else {
-                    // One-item lookahead keeps readiness eager without an unbounded client queue.
-                    this._buffered = converted;
-                    await new Promise<void>(resolve => { this._resume = resolve; });
+                    // The kernel can send data before Subscribed. Never let consumer
+                    // backpressure prevent reading the readiness marker or a stream failure.
+                    if (this._buffered.length === ReadModelWatcher._bufferLimit) {
+                        this.finish(new Error('Read model watcher buffer exceeded 1024 changes. Consume changes faster or refresh the read model and create a new watcher.'), true);
+                        return;
+                    }
+                    this._buffered.push(converted);
                 }
             }
             if (this._controller === controller) {
-                this.finish(new Error('Read model watch ended before subscription acknowledgment.'), false);
+                if (this._lifecycle) this.restart();
+                else this.finish(new Error('Read model watch ended before subscription acknowledgment.'), false);
             }
         } catch (error) {
-            if (this._controller === controller) this.finish(error, true);
+            if (this._controller !== controller) return;
+            const code = (error as { code?: number })?.code;
+            if (this._lifecycle && code !== undefined && [1, 4, 13, 14].includes(code)) this.restart();
+            else this.finish(error, true);
         }
     }
 
@@ -142,6 +178,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         this._failed = failed;
         this._failure = reason;
         this._rejectSubscribed(reason);
+        this.clearRestartTimer();
         this.cancelStream();
         for (const unsubscribe of this._unsubscribe) unsubscribe();
         this._unsubscribe.length = 0;

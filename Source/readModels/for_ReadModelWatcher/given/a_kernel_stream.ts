@@ -40,7 +40,7 @@ export class a_kernel_stream implements AsyncIterableIterator<ReadModelChangeset
         this._waiting = undefined;
     }
 
-    fail(error: Error): void {
+    fail(error: unknown): void {
         if (!this._waiting) throw new Error('The stream must be reading before failing it.');
         this._waiting.reject(error);
         this._waiting = undefined;

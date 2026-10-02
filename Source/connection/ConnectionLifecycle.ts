@@ -12,6 +12,8 @@ export type DisconnectedHandler = () => Promise<void>;
 export class ConnectionLifecycle {
     private readonly _onConnected = new Set<ConnectedHandler>();
     private readonly _onDisconnected = new Set<DisconnectedHandler>();
+    private readonly _onFailed = new Set<(error: Error) => Promise<void>>();
+    private _failure?: Error;
 
     private _isConnected = false;
     private _connectionId: string = Guid.create().toString();
@@ -21,6 +23,11 @@ export class ConnectionLifecycle {
      */
     get isConnected(): boolean {
         return this._isConnected;
+    }
+
+    /** Gets the terminal connection failure, if recovery has stopped. */
+    get failure(): Error | undefined {
+        return this._failure;
     }
 
     /**
@@ -50,10 +57,25 @@ export class ConnectionLifecycle {
         return () => this._onDisconnected.delete(handler);
     }
 
+    /** Registers a callback for a terminal connection failure. */
+    onFailed(handler: (error: Error) => Promise<void>): () => void {
+        this._onFailed.add(handler);
+        return () => this._onFailed.delete(handler);
+    }
+
+    /** Stops recovery and notifies observers of the terminal connection failure. */
+    async failed(error: Error, onError: (error: unknown) => void): Promise<void> {
+        if (this._failure) return;
+        this._failure = error;
+        this._isConnected = false;
+        await Promise.all([...this._onFailed].map(handler => this.invokeHandler(() => handler(error), onError)));
+    }
+
     /**
      * Marks lifecycle as connected and invokes connected handlers.
      */
     async connected(onError: (error: unknown) => void): Promise<void> {
+        if (this._failure) return;
         this._isConnected = true;
         await Promise.all([...this._onConnected].map(handler => this.invokeHandler(handler, onError)));
     }

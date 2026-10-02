@@ -54,6 +54,12 @@ describe('when receiving read model changes', () => {
         (change.changeContext.correlationId === undefined).should.be.true;
     });
 
+    it.each(['', 'not a timestamp'])('should leave an empty or invalid timestamp (%s) absent', async value => {
+        context.streams[0].send({ ReadModel: '{}', Occurred: { Value: value } });
+        const change = (await watcher[Symbol.asyncIterator]().next()).value;
+        (change.changeContext.occurred === undefined).should.be.true;
+    });
+
     it('should surface a deserialization failure and stop the stream', async () => {
         const next = watcher[Symbol.asyncIterator]().next().catch(error => error);
         context.streams[0].send({ ReadModel: 'not json' });

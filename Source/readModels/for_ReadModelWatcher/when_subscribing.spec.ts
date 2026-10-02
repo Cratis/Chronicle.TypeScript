@@ -40,17 +40,23 @@ describe('when subscribing to read model changes', () => {
         result.value.key.should.equal('one');
     });
 
-    it('should reject readiness if the stream ends without acknowledgment', async () => {
-        const failure = watcher.subscribed.catch(error => error);
-        context.streams[0].end();
-        (await failure).message.should.contain('before subscription acknowledgment');
-    });
-
-    it('should settle iteration when a subscribed stream ends', async () => {
+    it('should acknowledge without iteration even when changes arrive before the marker', async () => {
+        context.streams[0].send({ ModelKey: 'one', ReadModel: '{"id":"one"}' });
+        context.streams[0].send({ ModelKey: 'two', ReadModel: '{"id":"two"}' });
         context.streams[0].send({ Subscribed: true });
         await watcher.subscribed;
-        const pending = watcher[Symbol.asyncIterator]().next();
-        context.streams[0].end();
-        (await pending).done!.should.be.true;
+        const iterator = watcher[Symbol.asyncIterator]();
+        (await iterator.next()).value.key.should.equal('one');
+        (await iterator.next()).value.key.should.equal('two');
+    });
+
+    it('should fail explicitly instead of hanging or silently dropping changes when the buffer overflows', async () => {
+        const failure = watcher.subscribed.catch(error => error);
+        for (let index = 0; index <= 1024; index++) context.streams[0].send({ ReadModel: '{}' });
+        context.streams[0].send({ Subscribed: true });
+        (await failure).message.should.contain('buffer exceeded 1024 changes');
+        const iterationFailure = await watcher[Symbol.asyncIterator]().next().catch(error => error);
+        iterationFailure.should.equal(await failure);
+        context.streams[0].signal.aborted.should.be.true;
     });
 });

@@ -69,7 +69,10 @@ export interface IReadModels {
      * @param readModelType - The read model type to observe.
      * @param options - Optional cancellation signal; abort completes iteration and rejects pending readiness.
      * @returns A single-consumer async iterable with subscription readiness and explicit disposal.
-     * Lifecycle reconnects open a new subscription; stream faults reject iteration.
+     * Transport failures resume after reconnect; terminal stream or connection failures reject iteration.
+     * @remarks Implementations and test doubles must return an IReadModelWatcher, not a plain
+     * AsyncIterable or async generator: expose subscription readiness and idempotent disposal.
+     * Existing consumers using for-await or assigning to AsyncIterable remain compatible.
      */
     watch<TReadModel>(readModelType: Constructor<TReadModel>, options?: { signal?: AbortSignal }): IReadModelWatcher<TReadModel>;
 

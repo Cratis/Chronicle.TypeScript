@@ -193,6 +193,7 @@ export class ReadModels implements IReadModels {
             }, { signal: streamSignal }),
             async changeset => {
                 const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
+                const occurred = changeset.Occurred?.Value ? new Date(changeset.Occurred.Value) : undefined;
                 const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
                     this.schemaHasComplianceMetadata(readModel.schema);
                 return {
@@ -207,7 +208,7 @@ export class ReadModels implements IReadModels {
                         namespace: changeset.Namespace,
                         sequenceNumber: changeset.EventSequenceNumber,
                         correlationId: changeset.CorrelationId ? fromContractsGuid(changeset.CorrelationId).toString() : undefined,
-                        occurred: changeset.Occurred ? new Date(changeset.Occurred.Value) : undefined
+                        occurred: occurred && !Number.isNaN(occurred.getTime()) ? occurred : undefined
                     }
                 };
             },
