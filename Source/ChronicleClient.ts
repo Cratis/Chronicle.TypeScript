@@ -123,7 +123,7 @@ export class ChronicleClient implements IChronicleClient {
                 ? new EventStoreNamespaceName(namespace)
                 : namespace;
 
-        return observeOperation('getEventStore', this.options.telemetry, async span => {
+        return observeOperation('getEventStore', async span => {
             setTelemetryAttribute(span, 'eventStore', storeName.value);
             setTelemetryAttribute(span, 'namespace', namespaceName.value);
             try {
@@ -180,7 +180,7 @@ export class ChronicleClient implements IChronicleClient {
 
     /** @inheritdoc */
     async getEventStores(): Promise<EventStoreName[]> {
-        return observeOperation('getEventStores', this.options.telemetry, async span => {
+        return observeOperation('getEventStores', async span => {
             try {
                 const response = await this.withReconnect('get_event_stores', async () => {
                     await this.ensureConnected();

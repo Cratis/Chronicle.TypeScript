@@ -32,11 +32,11 @@ for (const [label, policy, expected] of [
             await sequence.redactForEventSource(source, 'private reason');
             services.append.mock.calls[0][0].EventSourceId.should.equal(source);
         });
-        it('should apply the policy equally to both names on every operation', () => {
+        it('should apply the policy only to the canonical name on every operation', () => {
             telemetry.spans.getFinishedSpans().should.have.lengthOf(8);
             for (const span of telemetry.spans.getFinishedSpans()) {
                 should.equal(span.attributes['cratis.event_source.id'], expected);
-                should.equal(span.attributes['chronicle.event_source_id'], expected);
+                should.equal(span.attributes['chronicle.event_source_id'], undefined);
             }
         });
     });
@@ -71,7 +71,8 @@ describe('when appending a batch with multiple event sources', () => {
     });
     it('should record the count without an identifier array', () => {
         const attributes = telemetry.spans.getFinishedSpans()[0].attributes;
-        attributes.should.include({ 'cratis.event.count': 2, 'chronicle.events_count': 2 });
+        attributes.should.have.property('cratis.event.count', 2);
+        attributes.should.not.have.property('chronicle.events_count');
         should.equal(attributes['cratis.event_source.id'], undefined);
         should.equal(attributes['chronicle.event_source_id'], undefined);
     });

@@ -6,17 +6,14 @@ import { ChronicleTracer } from '../Tracing.js';
 import { correlationIdManager } from '../correlation/index.js';
 import { CorrelationId } from '../correlation/CorrelationId.js';
 import { WellKnownTelemetryNames } from '../WellKnownTelemetryNames.js';
-import type { ChronicleTelemetryOptions } from './ChronicleTelemetryOptions.js';
 
 /** Opens one client span, scoping the resolved business correlation without generating a new one. */
 export function observeOperation<T>(
-    operation: keyof typeof WellKnownTelemetryNames.conventionSpans,
-    telemetry: ChronicleTelemetryOptions | undefined,
+    operation: keyof typeof WellKnownTelemetryNames.spans,
     action: (span: Span) => Promise<T>,
     correlationId?: { toString(): string }
 ): Promise<T> {
-    const names = telemetry?.spanNames === 'convention' ? WellKnownTelemetryNames.conventionSpans : WellKnownTelemetryNames.spans;
-    const name = names[operation];
+    const name = WellKnownTelemetryNames.spans[operation];
     const resolved = correlationId ? new CorrelationId(correlationId.toString()) : correlationIdManager.scoped;
     const run = () => {
         const active = context.active();

@@ -41,7 +41,7 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
-    /** Per-client telemetry naming and privacy settings. Defaults to legacy span names and omitted event source identifiers. */
+    /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
     readonly telemetry?: ChronicleTelemetryOptions;
 
     /** Application diagnostic sink. Absent uses the OpenTelemetry diag compatibility adapter. */
@@ -114,9 +114,9 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
-        const spanNames = options.telemetry?.spanNames;
-        if (spanNames !== undefined && spanNames !== 'legacy' && spanNames !== 'convention') {
-            throw new TypeError('telemetry.spanNames must be legacy or convention.');
+        // JavaScript callers may still supply the removed selector. Convention is already the only mode.
+        if ((options.telemetry as { spanNames?: unknown } | undefined)?.spanNames === 'legacy') {
+            throw new TypeError("telemetry.spanNames: 'legacy' was removed in this major release. Remove spanNames and migrate to the cratis.chronicle.client.* span names.");
         }
         const policy = options.telemetry?.eventSourceId;
         if (policy !== undefined) {

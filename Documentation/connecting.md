@@ -47,11 +47,12 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
-| `telemetry` | Event source identifiers omitted; legacy span names | Per-client naming and identifier privacy; see [Observability](./observability.md#privacy-options). |
-| `telemetry.spanNames` | `'legacy'` | Optional `'legacy'` or `'convention'` span names for this client and its event stores and sequences; invalid values throw at construction. See [Migrating to the convention names](./observability.md#migrating-to-the-convention-names). |
+| `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
 
 `ChronicleOptions.development(options)` takes the same second argument.
+
+Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Breaking changes in this major](./observability.md#breaking-changes-in-this-major).
 
 ## Authenticate
 
