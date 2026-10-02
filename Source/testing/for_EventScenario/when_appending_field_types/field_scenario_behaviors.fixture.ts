@@ -22,6 +22,8 @@ export function fieldScenarioBehaviors(fixtures: {
     reducer: Constructor;
     guidConstraint: Constructor;
     numberConstraint: Constructor;
+    doubleConstraint: Constructor;
+    double: Constructor<{ key: number }>;
     projection: Constructor;
     objectProjection: Constructor;
     hashProjection: Constructor;
@@ -62,13 +64,31 @@ export function fieldScenarioBehaviors(fixtures: {
         });
     });
 
+    for (const [property, value] of [
+        ['identifier', 'not-a-guid'], ['identifier', Guid.parse('zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz')],
+        ['occurred', new Date('+010000-01-01T00:00:00.000Z')], ['occurred', new Date('0000-01-01T00:00:00.000Z')],
+        ['payload', { amount: 1, identifier: 'bad', occurred: new Date() }]
+    ] as const) {
+        describe(`when a declared ${property} field contains an invalid serialized value`, () => {
+            it('should reject before committing a setup call', async () => {
+                const scenario = new EventScenario({ artifacts });
+                const event = Object.assign(new fixtures.recorded(), { [property]: value });
+                const error = await scenario.given.forEventSource('A').events(new fixtures.recorded(), event).then(() => undefined, error => error);
+                should(error).instanceOf(UnsupportedEventSequenceOperation);
+                should(scenario.appendedEvents).have.lengthOf(0);
+                should(scenario.results).have.lengthOf(0);
+                should((await scenario.eventSequence.getNextSequenceNumber()).value).equal(0n);
+            });
+        });
+    }
+
     describe('when delivering new field types through a reactor', () => {
         let scenario: ReactorScenario;
         beforeEach(async () => {
             scenario = new ReactorScenario(fixtures.reactor, { artifacts });
             await scenario.when.forEventSource('A').events(new fixtures.recorded());
         });
-        it('should deliver serialized JSON rather than concept wrappers', () => {
+        it('should deliver client-serialized JSON without kernel normalization or concept wrappers', () => {
             should(scenario.results[0].completed).equal(true);
             should(scenario.produced[0]).deep.equal(serialized());
         });
@@ -82,7 +102,7 @@ export function fieldScenarioBehaviors(fixtures: {
             await scenario.append('A', new fixtures.recorded());
             result = await models.instanceForEventSourceId('A');
         });
-        it('should give the reducer the same JSON as history', () => { should(result).deep.equal(serialized()); });
+        it('should give the reducer client-serialized JSON without kernel normalization', () => { should(result).deep.equal(serialized()); });
     });
 
     describe('when observing new scalar fields through a projection', () => {
@@ -159,20 +179,21 @@ export function fieldScenarioBehaviors(fixtures: {
 
     const fixture = JSON.parse(readFileSync(new URL('../../fixtures/constraints-field-types.json', import.meta.url), 'utf8')) as {
         fieldConstraintCases: Array<{ kind: string; eventType: string; operations: Array<{ mode: string; events: Array<{ source: string; content: string }> }> }>;
-        expected: Array<Array<{ success: boolean; sequences: string[]; wireViolations: unknown[]; history: unknown[]; next: string }>>;
+        expected: Array<{ fieldSchema: unknown; steps: Array<{ success: boolean; sequences: string[]; wireViolations: unknown[]; history: unknown[]; next: string }> }>;
     };
     for (const [caseIndex, test] of fixture.fieldConstraintCases.entries()) {
         if (test.kind !== 'kernelSemantics') continue;
         describe(`when replaying the packaged ${test.eventType} constraint fixture`, () => {
             it('should match every raw violation, hash, history, sequence and atomic rejection', async () => {
-                const type = test.eventType === 'OracleFieldGuid' ? fixtures.guid : fixtures.number;
+                const type = test.eventType === 'OracleFieldGuid' ? fixtures.guid : test.eventType === 'OracleFieldDouble' ? fixtures.double : fixtures.number;
                 should(getEventTypeMetadata(type)!.eventType.id.value).equal(test.eventType);
+                should(getEventTypeMetadata(type)!.schema.properties!.key).deep.equal(fixture.expected[caseIndex].fieldSchema);
                 const scenario = new EventScenario({ artifacts: { eventTypes: [type],
-                    constraints: [type === fixtures.guid ? fixtures.guidConstraint : fixtures.numberConstraint] } });
+                    constraints: [type === fixtures.guid ? fixtures.guidConstraint : type === fixtures.double ? fixtures.doubleConstraint : fixtures.numberConstraint] } });
                 const validate = vi.spyOn(InProcessConstraints.prototype, 'validate');
                 try {
                     for (const [index, operation] of test.operations.entries()) {
-                        const expected = fixture.expected[caseIndex][index];
+                        const expected = fixture.expected[caseIndex].steps[index];
                         const events = operation.events.map(entry => {
                             const event = new type();
                             const key = (JSON.parse(entry.content) as { key: string | number }).key;

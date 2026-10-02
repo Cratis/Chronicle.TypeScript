@@ -4,7 +4,7 @@
 import 'reflect-metadata';
 import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import { describe } from 'vitest';
-import { eventType } from '../../../events/eventTypeDecorator.js';
+import { eventType, getEventTypeMetadata } from '../../../events/eventTypeDecorator.js';
 import { unique } from '../../../events/constraints/unique.js';
 import { constraint } from '../../../events/constraints/constraint.js';
 import type { IConstraintBuilder } from '../../../events/constraints/IConstraintBuilder.js';
@@ -78,6 +78,15 @@ class GuidClaimed {
 class NumberClaimed {
     @field(Number) key = 1;
 }
+@eventType('OracleFieldDouble')
+class DoubleClaimed {
+    @field(Number) key = 1;
+}
+getEventTypeMetadata(DoubleClaimed)!.schema.properties!.key.format = 'double';
+@constraint('OracleFieldKey')
+class DoubleKey {
+    define(builder: IConstraintBuilder) { builder.unique(key => key.on(DoubleClaimed, event => event.key)); }
+}
 @constraint('OracleFieldKey')
 class GuidKey {
     define(builder: IConstraintBuilder) { builder.unique(key => key.on(GuidClaimed, event => event.key)); }
@@ -111,5 +120,5 @@ describe('when appending field types with legacy decorators', () => {
     fieldScenarioBehaviors({ recorded: FieldsRecorded, reactor: Echo, model: StoredFields, reducer: StoreFields,
         projection: ScalarProjection, objectProjection: ObjectProjection, hashProjection: HashProjection,
         guid: GuidClaimed, number: NumberClaimed, guidConstraint: GuidKey, numberConstraint: NumberKey, guidConcept: ConceptGuidClaimed, numberConcept: ConceptNumberClaimed,
-        rejected: [DateClaimed, ConceptDateClaimed, ObjectClaimed] });
+        double: DoubleClaimed, doubleConstraint: DoubleKey, rejected: [DateClaimed, ConceptDateClaimed, ObjectClaimed] });
 });

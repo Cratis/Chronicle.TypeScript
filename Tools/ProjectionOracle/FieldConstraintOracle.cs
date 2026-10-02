@@ -4,6 +4,7 @@
 extern alias KernelContracts;
 extern alias KernelConcepts;
 extern alias KernelStorage;
+extern alias KernelInfrastructure;
 
 using System.Collections.Immutable;
 using System.Reflection;
@@ -17,6 +18,11 @@ using KernelServiceAccessor = KernelContracts::Cratis.Chronicle.Contracts.IChron
 using KernelStore = KernelStorage::Cratis.Chronicle.Storage.IStorage;
 using KernelUnique = KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.UniqueConstraintDefinition;
 using KernelStoreName = KernelConcepts::Cratis.Chronicle.Concepts.EventStoreName;
+using KernelEventTypeId = KernelConcepts::Cratis.Chronicle.Concepts.Events.EventTypeId;
+using KernelGeneration = KernelConcepts::Cratis.Chronicle.Concepts.Events.EventTypeGeneration;
+using KernelEventType = KernelConcepts::Cratis.Chronicle.Concepts.Events.EventType;
+using KernelEventTypeSchema = KernelConcepts::Cratis.Chronicle.Concepts.EventTypes.EventTypeSchema;
+using KernelSchema = KernelInfrastructure::Cratis.Chronicle.Schemas.JsonSchema;
 
 namespace ProjectionOracle;
 
@@ -26,8 +32,11 @@ public record OracleFieldGuid(Guid Key);
 [EventType("OracleFieldNumber")]
 public record OracleFieldNumber(double Key);
 
+[EventType("OracleFieldDouble")]
+public record OracleFieldDouble(double Key);
+
 [EventType("OracleFieldDateTime")]
-public record OracleFieldDateTime(DateTimeOffset Key);
+public record OracleFieldDateTime(DateTime Key);
 
 // Send literal JSON through the packaged service, not the .NET serializer: otherwise Guid casing,
 // numeric spelling and date offsets would be normalized before the kernel ever saw the request.
@@ -37,14 +46,15 @@ internal static class FieldConstraintOracle
     {
         var expectedSchemas = JsonNode.Parse("""
             {"OracleFieldGuid":{"type":"string","format":"guid"},
-             "OracleFieldNumber":{"type":"number","format":"double"},
+             "OracleFieldNumber":{"type":"number"},
+             "OracleFieldDouble":{"type":"number","format":"double"},
              "OracleFieldDateTime":{"type":"string","format":"date-time"}}
             """)!;
         if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
-            throw new InvalidOperationException("Field fixture must declare the packaged event property schemas.");
+            throw new InvalidOperationException("Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.");
         var cases = fixture["fieldConstraintCases"]!.AsArray();
         if (!cases.Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}")
-            .SequenceEqual(["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard"]))
+            .SequenceEqual(["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard", "OracleFieldDouble/kernelSemantics"]))
             throw new InvalidOperationException("Field oracle requires both supported key cases and numeric/date guards.");
         var outcomes = new JsonArray();
         foreach (var test in cases)
@@ -59,7 +69,30 @@ internal static class FieldConstraintOracle
             var services = ((KernelServiceAccessor)created[1]!).Services;
             var storage = (KernelStore)services.Sequences.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
                 .Single(field => field.FieldType == typeof(KernelStore)).GetValue(services.Sequences)!;
-            var installed = (await storage.GetEventStore((KernelStoreName)"test-event-store").Constraints.GetDefinitions()).ToArray();
+            var eventStore = storage.GetEventStore((KernelStoreName)"test-event-store");
+            var eventTypes = eventStore.EventTypes;
+            if (type == "OracleFieldNumber")
+            {
+                // The packaged testing adapter's Register methods are no-ops. Replace only this scenario's
+                // input schema in its discovered-schema catalog, before any append, leaving kernel conversion
+                // and constraint evaluation untouched. Assert the exact adapter shape and read it back below.
+                var catalogField = eventTypes.GetType().GetField("_schemas", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (catalogField?.GetValue(eventTypes) is not Lazy<Dictionary<KernelEventType, KernelEventTypeSchema>> catalog)
+                    throw new InvalidOperationException("The packaged discovered-schema catalog changed shape.");
+                var registered = await eventTypes.GetFor((KernelEventTypeId)type, (KernelGeneration)1);
+                var schema = new JsonObject
+                {
+                    ["$schema"] = "https://json-schema.org/draft/2020-12/schema", ["title"] = type, ["type"] = "object",
+                    ["properties"] = new JsonObject { ["key"] = expectedSchemas[type]!.DeepClone() },
+                    ["required"] = new JsonArray("key"), ["additionalProperties"] = false
+                };
+                catalog.Value[registered.Type] = registered with { Schema = KernelSchema.FromJson(schema.ToJsonString()) };
+            }
+            var effectiveSchema = await eventTypes.GetFor((KernelEventTypeId)type, (KernelGeneration)1);
+            var installedProperty = JsonNode.Parse(effectiveSchema.Schema.ToJson())!["properties"]!["key"]!;
+            if (!JsonNode.DeepEquals(installedProperty, fixture["fieldSchemas"]![type]))
+                throw new InvalidOperationException($"Installed {type}.key schema differs from the fixture: {installedProperty.ToJsonString()}");
+            var installed = (await eventStore.Constraints.GetDefinitions()).ToArray();
             if (installed is not [KernelUnique actual] || actual.Name.Value != name || actual.IgnoreCasing || actual.Scope is not null ||
                 actual.RemovedWith.Any() || actual.EventDefinitions.Count() != 1 ||
                 actual.EventDefinitions.Single().EventTypeId.Value != type || !actual.EventDefinitions.Single().Properties.SequenceEqual(["key"]))
@@ -119,7 +152,7 @@ internal static class FieldConstraintOracle
                     ["next"] = next
                 });
             }
-            outcomes.Add(steps);
+            outcomes.Add(new JsonObject { ["fieldSchema"] = installedProperty.DeepClone(), ["steps"] = steps });
 
             async Task<JsonArray> History()
             {
