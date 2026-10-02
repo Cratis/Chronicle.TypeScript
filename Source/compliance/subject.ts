@@ -17,8 +17,8 @@ const SUBJECT_TYPE_METADATA_KEY = 'chronicle:compliance:subject:type';
  * encryption key protects that PII, and which key a manual release operation must use.
  *
  * Mirrors the .NET client's `SubjectAttribute`. When no property is decorated, resolvers fall
- * back to the `id` property by convention, so read models that predate this decorator keep
- * working unchanged.
+ * back to the `id` property by convention for read models, or to the event source identifier
+ * for event appends. An explicit append subject option overrides the event annotation.
  *
  * @returns A property decorator.
  *

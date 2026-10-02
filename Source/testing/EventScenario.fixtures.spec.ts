@@ -219,11 +219,11 @@ describe('when appending against committed kernel event fixtures', () => {
     it('should reject prototype getters and non-enumerable append metadata without mutation', async () => {
         const scenario = makeScenario();
         class OptionsWithGetters {
-            get subject() { return 'different-subject'; }
+            get occurred() { return new Date(); }
             get streamId() { return 'different-stream'; }
         }
         await unsupportedAsync(() => scenario.append('A', new OracleEventRecorded('one', true), new OptionsWithGetters()), 'append.options');
-        const hidden = Object.defineProperty({}, 'subject', { value: 'different-subject', enumerable: false });
+        const hidden = Object.defineProperty({}, 'occurred', { value: new Date(), enumerable: false });
         await unsupportedAsync(() => scenario.append('A', new OracleEventRecorded('one', true), hidden), 'append.options');
         scenario.appendedEvents.length.should.equal(0);
         scenario.results.length.should.equal(0);

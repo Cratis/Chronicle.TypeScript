@@ -25,7 +25,7 @@ export interface EventForEventSourceId {
     /** Optional occurrence time. Overrides the shared occurrence time. */
     readonly occurred?: Date;
 
-    /** Optional subject. Overrides AppendOptions.subject; otherwise falls back to the event source identifier. */
+    /** Optional subject. Overrides AppendOptions.subject, then the event's @subject() value, then the event source identifier. */
     readonly subject?: string;
 
     /**

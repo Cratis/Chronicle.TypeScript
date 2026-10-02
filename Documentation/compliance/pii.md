@@ -10,6 +10,48 @@ PII classification and release behavior are shared Chronicle compliance topics.
 - [Compliance](/chronicle/compliance/)
 - [TypeScript client setup](../getting-started.md)
 
+## Select the subject for event PII
+
+When an event source identifies a registration or transaction rather than a
+person, mark the event's person identifier with `@subject()` (imported from
+`@cratis/chronicle/compliance`). Chronicle uses the resolved subject's encryption
+key to protect the event's PII. Delete that subject's key to erase their PII.
+For events appended before this fix, also check the event source's key as
+explained in the upgrade note below.
+
+Single append and both `appendMany` overloads select the subject in this order:
+
+1. The explicit subject: a batch entry's `subject` overrides the call's
+   `AppendOptions.subject`.
+2. The value of the event's first property marked `@subject()`.
+3. The event source identifier.
+
+Null or undefined annotation values fall back to the event source. String
+values, including empty and whitespace-only strings, are sent as-is. Chronicle
+falls back to the event source identifier for both the stored context subject
+and the PII encryption key when the selected subject is empty or whitespace-only.
+An explicit empty string option still blocks the annotation, so that event uses
+the event source's key. Concept values and other non-string values use
+`toString()`; a null or empty result falls back. There is no event `id` property
+convention.
+
+Transactional appends resolve the annotation when the unit of work commits.
+`EventScenario` uses the same precedence for single and batch appends and for
+its given-event seeds; it does not emulate PII encryption or erasure.
+Kernel event seeding uses a separate contract that has no subject field in
+Chronicle 19.26.2, so it cannot select an annotated subject.
+
+Upgrade note: this fixes previously ignored event annotations, so newly appended
+events carrying `@subject()` can now use a different encryption key. Events
+appended before this fix with `@subject()` but no explicit subject were encrypted
+under the event source identifier's key. Existing stored events are not
+re-encrypted. To erase that older PII, you must also delete the event source
+identifier's key (or use the existing erase APIs for that identifier), in addition
+to the subject's key. Deleting the event source's key also erases other PII
+protected by that same key. If your erasure process deletes the event source
+identifier's key, events appended after upgrading that carry `@subject()` are no
+longer protected by that key; erase the subject's key instead.
+
 ## Release a stored document
 
 If you read a read model directly from its store, use

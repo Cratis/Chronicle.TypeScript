@@ -37,6 +37,11 @@ import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOpe
 // JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
 
+function resolveStoredSubject(subject: string | undefined, eventSourceId: string): string {
+    // Match the kernel's string.IsNullOrWhiteSpace, including U+0085 but not U+FEFF.
+    return subject && !/^\p{White_Space}*$/u.test(subject) ? subject : eventSourceId;
+}
+
 function matchesConstrainedValue(value: unknown, content: unknown): boolean {
     // Use production serialization for concepts, not their wrapper object's runtime type.
     // Keep rejecting other unproven conversions, such as a Date assigned to a string field.
@@ -168,13 +173,13 @@ export class InProcessEventSequence implements IEventSequence {
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
             if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason));
+            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason), true);
             const metadata = this._catalog.get(event.constructor);
             if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
             let prepared: ReturnType<typeof prepareSingleAppend>;
             let content: Record<string, unknown>;
             try {
-                prepared = prepareSingleAppend(event, this._correlationId ? { correlationId: this._correlationId() } : undefined);
+                prepared = prepareSingleAppend(event, { subject: options?.subject, correlationId: this._correlationId?.() });
                 content = this.checkedContent(event, prepared.content, 'append.content',
                     'Content differs from the event schema; null, missing and extra values are not proven.');
             } catch (error) {
@@ -207,7 +212,7 @@ export class InProcessEventSequence implements IEventSequence {
                     eventStore: this._store, namespace: this._namespace,
                     sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: route.sourceType, eventStreamType: route.streamType, eventStreamId: route.streamId,
-                    subject: eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
+                    subject: resolveStoredSubject(prepared.subject, eventSourceId), hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: prepared.tags.map(tag => new Tag(tag))
@@ -254,6 +259,9 @@ export class InProcessEventSequence implements IEventSequence {
                 }
                 const individual = entry as EventForEventSourceId;
                 if (individual.occurred !== undefined) this.checkedDate(individual.occurred, 'appendMany.occurred');
+                if (individual.subject !== undefined && individual.subject !== null && typeof individual.subject !== 'string') {
+                    throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
+                }
                 const tags = individual.tags;
                 if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
                     throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
@@ -288,8 +296,8 @@ export class InProcessEventSequence implements IEventSequence {
                 this.validateSource(eventSourceId, 'appendMany.source');
                 const wire = eventsToAppend[index];
                 for (const [name, value] of Object.entries({ sourceType: wire.EventSourceType, streamType: wire.EventStreamType,
-                    streamId: wire.EventStreamId, subject: wire.Subject })) {
-                    const identifiers = name === 'subject' ? /^[A-Za-z0-9_-]+$/ : /^[A-Za-z0-9_-]*$/;
+                    streamId: wire.EventStreamId })) {
+                    const identifiers = /^[A-Za-z0-9_-]*$/;
                     if (value !== undefined && (typeof value !== 'string' || !identifiers.test(value))) {
                         throw this.unsupported(`appendMany.${name}`, String(value), 'Only simple metadata identifiers are fixture-backed.');
                     }
@@ -307,7 +315,7 @@ export class InProcessEventSequence implements IEventSequence {
                 const stored: AppendedEvent = { eventType, content, context: {
                     eventStore: this._store, namespace: this._namespace, sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: wire.EventSourceType || 'Default', eventStreamType: wire.EventStreamType || 'All',
-                    eventStreamId: wire.EventStreamId || 'Default', subject: wire.Subject, hash, causedBy: identity,
+                    eventStreamId: wire.EventStreamId || 'Default', subject: resolveStoredSubject(wire.Subject, eventSourceId), hash, causedBy: identity,
                     observationState: EventObservationState.Initial, eventType, occurred, correlationId: correlationId.toString(),
                     causation: batchCausationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: wire.Tags.map(tag => new Tag(tag))
@@ -407,6 +415,9 @@ export class InProcessEventSequence implements IEventSequence {
         if (Reflect.ownKeys(options).some(key => !allowed.includes(String(key))) ||
             options.concurrencyScope !== undefined || options.concurrencyScopes !== undefined || options.eventSourceId !== undefined) {
             throw this.unsupported('appendMany.options', this.id.value, 'Concurrency and unrecognized metadata are not fixture-backed.');
+        }
+        if (options.subject !== undefined && options.subject !== null && typeof options.subject !== 'string') {
+            throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
         }
         if (options.tags && (!Array.isArray(options.tags) || options.tags.some(tag => typeof tag !== 'string'))) {
             throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
