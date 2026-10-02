@@ -9,7 +9,10 @@ chai.should();
 describe('when exposing convention-only telemetry names', () => {
     it('should expose convention spans through the single spans registry', () => {
         names.spans.should.deep.equal(conventionSpans);
-        names.should.not.have.property('conventionSpans');
+    });
+    it('should retain conventionSpans as the same frozen registry for migrated callers', () => {
+        names.conventionSpans.should.equal(names.spans);
+        Object.isFrozen(names.spans).should.be.true;
     });
     it('should expose only the current scope and registries', () => {
         names.scope.should.equal('Cratis.Chronicle.Client');
