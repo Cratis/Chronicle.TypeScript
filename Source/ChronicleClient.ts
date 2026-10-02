@@ -4,7 +4,6 @@
 import * as os from 'os';
 import { createLogger } from './logging/createLogger.js';
 import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
-import { WellKnownTelemetryNames } from './WellKnownTelemetryNames.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions.js';
 import { ChronicleConnection } from './connection/index.js';
@@ -124,7 +123,7 @@ export class ChronicleClient implements IChronicleClient {
                 ? new EventStoreNamespaceName(namespace)
                 : namespace;
 
-        return observeOperation(WellKnownTelemetryNames.spans.getEventStore, async span => {
+        return observeOperation('getEventStore', this.options.telemetry, async span => {
             setTelemetryAttribute(span, 'eventStore', storeName.value);
             setTelemetryAttribute(span, 'namespace', namespaceName.value);
             try {
@@ -181,7 +180,7 @@ export class ChronicleClient implements IChronicleClient {
 
     /** @inheritdoc */
     async getEventStores(): Promise<EventStoreName[]> {
-        return observeOperation(WellKnownTelemetryNames.spans.getEventStores, async span => {
+        return observeOperation('getEventStores', this.options.telemetry, async span => {
             try {
                 const response = await this.withReconnect('get_event_stores', async () => {
                     await this.ensureConnected();

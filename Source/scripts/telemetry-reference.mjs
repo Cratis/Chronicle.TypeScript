@@ -12,14 +12,15 @@ export function telemetryReference(names) {
     ].join('\n');
     const quote = value => value ? `\`${value}\`` : '—';
     return [
-        '### Span names', '', table(['Operation', 'Name'], Object.entries(names.spans).map(([key, value]) => [quote(key), quote(value)])), '',
-        '### Attribute names', '', table(['Concept', 'Shared name', 'Legacy name'], [
-            ...Object.entries(names.attributes).map(([key, value]) => [quote(key), quote(value), quote(names.legacyAttributes[key])]),
-            ...Object.entries(names.legacyAttributes).filter(([key]) => !(key in names.attributes)).map(([key, value]) => [quote(key), '—', quote(value)])
+        '### Span names', '', table(['Operation', 'Legacy name (default)', 'Convention name (opt-in)'],
+            Object.entries(names.spans).map(([key, value]) => [quote(key), quote(value), quote(names.conventionSpans[key])])), '',
+        '### Attribute names', '', table(['Concept', 'Legacy name', 'Convention name'], [
+            ...Object.entries(names.attributes).map(([key, value]) => [quote(key), quote(names.legacyAttributes[key]), quote(value)]),
+            ...Object.entries(names.legacyAttributes).filter(([key]) => !(key in names.attributes)).map(([key, value]) => [quote(key), quote(value), '—'])
         ]), '',
-        '### Metric names', '', table(['Instrument', 'Shared name', 'Legacy name', 'Shared / legacy unit'],
-            Object.entries(names.metrics).map(([key, value]) => [quote(key), quote(value), quote(names.legacyMetrics[key]),
-                key.includes('Duration') ? '`s` / `ms`' : quote(({ eventsAppended: '{event}', constraintViolations: '{violation}', appendErrors: '{error}' })[key] ?? '{operation}')]))
+        '### Metric names', '', table(['Instrument', 'Legacy name', 'Convention name', 'Legacy / convention unit'],
+            Object.entries(names.metrics).map(([key, value]) => [quote(key), quote(names.legacyMetrics[key]), quote(value),
+                key.includes('Duration') ? '`ms` / `s`' : quote(({ eventsAppended: '{event}', constraintViolations: '{violation}', appendErrors: '{error}' })[key] ?? '{operation}')]))
     ].join('\n');
 }
 

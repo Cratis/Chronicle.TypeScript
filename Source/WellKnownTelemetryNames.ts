@@ -4,6 +4,7 @@
 /** Public telemetry names. Legacy names remain available during the minor-release overlap. */
 export const WellKnownTelemetryNames = {
     scope: 'Cratis.Chronicle.Client',
+    /** @deprecated Use scope. This historical scope is no longer emitted and will be removed in the next major. */
     legacyScope: '@cratis/chronicle',
     attributes: {
         correlationId: 'cratis.correlation_id',
@@ -16,9 +17,13 @@ export const WellKnownTelemetryNames = {
         eventSourceType: 'cratis.event_source.type',
         eventSourceId: 'cratis.event_source.id',
         eventCount: 'cratis.event.count',
+        hasEvents: 'cratis.chronicle.event_sequence.has_events',
+        eventStreamType: 'cratis.chronicle.event_stream.type',
+        eventStreamId: 'cratis.chronicle.event_stream.id',
         errorType: 'error.type',
         exceptionType: 'exception.type'
     },
+    /** @deprecated Use attributes. Legacy attribute names will be removed in the next major. */
     legacyAttributes: {
         eventStore: 'chronicle.event_store',
         namespace: 'chronicle.namespace',
@@ -32,6 +37,7 @@ export const WellKnownTelemetryNames = {
         eventStreamType: 'chronicle.event_stream_type',
         eventStreamId: 'chronicle.event_stream_id'
     },
+    /** @deprecated Use conventionSpans and telemetry.spanNames: 'convention'. Legacy span names will be removed in the next major. */
     spans: {
         append: 'chronicle.event_sequences.append',
         appendMany: 'chronicle.event_sequences.append_many',
@@ -46,6 +52,20 @@ export const WellKnownTelemetryNames = {
         getEventStores: 'chronicle.client.get_event_stores',
         getNamespaces: 'chronicle.event_store.get_namespaces'
     },
+    conventionSpans: {
+        append: 'cratis.chronicle.client.event_sequence.append',
+        appendMany: 'cratis.chronicle.client.event_sequence.append_many',
+        getTailSequenceNumber: 'cratis.chronicle.client.event_sequence.get_tail_sequence_number',
+        hasEventsFor: 'cratis.chronicle.client.event_sequence.has_events_for',
+        getForEventSourceIdAndEventTypes: 'cratis.chronicle.client.event_sequence.get_for_event_source_id_and_event_types',
+        getFromSequenceNumber: 'cratis.chronicle.client.event_sequence.get_from_sequence_number',
+        redact: 'cratis.chronicle.client.event_sequence.redact',
+        redactForEventSource: 'cratis.chronicle.client.event_sequence.redact_for_event_source',
+        completeStream: 'cratis.chronicle.client.event_sequence.complete_stream',
+        getEventStore: 'cratis.chronicle.client.event_store.get',
+        getEventStores: 'cratis.chronicle.client.event_store.list',
+        getNamespaces: 'cratis.chronicle.client.event_store.get_namespaces'
+    },
     metrics: {
         eventsAppended: 'cratis.chronicle.event_sequence.appended',
         batchAppendsPerformed: 'cratis.chronicle.event_sequence.batch_appends',
@@ -55,6 +75,7 @@ export const WellKnownTelemetryNames = {
         constraintViolations: 'cratis.chronicle.event_sequence.constraint_violations',
         appendErrors: 'cratis.chronicle.event_sequence.append_errors'
     },
+    /** @deprecated Use metrics (duration units are seconds). Legacy metric names will be removed in the next major. */
     legacyMetrics: {
         eventsAppended: 'chronicle.events.appended',
         batchAppendsPerformed: 'chronicle.events.batch_appends',

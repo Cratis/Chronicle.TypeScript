@@ -4,7 +4,6 @@
 import { createLogger } from './logging/createLogger.js';
 import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
 import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
-import { WellKnownTelemetryNames } from './WellKnownTelemetryNames.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection/index.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
@@ -202,7 +201,7 @@ export class EventStore implements IEventStore {
 
     /** @inheritdoc */
     async getNamespaces(): Promise<EventStoreNamespaceName[]> {
-        return observeOperation(WellKnownTelemetryNames.spans.getNamespaces, async span => {
+        return observeOperation('getNamespaces', this._telemetry, async span => {
             setTelemetryAttribute(span, 'eventStore', this.name.value);
             try {
                 const response = await this._connection.namespaces.allNamespaces({ EventStore: this.name.value });

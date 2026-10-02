@@ -41,7 +41,7 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
-    /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
+    /** Per-client telemetry naming and privacy settings. Defaults to legacy span names and omitted event source identifiers. */
     readonly telemetry?: ChronicleTelemetryOptions;
 
     /** Application diagnostic sink. Absent uses the OpenTelemetry diag compatibility adapter. */
@@ -114,6 +114,10 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
+        const spanNames = options.telemetry?.spanNames;
+        if (spanNames !== undefined && spanNames !== 'legacy' && spanNames !== 'convention') {
+            throw new TypeError('telemetry.spanNames must be legacy or convention.');
+        }
         const policy = options.telemetry?.eventSourceId;
         if (policy !== undefined) {
             if (policy?.mode !== 'raw' && policy?.mode !== 'hmac') {
