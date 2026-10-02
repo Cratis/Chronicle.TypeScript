@@ -8,6 +8,9 @@ import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { runActivated } from '../artifacts/withActivatedArtifact.js';
 import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
+import { getHandledEventType } from '../events/handles.js';
+import { getEventHandlers } from '../observation/getEventHandlers.js';
+import { getInstanceMethods } from '../observation/getInstanceMethods.js';
 import { isOnceOnly } from './onceOnly.js';
 import { getReplayEventType } from './replay.js';
 import type { ReactorServices } from './ReactorServices.js';
@@ -21,8 +24,7 @@ export interface ReactorEventTypeEntry {
 }
 
 export function getReactorEventTypes(reactorType: Constructor, registeredTypes: readonly Constructor[]): ReactorEventTypeEntry[] {
-    const proto = reactorType.prototype as Record<string, unknown>;
-    const entries: ReactorEventTypeEntry[] = [];
+    const methods = getInstanceMethods(reactorType);
     const replayHandlers = new Map<string, string>();
     const eventTypes = new Map<string, { eventTypeClass: Function; id: string; generation: number }>();
 
@@ -37,40 +39,34 @@ export function getReactorEventTypes(reactorType: Constructor, registeredTypes: 
         }
     }
 
-    // A derived method shadows a base method of the same name, even if it is not marked for replay.
-    const seenMethods = new Set<string>();
-    for (let current = proto; current && current !== Object.prototype; current = Object.getPrototypeOf(current) as Record<string, unknown>) {
-        for (const name of Object.getOwnPropertyNames(current)) {
-            if (seenMethods.has(name)) continue;
-            seenMethods.add(name);
-            const method = current[name];
-            if (typeof method !== 'function') continue;
-            const replayEventType = getReplayEventType(method);
-            if (replayEventType === undefined) continue;
-
-            const eventType = replayEventType === true
-                ? eventTypes.get(name.startsWith('replay') ? name.slice('replay'.length) : '')
-                : [...eventTypes.values()].find(candidate => candidate.eventTypeClass === replayEventType);
-            if (!eventType) {
-                throw new Error(`Replay handler '${name}' on reactor '${(reactorType as Function).name}' has no registered event type.`);
-            }
-            if (replayHandlers.has(eventType.id)) {
-                throw new Error(`Reactor '${(reactorType as Function).name}' has multiple replay handlers for event type '${eventType.id}': '${replayHandlers.get(eventType.id)}' and '${name}'.`);
-            }
-            replayHandlers.set(eventType.id, name);
+    for (const [name, method] of methods) {
+        const replayEventType = getReplayEventType(method);
+        if (replayEventType === undefined) continue;
+        if (getHandledEventType(method) !== undefined) {
+            throw new Error(`Handler '${name}' on reactor '${(reactorType as Function).name}' cannot combine @handles and @replay. Use separate live and replay methods.`);
         }
+        const eventType = replayEventType === true
+            ? eventTypes.get(name.startsWith('replay') ? name.slice('replay'.length) : '')
+            : [...eventTypes.values()].find(candidate => candidate.eventTypeClass === replayEventType);
+        if (!eventType) {
+            throw new Error(`Replay handler '${name}' on reactor '${(reactorType as Function).name}' has no registered event type.`);
+        }
+        if (replayHandlers.has(eventType.id)) {
+            throw new Error(`Reactor '${(reactorType as Function).name}' has multiple replay handlers for event type '${eventType.id}': '${replayHandlers.get(eventType.id)}' and '${name}'.`);
+        }
+        replayHandlers.set(eventType.id, name);
+        methods.delete(name);
     }
 
-    for (const [className, eventType] of eventTypes) {
-        const methodName = className.charAt(0).toLowerCase() + className.slice(1);
-        const liveMethod = proto[methodName];
-        const liveMethodName = typeof liveMethod === 'function' && getReplayEventType(liveMethod) === undefined ? methodName : undefined;
+    const entries = new Map<string, ReactorEventTypeEntry>(getEventHandlers(reactorType, registeredTypes, methods)
+        .map(handler => [handler.id, handler]));
+    for (const eventType of eventTypes.values()) {
         const replayMethodName = replayHandlers.get(eventType.id);
-        if (liveMethodName || replayMethodName) {
-            entries.push({ id: eventType.id, generation: eventType.generation, methodName: liveMethodName, replayMethodName });
+        if (replayMethodName) {
+            entries.set(eventType.id, { id: eventType.id, generation: eventType.generation, ...entries.get(eventType.id), replayMethodName });
         }
     }
-    return entries;
+    return [...entries.values()];
 }
 
 export function selectReactorHandler(entries: readonly ReactorEventTypeEntry[], reactorType: Constructor,

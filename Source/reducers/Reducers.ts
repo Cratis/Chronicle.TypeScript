@@ -105,6 +105,7 @@ export class Reducers implements IReducers {
 
     private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
+    private readonly _unsubscribeDisconnected: () => void;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();
     private readonly _observations = new Map<string, AbortController>();
@@ -136,7 +137,7 @@ export class Reducers implements IReducers {
     ) {
         this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
-        lifecycle.onDisconnected(async () => {
+        this._unsubscribeDisconnected = lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reducer observations');
             this._registered = false;
             this.disconnectAll();
@@ -145,6 +146,7 @@ export class Reducers implements IReducers {
 
     /** Stops observations permanently when the owning client is disposed. */
     dispose(): void {
+        this._unsubscribeDisconnected();
         this._disposed = true;
         this._registered = false;
         this.disconnectAll();
@@ -172,13 +174,16 @@ export class Reducers implements IReducers {
             await this.discover();
         }
 
+        const registrations = [...this._reducers].map(([id, type]) => ({
+            id, type, dispatcher: new ReducerEventDispatcher(type, this._clientArtifacts.eventTypes)
+        }));
         assertUniqueReadModelIds(this._clientArtifacts.readModels);
         await this.registerReadModels();
 
         if (this._disposed) return;
         this._logger.info('Registering reducers', { count: this._reducers.size });
-        for (const [id, reducerType] of this._reducers) {
-            this.startObservation(id, reducerType);
+        for (const { id, type, dispatcher } of registrations) {
+            this.startObservation(id, type, dispatcher);
         }
 
         this._registered = true;
@@ -236,12 +241,12 @@ export class Reducers implements IReducers {
         return JSON.stringify(minimalSchema);
     }
 
-    private startObservation(id: string, reducerType: Constructor): void {
+    private startObservation(id: string, reducerType: Constructor,
+        dispatcher: ReducerEventDispatcher): void {
         runInBackgroundContext(() => {
             if (this._disposed) return;
             const metadata = getReducerMetadata(reducerType)!;
             const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
-            const dispatcher = new ReducerEventDispatcher(reducerType, this._clientArtifacts.eventTypes);
             const readModelName = this.getReducerReadModelIdentifier(reducerType);
 
             this._logger.info('Starting reducer observation', {
@@ -269,7 +274,7 @@ export class Reducers implements IReducers {
             this._logger.error('Reducer observation loop exited with error', { reducerId: id, error });
         }
 
-        this.scheduleReobserve(id, reducerType);
+        this.scheduleReobserve(id, reducerType, dispatcher);
     }
 
     /**
@@ -282,7 +287,7 @@ export class Reducers implements IReducers {
      * retried, and the delay keeps a stream that keeps ending from becoming a hot
      * loop.
      */
-    private scheduleReobserve(id: string, reducerType: Constructor): void {
+    private scheduleReobserve(id: string, reducerType: Constructor, dispatcher: ReducerEventDispatcher): void {
         // A disconnect clears the registration; the reconnect re-registers every
         // reducer from scratch, so retrying here as well would double up.
         if (!this._registered || this._disposed) {
@@ -295,7 +300,7 @@ export class Reducers implements IReducers {
             }
 
             this._logger.info('Re-establishing reducer observation', { reducerId: id });
-            this.startObservation(id, reducerType);
+            this.startObservation(id, reducerType, dispatcher);
         }, Reducers._reobserveDelayMs));
 
         handle.unref?.();
@@ -353,6 +358,7 @@ export class Reducers implements IReducers {
 
         try {
             const reducerInstance = this._artifactActivator ? undefined : new (reducerType as new () => Record<string, Function>)();
+            if (reducerInstance) dispatcher.validateInstance(reducerInstance);
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
                 let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
@@ -376,9 +382,12 @@ export class Reducers implements IReducers {
                             readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
                             replayState: operation.ReplayState
-                        }, this._artifactActivator, artifact => runActivated(artifact, () =>
-                            notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
-                            { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState }), this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            dispatcher.validateInstance(artifact.instance);
+                            return runActivated(artifact, () =>
+                                notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
+                                { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState });
+                        }, this._connection.logger);
                     } else if (reducerInstance) {
                         await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
                     }
@@ -448,7 +457,10 @@ export class Reducers implements IReducers {
                             readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
                             signal: controller.signal, delivery: ArtifactDelivery.Events,
                             eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, processEvents, this._connection.logger);
+                        }, this._artifactActivator, artifact => {
+                            dispatcher.validateInstance(artifact.instance);
+                            return processEvents(artifact);
+                        }, this._connection.logger);
                     } catch (err) {
                         this._logger.error('Error activating reducer', { reducerId: id, error: err });
                         exceptionMessages.push(String(err));

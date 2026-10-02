@@ -24,6 +24,8 @@ import { IConstraints } from './events/constraints/IConstraints.js';
 import { Projections } from './projections/Projections.js';
 import { IProjections } from './projections/IProjections.js';
 import { Reactors } from './reactors/Reactors.js';
+import { getReactorEventTypes } from './reactors/ReactorDispatcher.js';
+import { getEventHandlers } from './observation/getEventHandlers.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
@@ -145,6 +147,12 @@ export class EventStore implements IEventStore {
         ]);
 
         validateArtifactSchemas(this._artifacts);
+        for (const type of this._artifacts.reactors) {
+            getReactorEventTypes(type, this._artifacts.eventTypes);
+        }
+        for (const type of this._artifacts.reducers) {
+            getEventHandlers(type, this._artifacts.eventTypes);
+        }
 
         this._logger.debug('Registering discovered artifacts', {
             eventStore: this.name.value,

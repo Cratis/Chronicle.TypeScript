@@ -2,31 +2,20 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
+import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
+import { getEventHandlers } from '../observation/getEventHandlers.js';
 import type { EventContext } from '../events/EventContext.js';
 import type { ReducerEventHandler } from './ReducerEventHandler.js';
 
 /** Selects and invokes the same reducer handlers for kernel deliveries and in-process scenarios. */
 export class ReducerEventDispatcher {
     readonly handlers: ReducerEventHandler[];
+    readonly validateInstance: (instance: object) => void;
 
     /** Discovers event methods from the artifact event types. */
     constructor(reducerType: Constructor, eventTypes: readonly Constructor[]) {
-        const proto = reducerType.prototype as Record<string, unknown>;
-        this.handlers = [];
-        for (const eventTypeClass of eventTypes) {
-            const metadata = getEventTypeMetadata(eventTypeClass);
-            if (!metadata) continue;
-            const className = (eventTypeClass as Function).name;
-            const methodName = className.charAt(0).toLowerCase() + className.slice(1);
-            if (typeof proto[methodName] === 'function') {
-                this.handlers.push({
-                    id: metadata.eventType.id.value,
-                    generation: metadata.eventType.generation.value,
-                    methodName
-                });
-            }
-        }
+        this.handlers = getEventHandlers(reducerType, eventTypes);
+        this.validateInstance = createHandlerInstanceValidator(reducerType, this.handlers.map(handler => handler.methodName));
     }
 
     /** Resolves a registered event type, or returns undefined for an unsubscribed event. */

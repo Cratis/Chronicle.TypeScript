@@ -4,11 +4,17 @@
 import { describe, expect, it } from 'vitest';
 import { onceOnly, isOnceOnly } from './onceOnly.js';
 import { replay, getReplayEventType } from './replay.js';
+import { handles } from '../index.js';
+import { getHandledEventType } from '../events/handles.js';
 
 class EventForReplay {}
 
 @onceOnly()
 class StandardReactor {
+    @handles(EventForReplay)
+    @onceOnly()
+    notify() {}
+
     @onceOnly()
     eventForReplay() {}
 
@@ -31,6 +37,8 @@ describe('standard reactor policy decorators', () => {
     });
 
     it('marks methods without modifying the class or other methods', () => {
+        expect(getHandledEventType(StandardReactor.prototype.notify)).toBe(EventForReplay);
+        expect(isOnceOnly(StandardReactor.prototype.notify)).toBe(true);
         expect(isOnceOnly(StandardReactor.prototype.eventForReplay)).toBe(true);
         expect(isOnceOnly(StandardReactor.prototype.replayEventForReplay)).toBe(false);
         expect(getReplayEventType(StandardReactor.prototype.replayEventForReplay)).toBe(true);

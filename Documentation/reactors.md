@@ -17,7 +17,43 @@ Use the [TypeScript get started page](/chronicle/clients/typescript/getting-star
 
 ## TypeScript client notes
 
-Chronicle calls a reactor method when its name is the camelCase name of the event class: `bookBorrowed(event, context, services)` handles `BookBorrowed`. It does not look at the parameter type, so a method with any other name is never called. The optional third argument, `ReactorServices`, gives the owning observation's `eventStore`, its `readModels` (`services.readModels === services.eventStore.readModels`), and a disconnect/shutdown `signal`. It is the consuming store and namespace, including for imported events, not an application-wide default or the upstream event's provenance. Existing one- and two-argument methods work unchanged; rest-parameter handlers now see this additional argument.
+### Choosing a handler name
+
+By default, Chronicle calls the method whose name is the camelCase name of a registered event class: `authorRegistered(event)` handles `AuthorRegistered`. No method decorator is needed for that convention.
+
+To name the method after what it does, use `@handles(AuthorRegistered)` instead:
+
+```typescript
+import { field } from '@cratis/fundamentals';
+import { eventType, handles, reactor } from '@cratis/chronicle';
+
+@eventType()
+class AuthorRegistered {
+    @field(String) name = '';
+}
+
+@reactor()
+class AuthorReactor {
+    @handles(AuthorRegistered)
+    notify(event: AuthorRegistered): void {
+        console.log(`Author registered: ${event.name}`);
+    }
+}
+```
+
+With these artifacts registered in your event store, an `AuthorRegistered` event calls `notify`. The decorator identifies the event constructor; TypeScript erases the parameter type at runtime. `@handles` supports legacy (`experimentalDecorators`) and standard TC39 decorators, and is also exported from `@cratis/chronicle/reactors` and `@cratis/chronicle/reducers`.
+
+- An explicit event type replaces the method-name convention **for that method**, even if its name matches a different event class.
+- Registration fails if the constructor passed to `@handles` is not a registered `@eventType`, or if two methods handle the same event type. That includes one explicit handler alongside a conventional handler. Keep one live handler per event; rename a conventional method only if it should be a helper.
+- Undecorated methods that match no registered event class remain ordinary helpers. Chronicle cannot tell a misspelled handler from a helper; use `@handles` when you want an explicit declaration checked at registration.
+- Use a public, string-named instance method, not a static method, private `#method`, accessor, symbol method, or function-valued field. Each method accepts one `@handles` declaration. Inherited handlers work. An override of a method carrying `@handles` must declare its own `@handles`, even when keeping the same event type. Otherwise registration fails with `Override '<method>' on '<Derived>' hides @handles(<EventType>) declared on '<Base>'; redecorate the override.` Chronicle validates methods carrying `@handles` when each instance is created, including instances returned by an activator and `ReactorScenario` instances. Binding the declared method in the constructor is supported; other own properties, including arrow-field overrides, are rejected. Use a method decorated with `@handles` for an override. Conventional and `@replay` handlers retain their existing instance-property behavior.
+- `@onceOnly()` works with `@handles` in either decorator order. Without a replay-specific handler, the explicit handler runs during replay too unless marked once-only. For separate replay behavior, use `@replay(AuthorRegistered)` on another method; do not combine `@handles` and `@replay` on one method.
+
+`ReactorScenario` from `@cratis/chronicle/testing` uses the same handler selection and rejects invalid prototype mappings before constructing the reactor. It also validates instance properties hiding `@handles` methods after construction, allowing methods bound with `Function.prototype.bind` in a constructor (including bound again in a subclass constructor). [Reducers](./reducers.md) also support `@handles`, without changing their handler arguments or returned state.
+
+### Handler arguments and side effects
+
+The optional third argument, `ReactorServices`, gives the owning observation's `eventStore`, its `readModels` (`services.readModels === services.eventStore.readModels`), and a disconnect/shutdown `signal`. It is the consuming store and namespace, including for imported events, not an application-wide default or the upstream event's provenance. Existing one- and two-argument methods work unchanged; rest-parameter handlers now see this additional argument.
 
 To append explicitly, await `services.eventStore.eventLog.append(context.eventSourceId, event)` and check `result.isSuccess`; a rejected append does not throw automatically. Throw if it failed so the observation is not acknowledged. To read state, use `services.readModels.findInstanceById(Model, context.eventSourceId)` and handle `null`. Read models are eventually consistent: a read may lag the triggering event or be absent, including during replay. There is no automatic historical snapshot at the event's sequence number. If a missing model prevents your side effect, throw rather than acknowledging lost work; make retries safe.
 
@@ -78,6 +114,6 @@ class OrderReactor {
 
 **Upgrade caution:** Existing reactors now accept kernel replays, including explicit replays and automatic replays such as revision/redaction rewinds or definition-change replays when enabled. Mark side-effecting reactors with class-level `@onceOnly()` if none of their handlers should replay; use method-level `@onceOnly()` when only particular handlers have side effects. Review existing reactors before upgrading to avoid repeating notifications, external calls, or returned events.
 
-`@replay()` uses the `replay<EventClassName>` method naming convention; `@replay(OrderPlaced)` also accepts an explicit event type when a different name is useful. A replay-only handler subscribes to its event type, but does not run during live delivery. Without a replay-specific handler, the ordinary camelCase event handler runs for replayed events unless that method has `@onceOnly()`. When both are present, **only** the replay handler runs during replay; method-level `@onceOnly()` on the ordinary handler does not prevent it. Both decorators support legacy and standard TypeScript decorator syntax.
+`@replay()` uses the `replay<EventClassName>` method naming convention; `@replay(OrderPlaced)` also accepts an explicit event type when a different name is useful. A replay-only handler subscribes to its event type, but does not run during live delivery. Without a replay-specific handler, the ordinary event handler (camelCase or `@handles`) runs for replayed events unless that method has `@onceOnly()`. When both are present, **only** the replay handler runs during replay; method-level `@onceOnly()` on the ordinary handler does not prevent it. Both decorators support legacy and standard TypeScript decorator syntax.
 
 These policies apply to the **per-event observation state** sent by the kernel, not the separate begin/end replay lifecycle notifications. A message with both a notification and events notifies first, then handles the events; a failed notification fails the partition instead. `@onceOnly()` excludes replay, **not duplicates or retries**. Explicit writes and returned appends are not automatically one transaction with the triggering delivery; make effects idempotent, including under concurrent retries. Replay is not an append sandbox: unguarded explicit or returned writes can happen again during replay.

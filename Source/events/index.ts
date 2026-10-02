@@ -3,6 +3,7 @@
 
 import '../types/standardDecoratorMetadata.js';
 
+export { handles } from './handles.js';
 export { EventType } from './EventType.js';
 export { EventTypeId } from './EventTypeId.js';
 export { EventTypeGeneration } from './EventTypeGeneration.js';
