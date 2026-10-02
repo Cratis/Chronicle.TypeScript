@@ -86,7 +86,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
     let jobId: string | undefined;
     let invocationsBeforeReplay: string[];
 
-    const waitForActiveObserver = (lastHandledSequenceNumber?: bigint) => eventually(async () => {
+    const waitForActiveObserver = (lastHandledSequenceNumber?: bigint, timeoutMs = 15_000) => eventually(async () => {
         const observer = await connection.observers.getObserverInformation({
             EventStore: storeName,
             Namespace: 'Default',
@@ -95,7 +95,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
         });
         return observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
             (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber);
-    }, 15_000);
+    }, timeoutMs);
 
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
@@ -107,12 +107,13 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
 
         // Registration starts observation in the background. Append only after the subscription
         // is active, so initial catch-up cannot race the explicit replay's state transition.
-        await waitForActiveObserver();
+        // Initial registration and subscription took over 30s under concurrent CI kernel load before.
+        await waitForActiveObserver(undefined, 30_000);
         (await store.eventLog.append(randomUUID(), Object.assign(new MethodOnceOnlyHappened(), { name: 'a' }))).isSuccess.should.be.true;
         (await store.eventLog.append(randomUUID(), Object.assign(new MethodReplayableHappened(), { name: 'b' }))).isSuccess.should.be.true;
         const appended = await store.eventLog.append(randomUUID(), Object.assign(new MethodReplayOnceOnlyHappened(), { name: 'c' }));
         appended.isSuccess.should.be.true;
-        // With initial catch-up complete, 30s leaves room for both 15s readiness waits in the hook.
+        // Worst case 30s + 30s + 15s + 45s + 3s stays inside the explicit 150s hook timeout below.
         await eventually(() => invocations.length === 3, 30_000);
         // The handlers update their sink before the kernel acknowledges delivery and records progress.
         await waitForActiveObserver(appended.sequenceNumber.value);
@@ -126,7 +127,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
         })).JobId;
         await eventually(() => invocations.includes('replayable:b') && invocations.filter(_ => _ === 'replayable:b').length === 2);
         await new Promise(resolve => setTimeout(resolve, 3_000));
-    });
+    }, 150_000);
 
     afterAll(() => client?.dispose());
 
