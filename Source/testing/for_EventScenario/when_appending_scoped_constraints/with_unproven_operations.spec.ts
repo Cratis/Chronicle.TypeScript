@@ -83,7 +83,7 @@ describe('when a scoped append uses unsupported routes or metadata', () => {
                     await unsupported(() => scenario.appendMany('B', [new Claim('Beta')], options), `appendMany.${dimension}`);
                 }
             }
-            for (const options of [{ tags: [] }, { subject: '' }, { occurred: new Date() }, { correlationId: '00000000-0000-0000-0000-000000000001' },
+            for (const options of [{ tags: [] }, { occurred: new Date() }, { correlationId: '00000000-0000-0000-0000-000000000001' },
                 { concurrencyScopes: {} }, { eventSourceId: 'other' }, { arbitrary: true }]) {
                 await unsupported(() => scenario.append('B', new Claim('Beta'), options as AppendOptions), 'append.options');
             }

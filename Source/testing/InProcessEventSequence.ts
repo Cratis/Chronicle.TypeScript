@@ -174,7 +174,7 @@ export class InProcessEventSequence implements IEventSequence {
             let prepared: ReturnType<typeof prepareSingleAppend>;
             let content: Record<string, unknown>;
             try {
-                prepared = prepareSingleAppend(event, this._correlationId ? { correlationId: this._correlationId() } : undefined);
+                prepared = prepareSingleAppend(event, { subject: options?.subject, correlationId: this._correlationId?.() });
                 content = this.checkedContent(event, prepared.content, 'append.content',
                     'Content differs from the event schema; null, missing and extra values are not proven.');
             } catch (error) {
@@ -207,7 +207,7 @@ export class InProcessEventSequence implements IEventSequence {
                     eventStore: this._store, namespace: this._namespace,
                     sequenceNumber: sequenceNumber.value, eventSourceId,
                     eventSourceType: route.sourceType, eventStreamType: route.streamType, eventStreamId: route.streamId,
-                    subject: eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
+                    subject: prepared.subject ?? eventSourceId, hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
                     tags: prepared.tags.map(tag => new Tag(tag))
@@ -254,6 +254,9 @@ export class InProcessEventSequence implements IEventSequence {
                 }
                 const individual = entry as EventForEventSourceId;
                 if (individual.occurred !== undefined) this.checkedDate(individual.occurred, 'appendMany.occurred');
+                if (individual.subject !== undefined && individual.subject !== null && typeof individual.subject !== 'string') {
+                    throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
+                }
                 const tags = individual.tags;
                 if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
                     throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
@@ -288,8 +291,8 @@ export class InProcessEventSequence implements IEventSequence {
                 this.validateSource(eventSourceId, 'appendMany.source');
                 const wire = eventsToAppend[index];
                 for (const [name, value] of Object.entries({ sourceType: wire.EventSourceType, streamType: wire.EventStreamType,
-                    streamId: wire.EventStreamId, subject: wire.Subject })) {
-                    const identifiers = name === 'subject' ? /^[A-Za-z0-9_-]+$/ : /^[A-Za-z0-9_-]*$/;
+                    streamId: wire.EventStreamId })) {
+                    const identifiers = /^[A-Za-z0-9_-]*$/;
                     if (value !== undefined && (typeof value !== 'string' || !identifiers.test(value))) {
                         throw this.unsupported(`appendMany.${name}`, String(value), 'Only simple metadata identifiers are fixture-backed.');
                     }
@@ -407,6 +410,9 @@ export class InProcessEventSequence implements IEventSequence {
         if (Reflect.ownKeys(options).some(key => !allowed.includes(String(key))) ||
             options.concurrencyScope !== undefined || options.concurrencyScopes !== undefined || options.eventSourceId !== undefined) {
             throw this.unsupported('appendMany.options', this.id.value, 'Concurrency and unrecognized metadata are not fixture-backed.');
+        }
+        if (options.subject !== undefined && options.subject !== null && typeof options.subject !== 'string') {
+            throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
         }
         if (options.tags && (!Array.isArray(options.tags) || options.tags.some(tag => typeof tag !== 'string'))) {
             throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');

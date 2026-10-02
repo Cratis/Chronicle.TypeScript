@@ -71,7 +71,7 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
-        const { eventType, correlationId, content, tags, causationChain, identity } = prepareSingleAppend(event, options);
+        const { eventType, correlationId, content, tags, causationChain, identity, subject } = prepareSingleAppend(event, options);
 
         const metricAttributes = {
             'chronicle.event_store': this._eventStoreName,
@@ -112,7 +112,7 @@ export class EventSequence implements IEventSequence {
                     ConcurrencyScope: this.toContractConcurrencyScope(options?.concurrencyScope),
                     Tags: tags,
                     Occurred: options?.occurred === undefined ? undefined : { Value: options.occurred.toISOString() },
-                    Subject: options?.subject ?? eventSourceId
+                    Subject: subject ?? eventSourceId
                 });
 
                 const appendResponse = ensureCommandResponse('append event', response);

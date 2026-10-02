@@ -233,9 +233,9 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         await rejects(() => subject.append('A', new Recorded(), { correlationId: '00000000-0000-0000-0000-000000000001' }), 'append.options');
         clean(subject);
     });
-    it('should reject plain subject options', async () => {
+    it('should reject non-string subject options', async () => {
         const subject = scenario();
-        await rejects(() => subject.append('A', new Recorded(), { subject: 'other' }), 'append.options');
+        await rejects(() => subject.append('A', new Recorded(), { subject: 42 as unknown as string }), 'append.subject');
         clean(subject);
     });
     it('should reject empty source/type-read event types', async () => {

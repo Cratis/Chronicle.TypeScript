@@ -21,7 +21,7 @@ export interface AppendOptions {
     /** Optional stream identifier. When omitted or empty, the kernel selects the route. */
     streamId?: string;
 
-    /** Optional compliance subject. Defaults to the event source identifier. */
+    /** Optional compliance subject. Overrides the event's @subject() value; otherwise defaults to the event source identifier. */
     subject?: string;
 
     /** Optional occurrence time. When omitted, the kernel supplies the timestamp. */

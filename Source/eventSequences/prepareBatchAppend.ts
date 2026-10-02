@@ -8,6 +8,7 @@ import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { mergeTags } from '../events/mergeTags.js';
 import { identityProvider } from '../identity/index.js';
+import { resolveEventSubject } from '../compliance/resolveEventSubject.js';
 import type { AppendOptions } from './AppendOptions.js';
 import type { EventForEventSourceId } from './EventForEventSourceId.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
@@ -56,7 +57,7 @@ export function prepareBatchAppend(
             EventType: { Id: eventType.id.value, Generation: eventType.generation.value, Tombstone: eventType.tombstone },
             Content: JsonSerializer.serialize(event), Tags: tags,
             Occurred: occurrenceTime === undefined ? undefined : { Value: occurrenceTime.toISOString() },
-            Subject: subject ?? appendOptions?.subject ?? eventSourceId
+            Subject: subject ?? appendOptions?.subject ?? resolveEventSubject(event) ?? eventSourceId
         };
     });
     return { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend };

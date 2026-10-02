@@ -11,11 +11,14 @@ export function singleAppendRoute(options: AppendOptions | undefined, artifact: 
     if (options !== undefined && (!options || typeof options !== 'object' || Array.isArray(options))) {
         throw unsupported('append.options', artifact, 'Append options must be an object.');
     }
-    if (options && (Reflect.ownKeys(options).some(key => !['sourceType', 'streamType', 'streamId'].includes(String(key))) ||
-        options.correlationId !== undefined || options.subject !== undefined || options.occurred !== undefined ||
+    if (options && (Reflect.ownKeys(options).some(key => !['sourceType', 'streamType', 'streamId', 'subject'].includes(String(key))) ||
+        options.correlationId !== undefined || options.occurred !== undefined ||
         options.eventSourceId !== undefined || options.concurrencyScope !== undefined || options.tags !== undefined ||
         options.concurrencyScopes !== undefined)) {
-        throw unsupported('append.options', artifact, 'Only sourceType, streamType and streamId routing options are fixture-backed for single append.');
+        throw unsupported('append.options', artifact, 'Only sourceType, streamType, streamId and subject options are supported for single append.');
+    }
+    if (options?.subject !== undefined && options.subject !== null && typeof options.subject !== 'string') {
+        throw unsupported('append.subject', artifact, 'Subject must be a string.');
     }
     const route = { sourceType: options?.sourceType, streamType: options?.streamType, streamId: options?.streamId };
     for (const [name, value] of Object.entries(route)) {

@@ -24,7 +24,7 @@ const connectionString = process.env.CHRONICLE_INTEGRATION_CONNECTION_STRING;
 
 @eventType()
 class PersonRegistered {
-    @field(String) personId = '';
+    @subject() @field(String) personId = '';
     @pii('The name of the person') @field(String) name = '';
     @field(String) department = '';
 }
@@ -98,8 +98,8 @@ describe.skipIf(!connectionString && !process.env.CI)('when erasing a subject ag
         }));
         store = await client.getEventStore(`Pii${randomUUID().replaceAll('-', '').slice(0, 12)}`);
 
-        // The event source is the registration; the explicit subject is the person the PII belongs to.
-        appended = await store.eventLog.append(eventSourceId, Object.assign(new PersonRegistered(), { personId, name, department: 'Accounting' }), { subject: personId });
+        // The event source is the registration; the annotated subject is the person the PII belongs to.
+        appended = await store.eventLog.append(eventSourceId, Object.assign(new PersonRegistered(), { personId, name, department: 'Accounting' }));
 
         eventBefore = await readEvent();
         projectedBefore = await eventually(() => store.readModels.findInstanceById(RegisteredPerson, eventSourceId), _ => _ !== null);
@@ -117,7 +117,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when erasing a subject ag
     afterAll(() => client?.dispose());
 
     it('should append the event', () => appended.isSuccess.should.be.true);
-    it('should record the explicit subject on the event', () => eventBefore.context.subject!.should.equal(personId));
+    it('should record the annotated subject on the event', () => eventBefore.context.subject!.should.equal(personId));
     it('should read the event released', () => eventBefore.content.name!.should.equal(name));
     it('should read the projected read model released', () => projectedBefore!.name.should.equal(name));
     it('should read the reduced read model released', () => reducedBefore!.name.should.equal(name));

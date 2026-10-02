@@ -265,7 +265,7 @@ describe('when appending batches against committed kernel fixtures', () => {
             error => { (error instanceof UnsupportedEventSequenceOperation).should.be.true; }
         );
         await first;
-        for (const options of [{ subject: 'bad subject' }, { tags: ['invalid|tag'] },
+        for (const options of [{ subject: 42 as unknown as string }, { tags: ['invalid|tag'] },
             { concurrencyScope: {} as never }]) {
             await scenario.appendMany('B', [new OracleEventRecorded('second', false)], options).then(
                 () => { throw new Error('Unproven metadata accepted'); },
@@ -450,7 +450,7 @@ describe('when appending batches against committed kernel fixtures', () => {
             ['appendMany.correlationId', () => scenario.appendMany('B', [event()], { correlationId: 'bad-guid' })],
             ['appendMany.entry', () => scenario.appendMany([entry({ unknown: 'value' })])],
             ['appendMany.sourceType', () => scenario.appendMany([entry({ eventSourceType: 'bad source' })])],
-            ['appendMany.subject', () => scenario.appendMany([entry({ subject: '' })], { subject: 'shared' })],
+            ['appendMany.subject', () => scenario.appendMany([entry({ subject: 42 })], { subject: 'shared' })],
             ['appendMany.streamType', () => scenario.appendMany([entry({ eventStreamType: 'bad stream' })])],
             ['appendMany.streamId', () => scenario.appendMany([entry({ eventStreamId: 'bad stream' })])],
             ['appendMany.event', () => scenario.appendMany('B', [new UnregisteredRecorded()])],
