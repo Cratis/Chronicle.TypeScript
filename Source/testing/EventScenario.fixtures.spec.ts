@@ -31,10 +31,10 @@ class BoundaryRecorded {
 }
 eventType('BoundaryRecorded')(BoundaryRecorded);
 class UnknownEvent {}
-class UnprovenNumber {
-    @field(Number) amount = 1;
+class UnprovenArray {
+    @field(Array, { genericArguments: [Number] }) amounts = [1];
 }
-eventType('UnprovenNumber')(UnprovenNumber);
+eventType('UnprovenArray')(UnprovenArray);
 class ConstrainedEvent {
     @field(String) value = 'value';
 }
@@ -59,7 +59,7 @@ const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
     !['batches.json', 'batch-omitted-routes.json', 'batch-rollback.json', 'builders.json', 'constraints.json', 'constraints-isolation.json', 'constraints-key-domain.json',
         'constraints-property-lifecycle.json', 'constraints-property-covered-removal.json', 'constraints-event-type-cycles.json',
         'constraints-event-type-siblings.json', 'constraints-composite.json',
-        'constraints-ignore-casing.json', 'constraints-scopes.json'].includes(name)).map(name => ({
+        'constraints-ignore-casing.json', 'constraints-scopes.json', 'constraints-field-types.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
@@ -192,7 +192,7 @@ describe('when appending against committed kernel event fixtures', () => {
 
 
     it('should reject unproven schemas and registrations but discover supported constraints', async () => {
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenNumber] }, constraints: 'disabled' }), 'schema');
+        unsupported(() => new EventScenario({ artifacts: { eventTypes: [UnprovenArray] }, constraints: 'disabled' }), 'schema');
         const constrained = new EventScenario({ artifacts: { eventTypes: [ConstrainedEvent] } });
         (await constrained.append('A', new ConstrainedEvent())).isSuccess.should.be.true;
         (await constrained.append('A', new ConstrainedEvent())).constraintViolations.length.should.equal(1);

@@ -174,7 +174,7 @@ export class ReadModelScenario<TReadModel extends object> {
                 throw new UnsupportedProjectionOperation(this._modelName, 'observe', `${eventSourceType}/${eventStreamType}/${eventStreamId}`,
                     'observed events must use the default event source type and stream; routed events require a kernel-backed test');
             }
-            return { sourceId: event.context.eventSourceId, content: event.content, context: event.context };
+            return { sourceId: event.context.eventSourceId, content: event.content, context: event.context, scenarioLocalHash: true };
         });
     }
 

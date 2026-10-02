@@ -288,10 +288,12 @@ describe('fixture-backed unscoped constraints', () => {
         (await subject.eventSequence.getNextSequenceNumber()).value.should.equal(1n);
     });
 
-    it('rejects unproven numeric constrained schemas at construction', () => {
+    it('accepts fixture-backed safe-integer constrained schemas', async () => {
         class NumericConstrained { @field(Number) @unique('NumberKey') key = 1; }
         eventType('NumericConstrained')(NumericConstrained);
-        unsupported(() => new EventScenario({ artifacts: { eventTypes: [NumericConstrained] } }), 'artifacts.constraints');
+        const subject = new EventScenario({ artifacts: { eventTypes: [NumericConstrained] } });
+        (await subject.append('A', new NumericConstrained())).isSuccess.should.be.true;
+        (await subject.append('B', new NumericConstrained())).isSuccess.should.be.false;
     });
 
     it('rejects a selected constraint covering an event outside the selected catalog', () => {

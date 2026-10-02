@@ -85,7 +85,8 @@ export class EventScenario {
                         }
                     }
                 }
-                constraints = new InProcessConstraints(definitions);
+                constraints = new InProcessConstraints(definitions, new Map(eventTypes.map(type =>
+                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])));
                 for (const [name, capture] of definitions) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
                         capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
@@ -106,22 +107,32 @@ export class EventScenario {
                     }
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
-                        const schemaTypes = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]?.type ?? '');
-                        if (scoped && schemaTypes.some(schemaType => schemaType !== 'string')) {
+                        const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);
+                        const plainStrings = schemas.every(schema => schema?.type === 'string' && schema.format === undefined);
+                        if (scoped && !plainStrings) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'Scoped property keys must be schema-backed strings.');
                         }
-                        if (entry.properties.length === 1 && !['string', 'boolean'].includes(schemaTypes[0])) {
+                        for (const schema of schemas) {
+                            const supported = schema?.type === 'boolean' && schema.format === undefined ||
+                                schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
+                                schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
+                            if (!supported) throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+                                `Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
+                        }
+                        const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid');
+                        if (extendedKey && (definitions.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
+                            removedWith.some(id => id !== undefined))) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'The constrained property must be a schema-backed string or boolean.');
+                                'Guid and numeric keys require one isolated definition covering one event type without removers; shared definitions and removal combinations are not fixture-backed.');
                         }
                         // constraints-ignore-casing.json captures folded string keys only.
-                        if (capture.uniqueConstraint!.ignoreCasing && schemaTypes.some(schemaType => schemaType !== 'string')) {
+                        if (capture.uniqueConstraint!.ignoreCasing && !plainStrings) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'Case-insensitive keys must be schema-backed strings.');
                         }
                         // constraints-composite.json captures string components only.
-                        if (entry.properties.length > 1 && schemaTypes.some(schemaType => schemaType !== 'string')) {
+                        if (entry.properties.length > 1 && !plainStrings) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'Every property of a composite key must be a schema-backed string.');
                         }

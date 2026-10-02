@@ -7,6 +7,7 @@ import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.js';
 import { resolveConstraintMessage } from '../events/constraints/Constraints.js';
 import type { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
+import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { eventTypeScopeKey, propertyScopeKey, scopeIndex } from './ConstraintScope.js';
 
@@ -16,7 +17,18 @@ const unavailable = '18446744073709551615';
 // Only the key characters captured by the packaged oracle, not every valid event-content character.
 const provenString = /^[A-Za-z0-9 .@_:\-|{}$\u00e9]*$/;
 
-function kernelKeyString(value: unknown, name: string): string {
+function kernelKeyString(value: unknown, name: string, schema?: JsonSchema): string {
+    // constraints-field-types.json: the kernel converts Guid keys before comparing or reporting them.
+    if (schema?.format === 'guid') {
+        if (typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) return value.toLowerCase();
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, 'Only dashed Guid keys are fixture-backed.');
+    }
+    // Avoid .NET floating-point formatting, exponent spelling and JavaScript precision loss.
+    if (schema?.type === 'number') {
+        if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Only safe-integer numeric keys are fixture-backed; fractional, exponential and unsafe-integer comparisons require a kernel-backed test.');
+    }
     if (typeof value === 'string' && provenString.test(value)) return value;
     if (typeof value === 'boolean') return value ? 'True' : 'False';
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
@@ -35,10 +47,10 @@ type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
  * (UniqueConstraintDefinitionExtensions.GetPropertiesAndValues/GetValue at Chronicle 8fe5d30). Not a tuple:
  * ['a-b', 'c'] and ['a', 'b-c'] claim the same key, as constraints-composite.json captures.
  */
-function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, content: Record<string, unknown>): Claim | undefined {
+function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, content: Record<string, unknown>, schema?: JsonSchema): Claim | undefined {
     const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === eventTypeId)?.properties;
     if (properties === undefined) return undefined;
-    const parts = properties.map(property => ({ property, raw: kernelKeyString(content[property], name) }));
+    const parts = properties.map(property => ({ property, raw: kernelKeyString(content[property], name, schema?.properties?.[property]) }));
     const joined = parts.map(part => part.raw).join('-');
     if (!unique.ignoreCasing) return { key: keyHash(joined), parts };
     // The kernel applies .NET ToLowerInvariant to the joined value. constraints-ignore-casing.json proves
@@ -56,7 +68,8 @@ export class InProcessConstraints {
     private readonly _removalTypes = new Set<string>();
     private readonly _propertyRemovalTypes = new Set<string>();
 
-    constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>) {
+    constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>,
+        private readonly _schemas: ReadonlyMap<string, JsonSchema> = new Map()) {
         const coveredTypes = new Map<string, string>();
         const removalOwners = new Map<string, string>();
         for (const [name, capture] of _definitions) {
@@ -173,10 +186,7 @@ export class InProcessConstraints {
                 }
                 const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties;
                 if (properties === undefined) continue;
-                if (properties.some(property => !['string', 'boolean'].includes(typeof prior.content[property]))) {
-                    throw this.unsupported(name, 'History has an unproven key.');
-                }
-                claims.set(source, { key: claimOf(name, unique, type, prior.content)!.key,
+                claims.set(source, { key: claimOf(name, unique, type, prior.content, this._schemas.get(type))!.key,
                     sequence: prior.context.sequenceNumber.toString() });
             }
         }
@@ -187,7 +197,7 @@ export class InProcessConstraints {
             const source = event.context.eventSourceId;
             const violationCount = violations.length;
             for (const [name, definition] of this._definitions) {
-                const claim = definition.uniqueConstraint && claimOf(name, definition.uniqueConstraint, type, event.content);
+                const claim = definition.uniqueConstraint && claimOf(name, definition.uniqueConstraint, type, event.content, this._schemas.get(type));
                 if (claim) {
                     const key = claim.key;
                     const scope = propertyScopeKey(definition.scope, event.context);

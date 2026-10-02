@@ -231,6 +231,6 @@ describe('fixture-backed unique event type cycles', () => {
         await unsupported(() => new EventScenario({ artifacts: {
             eventTypes: [OracleCycleFirst, OracleCycleSibling, OracleCycleRemoved, FieldlessRemoval],
             constraints: [CycleFirst, CycleSibling]
-        } }), 'artifacts.eventTypes.schema (FieldlessRemoval)', 'Only flat, unclassified string/boolean fields are fixture-backed.');
+        } }), 'artifacts.eventTypes.schema (FieldlessRemoval)', 'Only unclassified string, boolean, numeric, Guid, date and object fields are supported.');
     });
 });
