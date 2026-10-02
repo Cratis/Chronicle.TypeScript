@@ -11,6 +11,7 @@ import { increment } from '../../../projections/modelBound/increment.js';
 import { decrement } from '../../../projections/modelBound/decrement.js';
 import { setFrom } from '../../../projections/modelBound/setFrom.js';
 import { ReadModelScenario } from '../../ReadModelScenario.js';
+import { UnsupportedProjectionOperation } from '../../projections/UnsupportedProjectionOperation.js';
 
 chai.should();
 function should(value: unknown): Assertion { return (value as { should: Assertion }).should; }
@@ -46,6 +47,23 @@ const artifacts = { eventTypes: [Added, Subtracted, Renamed], readModels: [Total
 
 // The same operations are captured in arithmetic.json, arithmetic-numeric-matrix.json and arithmetic-automap.json.
 describe('when evaluating arithmetic with standard model-bound decorators', () => {
+    for (const [operation, decorate] of [['add', addFrom], ['subtract', subtractFrom]] as const) {
+        it(`should reject @${operation}From with a snake_case operand before any events are seeded`, () => {
+            @eventType(`standard-arithmetic-snake-case-${operation}`)
+            class PriceChanged {
+                @field(Number) unit_price = 2;
+            }
+            class PriceTotals {
+                @field(String) id = '';
+                @field(Number) @decorate(PriceChanged, 'unit_price') total = 0;
+            }
+            should(() => new ReadModelScenario(PriceTotals, { eventTypes: [PriceChanged], readModels: [PriceTotals], reducers: [], projections: [] }))
+                .throw(UnsupportedProjectionOperation).with.property('message')
+                .that.includes('kernel only permits an underscore as the first character')
+                .and.includes('https://github.com/Cratis/Chronicle/issues/4491');
+        });
+    }
+
     it('should accumulate all five operations and default event property names', async () => {
         const scenario = new ReadModelScenario(Totals, artifacts);
         scenario.given.forEventSource('A').events(new Added(2.5), new Added(3), new Subtracted(1));

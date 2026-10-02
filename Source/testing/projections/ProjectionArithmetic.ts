@@ -23,7 +23,13 @@ export class ProjectionArithmetic {
             fail('arithmetic targets must be number/double or integer/int32; other targets require a kernel-backed test');
         }
         if (['$count', '$increment', '$decrement'].includes(expression)) return;
-        const source = /^\$(?:add|subtract)\(([A-Za-z_]\w*)\)$/.exec(expression)?.[1];
+        const operand = /^\$(?:add|subtract)\(([^()]+)\)$/.exec(expression)?.[1];
+        if (operand?.slice(1).includes('_')) {
+            fail('the Chronicle 19.26.2 kernel only permits an underscore as the first character of an arithmetic operand; snake_case operands are unsupported (https://github.com/Cratis/Chronicle/issues/4491)');
+        }
+        // Direct-property subset of EventValueProviderRegularExpressions.Expression in Chronicle 19.26.2.
+        // AddExpressionResolver and SubtractExpressionResolver anchor that grammar; nested/$ operands remain unproven.
+        const source = /^\$(?:add|subtract)\(([A-Za-z_][A-Za-z0-9]*)\)$/.exec(expression)?.[1];
         if (!source || ['true', 'True', 'false', 'False'].includes(source)) {
             fail('arithmetic operands must be direct numeric event properties; nested paths, literals and context require a kernel-backed test');
         }

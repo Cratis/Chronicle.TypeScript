@@ -32,6 +32,26 @@ describe('when validating arithmetic before replay', () => {
         });
     }
 
+    for (const operation of ['add', 'subtract']) {
+        for (const property of ['unit_price', '_unit_price']) {
+            it(`should reject $${operation}(${property}) with the kernel operand limitation before replay`, () => {
+                const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+                compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties![property] = { type: 'number' };
+                definition.From[0].Value.Properties.total = `$${operation}(${property})`;
+                (() => ProjectionCapabilities.validate(compiled, definition)).should.throw(UnsupportedProjectionOperation)
+                    .with.property('message').that.includes('From[capability-changed:1].Properties.total')
+                    .and.includes('kernel only permits an underscore as the first character')
+                    .and.includes('https://github.com/Cratis/Chronicle/issues/4491');
+            });
+        }
+        it(`should admit $${operation}(_quantity) with a leading underscore`, () => {
+            const { compiled, definition } = compileDeclarative(builder => builder.from(Changed));
+            compiled.eventSchemas.get(definition)!.get('capability-changed:1:0')!.schema.properties!._quantity = { type: 'number' };
+            definition.From[0].Value.Properties.total = `$${operation}(_quantity)`;
+            (() => ProjectionCapabilities.validate(compiled, definition)).should.not.throw();
+        });
+    }
+
     for (const target of [{ type: 'integer', format: 'uint32' }, { type: ['number', 'null'] }, { type: 'string' }, { type: 'boolean' }]) {
         it(`should reject an unproven ${JSON.stringify(target)} accumulator schema`, () => {
             const { compiled, definition } = compileDeclarative(builder => builder.from(Changed, from => from.increment(model => model.total)));

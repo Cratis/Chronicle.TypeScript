@@ -7,6 +7,7 @@ import { eventType } from '../../../events/eventTypeDecorator.js';
 import type { IProjectionBuilderFor } from '../../../projections/declarative/IProjectionBuilderFor.js';
 import { projection } from '../../../projections/declarative/projection.js';
 import { ReadModelScenario } from '../../ReadModelScenario.js';
+import { UnsupportedProjectionOperation } from '../../projections/UnsupportedProjectionOperation.js';
 
 chai.should();
 
@@ -40,6 +41,32 @@ projection('fluent-arithmetic', Totals)(TotalsProjection);
 const artifacts = { eventTypes: [Changed, Removed], projections: [TotalsProjection], reducers: [] };
 
 describe('when evaluating arithmetic with a fluent projection', () => {
+    for (const operation of ['add', 'subtract'] as const) {
+        it(`should reject fluent ${operation} with a snake_case operand before any events are seeded`, () => {
+            class PriceChanged {
+                unit_price = 2;
+            }
+            field(Number)(PriceChanged.prototype, 'unit_price');
+            eventType(`fluent-arithmetic-snake-case-${operation}`)(PriceChanged);
+            class PriceTotals {
+                id = '';
+                total = 0;
+            }
+            field(String)(PriceTotals.prototype, 'id');
+            field(Number)(PriceTotals.prototype, 'total');
+            class PriceProjection {
+                define(builder: IProjectionBuilderFor<PriceTotals>): void {
+                    builder.from(PriceChanged, from => from[operation](model => model.total).with(event => event.unit_price));
+                }
+            }
+            projection(`fluent-arithmetic-snake-case-${operation}`, PriceTotals)(PriceProjection);
+            (() => new ReadModelScenario(PriceTotals, { eventTypes: [PriceChanged], projections: [PriceProjection], reducers: [] }))
+                .should.throw(UnsupportedProjectionOperation).with.property('message')
+                .that.includes('kernel only permits an underscore as the first character')
+                .and.includes('https://github.com/Cratis/Chronicle/issues/4491');
+        });
+    }
+
     it('should apply all five property operations to initial values', async () => {
         const scenario = new ReadModelScenario(Totals, artifacts);
         scenario.given.forEventSource('A').events(new Changed(2.5), new Changed(-1));
