@@ -121,6 +121,7 @@ internal static class EventScenarioOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
+        if (fixture["fieldConstraintCases"] is JsonArray) return await FieldConstraintOracle.Run(fixture);
         if (fixture["scopeCases"] is JsonArray) return await RunScopedConstraints(fixture);
         if (fixture["isolatedConstraintOperations"] is JsonArray) return await RunIsolatedConstraints(fixture);
         if (fixture["constraintOperations"] is JsonArray) return await RunConstraints(fixture);

@@ -4,4 +4,4 @@
 import type { EventContext } from '../events/EventContext.js';
 
 /** An event serialized at the scenario boundary. */
-export type ScenarioEvent = { sourceId: string; content: unknown; context: EventContext };
+export type ScenarioEvent = { sourceId: string; content: unknown; context: EventContext; scenarioLocalHash?: boolean };

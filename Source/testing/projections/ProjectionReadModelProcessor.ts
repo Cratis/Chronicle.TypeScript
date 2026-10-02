@@ -123,6 +123,16 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 continue;
             }
             const schema = this._eventSchemas.get(typeId)!;
+            // EventScenario preserves client JSON, not kernel-normalized GUID/date/number/object JSON.
+            // Its deterministic hash is not kernel evidence for those payloads. Ordinary mappings
+            // still use the independently validated projection converters below.
+            if (event.scenarioLocalHash && from && Object.values(from.Value.Properties ?? {}).some(expression =>
+                /^\$eventContext\(Hash(?:\.Value)?\)$/.test(expression)) &&
+                Object.values(schema.properties ?? {}).some(property =>
+                    !['string', 'boolean'].includes(property.type ?? '') || property.format !== undefined)) {
+                throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
+                    'observed Hash mappings for numeric, Guid, date or object event fields are not fixture-backed; use a kernel-backed test');
+            }
             const content = ProjectionValueConverter.eventContent(event.content, schema);
             let state = engine[key];
             if (!state) {

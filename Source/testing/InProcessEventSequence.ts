@@ -29,6 +29,7 @@ import { prepareSingleAppend } from '../eventSequences/prepareSingleAppend.js';
 import { toContractsGuid } from '../connection/Guid.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import { InProcessConstraints, type WireConstraintViolation } from './InProcessConstraints.js';
+import { matchesEventField, supportsEventField } from './EventFieldSchema.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
@@ -38,7 +39,7 @@ const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space
 function matchesConstrainedValue(value: unknown, content: unknown): boolean {
     // Use production serialization for concepts, not their wrapper object's runtime type.
     // Keep rejecting other unproven conversions, such as a Date assigned to a string field.
-    if (value && typeof value === 'object' && typeKeyOf(value.constructor as Constructor) === conceptAsTypeKey) {
+    if (value && typeof value === 'object' && [conceptAsTypeKey, 'Guid'].includes(typeKeyOf(value.constructor as Constructor) ?? '')) {
         return JsonSerializer.serialize(value) === JSON.stringify(content);
     }
     return value === content;
@@ -117,11 +118,8 @@ export class InProcessEventSequence implements IEventSequence {
                 !schema.properties || (Object.keys(schema.properties).length === 0 &&
                     !this._constraints?.isRemovalOnlyType(eventType.id.value)) ||
                 Object.entries(schema.properties).some(([key, property]) =>
-                    !/^[a-z][a-zA-Z0-9]*$/.test(key) || !['string', 'boolean'].includes(property.type ?? '') ||
-                    property.format !== undefined || property.compliance?.length || property.security?.length ||
-                    property.items !== undefined || property.properties !== undefined || property.enum !== undefined ||
-                    property.additionalProperties !== undefined)) {
-                throw this.unsupported('artifacts.eventTypes.schema', type.name, 'Only flat, unclassified string/boolean fields are fixture-backed.');
+                    !/^[a-z][a-zA-Z0-9]*$/.test(key) || !supportsEventField(property))) {
+                throw this.unsupported('artifacts.eventTypes.schema', type.name, 'Only unclassified string, boolean, numeric, Guid, date and object fields are supported.');
             }
             this._catalog.set(type, metadata);
         }
@@ -177,7 +175,7 @@ export class InProcessEventSequence implements IEventSequence {
             try {
                 prepared = prepareSingleAppend(event, this._correlationId ? { correlationId: this._correlationId() } : undefined);
                 content = this.checkedContent(event, prepared.content, 'append.content',
-                    'Content differs from the flat scalar schema; null, missing and extra values are not proven.');
+                    'Content differs from the event schema; null, missing and extra values are not proven.');
             } catch (error) {
                 if (error instanceof UnsupportedEventSequenceOperation) throw error;
                 throw this.unsupported('append.serialization', event.constructor.name, `Payload or metadata could not be serialized: ${String(error)}.`);
@@ -455,7 +453,7 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     private checkedContent(event: object, serialized: string, operation: string,
-        mismatchReason = 'Content differs from the fixture-backed scalar schema.'): Record<string, unknown> {
+        mismatchReason = 'Content differs from the event schema.'): Record<string, unknown> {
         let content: Record<string, unknown>;
         try { content = JSON.parse(serialized) as Record<string, unknown>; }
         catch { throw this.unsupported(operation, event.constructor.name, 'Content must be valid JSON.'); }
@@ -463,10 +461,11 @@ export class InProcessEventSequence implements IEventSequence {
         const properties = metadata.schema.properties!;
         if (!content || typeof content !== 'object' || Array.isArray(content) ||
             Object.keys(content).length !== Object.keys(properties).length ||
-            Object.entries(properties).some(([key, property]) => typeof content[key] !== property.type ||
+            Object.entries(properties).some(([key, property]) => !Object.hasOwn(content, key) || !matchesEventField(content[key], property) ||
                 (this._constraints?.isConstrainedProperty(metadata.eventType.id.value, key) &&
                     !matchesConstrainedValue(Reflect.get(event, key), content[key])) ||
-                (property.type === 'string' && !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
+                (property.type === 'string' && property.format === undefined &&
+                    !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
             throw this.unsupported(operation, event.constructor.name, mismatchReason);
         }
         return content;
