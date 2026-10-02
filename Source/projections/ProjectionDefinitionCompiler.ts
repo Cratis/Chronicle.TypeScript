@@ -37,6 +37,7 @@ import { getChildrenFromMetadata } from './modelBound/childrenFrom.js';
 import { getClearWithPropertyMetadata } from './modelBound/clearWith.js';
 import { getEventSequenceMetadata } from './modelBound/eventSequence.js';
 import { getFromAllMetadata } from './modelBound/fromAll.js';
+import { getFromAllEventsMetadata } from './modelBound/fromAllEvents.js';
 import { getFromEveryMetadata } from './modelBound/fromEvery.js';
 import { getFromEventMetadata } from './modelBound/fromEvent.js';
 import { isModelBoundProjection } from './modelBound/isModelBoundProjection.js';
@@ -381,9 +382,15 @@ export class ProjectionDefinitionCompiler {
         }
 
         const allProperties: Record<string, string> = {};
-        const subscribesToAllEvents = properties.some(property => getFromAllMetadata(prototype, property) !== undefined);
+        const subscribesToAllEvents = properties.some(property => getFromAllEventsMetadata(prototype, property) !== undefined);
+        if (subscribesToAllEvents) {
+            overrides.set('SubscribesToAllEvents', '@fromAllEvents');
+            overrides.set('All', '@fromAllEvents');
+        }
         for (const property of properties) {
-            const fromEvery = getFromAllMetadata(prototype, property) ?? getFromEveryMetadata(prototype, property);
+            const fromAllEvents = getFromAllEventsMetadata(prototype, property);
+            if (fromAllEvents) overrides.set(`All.Properties.${property}`, '@fromAllEvents');
+            const fromEvery = fromAllEvents ?? getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
                     ? eventContextPropertyExpression(fromEvery.contextProperty)
@@ -460,13 +467,13 @@ export class ProjectionDefinitionCompiler {
             Nested: nestedByProperty
         };
         const provenance = captureProjectionProvenance({ ...definition, From: preLoweringFrom, Join: preLoweringJoin }, true, overrides);
-        if (Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
-            getFromAllMetadata(prototype, property))) {
+        if (!subscribesToAllEvents && Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
+            getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property))) {
             const index = provenance.findIndex(entry => entry.contractPath === 'All');
             if (index >= 0) provenance[index] = { contractPath: 'All', declaration: '@fromAll' };
         }
         for (const property of Object.keys(allProperties)) {
-            if (getFromAllMetadata(prototype, property)) {
+            if (!getFromAllEventsMetadata(prototype, property) && getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property)) {
                 const path = `All.Properties.${property}`;
                 const index = provenance.findIndex(entry => entry.contractPath === path);
                 if (index >= 0) provenance[index] = { contractPath: path, declaration: '@fromAll' };

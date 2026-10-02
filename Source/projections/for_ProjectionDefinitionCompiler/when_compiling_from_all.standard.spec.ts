@@ -24,14 +24,14 @@ class EveryModel {
 }
 
 describe('when compiling standard fromAll without explicit event subscriptions', () => {
-    it('should emit the subscription and shared mappings without constructing the model', () => {
+    it('should emit restricted shared mappings without constructing the model', () => {
         const { definition } = compileModelBound(AllModel);
-        should(definition.SubscribesToAllEvents).be.true;
+        should(definition.SubscribesToAllEvents === undefined).be.true;
         should(definition.From).deep.equal([]);
         should(definition.FromEvery).deep.equal([]);
         should(definition.All).deep.equal({ Properties: {
             title: 'name', lastType: '$eventContext(SequenceNumber)', source: '$eventContext(EventSourceId)'
-        }, IncludeChildren: true, AutoMap: 0 });
+        }, IncludeChildren: false, AutoMap: 0 });
     });
 
     it('should leave fromEvery subscriptions and child behavior unchanged', () => {
@@ -40,24 +40,30 @@ describe('when compiling standard fromAll without explicit event subscriptions',
         should(definition.All).deep.equal({ Properties: { title: 'name' }, IncludeChildren: false, AutoMap: 0 });
     });
 
-    it('should inherit the all-event subscription without leaking it to another model', () => {
+    it('should inherit the restricted mappings without expanding subscriptions', () => {
         class Derived extends AllModel {}
-        should(compileModelBound(Derived).definition.SubscribesToAllEvents).be.true;
+        const { definition } = compileModelBound(Derived);
+        should(definition.SubscribesToAllEvents === undefined).be.true;
+        should(definition.All).deep.equal(compileModelBound(AllModel).definition.All);
         should(compileModelBound(EveryModel).definition.SubscribesToAllEvents === undefined).be.true;
     });
 
-    it('should reject all-event scenarios before replay with the standard decorator declaration', () => {
-        should(() => new ReadModelScenario(AllModel, { readModels: [AllModel], eventTypes: [], projections: [], reducers: [] }))
-            .throw(UnsupportedProjectionOperation, 'SubscribesToAllEvents (@fromAll)');
+    it('should reject the shared mappings before replay with the standard decorator declaration', () => {
+        class Candidate {
+            @field(String) id = '';
+            @field(String) @fromAll('name') title = '';
+        }
+        should(() => new ReadModelScenario(Candidate, { readModels: [Candidate], eventTypes: [], projections: [], reducers: [] }))
+            .throw(UnsupportedProjectionOperation, 'All (@fromAll)');
     });
 
-    it('should give fromAll precedence when both decorators target one property', () => {
+    it('should preserve fromEvery precedence when both decorators target one property', () => {
         class Both {
             @field(String) id = '';
             @field(String) @fromEvery('oldName') @fromAll('newName') title = '';
         }
         const { definition } = compileModelBound(Both);
-        should(definition.SubscribesToAllEvents).be.true;
-        should(definition.All!.Properties.title).equal('newName');
+        should(definition.SubscribesToAllEvents === undefined).be.true;
+        should(definition.All!.Properties.title).equal('oldName');
     });
 });

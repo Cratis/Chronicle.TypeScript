@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
 import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
 import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { getFromAllEventsMetadata } from './fromAllEvents.js';
 
 /** Metadata stored by the fromAll property decorator. */
 export interface FromAllMetadata {
@@ -17,9 +18,13 @@ export interface FromAllMetadata {
 const METADATA_KEY = 'chronicle:projection:fromAll';
 
 /**
- * Subscribes the root projection to every event type and maps the decorated property on each event,
- * including events not declared with `fromEvent`. Unlike `fromEvery`, this expands the subscription.
- * Use `fromEvery` when only already-subscribed events should update the property.
+ * Property decorator that sets the decorated read model property from a property present on every
+ * event type the projection is built from - the convention-based counterpart to declaring the same
+ * mapping on every individual `fromEvent`. Equivalent to {@link fromEvery} for model-bound
+ * projections.
+ * @deprecated @fromAll remains a supported, deprecated alias for restricted mappings; prefer @fromEvery.
+ * Contrary to the earlier 'next major' announcement, its behavior will not change;
+ * use @fromAllEvents to opt into all-event subscriptions.
  * @param property - Optional event property name. If not specified, uses the model property name.
  * @param contextProperty - Optional event context property name.
  * @returns A property decorator.
@@ -33,11 +38,13 @@ export function fromAll(property?: string, contextProperty?: string): ChronicleP
 }
 
 /**
- * Retrieves fromAll metadata stored on the given property.
+ * Retrieves fromAll metadata stored on the given property, falling back to fromAllEvents metadata
+ * for compatibility with existing model discovery. This reader does not imply an all-event subscription.
  * @param target - The class prototype.
  * @param propertyKey - The property name.
  * @returns The fromAll metadata, or undefined if not decorated.
  */
 export function getFromAllMetadata(target: object, propertyKey: string): FromAllMetadata | undefined {
-    return getPropertyMetadata<FromAllMetadata>(METADATA_KEY, target, propertyKey);
+    return getPropertyMetadata<FromAllMetadata>(METADATA_KEY, target, propertyKey)
+        ?? getFromAllEventsMetadata(target, propertyKey);
 }
