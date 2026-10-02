@@ -7,6 +7,7 @@ import type { Constructor } from '@cratis/fundamentals';
 import { DefaultClientArtifactsProvider } from '../artifacts/DefaultClientArtifactsProvider.js';
 import type { IClientArtifactsProvider } from '../artifacts/IClientArtifactsProvider.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
+import { resolveEventSubject } from '../compliance/resolveEventSubject.js';
 import { getFromEventMetadata } from '../projections/modelBound/fromEvent.js';
 import { getRemovedWithClassMetadata } from '../projections/modelBound/removedWith.js';
 import { getRemovedWithJoinClassMetadata } from '../projections/modelBound/removedWithJoin.js';
@@ -138,11 +139,14 @@ export class ReadModelScenario<TReadModel extends object> {
             if (!metadata) throw new Error(`Event '${event.constructor.name}' has no @eventType metadata.`);
             // The kernel delivers JSON objects, not instances of decorated event classes.
             const content: unknown = JSON.parse(JsonSerializer.serialize(event));
+            const subject = resolveEventSubject(event);
             this._events.push({
                 sourceId: id,
                 content,
                 context: {
                     eventSourceId: id,
+                    // Match the kernel's string.IsNullOrWhiteSpace, including U+0085 but not U+FEFF.
+                    subject: subject && !/^\p{White_Space}*$/u.test(subject) ? subject : id,
                     eventSourceType: 'Default',
                     eventStreamType: 'All',
                     eventStreamId: 'Default',

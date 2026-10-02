@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ConceptAs, field, Guid } from '@cratis/fundamentals';
 import type { Constructor } from '@cratis/fundamentals';
 import { pii } from '../compliance/pii.js';
+import { subject } from '../compliance/subject.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import type { EventContext } from '../events/EventContext.js';
 import { fromEvent } from '../projections/modelBound/fromEvent.js';
@@ -216,6 +217,36 @@ describe('ReadModelScenario', () => {
         setFromContext(ItemAdded, 'subject')(SubjectState.prototype, 'subject');
         const scenario = new ReadModelScenario(SubjectState, artifacts);
         scenario.given.forEventSource('source-a').events(new ItemAdded(1));
+        expect(await scenario.instance).toMatchObject({ subject: 'source-a' });
+    });
+
+    it('maps a seeded event subject annotation to the projection Subject context', async () => {
+        class PersonalData {
+            @field(String) personId = 'person-a';
+        }
+        subject()(PersonalData.prototype, 'personId');
+        eventType('scenario-personal-data')(PersonalData);
+        class SubjectState { @field(String) id = ''; @field(String) subject = ''; }
+        fromEvent(PersonalData)(SubjectState);
+        setFromContext(PersonalData, 'subject')(SubjectState.prototype, 'subject');
+        const scenario = new ReadModelScenario(SubjectState, { ...artifacts, eventTypes: [PersonalData] });
+        scenario.given.forEventSource('source-a').events(new PersonalData());
+        expect(await scenario.instance).toMatchObject({ subject: 'person-a' });
+    });
+
+    it.each([undefined, null, '', ' \t\n', '\u0085\u2003'])('defaults an annotated subject %j to the event source', async value => {
+        class PersonalData {
+            // Keep null out of serialized content while exercising subject resolution.
+            get personId(): string | null | undefined { return value; }
+        }
+        field(String)(PersonalData.prototype, 'personId');
+        subject()(PersonalData.prototype, 'personId');
+        eventType('scenario-empty-subject')(PersonalData);
+        class SubjectState { @field(String) id = ''; @field(String) subject = ''; }
+        fromEvent(PersonalData)(SubjectState);
+        setFromContext(PersonalData, 'subject')(SubjectState.prototype, 'subject');
+        const scenario = new ReadModelScenario(SubjectState, { ...artifacts, eventTypes: [PersonalData] });
+        scenario.given.forEventSource('source-a').events(new PersonalData());
         expect(await scenario.instance).toMatchObject({ subject: 'source-a' });
     });
 
