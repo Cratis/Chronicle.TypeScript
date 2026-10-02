@@ -175,12 +175,15 @@ describe('ReactorScenario live delivery', () => {
                 try {
                     for await (const _change of services.readModels.watch(Registered)) { /* Unsupported. */ }
                 } catch (error) { errors.push(error); }
+                try {
+                    await services.readModels.watch(Registered).subscribed;
+                } catch (error) { errors.push(error); }
             }
         }
         const scenario = new ReactorScenario(ServiceRejection, options);
         let failure: unknown;
         await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
-        errors.length.should.equal(10);
+        errors.length.should.equal(11);
         errors.every(error => error instanceof UnsupportedReactorOperation && String(error).includes('Use a kernel-backed test.')).should.be.true;
         // Swallowed rejections still fail the delivery with the first unsupported operation.
         (failure === errors[0]).should.be.true;

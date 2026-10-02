@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { ReadModelChangeType } from './ReadModelChangeType.js';
+import type { ReadModelChangeContext } from './ReadModelChangeContext.js';
+
 /**
  * Represents a change observed for a read model.
  */
@@ -16,4 +19,10 @@ export interface ReadModelChangeset<TReadModel> {
 
     /** Whether the read model was removed. */
     readonly removed: boolean;
+
+    /** The kind of change. Optional for compatibility with user-created changesets. */
+    readonly changeType?: ReadModelChangeType;
+
+    /** Triggering event metadata supplied by the kernel, not a complete event context. */
+    readonly changeContext?: ReadModelChangeContext;
 }

@@ -60,3 +60,22 @@ For an existing model with a custom identifier, move the identifier to `static r
 Projections and reducers run after an append returns, so a read straight after an append can be missing or reflect older state. In scripts and tests, wait with `await appendResult.waitForCompletion()` first. In services, read the [eventual consistency](/chronicle/projections/eventual-consistency/) guidance.
 
 For compliance-bearing reducer reads, both methods reject when PII release fails rather than returning an unreleased instance. Collection reads, snapshots, and watches also reject if compliance release fails.
+
+## Watch readiness and lifetime
+
+If you append before a watch is subscribed, you can miss the change. Keep the object returned by `store.readModels.watch(Model)` and await `watcher.subscribed` before appending. The watch starts immediately, even without iteration. It remains an async iterable: existing `for await (const change of store.readModels.watch(Model))` loops need no changes. See the [watching example](/chronicle/read-models/watching-read-models/) for readiness and cancellation together.
+
+Each change keeps `namespace`, `key`, `readModel`, and `removed`, and adds:
+
+- `changeType`: `ReadModelChangeType.Added`, `Modified`, or `Removed`. Unknown wire kinds map to `Modified`, as in the .NET client.
+- `changeContext`: the event store, namespace, triggering `sequenceNumber` as a `bigint`, `correlationId`, and `occurred` as a `Date`. Correlation and occurrence are absent if the kernel omits them. This is the metadata carried by the watch protocol, not a full `EventContext`: event type, source/stream routing, causation, and identity are not sent. In particular, the model key is not necessarily the event source ID.
+
+The new changeset fields are optional in the TypeScript interface so existing application-created changesets remain valid. Connected watches populate them from kernel messages; the subscription acknowledgment is never yielded as a change. Check `removed` before reading model properties because a removal can carry an empty document. Kernel 19.26.2 supports projection watches, not server-side reducer watches.
+
+Use one consumer per watcher. `watch(Model, { signal })`, `watcher.dispose()`, an early `for await` exit, and disposing the client all cancel the underlying stream. Disposal is idempotent and completes pending iteration; if readiness is still pending, it rejects with the cancellation reason. A stream error or deserialization/compliance failure rejects iteration and any pending readiness. Normal stream completion ends iteration and rejects readiness if no acknowledgment arrived. Create a new watcher after a terminal completion or failure.
+
+When the client's connection lifecycle reports a disconnect, a live watcher cancels its old stream and discards buffered or in-flight changes from that connection. On reconnect it opens one new stream, continuing the same iterator. `watcher.subscribed` becomes a new pending promise at disconnect if its previous promise had resolved; an already pending promise instead waits for the next successful acknowledgment. Read the property again after a disconnect rather than caching the old promise: a resolved promise cannot become pending again. An independent watch-stream fault is terminal, even if the client subsequently reconnects.
+
+Readiness is a subscription barrier, not a guarantee of uninterrupted connectivity or replay. Watches do not catch up changes missed during an outage. Refresh the read model after reconnecting, and do not use watching as a durable event-processing mechanism. Slow consumers apply backpressure with one change buffered by the watcher.
+
+`ReactorScenario` rejects `readModels.watch()` immediately with `UnsupportedReactorOperation`, including attempts to await readiness. `ReadModelScenario` does not expose watches. Use a kernel-backed spec to test subscription readiness and change metadata.

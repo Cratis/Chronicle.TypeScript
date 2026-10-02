@@ -3,7 +3,7 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
-import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { IReadModelWatcher } from './IReadModelWatcher.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
 /**
@@ -65,11 +65,13 @@ export interface IReadModels {
     getSnapshotsById<TReadModel>(readModelType: Constructor<TReadModel>, key: string): Promise<ReadModelSnapshot<TReadModel>[]>;
 
     /**
-     * Watches changes for a specific read model type.
+     * Starts watching changes for a specific read model type.
      * @param readModelType - The read model type to observe.
-     * @returns An async iterable of read model changes.
+     * @param options - Optional cancellation signal; abort completes iteration and rejects pending readiness.
+     * @returns A single-consumer async iterable with subscription readiness and explicit disposal.
+     * Lifecycle reconnects open a new subscription; stream faults reject iteration.
      */
-    watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>>;
+    watch<TReadModel>(readModelType: Constructor<TReadModel>, options?: { signal?: AbortSignal }): IReadModelWatcher<TReadModel>;
 
     /**
      * Dehydrates a read model session.
