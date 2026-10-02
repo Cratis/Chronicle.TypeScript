@@ -46,7 +46,7 @@ for (const [value, expected] of [
     describe(`when setting a composite constant part to ${JSON.stringify(value)}`, () => {
         let result: string;
         beforeEach(() => {
-            const builder = new CompositeKeyBuilder<Key, Changed>();
+            const builder = new CompositeKeyBuilder<{ category: typeof value }, Changed>();
             builder.set(target => target.category).toValue(value);
             result = builder.build();
         });

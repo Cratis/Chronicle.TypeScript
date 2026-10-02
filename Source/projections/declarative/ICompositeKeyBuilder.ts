@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
-import { ISetBuilder } from './ISetBuilder.js';
+import { ICompositeKeySetBuilder } from './ICompositeKeySetBuilder.js';
 
 /**
  * Defines a builder for constructing composite keys from event properties, context and constants.
@@ -15,7 +15,7 @@ export interface ICompositeKeyBuilder<TKeyType, TEvent> {
      * @param targetPropertyAccessor - Accessor for the property on the key type to populate.
      * @returns A set-expression builder whose to methods return this composite key builder.
      */
-    set(targetPropertyAccessor: PropertyAccessor<TKeyType>): ISetBuilder<TEvent, ICompositeKeyBuilder<TKeyType, TEvent>>;
+    set<TProperty>(targetPropertyAccessor: (key: TKeyType) => TProperty): ICompositeKeySetBuilder<TKeyType, TEvent, TProperty>;
 
     /**
      * Maps a source event property to a target key property.

@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
 import { ISetBuilder } from './ISetBuilder.js';
+import { ICompositeKeySetBuilder } from './ICompositeKeySetBuilder.js';
 import { SetBuilder } from './SetBuilder.js';
 
 /**
@@ -16,7 +17,7 @@ export class CompositeKeyBuilder<TKeyType, TEvent> implements ICompositeKeyBuild
     private readonly _parts: Array<{ property: string; expression?: string }> = [];
 
     /** @inheritdoc */
-    set(targetPropertyAccessor: PropertyAccessor<TKeyType>): ISetBuilder<TEvent, ICompositeKeyBuilder<TKeyType, TEvent>>;
+    set<TProperty>(targetPropertyAccessor: (key: TKeyType) => TProperty): ICompositeKeySetBuilder<TKeyType, TEvent, TProperty>;
     /** @inheritdoc */
     set(
         targetPropertyAccessor: PropertyAccessor<TKeyType>,
@@ -29,6 +30,10 @@ export class CompositeKeyBuilder<TKeyType, TEvent> implements ICompositeKeyBuild
         const targetHandler = new PropertyPathResolverProxyHandler();
         const targetProxy = new Proxy({}, targetHandler);
         targetPropertyAccessor(targetProxy as TKeyType);
+
+        if (this._parts.some(part => part.property === targetHandler.property)) {
+            throw new Error(`Composite key part '${targetHandler.property}' is already configured.`);
+        }
 
         const part: { property: string; expression?: string } = { property: targetHandler.property };
         this._parts.push(part);
