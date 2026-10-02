@@ -102,6 +102,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
     const eventStoreName = `Migration${randomUUID().replaceAll('-', '').slice(0, 12)}`;
     const eventSourceId = randomUUID();
     let firstGenerationClient: ChronicleClient;
+    let migrationClient: ChronicleClient;
     let secondGenerationClient: ChronicleClient;
     let appendedSequenceNumber: bigint;
     let event: AppendedEvent;
@@ -113,11 +114,33 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
         // An application that only knows the first generation appends the event.
         firstGenerationClient = clientWith(artifactsWith({ eventTypes: [AuthorRegisteredV1] }));
         const firstGenerationStore = await firstGenerationClient.getEventStore(eventStoreName);
+        // Keep a backlog so replay can overtake the asynchronous migration if the readiness barrier is removed.
+        await firstGenerationStore.eventLog.appendMany(Array.from({ length: 500 }, () => ({
+            eventSourceId: randomUUID(),
+            event: Object.assign(new AuthorRegisteredV1(), { name: 'Earlier Author' })
+        })));
         const appended = await firstGenerationStore.eventLog.append(eventSourceId, Object.assign(new AuthorRegisteredV1(), { name: 'Jane Doe' }));
         appendedSequenceNumber = appended.sequenceNumber.value;
+        // The backlog is the regression setup; without it the race this spec guards against cannot occur.
+        if (appendedSequenceNumber < 500n) throw new Error(`Expected the 500-event backlog before the target event, but it was appended at ${appendedSequenceNumber}.`);
         firstGenerationClient.dispose();
 
-        // A later version registers the second generation with a migration, a projection and a reactor that replay the history.
+        // Registration starts a background migration job; it does not mean stored history has been migrated.
+        // Wait for the target's second-generation content before any observer can replay the old payload.
+        migrationClient = clientWith(artifactsWith({
+            eventTypes: [AuthorRegisteredV1, AuthorRegistered],
+            eventTypeMigrations: [AuthorRegisteredMigration]
+        }));
+        const migrationStore = await migrationClient.getEventStore(eventStoreName);
+        event = await eventually(
+            async () => (await migrationStore.eventLog.getForEventSourceIdAndEventTypes(eventSourceId, [AuthorRegistered]))[0],
+            _ => {
+                const content = _?.content as AuthorRegistered | undefined;
+                return content?.firstName === 'Jane' && content.lastName === 'Doe';
+            });
+        migrationClient.dispose();
+
+        // A later application replays the migrated history through a projection and a reactor.
         secondGenerationClient = clientWith(artifactsWith({
             eventTypes: [AuthorRegisteredV1, AuthorRegistered],
             eventTypeMigrations: [AuthorRegisteredMigration],
@@ -126,10 +149,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
         }));
         const store: IEventStore = await secondGenerationClient.getEventStore(eventStoreName);
 
-        event = await eventually(
-            async () => (await store.eventLog.getForEventSourceIdAndEventTypes(eventSourceId, [AuthorRegistered]))[0],
-            _ => (_?.content as AuthorRegistered | undefined)?.firstName === 'Jane');
-        author = await eventually(() => store.readModels.findInstanceById(Author, eventSourceId), _ => _ !== null && _.firstName !== '');
+        author = await eventually(() => store.readModels.findInstanceById(Author, eventSourceId), _ => _ !== null);
         observation = await eventually(async () => observed.find(_ => _.context.eventSourceId === eventSourceId)!, _ => _ !== undefined);
 
         // Registering a second generation without a migration from the first is rejected.
@@ -140,6 +160,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
 
     afterAll(() => {
         firstGenerationClient?.dispose();
+        migrationClient?.dispose();
         secondGenerationClient?.dispose();
     });
 
@@ -147,10 +168,10 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
     it('should read the last name split from the first generation', () => (event.content as AuthorRegistered).lastName.should.equal('Doe'));
     it('should keep the event source of the appended event', () => event.context.eventSourceId.should.equal(eventSourceId));
     it('should keep the sequence number of the appended event', () => event.context.sequenceNumber.should.equal(appendedSequenceNumber));
-    it('should project the migrated first name', () => author!.firstName.should.equal('Jane'));
-    it('should project the migrated last name', () => author!.lastName.should.equal('Doe'));
-    it('should replay the migrated first name to the reactor', () => observation.event.firstName.should.equal('Jane'));
-    it('should replay the migrated last name to the reactor', () => observation.event.lastName.should.equal('Doe'));
+    it('should project the migrated first name', () => author!.should.have.property('firstName', 'Jane'));
+    it('should project the migrated last name', () => author!.should.have.property('lastName', 'Doe'));
+    it('should replay the migrated first name to the reactor', () => observation.event.should.have.property('firstName', 'Jane'));
+    it('should replay the migrated last name to the reactor', () => observation.event.should.have.property('lastName', 'Doe'));
     it('should replay the event source to the reactor', () => observation.context.eventSourceId.should.equal(eventSourceId));
     it('should reject a second generation that has no migration', () => missingMigrationError.should.be.instanceOf(Error));
 });
