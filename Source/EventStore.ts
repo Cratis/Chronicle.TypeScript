@@ -44,6 +44,7 @@ import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
 import { UnitOfWorkManager } from './transactions/UnitOfWorkManager.js';
 import { IJobs } from './jobs/IJobs.js';
 import { Jobs } from './jobs/Jobs.js';
+import { Patterns, type IPatterns } from './patterns/index.js';
 import { IWebhooks } from './webhooks/IWebhooks.js';
 import { Webhooks } from './webhooks/Webhooks.js';
 import { EventStoreSubscriptions } from './eventStoreSubscriptions/EventStoreSubscriptions.js';
@@ -75,6 +76,7 @@ export class EventStore implements IEventStore {
     readonly readModels: IReadModels;
     readonly unitOfWorkManager: IUnitOfWorkManager;
     readonly jobs: IJobs;
+    readonly patterns: IPatterns;
     readonly webhooks: IWebhooks;
     readonly subscriptions: IEventStoreSubscriptions;
     readonly seeding: IEventSeeding;
@@ -115,6 +117,7 @@ export class EventStore implements IEventStore {
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType), readModelNamingPolicy);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
+        this.patterns = new Patterns(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
         this.subscriptions = new EventStoreSubscriptions(this.eventTypes, name.value, _connection);
         this.seeding = new EventSeeding(name.value, _connection, artifacts);

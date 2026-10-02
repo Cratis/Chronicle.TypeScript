@@ -20,6 +20,7 @@ import {
     MaterializedReadModelsDefinition,
     NamespacesDefinition,
     ObserversDefinition,
+    PatternsDefinition,
     ProjectionsDefinition,
     ReactorsDefinition,
     ReadModelExplorerDefinition,
@@ -215,6 +216,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.jobs;
     }
 
+    get patterns() {
+        return this._services.patterns;
+    }
+
     get webhooks() {
         return this._services.webhooks;
     }
@@ -317,6 +322,7 @@ export class ChronicleConnection implements ChronicleServices {
             readModelExplorer: factory.create(ReadModelExplorerDefinition, this._channel),
             materializedReadModels: factory.create(MaterializedReadModelsDefinition, this._channel),
             jobs: factory.create(JobsDefinition, this._channel),
+            patterns: factory.create(PatternsDefinition, this._channel),
             webhooks: factory.create(WebhooksDefinition, this._channel),
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),
             server: factory.create(ServerDefinition, this._channel),

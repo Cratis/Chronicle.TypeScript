@@ -13,6 +13,7 @@ import { IReactors } from './reactors/IReactors.js';
 import { IReducers } from './reducers/IReducers.js';
 import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
 import { IJobs } from './jobs/IJobs.js';
+import type { IPatterns } from './patterns/index.js';
 import { IWebhooks } from './webhooks/IWebhooks.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions.js';
@@ -57,6 +58,9 @@ export interface IEventStore {
 
     /** The unit of work manager for transaction-scoped appends. */
     readonly unitOfWorkManager: IUnitOfWorkManager;
+
+    /** Behavior pattern queries for this event store and namespace. */
+    readonly patterns: IPatterns;
 
     /** The jobs manager for this event store. */
     readonly jobs: IJobs;

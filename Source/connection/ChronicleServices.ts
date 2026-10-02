@@ -14,6 +14,7 @@ import type {
     MaterializedReadModelsClient,
     NamespacesClient,
     ObserversClient,
+    PatternsClient,
     ProjectionsClient,
     ReactorsClient,
     ReadModelExplorerClient,
@@ -47,6 +48,7 @@ export interface ChronicleServices {
     readModelExplorer: ReadModelExplorerClient;
     materializedReadModels: MaterializedReadModelsClient;
     jobs: JobsClient;
+    patterns: PatternsClient;
     webhooks: WebhooksClient;
     eventSeeding: EventSeedingClient;
     server: ServerClient;
