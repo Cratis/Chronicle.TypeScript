@@ -72,10 +72,12 @@ Public constants change as follows:
 | Previous `WellKnownTelemetryNames` member | Replacement or action |
 | --- | --- |
 | `spans` with legacy values | `spans` now contains convention names; update span-name queries. |
-| `conventionSpans` | Removed; use `spans`. |
+| `conventionSpans` | Deprecated alias of `spans`; identical values, removed in the next major. |
 | `legacyScope` | Removed; use `scope` (`Cratis.Chronicle.Client`, unchanged). |
 | `legacyAttributes` | Removed; use `attributes` and migrate attribute filters. |
 | `legacyMetrics` | Removed; use `metrics` and migrate instrument selectors and duration thresholds. |
+
+`ChronicleMetrics` now retains only event store, namespace, event sequence, and event type attributes. It drops **every other caller-supplied attribute**, including custom dimensions such as `tenant` and the former batch-size dimension. Remove queries and groupings that depend on those dimensions; record your own instruments if you need custom dimensions.
 
 The integer sequence-number attribute still uses `Number.isSafeInteger`. Removing the legacy string attribute means exact values above `Number.MAX_SAFE_INTEGER` are no longer recorded; use the `bigint` event sequence API when you need those values. The `diag` default logger and event-source-id opt-in policy are unchanged.
 

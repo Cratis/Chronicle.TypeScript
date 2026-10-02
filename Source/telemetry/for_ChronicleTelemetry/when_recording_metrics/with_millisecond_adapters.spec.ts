@@ -17,7 +17,7 @@ describe('when recording through the deprecated millisecond adapters', () => {
         const attributes = { 'chronicle.event_store': 'store', 'chronicle.namespace': 'namespace',
             'chronicle.event_sequence_id': 'event-log', 'chronicle.event_type_id': 'recorded',
             'chronicle.events_count': 237, 'chronicle.event_source_id': 'private-source',
-            'cratis.correlation_id': 'private-correlation' };
+            'cratis.correlation_id': 'private-correlation', tenant: 'custom-dimension' };
         for (const instrument of ['eventsAppended', 'batchAppendsPerformed', 'eventStoreRetrievals', 'constraintViolations', 'appendErrors'] as const) {
             ChronicleMetrics[instrument].add(3, attributes);
         }
@@ -59,7 +59,7 @@ describe('when recording through the deprecated millisecond adapters', () => {
             metric.dataPoints[0].value.should.equal(3);
         }
     });
-    it('should translate historical dimensions and drop batch size and sensitive dimensions', () => {
+    it('should translate historical dimensions and drop batch size, sensitive and custom dimensions', () => {
         for (const metric of scope.metrics) {
             metric.dataPoints.find(point => point.attributes['cratis.event_store.name'] === 'store')!.attributes.should.deep.equal({
                 'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',

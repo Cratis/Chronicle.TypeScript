@@ -1,6 +1,21 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+const spans = Object.freeze({
+    append: 'cratis.chronicle.client.event_sequence.append',
+    appendMany: 'cratis.chronicle.client.event_sequence.append_many',
+    getTailSequenceNumber: 'cratis.chronicle.client.event_sequence.get_tail_sequence_number',
+    hasEventsFor: 'cratis.chronicle.client.event_sequence.has_events_for',
+    getForEventSourceIdAndEventTypes: 'cratis.chronicle.client.event_sequence.get_for_event_source_id_and_event_types',
+    getFromSequenceNumber: 'cratis.chronicle.client.event_sequence.get_from_sequence_number',
+    redact: 'cratis.chronicle.client.event_sequence.redact',
+    redactForEventSource: 'cratis.chronicle.client.event_sequence.redact_for_event_source',
+    completeStream: 'cratis.chronicle.client.event_sequence.complete_stream',
+    getEventStore: 'cratis.chronicle.client.event_store.get',
+    getEventStores: 'cratis.chronicle.client.event_store.list',
+    getNamespaces: 'cratis.chronicle.client.event_store.get_namespaces'
+} as const);
+
 /** Public telemetry names following the shared Cratis OpenTelemetry convention. */
 export const WellKnownTelemetryNames = {
     scope: 'Cratis.Chronicle.Client',
@@ -21,20 +36,9 @@ export const WellKnownTelemetryNames = {
         errorType: 'error.type',
         exceptionType: 'exception.type'
     },
-    spans: {
-        append: 'cratis.chronicle.client.event_sequence.append',
-        appendMany: 'cratis.chronicle.client.event_sequence.append_many',
-        getTailSequenceNumber: 'cratis.chronicle.client.event_sequence.get_tail_sequence_number',
-        hasEventsFor: 'cratis.chronicle.client.event_sequence.has_events_for',
-        getForEventSourceIdAndEventTypes: 'cratis.chronicle.client.event_sequence.get_for_event_source_id_and_event_types',
-        getFromSequenceNumber: 'cratis.chronicle.client.event_sequence.get_from_sequence_number',
-        redact: 'cratis.chronicle.client.event_sequence.redact',
-        redactForEventSource: 'cratis.chronicle.client.event_sequence.redact_for_event_source',
-        completeStream: 'cratis.chronicle.client.event_sequence.complete_stream',
-        getEventStore: 'cratis.chronicle.client.event_store.get',
-        getEventStores: 'cratis.chronicle.client.event_store.list',
-        getNamespaces: 'cratis.chronicle.client.event_store.get_namespaces'
-    },
+    spans,
+    /** @deprecated Use spans; identical values. Removed in the next major. */
+    conventionSpans: spans,
     metrics: {
         eventsAppended: 'cratis.chronicle.event_sequence.appended',
         batchAppendsPerformed: 'cratis.chronicle.event_sequence.batch_appends',
