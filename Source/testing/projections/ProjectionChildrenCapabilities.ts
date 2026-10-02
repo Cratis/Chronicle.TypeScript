@@ -49,7 +49,7 @@ export class ProjectionChildrenCapabilities {
             const declaration = context.declarationFor(base);
             const reject = (path: string, reason: string): never => context.reject(path, reason, declaration);
             const wire = child as unknown as Record<string, unknown>;
-            if ((child.Join ?? []).length) reject(`${base}.Join`, 'joins require a kernel-backed test');
+            if ((child.Join ?? []).length) reject(`${base}.Join`, 'joins inside children require a kernel-backed test');
             if (Object.keys(child.Children ?? {}).length) reject(`${base}.Children`, `nested children collections ${kernelBacked}`);
             if (Object.keys(child.Nested ?? {}).length) reject(`${base}.Nested`, `nested projections inside children ${kernelBacked}`);
             if ((child.RemovedWithJoin ?? []).length) reject(`${base}.RemovedWithJoin`, `removedWithJoin inside children ${kernelBacked}`);

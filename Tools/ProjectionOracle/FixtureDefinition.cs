@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Nodes;
 using ContractEventType = KernelContracts::Cratis.Chronicle.Contracts.Events.EventType;
 using ContractFrom = KernelContracts::Cratis.Chronicle.Contracts.Projections.FromDefinition;
+using ContractJoin = KernelContracts::Cratis.Chronicle.Contracts.Projections.JoinDefinition;
 using ContractRemoval = KernelContracts::Cratis.Chronicle.Contracts.Projections.RemovedWithDefinition;
 using ContractDefinition = KernelContracts::Cratis.Chronicle.Contracts.Projections.ProjectionDefinition;
 using ContractChildren = KernelContracts::Cratis.Chronicle.Contracts.Projections.ChildrenDefinition;
@@ -49,6 +50,11 @@ internal static class FixtureDefinition
             var key = entry["Key"]!.Deserialize<ContractEventType>(_strict)!;
             definition.RemovedWith.Add(key, entry["Value"]!.Deserialize<ContractRemoval>(_strict)!);
         }
+        foreach (var entry in node["Join"]!.AsArray())
+        {
+            Only(entry!.AsObject(), "Key", "Value");
+            definition.Join.Add(entry["Key"]!.Deserialize<ContractEventType>(_strict)!, entry["Value"]!.Deserialize<ContractJoin>(_strict)!);
+        }
         // Fail closed rather than silently discarding an unsupported wire operation.
         if (definition.From.Values.Any(from => !string.IsNullOrEmpty(from.ParentKey)) ||
             definition.RemovedWith.Values.Any(removal => !string.IsNullOrEmpty(removal.ParentKey)))
@@ -62,7 +68,7 @@ internal static class FixtureDefinition
                 definition.Children.Add(property, ReadChildren(child!.AsObject()));
             }
         }
-        foreach (var name in new[] { "Join", "FromEvery", "RemovedWithJoin", "Nested" })
+        foreach (var name in new[] { "FromEvery", "RemovedWithJoin", "Nested" })
         {
             if (node[name] is JsonArray array && array.Count != 0 || node[name] is JsonObject map && map.Count != 0)
             {

@@ -81,7 +81,7 @@ internal static class OracleRunner
                 ToEventType(type), Concepts.Events.EventTypeOwner.Client, Concepts.Events.EventTypeSource.Code,
                 JsonSchema.FromJson(node["schema"]!.ToJsonString()));
         }).ToArray();
-        var declaredTypes = wire.From.Keys.Concat(wire.RemovedWith.Keys)
+        var declaredTypes = wire.From.Keys.Concat(wire.RemovedWith.Keys).Concat(wire.Join.Keys)
             .Concat(wire.Children.Values.SelectMany(child => child.From.Keys.Concat(child.RemovedWith.Keys)))
             .Select(type => (type.Id, type.Generation)).ToHashSet();
         var schemaTypes = eventSchemas.Select(schema => (schema.Type.Id.Value, schema.Type.Generation.Value)).ToHashSet();
