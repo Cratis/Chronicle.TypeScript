@@ -11,14 +11,21 @@ Its mappings also apply to child projections through the root's `All` definition
 with `IncludeChildren`; they can update or clear child properties as events are
 processed. Child and nested `@fromAllEvents` members contribute to that same
 root block by bare property name (for example, `title`, not `items.title`).
-Decorating only a child or nested model sets `IncludeChildren` but does not widen
-the root subscription.
+Decorating only a child or nested model sets `IncludeChildren` for the shared
+block, including the root's restricted shared mappings, but does not widen the
+root subscription. This flag does not guarantee child updates: with kernel
+19.26.2, when the child's creating event is explicitly subscribed at the root,
+the event updates the root's shared mappings and creates the child without
+populating its shared mapped values. Opt into `@fromAllEvents` at the root to
+populate child values in this case.
 
 The compiler has one shared `All` block per read model. When any root property
-opts into `@fromAllEvents`, every `@fromEvery` and `@fromAll` mapping in that model,
-including inherited mappings, also applies to every event type and to children,
-as in .NET. Restricted and all-event shared mappings cannot be mixed in one
-model: an unrelated event can clear an existing sibling mapping too.
+opts into `@fromAllEvents`, every root `@fromEvery`/`@fromAll` mapping (including
+inherited ones) also becomes an all-event mapping and applies to children.
+`@fromEvery`/`@fromAll` mappings on child or nested types are not collected,
+unlike .NET, which also collects child `[FromEvery]` mappings. Restricted and
+all-event shared mappings cannot be mixed in one model: an unrelated event can
+clear an existing sibling mapping too.
 If `@fromAllEvents` and `@fromEvery` (or `@fromAll`) target the same property,
 `@fromAllEvents` takes precedence regardless of decorator order.
 

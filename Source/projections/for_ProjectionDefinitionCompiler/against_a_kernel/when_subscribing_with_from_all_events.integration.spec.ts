@@ -70,7 +70,7 @@ class AllWithChildMappings {
 @fromEvent(Started)
 @fromEvent(ChildAdded)
 class ChildOnlyMappings {
-    @field(String) lastValue = '';
+    @field(String) @fromEvery('value') rootValue = '';
     @field(Array, { genericArguments: [AllMappedChild] }) @childrenFrom(ChildAdded, 'childId') children: AllMappedChild[] = [];
 }
 
@@ -192,8 +192,11 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         allChildMappingsAfterChild!.lastValue.should.equal('started');
     });
     it('should keep the root subscription restricted when only the child declares fromAllEvents', () => {
-        childOnlyAfterChild!.lastValue.should.equal('child-value');
-        childOnlyAfterUnrelated!.lastValue.should.equal('child-value');
+        childOnlyAfterChild!.rootValue.should.equal('child-value');
+        childOnlyAfterChild!.children[0].id.should.equal('child-one');
+        // The explicitly subscribed root From entry maps the root, not the child's shared values.
+        (childOnlyAfterChild!.children[0].lastValue === undefined).should.be.true;
+        childOnlyAfterUnrelated!.rootValue.should.equal('child-value');
         (unrelatedChildOnly === null).should.be.true;
     });
 });

@@ -11,12 +11,17 @@ const METADATA_KEY = 'chronicle:projection:fromAllEvents';
 
 /**
  * On a root property, subscribes the projection to every event type, including events not declared
- * with `fromEvent`. The model has one shared All block: opting in makes every `fromEvery`/`fromAll`
- * mapping in that model (including inherited mappings) apply to every event type and to children.
- * Restricted and all-event shared mappings cannot be mixed in one model.
+ * with `fromEvent`. The model has one shared All block: opting in makes every root
+ * `@fromEvery`/`@fromAll` mapping (including inherited ones) an all-event mapping that also applies
+ * to children. Restricted and all-event shared mappings cannot be mixed in one model.
+ * `@fromEvery`/`@fromAll` mappings on child or nested types are not collected, unlike .NET,
+ * which also collects child [FromEvery] mappings.
  * On a child or nested member, contributes its bare property name to the root All block and sets
- * IncludeChildren without widening the root subscription. Takes precedence over `fromEvery` and the
- * deprecated `fromAll` alias on the same property.
+ * IncludeChildren for the shared block, including the root's restricted shared mappings, without
+ * widening the root subscription. With kernel 19.26.2, when the child's creating event is explicitly
+ * subscribed at the root, it updates the root's shared mappings and creates the child without
+ * populating its shared mapped values. Opt into `@fromAllEvents` at the root to populate child values
+ * in this case. Takes precedence over `fromEvery` and the deprecated `fromAll` alias on the same property.
  * Opting in changes the definition and may trigger replay; unrelated events can create rows or clear
  * mapped properties. Use `fromEvery` without `fromAllEvents` on the model or its children to keep
  * shared mappings restricted to already-subscribed events and the root.
