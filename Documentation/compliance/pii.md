@@ -48,7 +48,9 @@ under the event source identifier's key. Existing stored events are not
 re-encrypted. To erase that older PII, you must also delete the event source
 identifier's key (or use the existing erase APIs for that identifier), in addition
 to the subject's key. Deleting the event source's key also erases other PII
-protected by that same key.
+protected by that same key. If your erasure process deletes the event source
+identifier's key, events appended after upgrading that carry `@subject()` are no
+longer protected by that key; erase the subject's key instead.
 
 ## Release a stored document
 

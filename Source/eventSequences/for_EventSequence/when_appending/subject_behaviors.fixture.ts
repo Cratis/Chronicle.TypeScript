@@ -188,7 +188,7 @@ export function subjectBehaviors(fixtures: {
             await client.unitOfWork.commit();
             subjects = client.appendManyForEventSources.mock.calls[0][0].Events.map((entry: { Subject: string }) => entry.Subject);
         });
-        it('should resolve each buffered event at append time', () => check(subjects).deep.equal(['person', 'other', 'source']));
+        it('should resolve each buffered event\'s annotation when the unit of work commits', () => check(subjects).deep.equal(['person', 'other', 'source']));
     });
     for (const testCase of cases) {
         describe(`when seeding a scenario with ${testCase.name}`, () => {
