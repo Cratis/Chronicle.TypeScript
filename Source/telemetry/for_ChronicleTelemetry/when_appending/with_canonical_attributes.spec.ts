@@ -35,13 +35,14 @@ describe('when appending with a business correlation override', () => {
         span.instrumentationScope.name.should.equal('Cratis.Chronicle.Client');
         should.equal(span.instrumentationScope.version, clientVersion);
     });
-    it('should emit only the canonical registry on the span', () => {
+    it('should emit canonical attributes with the exact-string sequence number exception', () => {
         span.attributes.should.include({
             'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',
             'cratis.event_sequence.id': 'event-log', 'cratis.event_type.id': 'telemetry-recorded',
             'cratis.event_type.generation': 1, 'cratis.event_sequence.number': 42
         });
-        Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.be.empty;
+        Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.deep.equal(['chronicle.sequence_number']);
+        span.attributes.should.have.property('chronicle.sequence_number', '42');
     });
     it('should scope the resolved correlation consistently for propagation', () => {
         should.equal(span.attributes['cratis.correlation_id'], correlation);

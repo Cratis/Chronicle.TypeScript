@@ -30,9 +30,8 @@ const operations = {
     completeStream: (sequence: IEventSequence) => sequence.completeStream('stream-type', 'stream-id')
 };
 
-for (const spanNames of [undefined, 'convention'] as const) {
-    // Simulate JavaScript retaining the previous minor's opt-in; it must have no effect.
-    const options = spanNames === undefined ? undefined : { spanNames } as unknown as ChronicleTelemetryOptions;
+for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
+    const options: ChronicleTelemetryOptions | undefined = spanNames === undefined ? undefined : { spanNames };
     for (const sequenceId of [EventSequenceId.eventLog, new EventSequenceId('dynamic')]) {
         for (const operation of Object.keys(operations) as (keyof typeof operations)[]) {
             describe(`when naming ${operation} on ${sequenceId.value} with ${spanNames ?? 'default'} configuration`, () => {
@@ -56,12 +55,15 @@ for (const spanNames of [undefined, 'convention'] as const) {
                     span.instrumentationScope.name.should.equal('Cratis.Chronicle.Client');
                     should.equal(span.instrumentationScope.version, clientVersion);
                 });
-                it('should emit only canonical attributes', () => {
+                it('should emit canonical attributes with only the exact-string sequence number exception', () => {
                     span.attributes.should.include({
                         'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',
                         'cratis.event_sequence.id': sequenceId.value
                     });
-                    Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.be.empty;
+                    const hasSequenceNumber = ['append', 'getTailSequenceNumber', 'getFromSequenceNumber', 'redact'].includes(operation);
+                    Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.deep.equal(
+                        hasSequenceNumber ? ['chronicle.sequence_number'] : []);
+                    if (hasSequenceNumber) span.attributes.should.have.property('chronicle.sequence_number', '42');
                 });
             });
         }
@@ -103,3 +105,39 @@ for (const spanNames of [undefined, 'convention'] as const) {
         });
     }
 }
+
+describe('when legacy and convention configurations coexist in one process', () => {
+    let legacy: ChronicleClient;
+    let convention: ChronicleClient;
+    beforeEach(async () => {
+        legacy = client({ spanNames: 'legacy', eventSourceId: { mode: 'raw' } });
+        convention = client({ spanNames: 'convention' });
+        const [legacyStore, conventionStore] = await Promise.all([
+            legacy.getEventStore('legacy-client'), convention.getEventStore('convention-client')
+        ]);
+        telemetry.spans.reset();
+        await Promise.all([
+            legacyStore.eventLog.append('legacy-source', new Recorded()),
+            conventionStore.eventLog.append('convention-source', new Recorded())
+        ]);
+    });
+    afterEach(() => { legacy.dispose(); convention.dispose(); });
+    it('should emit one canonical span per operation regardless of the retained selector', () => {
+        telemetry.spans.getFinishedSpans().map(span => span.name).should.deep.equal([
+            conventionSpans.append, conventionSpans.append
+        ]);
+    });
+    it('should keep privacy local to each client', () => {
+        const spans = telemetry.spans.getFinishedSpans();
+        spans.find(span => span.attributes['cratis.event_store.name'] === 'legacy-client')!
+            .attributes.should.have.property('cratis.event_source.id', 'legacy-source');
+        spans.find(span => span.attributes['cratis.event_store.name'] === 'convention-client')!
+            .attributes.should.not.have.property('cratis.event_source.id');
+    });
+    it('should not restore legacy metric instruments for either client', async () => {
+        const scopes = (await telemetry.reader.collect()).resourceMetrics.scopeMetrics;
+        scopes.should.have.lengthOf(1);
+        scopes[0].metrics.should.not.be.empty;
+        scopes[0].metrics.filter(metric => metric.descriptor.name.startsWith('chronicle.')).should.be.empty;
+    });
+});

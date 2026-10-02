@@ -114,9 +114,9 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
-        // JavaScript callers may still supply the removed selector. Convention is already the only mode.
-        if ((options.telemetry as { spanNames?: unknown } | undefined)?.spanNames === 'legacy') {
-            throw new TypeError("telemetry.spanNames: 'legacy' was removed in this major release. Remove spanNames and migrate to the cratis.chronicle.client.* span names.");
+        const spanNames = options.telemetry?.spanNames;
+        if (spanNames !== undefined && spanNames !== 'legacy' && spanNames !== 'convention') {
+            throw new TypeError('telemetry.spanNames must be legacy or convention.');
         }
         const policy = options.telemetry?.eventSourceId;
         if (policy !== undefined) {

@@ -11,8 +11,9 @@ export function setTelemetryAttribute(span: Span, name: keyof typeof names.attri
     span.setAttribute(names.attributes[name], value);
 }
 
-/** Records only safe integers; sequence numbers above Number.MAX_SAFE_INTEGER are omitted. */
+/** Preserves the exact compatibility string; records the canonical integer only when exactly representable. */
 export function setSequenceNumber(span: Span, value: bigint): void {
+    span.setAttribute(names.legacyAttributes.sequenceNumber, value.toString());
     const number = Number(value);
     if (Number.isSafeInteger(number)) span.setAttribute(names.attributes.sequenceNumber, number);
 }

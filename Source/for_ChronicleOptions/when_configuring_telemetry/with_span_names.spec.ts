@@ -11,18 +11,22 @@ const factories = {
     connectionString: (telemetry: ChronicleTelemetryOptions) => ChronicleOptions.fromConnectionString('chronicle://localhost:35000', { telemetry })
 };
 for (const [name, factory] of Object.entries(factories)) {
-    describe(`when configuring removed span names through ${name}`, () => {
-        it('should reject legacy mode from JavaScript with migration guidance', () => {
-            const telemetry = { spanNames: 'legacy' } as unknown as ChronicleTelemetryOptions;
-            (() => factory(telemetry)).should.throw(TypeError,
-                "telemetry.spanNames: 'legacy' was removed in this major release. Remove spanNames and migrate to the cratis.chronicle.client.* span names.");
-        });
-        it('should silently accept the previous convention opt-in from JavaScript', () => {
-            const telemetry = { spanNames: 'convention', eventSourceId: { mode: 'raw' as const } };
-            factory(telemetry).telemetry!.eventSourceId!.should.deep.equal({ mode: 'raw' });
-        });
+    describe(`when configuring compatibility span names through ${name}`, () => {
+        for (const spanNames of ['legacy', 'convention'] as const) {
+            it(`should accept ${spanNames} without throwing or changing privacy`, () => {
+                factory({ spanNames, eventSourceId: { mode: 'raw' } }).telemetry!.should.deep.equal({
+                    spanNames, eventSourceId: { mode: 'raw' }
+                });
+            });
+        }
         it('should accept privacy settings without a span name option', () => {
             factory({ eventSourceId: { mode: 'raw' } }).telemetry!.eventSourceId!.should.deep.equal({ mode: 'raw' });
         });
+        for (const spanNames of ['invalid', '', null, 42, {}]) {
+            it(`should reject the invalid JavaScript selector ${JSON.stringify(spanNames)}`, () => {
+                const telemetry = { spanNames } as unknown as ChronicleTelemetryOptions;
+                (() => factory(telemetry)).should.throw(TypeError, 'telemetry.spanNames must be legacy or convention.');
+            });
+        }
     });
 }

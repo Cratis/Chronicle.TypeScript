@@ -18,12 +18,13 @@ function counter(name: string, description: string, unit: string): Counter {
         .createCounter(name, { description, unit }).add(value, attributes, context) };
 }
 
-function duration(name: string): Histogram {
+function duration(name: string, unit: 's' | 'ms'): Histogram {
+    const scale = unit === 's' ? 0.001 : 1;
     return { record: (value, attributes, context) => metrics.getMeter(ChronicleMeterName, clientVersion)
         .createHistogram(name, {
             description: 'Duration of completed event append RPCs, including returned rejections.',
-            unit: 's',
-            advice: { explicitBucketBoundaries: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5] }
+            unit,
+            advice: { explicitBucketBoundaries: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000].map(value => value * scale) }
         }).record(value, attributes, context) };
 }
 
@@ -32,47 +33,55 @@ export const ChronicleConventionMetrics = {
     eventsAppended: counter(names.metrics.eventsAppended, 'Number of individual events appended to an event sequence.', '{event}'),
     batchAppendsPerformed: counter(names.metrics.batchAppendsPerformed, 'Number of batch-append operations.', '{operation}'),
     eventStoreRetrievals: counter(names.metrics.eventStoreRetrievals, 'Number of event store retrieval operations.', '{operation}'),
-    appendDuration: duration(names.metrics.appendDuration),
-    appendManyDuration: duration(names.metrics.appendManyDuration),
+    appendDuration: duration(names.metrics.appendDuration, 's'),
+    appendManyDuration: duration(names.metrics.appendManyDuration, 's'),
     constraintViolations: counter(names.metrics.constraintViolations, 'Number of constraint violations encountered during event appends.', '{violation}'),
     appendErrors: counter(names.metrics.appendErrors, 'Number of errors encountered during event appends.', '{error}')
 };
 
-/** Accept historical input keys, but emit only bounded-by-configuration canonical dimensions. */
+/** Only the existing bounded-by-configuration dimensions belong on the new instruments. */
 function sharedAttributes(attributes: Attributes = {}): Attributes {
-    const legacyInputAttributes = {
-        eventStore: 'chronicle.event_store',
-        namespace: 'chronicle.namespace',
-        eventSequenceId: 'chronicle.event_sequence_id',
-        eventTypeId: 'chronicle.event_type_id'
-    } as const;
     const result: Attributes = {};
     for (const name of ['eventStore', 'namespace', 'eventSequenceId', 'eventTypeId'] as const) {
-        const value = attributes[names.attributes[name]] ?? attributes[legacyInputAttributes[name]];
+        const value = attributes[names.attributes[name]] ?? attributes[names.legacyAttributes[name]];
         if (value !== undefined) result[names.attributes[name]] = value;
     }
     return result;
 }
 
-function adaptCounter(shared: Counter): Counter {
-    return { add: (value, attributes, context) => shared.add(value, sharedAttributes(attributes), context) };
+function bridgeCounter(legacy: Counter, shared: Counter): Counter {
+    return { add: (value, attributes, context) => {
+        legacy.add(value, attributes, context);
+        shared.add(value, sharedAttributes(attributes), context);
+    } };
 }
 
-function adaptMilliseconds(shared: Histogram): Histogram {
-    return { record: (milliseconds, attributes, context) => shared.record(milliseconds / 1000, sharedAttributes(attributes), context) };
+function bridgeDuration(legacy: Histogram, shared: Histogram): Histogram {
+    return { record: (milliseconds, attributes, context) => {
+        legacy.record(milliseconds, attributes, context);
+        shared.record(milliseconds / 1000, sharedAttributes(attributes), context);
+    } };
 }
 
 /**
- * Compatibility adapters accepting milliseconds and historical attribute keys, emitting only canonical metrics.
- * @deprecated Use ChronicleConventionMetrics with seconds and canonical attribute keys.
- * Continue passing milliseconds here: duration adapters convert to seconds exactly once.
+ * Compatibility instruments: existing callers still record milliseconds and legacy attributes.
+ * Each measurement also records its shared-convention equivalent, without adding sensitive dimensions.
+ * @deprecated Prefer ChronicleConventionMetrics (durations in seconds). This API and its dual recording remain available.
+ * Built-in instrumentation records canonical instruments directly after ADR 0001's one-minor overlap,
+ * replacing the earlier "next major" plan. Compatibility APIs have no removal deadline.
+ * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
  */
 export const ChronicleMetrics = {
-    eventsAppended: adaptCounter(ChronicleConventionMetrics.eventsAppended),
-    batchAppendsPerformed: adaptCounter(ChronicleConventionMetrics.batchAppendsPerformed),
-    eventStoreRetrievals: adaptCounter(ChronicleConventionMetrics.eventStoreRetrievals),
-    appendDuration: adaptMilliseconds(ChronicleConventionMetrics.appendDuration),
-    appendManyDuration: adaptMilliseconds(ChronicleConventionMetrics.appendManyDuration),
-    constraintViolations: adaptCounter(ChronicleConventionMetrics.constraintViolations),
-    appendErrors: adaptCounter(ChronicleConventionMetrics.appendErrors)
+    eventsAppended: bridgeCounter(counter(names.legacyMetrics.eventsAppended,
+        'Number of individual events appended to an event sequence.', '{event}'), ChronicleConventionMetrics.eventsAppended),
+    batchAppendsPerformed: bridgeCounter(counter(names.legacyMetrics.batchAppendsPerformed,
+        'Number of batch-append operations.', '{operation}'), ChronicleConventionMetrics.batchAppendsPerformed),
+    eventStoreRetrievals: bridgeCounter(counter(names.legacyMetrics.eventStoreRetrievals,
+        'Number of event store retrieval operations.', '{operation}'), ChronicleConventionMetrics.eventStoreRetrievals),
+    appendDuration: bridgeDuration(duration(names.legacyMetrics.appendDuration, 'ms'), ChronicleConventionMetrics.appendDuration),
+    appendManyDuration: bridgeDuration(duration(names.legacyMetrics.appendManyDuration, 'ms'), ChronicleConventionMetrics.appendManyDuration),
+    constraintViolations: bridgeCounter(counter(names.legacyMetrics.constraintViolations,
+        'Number of constraint violations encountered during event appends.', '{violation}'), ChronicleConventionMetrics.constraintViolations),
+    appendErrors: bridgeCounter(counter(names.legacyMetrics.appendErrors,
+        'Number of errors encountered during event appends.', '{error}'), ChronicleConventionMetrics.appendErrors)
 };

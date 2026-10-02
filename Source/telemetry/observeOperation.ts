@@ -9,11 +9,11 @@ import { WellKnownTelemetryNames } from '../WellKnownTelemetryNames.js';
 
 /** Opens one client span, scoping the resolved business correlation without generating a new one. */
 export function observeOperation<T>(
-    operation: keyof typeof WellKnownTelemetryNames.spans,
+    operation: keyof typeof WellKnownTelemetryNames.conventionSpans,
     action: (span: Span) => Promise<T>,
     correlationId?: { toString(): string }
 ): Promise<T> {
-    const name = WellKnownTelemetryNames.spans[operation];
+    const name = WellKnownTelemetryNames.conventionSpans[operation];
     const resolved = correlationId ? new CorrelationId(correlationId.toString()) : correlationIdManager.scoped;
     const run = () => {
         const active = context.active();

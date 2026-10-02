@@ -15,7 +15,7 @@ export const legacySpans = {
     getEventStore: 'chronicle.client.get_event_store',
     getEventStores: 'chronicle.client.get_event_stores',
     getNamespaces: 'chronicle.event_store.get_namespaces'
-};
+} as const;
 
 export const conventionSpans = {
     append: 'cratis.chronicle.client.event_sequence.append',
@@ -30,4 +30,4 @@ export const conventionSpans = {
     getEventStore: 'cratis.chronicle.client.event_store.get',
     getEventStores: 'cratis.chronicle.client.event_store.list',
     getNamespaces: 'cratis.chronicle.client.event_store.get_namespaces'
-};
+} as const;

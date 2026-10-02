@@ -52,7 +52,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 
 `ChronicleOptions.development(options)` takes the same second argument.
 
-Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Breaking changes in this major](./observability.md#breaking-changes-in-this-major).
+Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Telemetry naming cutoff](./observability.md#telemetry-naming-cutoff).
 
 ## Authenticate
 
