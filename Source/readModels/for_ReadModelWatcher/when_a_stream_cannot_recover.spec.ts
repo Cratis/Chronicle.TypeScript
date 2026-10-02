@@ -13,7 +13,7 @@ describe('when a read model stream cannot recover', () => {
     it.each([3, 7, 16])('should terminate on non-transport status %s', async code => {
         const context = new a_watched_read_model();
         await context.connect();
-        const watcher = context.readModels.watch(context.model);
+        const watcher = context.readModels.createWatcher(context.model, { resume: true });
         const failure = { code };
         const readiness = watcher.subscribed.catch(error => error);
         const next = watcher[Symbol.asyncIterator]().next().catch(error => error);
@@ -33,7 +33,7 @@ describe('when a read model stream cannot recover', () => {
         const stream = new a_kernel_stream();
         const failure = { code: 14 };
         let opened = 0;
-        const watcher = new ReadModelWatcher(() => { opened++; return stream; }, async () => { throw failure; }, new AbortController().signal, lifecycle);
+        const watcher = new ReadModelWatcher(() => { opened++; return stream; }, async () => { throw failure; }, new AbortController().signal, lifecycle, { resume: true });
         const readiness = watcher.subscribed.catch(error => error);
         const next = watcher.next().catch(error => error);
         try {

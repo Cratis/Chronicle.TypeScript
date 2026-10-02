@@ -13,7 +13,7 @@ describe('when subscribing to read model changes', () => {
     beforeEach(async () => {
         context = new a_watched_read_model();
         await context.connect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model);
     });
     afterEach(() => watcher.dispose());
 
@@ -50,7 +50,7 @@ describe('when subscribing to read model changes', () => {
         (await iterator.next()).value.key.should.equal('two');
     });
 
-    it('should fail explicitly instead of hanging or silently dropping changes when the buffer overflows', async () => {
+    it('should fail explicitly on pre-acknowledgment overflow instead of hanging or silently dropping changes', async () => {
         const failure = watcher.subscribed.catch(error => error);
         for (let index = 0; index <= 1024; index++) context.streams[0].send({ ReadModel: '{}' });
         context.streams[0].send({ Subscribed: true });

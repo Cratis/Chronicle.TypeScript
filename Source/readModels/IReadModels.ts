@@ -4,6 +4,8 @@
 import type { Constructor } from '@cratis/fundamentals';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
 import type { IReadModelWatcher } from './IReadModelWatcher.js';
+import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { ReadModelWatchOptions } from './ReadModelWatchOptions.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
 /**
@@ -65,17 +67,23 @@ export interface IReadModels {
     getSnapshotsById<TReadModel>(readModelType: Constructor<TReadModel>, key: string): Promise<ReadModelSnapshot<TReadModel>[]>;
 
     /**
-     * Starts watching changes for a specific read model type.
+     * Watches changes for a specific read model type.
      * @param readModelType - The read model type to observe.
-     * @param options - Optional cancellation signal; abort completes iteration and rejects pending readiness.
-     * @returns A single-consumer async iterable with subscription readiness, resubscription callbacks, and explicit disposal.
-     * Transport failures resume after reconnect; use onResubscribed to refresh changes missed during the outage.
-     * Terminal stream or connection failures reject iteration.
-     * @remarks Implementations and test doubles must return an IReadModelWatcher, not a plain
-     * AsyncIterable or async generator: expose subscribed, onResubscribed, and idempotent dispose.
-     * Existing consumers using for-await or assigning to AsyncIterable remain source-compatible.
+     * @returns An async iterable of read model changes. Transport failures reject iteration.
+     * @remarks Keeps its original return type so existing watch implementations and mocks can
+     * return plain async iterables. Use createWatcher for readiness and lifetime controls.
      */
-    watch<TReadModel>(readModelType: Constructor<TReadModel>, options?: { signal?: AbortSignal }): IReadModelWatcher<TReadModel>;
+    watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>>;
+
+    /**
+     * Starts a single-consumer watcher immediately, without requiring iteration for readiness.
+     * @param readModelType - The read model type to observe.
+     * @param options - Cancellation, opt-in resumption, and an optional overflow-failure limit.
+     * @returns A watcher with subscription readiness, resubscription callbacks, and explicit disposal.
+     * Transport failures reject iteration unless resume is true or an onResubscribed callback
+     * is registered. Resumed watches retain received changes but do not replay outage gaps.
+     */
+    createWatcher<TReadModel>(readModelType: Constructor<TReadModel>, options?: ReadModelWatchOptions): IReadModelWatcher<TReadModel>;
 
     /**
      * Dehydrates a read model session.

@@ -13,7 +13,7 @@ describe('when reconnecting a read model watcher', () => {
     beforeEach(async () => {
         context = new a_watched_read_model();
         await context.connect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model, { resume: true });
     });
     afterEach(() => context.readModels.dispose());
 
@@ -89,7 +89,7 @@ describe('when reconnecting a read model watcher', () => {
     it('should defer opening a watcher created while disconnected', async () => {
         watcher.dispose();
         await context.disconnect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model);
         context.streams.should.have.lengthOf(1);
         await context.connect();
         context.streams.should.have.lengthOf(2);

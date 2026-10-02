@@ -70,7 +70,7 @@ describe('when reconnecting with waiting read model watchers', () => {
             }
         }));
         store = await client.getEventStore('store');
-        watcher = store.readModels.watch(Model);
+        watcher = store.readModels.createWatcher(Model, { resume: true });
         stream.send({ Subscribed: true });
         await watcher.subscribed;
         transport.connect.mockImplementation(() => new Promise<void>((_resolve, reject) => { rejectReconnect = reject; }));
@@ -98,7 +98,7 @@ describe('when reconnecting with waiting read model watchers', () => {
         transport.watch.mock.calls.should.have.lengthOf(1);
         transport.connect.mock.calls.should.have.lengthOf(2);
         // A cached store cannot create a watcher that waits forever after the terminal verdict.
-        const later = store.readModels.watch(Model);
+        const later = store.readModels.createWatcher(Model);
         (await later.subscribed.catch(error => error)).should.equal(failure);
         (await later[Symbol.asyncIterator]().next().catch(error => error)).should.equal(failure);
     });

@@ -7,7 +7,9 @@ import { a_watched_read_model } from './given/a_watched_read_model.js';
 
 chai.should();
 
-describe.each([1, 4, 13, 14, undefined])('when a read model stream ends with status %s before the connection notices', code => {
+const recoveries = [1, 4, 13, 14, undefined].flatMap(code => ['option', 'callback'].map(optIn => ({ code, optIn })));
+
+describe.each(recoveries)('when resumption uses $optIn after stream status $code', ({ code, optIn }) => {
     let context: a_watched_read_model;
     let watcher: IReadModelWatcher<{ id: string }>;
     const endStream = () => {
@@ -18,7 +20,8 @@ describe.each([1, 4, 13, 14, undefined])('when a read model stream ends with sta
         vi.useFakeTimers();
         context = new a_watched_read_model();
         await context.connect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model, { resume: optIn === 'option' });
+        if (optIn === 'callback') watcher.onResubscribed(() => {});
     });
     afterEach(() => {
         context.readModels.dispose();

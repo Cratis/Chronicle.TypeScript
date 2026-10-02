@@ -3,11 +3,11 @@
 
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
 
-/** A single-consumer stream of read model changes, started when watch() is called. */
+/** A single-consumer stream of read model changes, started when createWatcher() is called. */
 export interface IReadModelWatcher<TReadModel> extends AsyncIterable<ReadModelChangeset<TReadModel>> {
     /**
      * Resolves on the kernel's subscription acknowledgment, without requiring iteration.
-     * After a lifecycle disconnect or recoverable stream failure, read this property again for the next subscription.
+     * When resumption is opted into, read this property again after disconnect for the next subscription.
      * An already pending promise carries across lifecycle reconnects; a previously resolved
      * promise cannot be revoked. Rejects if the watcher stops before acknowledgment.
      */
@@ -15,6 +15,8 @@ export interface IReadModelWatcher<TReadModel> extends AsyncIterable<ReadModelCh
 
     /**
      * Registers a callback after each subscription acknowledgment following the first.
+     * Having at least one registered callback opts into resumption on transport failures and
+     * completion. Without callbacks or the resume option, transport errors reject iteration.
      * Refresh your query here: changes during an outage are not replayed. Register before
      * awaiting subscribed; callbacks are not replayed for late registrations.
      * Callbacks run in registration order and are awaited before reading more changes on

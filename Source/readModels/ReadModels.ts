@@ -36,6 +36,8 @@ import type { ReadModelNamingPolicy } from './ReadModelNamingPolicy.js';
 import type { IReadModels } from './IReadModels.js';
 import type { IReadModelWatcher } from './IReadModelWatcher.js';
 import { ReadModelWatcher } from './ReadModelWatcher.js';
+import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { ReadModelWatchOptions } from './ReadModelWatchOptions.js';
 import { ReadModelChangeType } from './ReadModelChangeType.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
@@ -179,7 +181,12 @@ export class ReadModels implements IReadModels {
     }
 
     /** @inheritdoc */
-    watch<TReadModel>(readModelType: Constructor<TReadModel>, options?: { signal?: AbortSignal }): IReadModelWatcher<TReadModel> {
+    watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>> {
+        return this.createWatcher(readModelType);
+    }
+
+    /** @inheritdoc */
+    createWatcher<TReadModel>(readModelType: Constructor<TReadModel>, options?: ReadModelWatchOptions): IReadModelWatcher<TReadModel> {
         const readModel = this.resolveReadModel(readModelType);
         const signal = AbortSignal.any(options?.signal
             ? [options.signal, this._watchCancellation.signal]
@@ -213,7 +220,8 @@ export class ReadModels implements IReadModels {
                 };
             },
             signal,
-            this._lifecycle
+            this._lifecycle,
+            options
         );
     }
 

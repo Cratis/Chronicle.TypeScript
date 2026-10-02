@@ -13,7 +13,7 @@ describe('when notifying read model resubscription', () => {
     beforeEach(async () => {
         context = new a_watched_read_model();
         await context.connect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model);
     });
     afterEach(() => context.readModels.dispose());
 

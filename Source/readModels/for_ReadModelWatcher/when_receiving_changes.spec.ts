@@ -17,7 +17,7 @@ describe('when receiving read model changes', () => {
     beforeEach(async () => {
         context = new a_watched_read_model();
         await context.connect();
-        watcher = context.readModels.watch(context.model);
+        watcher = context.readModels.createWatcher(context.model);
         context.streams[0].send({ Subscribed: true });
         await watcher.subscribed;
     });

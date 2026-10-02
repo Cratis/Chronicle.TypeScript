@@ -29,7 +29,7 @@ class EcWatchBookService {
     async createBookAndWatch(title: string, author: string): Promise<void> {
         const bookId = Guid.create().toString();
 
-        const watcher = this.store.readModels.watch(EcWatchBookInventory);
+        const watcher = this.store.readModels.createWatcher(EcWatchBookInventory);
         try {
             // Wait for the kernel's acknowledgment before appending to avoid missing the update.
             await watcher.subscribed;
@@ -46,3 +46,5 @@ class EcWatchBookService {
     }
 }
 ```
+
+`watchBookChanges()` keeps the plain async-iterable API. Use `createWatcher()` when you need to await subscription readiness before appending. Both methods propagate transport errors by default so callers can refresh and re-watch; resumption requires `resume: true` or a registered `onResubscribed` callback. After acknowledgment, slow consumers get backpressure rather than overflow failure unless they explicitly set `maxBuffered`. Before each acknowledgment, the default 1,024-change limit can fail readiness rather than let backpressure hide the acknowledgment.

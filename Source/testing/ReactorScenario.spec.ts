@@ -176,7 +176,7 @@ describe('ReactorScenario live delivery', () => {
                     for await (const _change of services.readModels.watch(Registered)) { /* Unsupported. */ }
                 } catch (error) { errors.push(error); }
                 try {
-                    await services.readModels.watch(Registered).subscribed;
+                    await services.readModels.createWatcher(Registered).subscribed;
                 } catch (error) { errors.push(error); }
             }
         }

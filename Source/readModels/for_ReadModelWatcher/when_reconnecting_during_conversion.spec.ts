@@ -25,7 +25,7 @@ describe('when reconnecting during read model conversion', () => {
             converted.push(change.ModelKey);
             if (change.ModelKey === 'received') await conversion;
             return { namespace: change.Namespace, key: change.ModelKey, readModel: {}, removed: false };
-        }, new AbortController().signal, context.lifecycle);
+        }, new AbortController().signal, context.lifecycle, { resume: true });
         context.streams[0].send({ Subscribed: true });
         await watcher.subscribed;
         context.streams[0].send({ ModelKey: 'received' });

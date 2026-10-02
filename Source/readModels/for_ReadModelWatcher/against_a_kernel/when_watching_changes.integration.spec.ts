@@ -53,7 +53,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when awaiting readiness b
             discoveryPatterns: [], clientArtifactsProvider: artifacts
         }));
         const store = await client.getEventStore(storeName);
-        watcher = store.readModels.watch(WatchedEntry, { signal: AbortSignal.timeout(60_000) });
+        watcher = store.readModels.createWatcher(WatchedEntry, { signal: AbortSignal.timeout(60_000) });
         // No iteration, arbitrary sleep, or append before the server's readiness barrier.
         await watcher.subscribed;
         const iterator = watcher[Symbol.asyncIterator]();

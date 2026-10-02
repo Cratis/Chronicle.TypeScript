@@ -15,7 +15,7 @@ describe('when stopping a read model watcher', () => {
         context = new a_watched_read_model();
         await context.connect();
         cancellation = new AbortController();
-        watcher = context.readModels.watch(context.model, { signal: cancellation.signal });
+        watcher = context.readModels.createWatcher(context.model, { signal: cancellation.signal });
     });
     afterEach(() => context.readModels.dispose());
 
@@ -42,7 +42,7 @@ describe('when stopping a read model watcher', () => {
     it('should not open a stream with an already aborted signal', async () => {
         watcher.dispose();
         cancellation.abort();
-        watcher = context.readModels.watch(context.model, { signal: cancellation.signal });
+        watcher = context.readModels.createWatcher(context.model, { signal: cancellation.signal });
         const failure = await watcher.subscribed.catch(error => error);
         failure.name.should.equal('AbortError');
         context.streams.should.have.lengthOf(1);

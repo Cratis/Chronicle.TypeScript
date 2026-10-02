@@ -10,6 +10,7 @@ export { MaterializedReadModels } from './MaterializedReadModels.js';
 export { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
 export type { ReadModelChangeset } from './ReadModelChangeset.js';
 export type { IReadModelWatcher } from './IReadModelWatcher.js';
+export type { ReadModelWatchOptions } from './ReadModelWatchOptions.js';
 export type { ReadModelChangeContext } from './ReadModelChangeContext.js';
 export { ReadModelChangeType } from './ReadModelChangeType.js';
 export type { ReadModelSnapshot } from './ReadModelSnapshot.js';

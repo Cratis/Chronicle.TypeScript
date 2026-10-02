@@ -11,10 +11,12 @@ export class a_kernel_stream implements AsyncIterableIterator<ReadModelChangeset
     };
     signal!: AbortSignal;
     closed = false;
+    pulls = 0;
 
     [Symbol.asyncIterator]() { return this; }
 
     next(): Promise<IteratorResult<ReadModelChangeset>> {
+        this.pulls++;
         const message = this._messages.shift();
         if (message) return Promise.resolve(message);
         if (this.closed) return Promise.resolve({ done: true, value: undefined });
