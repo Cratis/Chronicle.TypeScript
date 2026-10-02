@@ -46,6 +46,27 @@ describe('when a read model stream cannot recover', () => {
         } finally { watcher.dispose(); }
     });
 
+    it.each([false, true])('should retain completed standalone changes until consumed or disposed (disposed: %s)', async disposed => {
+        const stream = new a_kernel_stream();
+        const watcher = new ReadModelWatcher(() => stream, async change => ({
+            namespace: change.Namespace, key: change.ModelKey, readModel: {}, removed: false
+        }), new AbortController().signal);
+        try {
+            stream.send({ Subscribed: true });
+            stream.send({ ModelKey: 'first' });
+            stream.send({ ModelKey: 'second' });
+            stream.end();
+            await watcher.subscribed;
+            await new Promise<void>(resolve => setImmediate(resolve));
+            if (disposed) watcher.dispose();
+            else {
+                (await watcher.next()).value.key.should.equal('first');
+                (await watcher.next()).value.key.should.equal('second');
+            }
+            (await watcher.next()).done!.should.be.true;
+        } finally { watcher.dispose(); }
+    });
+
     it.each([false, true])('should end a standalone stream cleanly (acknowledged: %s)', async acknowledged => {
         const stream = new a_kernel_stream();
         const watcher = new ReadModelWatcher(() => stream, async () => { throw new Error('Unexpected data'); }, new AbortController().signal);

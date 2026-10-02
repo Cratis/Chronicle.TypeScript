@@ -75,6 +75,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
     }
 
     dispose(): void {
+        this._buffered.length = 0;
         this.finish(new DOMException('Read model watcher disposed.', 'AbortError'), false);
     }
 
@@ -101,6 +102,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         if (this._stopped) return;
         this.clearRestartTimer();
         this.cancelStream();
+        this._buffered.length = 0;
         if (this._acknowledged) this.resetReadiness();
     }
 
@@ -125,7 +127,6 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         const controller = this._controller;
         this._controller = undefined;
         controller?.abort();
-        this._buffered.length = 0;
     }
 
     private async read(controller: AbortController): Promise<void> {
@@ -162,7 +163,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
             }
             if (this._controller === controller) {
                 if (this._lifecycle) this.restart();
-                else this.finish(new Error('Read model watch ended before subscription acknowledgment.'), false);
+                else this.finish(new Error('Read model watch ended before subscription acknowledgment.'), false, true);
             }
         } catch (error) {
             if (this._controller !== controller) return;
@@ -172,7 +173,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         }
     }
 
-    private finish(reason: unknown, failed: boolean): void {
+    private finish(reason: unknown, failed: boolean, preserveBuffered = false): void {
         if (this._stopped) return;
         this._stopped = true;
         this._failed = failed;
@@ -180,6 +181,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         this._rejectSubscribed(reason);
         this.clearRestartTimer();
         this.cancelStream();
+        if (!preserveBuffered) this._buffered.length = 0;
         for (const unsubscribe of this._unsubscribe) unsubscribe();
         this._unsubscribe.length = 0;
         for (const waiting of this._waiting.splice(0)) {
