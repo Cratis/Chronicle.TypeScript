@@ -14,7 +14,7 @@ import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
 import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
-import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
+import { getDeclaredEventStreamTypeFor, getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
@@ -290,7 +290,8 @@ export class ReactorScenario {
         if (result == null) return;
         const items = Array.isArray(result) ? result : [result];
         const events = normalizeReactorSideEffects(result, context.eventSourceId,
-            context.eventStreamType ?? 'Default', context.eventStreamId ?? context.eventSourceId);
+            context.eventStreamType ?? 'Default', context.eventStreamId ?? context.eventSourceId,
+            getEventSourceTypeFor(this._reactor), getDeclaredEventStreamTypeFor(this._reactor));
         if (items.length !== events.length || events.some(entry => !this._eventTypes.includes(entry.event.constructor as Constructor))) {
             throw new UnsupportedReactorOperation('handler.return', this._reactor.name,
                 'Only registered events and production EventForEventSourceId wrappers may be recorded; commands and unknown values are unsupported.');

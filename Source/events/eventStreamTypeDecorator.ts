@@ -7,8 +7,9 @@ const EVENT_STREAM_TYPE_METADATA_KEY = 'chronicle:eventStreamType';
 
 /**
  * Restricts a reactor or reducer to events in the given event stream type.
- * Equivalent to the .NET `[EventStreamType]` attribute on an observer.
- * This does not set metadata on appended events or filter projections.
+ * Like .NET `[EventStreamType]`, also sets the stream type of bare events returned by a reactor.
+ * Explicit EventForEventSourceId returns and service append options retain their own metadata.
+ * Does not filter projections.
  * Supports legacy and standard class decorators; derived observers inherit the value unless overridden.
  * @param value - The event stream type to observe. 'All' leaves the stream type unrestricted.
  * @returns A class decorator.
@@ -23,5 +24,10 @@ export function eventStreamType(value: string): ClassDecorator {
  * @returns The configured value, or 'All' (unrestricted).
  */
 export function getEventStreamTypeFor(target: Function): string {
-    return (Reflect.getMetadata(EVENT_STREAM_TYPE_METADATA_KEY, target) as string | undefined) ?? 'All';
+    return getDeclaredEventStreamTypeFor(target) ?? 'All';
+}
+
+/** Resolves declared (including inherited) metadata without the observer's 'All' delivery default. */
+export function getDeclaredEventStreamTypeFor(target: Function): string | undefined {
+    return Reflect.getMetadata(EVENT_STREAM_TYPE_METADATA_KEY, target) as string | undefined;
 }
