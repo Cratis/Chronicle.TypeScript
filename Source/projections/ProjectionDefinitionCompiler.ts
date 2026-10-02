@@ -381,8 +381,9 @@ export class ProjectionDefinitionCompiler {
         }
 
         const allProperties: Record<string, string> = {};
+        const subscribesToAllEvents = properties.some(property => getFromAllMetadata(prototype, property) !== undefined);
         for (const property of properties) {
-            const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
+            const fromEvery = getFromAllMetadata(prototype, property) ?? getFromEveryMetadata(prototype, property);
             if (fromEvery) {
                 allProperties[property] = fromEvery.contextProperty
                     ? eventContextPropertyExpression(fromEvery.contextProperty)
@@ -446,9 +447,10 @@ export class ProjectionDefinitionCompiler {
             FromEvery: [],
             All: {
                 Properties: allProperties,
-                IncludeChildren: false,
+                IncludeChildren: subscribesToAllEvents,
                 AutoMap: AutoMap.Inherit
             },
+            ...(subscribesToAllEvents ? { SubscribesToAllEvents: true } : {}),
             RemovedWith: Array.from(removedWithByEventType.values()),
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
             LastUpdated: { Value: '' },
@@ -459,12 +461,12 @@ export class ProjectionDefinitionCompiler {
         };
         const provenance = captureProjectionProvenance({ ...definition, From: preLoweringFrom, Join: preLoweringJoin }, true, overrides);
         if (Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
-            getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property))) {
+            getFromAllMetadata(prototype, property))) {
             const index = provenance.findIndex(entry => entry.contractPath === 'All');
             if (index >= 0) provenance[index] = { contractPath: 'All', declaration: '@fromAll' };
         }
         for (const property of Object.keys(allProperties)) {
-            if (getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property)) {
+            if (getFromAllMetadata(prototype, property)) {
                 const path = `All.Properties.${property}`;
                 const index = provenance.findIndex(entry => entry.contractPath === path);
                 if (index >= 0) provenance[index] = { contractPath: path, declaration: '@fromAll' };

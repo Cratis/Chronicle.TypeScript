@@ -17,11 +17,9 @@ export interface FromAllMetadata {
 const METADATA_KEY = 'chronicle:projection:fromAll';
 
 /**
- * Property decorator that sets the decorated read model property from a property present on every
- * event type the projection is built from - the convention-based counterpart to declaring the same
- * mapping on every individual `fromEvent`. Equivalent to {@link fromEvery} for model-bound
- * projections.
- * @deprecated In the next major, @fromAll subscribes to every event type like fluent fromAll() and .NET [FromAll]; use @fromEvery to keep the current behavior.
+ * Subscribes the root projection to every event type and maps the decorated property on each event,
+ * including events not declared with `fromEvent`. Unlike `fromEvery`, this expands the subscription.
+ * Use `fromEvery` when only already-subscribed events should update the property.
  * @param property - Optional event property name. If not specified, uses the model property name.
  * @param contextProperty - Optional event context property name.
  * @returns A property decorator.

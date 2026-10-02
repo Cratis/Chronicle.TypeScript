@@ -33,7 +33,7 @@ describe('when rejecting unsupported operations before any event is seeded', () 
         { name: 'join on identifier', configure: (model: Function) => join(Removed, 'id')(model.prototype, 'name'), path: 'Join[capability-removed:1].On (@join)', reason: 'direct non-identifier' },
         { name: 'removedWithJoin', configure: (model: Function) => removedWithJoin(Removed)(model), path: 'RemovedWithJoin[capability-removed:1] (@removedWithJoin)', reason: 'removedWithJoin' },
         { name: 'fromEvery', configure: (model: Function) => fromEvery('name')(model.prototype, 'name'), path: 'All (@fromEvery)', reason: 'fromEvery/all' },
-        { name: 'fromAll', configure: (model: Function) => fromAll('name')(model.prototype, 'name'), path: 'All (@fromAll)', reason: 'fromEvery/all' },
+        { name: 'fromAll', configure: (model: Function) => fromAll('name')(model.prototype, 'name'), path: 'SubscribesToAllEvents (@fromAll)', reason: 'subscribe-to-all' },
         { name: 'passive', configure: (model: Function) => passive(model), path: 'IsActive (@passive)', reason: 'passive projections' },
         { name: 'event sequence', configure: (model: Function) => eventSequence('custom')(model), path: 'EventSequenceId (@eventSequence)', reason: 'non-default event sequences' },
         { name: 'custom key', configure: (model: Function) => fromEvent(Removed, { key: 'name' })(model), path: 'From[capability-removed:1].Key (@fromEvent)', reason: 'only $eventSourceId' },
