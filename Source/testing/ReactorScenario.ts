@@ -35,8 +35,8 @@ import { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
 
 /** Live, ordered reactor deliveries over the fixture-proven EventScenario event boundary. */
 export class ReactorScenario {
-    readonly given: { forEventSource(id: string): { events(...events: object[]): Promise<void> } };
-    readonly when: { forEventSource(id: string): { events(...events: object[]): Promise<void> } };
+    readonly given: { forEventSource(id: string, options?: AppendOptions): { events(...events: object[]): Promise<void> } };
+    readonly when: { forEventSource(id: string, options?: AppendOptions): { events(...events: object[]): Promise<void> } };
     private readonly _events: EventScenario;
     private readonly _entries: ReturnType<typeof getReactorEventTypes>;
     private readonly _eventTypes: readonly Constructor[];
@@ -85,8 +85,8 @@ export class ReactorScenario {
         this._instance = _options.artifactActivator ? undefined : new (_reactor as new () => Record<string, Function>)();
         if (this._instance) this._validateInstance(this._instance);
         this._store = _options.servicesEventStore ?? this.scenarioStore();
-        this.given = { forEventSource: id => ({ events: (...events) => this.deliver(id, events, true) }) };
-        this.when = { forEventSource: id => ({ events: (...events) => this.deliver(id, events, false) }) };
+        this.given = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, true, options) }) };
+        this.when = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, false, options) }) };
     }
 
     private scenarioStore(): IEventStore {
@@ -171,7 +171,7 @@ export class ReactorScenario {
         throw new UnsupportedReactorOperation('redeliver', this._reactor.name, 'Retry and checkpoint semantics are not supported.');
     }
 
-    private async deliver(sourceId: string, input: object[], setup: boolean): Promise<void> {
+    private async deliver(sourceId: string, input: object[], setup: boolean, options?: AppendOptions): Promise<void> {
         if (this._failed) throw new UnsupportedReactorOperation('delivery.afterFailure', this._reactor.name,
             'A previous delivery failed; failed-partition retries are not supported.');
         if (this._busy) throw new UnsupportedReactorOperation('delivery.overlap', this._reactor.name, 'Concurrent deliveries have unproven ordering.');
@@ -182,9 +182,9 @@ export class ReactorScenario {
             }
             const before = this._events.appendedEvents.length;
             if (setup) {
-                await this._events.given.forEventSource(sourceId).events(...input);
+                await this._events.given.forEventSource(sourceId, options).events(...input);
             } else {
-                const results = await this._events.when.forEventSource(sourceId).events(...input);
+                const results = await this._events.when.forEventSource(sourceId, options).events(...input);
                 const failures = results.filter(result => !result.isSuccess);
                 if (failures.length) throw new Error(`ReactorScenario action append failed: ${JSON.stringify(failures, (_, value) =>
                     typeof value === 'bigint' ? value.toString() : value)}`);

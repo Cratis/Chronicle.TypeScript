@@ -17,6 +17,7 @@ import { EventTypeId } from '../events/EventTypeId.js';
 import { EventTypeGeneration } from '../events/EventTypeGeneration.js';
 import { Identity } from '../identity/Identity.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
+import { singleAppendRoute } from './singleAppendRoute.js';
 import type { AppendResult } from '../eventSequences/AppendResult.js';
 import type { AppendedEventWithResult } from '../eventSequences/AppendedEventWithResult.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
@@ -129,7 +130,7 @@ export class InProcessEventSequence implements IEventSequence {
     get appendedEvents(): readonly AppendedEvent[] { return Object.freeze(this._history.map(event => this.snapshot(event))); }
 
     /** Validate and stage all setup appends, then commit and notify in single-append order. */
-    async seed(source: string, events: object[]): Promise<void> {
+    async seed(source: string, events: object[], options?: AppendOptions): Promise<void> {
         if (this._setup || this._busy) throw this.unsupported('given.events', this.id.value, 'Overlapping setup calls are not fixture-backed.');
         this._setup = true;
         this._stagedSeeds = [];
@@ -138,7 +139,7 @@ export class InProcessEventSequence implements IEventSequence {
             for (const event of events) {
                 this._allowSeedAppend = true;
                 let pending: Promise<AppendResult>;
-                try { pending = this.append(source, event); }
+                try { pending = this.append(source, event, options); }
                 finally { this._allowSeedAppend = false; }
                 const result = await pending;
                 if (!result.isSuccess) throw new Error(`EventScenario given setup failed: ${JSON.stringify(result, (_, value) =>
@@ -167,7 +168,7 @@ export class InProcessEventSequence implements IEventSequence {
         try {
             if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
             if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            const route = this.singleAppendRoute(options, event.constructor.name);
+            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason));
             const metadata = this._catalog.get(event.constructor);
             if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
             let prepared: ReturnType<typeof prepareSingleAppend>;
@@ -395,26 +396,6 @@ export class InProcessEventSequence implements IEventSequence {
                 throw this.unsupported(operation, String(filter), 'Only simple, nonblank route filters are fixture-backed.');
             }
         }
-    }
-
-    private singleAppendRoute(options: AppendOptions | undefined, artifact: string): { sourceType: string; streamType: string; streamId: string } {
-        if (options !== undefined && (!options || typeof options !== 'object' || Array.isArray(options))) {
-            throw this.unsupported('append.options', artifact, 'Append options must be an object.');
-        }
-        if (options && (Reflect.ownKeys(options).some(key => !['sourceType', 'streamType', 'streamId'].includes(String(key))) ||
-            options.correlationId !== undefined || options.subject !== undefined || options.occurred !== undefined ||
-            options.eventSourceId !== undefined || options.concurrencyScope !== undefined || options.tags !== undefined ||
-            options.concurrencyScopes !== undefined)) {
-            throw this.unsupported('append.options', artifact, 'Only sourceType, streamType and streamId routing options are fixture-backed for single append.');
-        }
-        const route = { sourceType: options?.sourceType, streamType: options?.streamType, streamId: options?.streamId };
-        for (const [name, value] of Object.entries(route)) {
-            if (value !== undefined && (typeof value !== 'string' || !/^[A-Za-z0-9_-]*$/.test(value))) {
-                throw this.unsupported(`append.${name}`, String(value), 'Only simple routing identifiers or empty defaults are fixture-backed.');
-            }
-        }
-        // ts-proto omits empty strings; the append pipeline resolves omissions to these exact values.
-        return { sourceType: route.sourceType || 'Default', streamType: route.streamType || 'All', streamId: route.streamId || 'Default' };
     }
 
     private validateBatchOptions(options?: AppendOptions): void {

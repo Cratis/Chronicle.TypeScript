@@ -140,25 +140,29 @@ class EmailPerStream {
 const scoped = new EventScenario({
     artifacts: { eventTypes: [ScopedEmailRegistered], constraints: [EmailPerStream] }
 });
-await scoped.append('first', new ScopedEmailRegistered('alice'), { streamId: 'west' });
-const independent = await scoped.append('second', new ScopedEmailRegistered('alice'), { streamId: 'east' });
-const duplicate = await scoped.append('third', new ScopedEmailRegistered('alice'), { streamId: 'west' });
+await scoped.given.forEventSource('first', { streamId: 'west' }).events(new ScopedEmailRegistered('alice'));
+const independent = await scoped.when.forEventSource('second', { streamId: 'east' }).event(new ScopedEmailRegistered('alice'));
+const duplicate = await scoped.when.forEventSource('third', { streamId: 'west' }).event(new ScopedEmailRegistered('alice'));
 // independent.isSuccess === true; duplicate.isSuccess === false.
 ```
 
-For a combined scope, replace `builder.perEventStreamId()` with `builder.perEventSourceType().perEventStreamType().perEventStreamId()` and pass, for example, `{ sourceType: 'Customer', streamType: 'Registration', streamId: 'west' }` to `append`. Every selected dimension must match to share a constraint scope. Event **source ID** is already the property-claim owner or event-cycle identity; source **type** is a separate, optional scope dimension.
+For a combined scope, replace `builder.perEventStreamId()` with `builder.perEventSourceType().perEventStreamType().perEventStreamId()` and pass, for example, `{ sourceType: 'Customer', streamType: 'Registration', streamId: 'west' }` to `forEventSource(id, options)` or `append`. Every selected dimension must match to share a constraint scope. Event **source ID** is already the property-claim owner or event-cycle identity; source **type** is a separate, optional scope dimension.
 
 | Scoped constraint | In-process support (`constraints-scopes.json`) |
 | --- | --- |
 | Dimensions | All seven nonempty combinations of `perEventSourceType()`, `perEventStreamType()` and `perEventStreamId()`, using exact, case-sensitive comparisons. Changing an unselected dimension does not open a new scope. |
 | Definitions | One definition per scenario: case-sensitive single-string property keys (including shared event types and ordinary removal events), one unique event type without removers, or two covered event types with two separate removers. Use fluent `uniqueFor(Event, message, sharedName)` on separately identified `@constraint` classes to merge scoped covered types; `@removeConstraint(sharedName)` names their removers. |
 | Ownership and cycles | The same source can hold a key in each scope. Replacement and removal affect only that owner's matching scope. Property claims remain held throughout batch validation; event-type cycles can release and reopen within a batch. A failed batch releases nothing. |
-| Routes and defaults | `append(source, event, options)` and both `appendMany` overloads support routing. Omitted or empty dimensions resolve to `Default` / `All` / `Default`. These are **exact scope values**, unlike the non-narrowing defaults in read filters. Per-entry batch routes override shared options, even when the per-entry string is empty. |
+| Routes and defaults | `append(source, event, options)`, both `appendMany` overloads, and `EventScenario`/`ReactorScenario` given/when builders support routing. Omitted or empty dimensions resolve to `Default` / `All` / `Default`. These are **exact scope values**, unlike the non-narrowing defaults in read filters. Per-entry batch routes override shared options, even when the per-entry string is empty. |
 | Still rejected | Scoped composites, `ignoreCasing`, boolean keys, fieldless removers, covered-and-removal events, and scoped definitions alongside other definitions. Route identifiers containing spaces, delimiters, non-ASCII or other unproven characters remain rejected. Custom stores/sequences, concurrency and arbitrary single-append metadata still need a kernel-backed test. |
 
 The oracle asserts effective installed scopes in the packaged kernel and executes both the .NET client path and decoded TypeScript protobuf requests. It compares raw violations, mapped results, full history, routes, hashes and rollback. Its delimiter-alias guards show why property scope strings and event-cycle tuples are not interchangeable; the scenario rejects those identifiers rather than promising storage-provider alias behavior.
 
-`EventScenario` and `ReactorScenario` **given/when builders still use default routing**. Use direct `EventScenario.append` or `appendMany` for nondefault input scopes. Reactor handlers can explicitly append non-subscribed events through `services.eventStore.eventLog` with the same supported options; those service appends are recorded but not delivered. No routed-builder overload is available.
+Select a route with `given.forEventSource(id, options?: AppendOptions)` or `when.forEventSource(id, options?: AppendOptions)`. The options apply to every event in that builder call. Setup uses the same validation and scoped constraints as `append`; `EventScenario.when.event` uses single append, while `when.events` uses atomic `appendMany`. Unsupported options throw exactly as the corresponding direct append does: setup and single actions accept only `sourceType`, `streamType` and `streamId`; batch actions retain the batch metadata boundary described above. Omitting options preserves default routing.
+
+`ReactorScenario` passes the recorded route to handlers in `EventContext`, and retains it in handled/skipped contexts and each side effect's `triggeringContext`. Reactor handlers can also append non-subscribed events through `services.eventStore.eventLog` with the same supported options; those service appends are recorded but not delivered.
+
+`ReadModelScenario.given.forEventSource(id, options?: AppendOptions)` shares single-append route validation and accepts omitted, explicit or empty-string defaults. Nondefault routes still throw `UnsupportedProjectionOperation` before collecting events: routed projection/reducer evaluation is not fixture-backed. The overload does not enable projection routing.
 
 ## ReactorScenario: live event deliveries and recorded effects
 

@@ -24,6 +24,8 @@ import type { ReadModelState } from './ReadModelState.js';
 import { ReducerReadModelProcessor } from './ReducerReadModelProcessor.js';
 import type { ScenarioEvent } from './ScenarioEvent.js';
 import type { EventScenario } from './EventScenario.js';
+import type { AppendOptions } from '../eventSequences/AppendOptions.js';
+import { singleAppendRoute } from './singleAppendRoute.js';
 import type { ReactorScenario } from './ReactorScenario.js';
 import { ProjectionReadModelProcessor } from './projections/ProjectionReadModelProcessor.js';
 import { UnsupportedProjectionOperation } from './projections/UnsupportedProjectionOperation.js';
@@ -124,8 +126,13 @@ export class ReadModelScenario<TReadModel extends object> {
     }
 
     /** Collects events for a source; subsequent reads replay the complete seeded history. */
-    collectEventsFor(id: string, events: readonly object[]): void {
+    collectEventsFor(id: string, events: readonly object[], options?: AppendOptions): void {
         if (this._observed) throw this.mixedHistory();
+        const route = singleAppendRoute(options, events[0]?.constructor.name ?? this._modelName);
+        if (route.sourceType !== 'Default' || route.streamType !== 'All' || route.streamId !== 'Default') {
+            throw new UnsupportedProjectionOperation(this._modelName, 'given.events', `${route.sourceType}/${route.streamType}/${route.streamId}`,
+                'seeded events must use the default event source type and stream; routed events require a kernel-backed test');
+        }
         for (const event of events) {
             const metadata = getEventTypeMetadata(event.constructor);
             if (!metadata) throw new Error(`Event '${event.constructor.name}' has no @eventType metadata.`);
