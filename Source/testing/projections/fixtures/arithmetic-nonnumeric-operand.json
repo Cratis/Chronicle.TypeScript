@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "kind": "kernelSemantics",
+  "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
     "version": "19.26.2",
@@ -10,23 +10,23 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "The kernel wraps int32 overflow; issue #106 enables the fixture-backed unchecked arithmetic.",
+  "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. Non-numeric string operands remain rejected before replay.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-int32-overflow",
+    "Identifier": "oracle-arithmetic-nonnumeric-operand",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\"count\":2147483647}",
+    "InitialModelState": "{}",
     "From": [
       {
         "Key": {
-          "Id": "Counted",
+          "Id": "Changed",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "count": "$increment"
+            "total": "$add(amount)"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -57,9 +57,9 @@
         "id": {
           "type": "string"
         },
-        "count": {
-          "type": "integer",
-          "format": "int32"
+        "total": {
+          "type": "number",
+          "format": "double"
         }
       }
     }
@@ -67,12 +67,16 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "Counted",
+        "Id": "Changed",
         "Generation": 1
       },
       "schema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "amount": {
+            "type": "string"
+          }
+        }
       }
     }
   ],
@@ -80,32 +84,30 @@
     {
       "context": {
         "eventType": {
-          "Id": "Counted",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "0",
         "occurred": "2025-01-01T00:00:00Z"
       },
-      "content": {}
+      "content": {
+        "amount": "not-a-number"
+      },
+      "expectedError": {
+        "type": "System.FormatException",
+        "message": "The input string 'not-a-number' was not in a correct format."
+      }
     }
   ],
   "expected": [
     {
       "sequenceNumber": "0",
-      "engineState": {
-        "record-a": {
-          "count": -2147483648,
-          "id": "record-a",
-          "__initialized": true,
-          "__subject": "record-a"
-        }
-      },
-      "publicRead": {
-        "record-a": {
-          "id": "record-a",
-          "count": -2147483648
-        }
+      "engineState": {},
+      "publicRead": {},
+      "error": {
+        "type": "System.FormatException",
+        "message": "The input string 'not-a-number' was not in a correct format."
       }
     }
   ]

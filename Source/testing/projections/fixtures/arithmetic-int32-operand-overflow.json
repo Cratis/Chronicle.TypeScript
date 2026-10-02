@@ -10,23 +10,23 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "The kernel wraps int32 overflow; issue #106 enables the fixture-backed unchecked arithmetic.",
+  "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-int32-overflow",
+    "Identifier": "oracle-arithmetic-int32-operand-overflow",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{\"count\":2147483647}",
+    "InitialModelState": "{}",
     "From": [
       {
         "Key": {
-          "Id": "Counted",
+          "Id": "Changed",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "count": "$increment"
+            "total": "$add(amount)"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -57,7 +57,7 @@
         "id": {
           "type": "string"
         },
-        "count": {
+        "total": {
           "type": "integer",
           "format": "int32"
         }
@@ -67,12 +67,17 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "Counted",
+        "Id": "Changed",
         "Generation": 1
       },
       "schema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       }
     }
   ],
@@ -80,14 +85,34 @@
     {
       "context": {
         "eventType": {
-          "Id": "Counted",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "0",
         "occurred": "2025-01-01T00:00:00Z"
       },
-      "content": {}
+      "content": {
+        "amount": 2
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Changed",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01Z"
+      },
+      "content": {
+        "amount": 2147483647.5
+      },
+      "expectedError": {
+        "type": "System.OverflowException",
+        "message": "Value was either too large or too small for an Int32."
+      }
     }
   ],
   "expected": [
@@ -95,17 +120,38 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
-          "count": -2147483648,
           "id": "record-a",
           "__initialized": true,
+          "total": 2,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "count": -2147483648
+          "total": 2
         }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "record-a": {
+          "id": "record-a",
+          "__initialized": true,
+          "total": 2,
+          "__subject": "record-a"
+        }
+      },
+      "publicRead": {
+        "record-a": {
+          "id": "record-a",
+          "total": 2
+        }
+      },
+      "error": {
+        "type": "System.OverflowException",
+        "message": "Value was either too large or too small for an Int32."
       }
     }
   ]

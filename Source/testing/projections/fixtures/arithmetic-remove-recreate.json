@@ -10,23 +10,23 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "Kernel rounds fractional double operands to int32; issue #106 enables the fixture-backed ties-to-even conversion.",
+  "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
     "EventSequenceId": "event-log",
-    "Identifier": "oracle-rounded-integer",
+    "Identifier": "oracle-arithmetic-remove-recreate",
     "ReadModel": "OracleReadModel",
     "IsActive": true,
     "IsRewindable": true,
-    "InitialModelState": "{}",
+    "InitialModelState": "{\"total\":10}",
     "From": [
       {
         "Key": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "Value": {
           "Properties": {
-            "count": "$add(amount)"
+            "total": "$add(amount)"
           },
           "Key": "$eventSourceId",
           "ParentKey": ""
@@ -42,7 +42,18 @@
       "AutoMap": 0
     },
     "FromEventProperty": null,
-    "RemovedWith": [],
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "Removed",
+          "Generation": 1
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
     "RemovedWithJoin": [],
     "Tags": [],
     "AutoMap": 1,
@@ -57,9 +68,9 @@
         "id": {
           "type": "string"
         },
-        "count": {
-          "type": "integer",
-          "format": "int32"
+        "total": {
+          "type": "number",
+          "format": "double"
         }
       }
     }
@@ -67,7 +78,7 @@
   "eventSchemas": [
     {
       "eventType": {
-        "Id": "AmountAdded",
+        "Id": "Changed",
         "Generation": 1
       },
       "schema": {
@@ -79,13 +90,23 @@
           }
         }
       }
+    },
+    {
+      "eventType": {
+        "Id": "Removed",
+        "Generation": 1
+      },
+      "schema": {
+        "type": "object",
+        "properties": {}
+      }
     }
   ],
   "events": [
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Changed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
@@ -93,21 +114,33 @@
         "occurred": "2025-01-01T00:00:00Z"
       },
       "content": {
-        "amount": 2.5
+        "amount": 3
       }
     },
     {
       "context": {
         "eventType": {
-          "Id": "AmountAdded",
+          "Id": "Removed",
           "Generation": 1
         },
         "eventSourceId": "record-a",
         "sequenceNumber": "1",
         "occurred": "2025-01-01T00:00:01Z"
       },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Changed",
+          "Generation": 1
+        },
+        "eventSourceId": "record-a",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02Z"
+      },
       "content": {
-        "amount": 1.5
+        "amount": 4
       }
     }
   ],
@@ -116,33 +149,38 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
+          "total": 13,
           "id": "record-a",
           "__initialized": true,
-          "count": 2,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "count": 2
+          "total": 13
         }
       }
     },
     {
       "sequenceNumber": "1",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "2",
       "engineState": {
         "record-a": {
+          "total": 14,
           "id": "record-a",
           "__initialized": true,
-          "count": 4,
           "__subject": "record-a"
         }
       },
       "publicRead": {
         "record-a": {
           "id": "record-a",
-          "count": 4
+          "total": 14
         }
       }
     }

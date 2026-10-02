@@ -12,6 +12,7 @@ import type { JsonSchema } from '../../schemas/JsonSchema.js';
 import type { IReadModelProcessor } from '../IReadModelProcessor.js';
 import type { ReadModelState } from '../ReadModelState.js';
 import type { ScenarioEvent } from '../ScenarioEvent.js';
+import { ProjectionArithmetic } from './ProjectionArithmetic.js';
 import { ProjectionCapabilities } from './ProjectionCapabilities.js';
 import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
@@ -107,7 +108,8 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             if (from) {
                 const explicit = { ...from.Value.Properties };
                 const excluded = (this._definition.NoAutoMapProperties ?? []);
-                const properties = this._definition.AutoMap !== AutoMap.Disabled ? this.withAutoMap(explicit, schema, this._schema, excluded) : explicit;
+                const properties = this._definition.AutoMap !== AutoMap.Disabled && !ProjectionArithmetic.suppressesAutoMap(explicit)
+                    ? this.withAutoMap(explicit, schema, this._schema, excluded) : explicit;
                 this.apply(properties, content, event, this._schema, state);
             }
             if (child) this.applyChild(child, content, event, schema, state, binding);
@@ -168,8 +170,12 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     private apply(properties: Record<string, string>, content: unknown, event: ScenarioEvent, target: JsonSchema, state: Record<string, unknown>): void {
         for (const [destination, expression] of Object.entries(properties)) {
-            const value = ProjectionExpressionEvaluator.value(expression, content, event.context, target.properties![destination]);
-            // The kernel compares old and new null values; null on an absent member is no change.
+            const arithmetic = ProjectionArithmetic.isArithmetic(expression);
+            const value = arithmetic
+                ? ProjectionArithmetic.value(expression, content, target.properties![destination], state[destination])
+                : ProjectionExpressionEvaluator.value(expression, content, event.context, target.properties![destination]);
+            // Zero arithmetic on an absent accumulator is no change, just like null on an absent scalar.
+            if (arithmetic && value === 0 && state[destination] === undefined) continue;
             if (value !== null || state[destination] !== undefined) state[destination] = value;
         }
     }

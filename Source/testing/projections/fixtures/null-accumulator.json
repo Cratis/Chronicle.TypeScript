@@ -10,7 +10,7 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "Probe p5: clearing a present int32 accumulator before increment fails in the kernel; phase-one evaluator rejects at replay with a clear error.",
+  "definitionSource": "Clearing a present int32 accumulator before increment fails in the kernel; the scenario rejects definitions combining clearing and arithmetic before replay.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-null-accumulator",
