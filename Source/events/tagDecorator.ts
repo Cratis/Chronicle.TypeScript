@@ -9,7 +9,7 @@ import { mergeTags } from './mergeTags.js';
 const TAGS_METADATA_KEY = 'chronicle:tags';
 
 /**
- * TypeScript decorator that labels an event type, reactor, or reducer with one or more tags.
+ * TypeScript decorator that labels an event type, reactor, reducer, projection class, or model-bound read model with one or more tags.
  * This is the TypeScript equivalent of the C# `[Tag]` attribute.
  *
  * Applying the decorator more than once accumulates tags rather than replacing them, so
@@ -32,7 +32,7 @@ export function tag(...values: string[]): ClassDecorator {
 }
 
 /**
- * TypeScript decorator that labels an event type, reactor, or reducer with one or more tags.
+ * TypeScript decorator that labels an event type, reactor, reducer, projection class, or model-bound read model with one or more tags.
  * This is the TypeScript equivalent of the C# `[Tags]` attribute, and behaves identically to
  * {@link tag} - use whichever reads more naturally at the call site.
  *

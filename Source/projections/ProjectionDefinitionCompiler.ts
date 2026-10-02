@@ -6,6 +6,7 @@ import { Constructor } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getEventTypeFor, getEventTypeJsonSchemaFor } from '../events/eventTypeDecorator.js';
+import { getTagsFor } from '../events/tagDecorator.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
@@ -211,6 +212,7 @@ export class ProjectionDefinitionCompiler {
         const instance = new type() as IProjectionFor<unknown>;
         instance.define(builder);
         const definition = builder.build(metadata.id.value, type.name) as Record<string, unknown>;
+        definition.Tags = getTagsFor(type).map(tag => tag.value).sort();
 
         const explicitReadModelIdentifier = definition.ReadModel as string;
         if (explicitReadModelIdentifier === type.name) {
@@ -450,7 +452,7 @@ export class ProjectionDefinitionCompiler {
             RemovedWith: Array.from(removedWithByEventType.values()),
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
             LastUpdated: { Value: '' },
-            Tags: [],
+            Tags: getTagsFor(type).map(tag => tag.value).sort(),
             AutoMap: isNoAutoMap(type) ? AutoMap.Disabled : AutoMap.Enabled,
             NoAutoMapProperties: properties.filter(property => isPropertyNoAutoMap(prototype, property)),
             Nested: nestedByProperty
