@@ -20,13 +20,13 @@ describe.each(['watch', 'createWatcher'] as const)('when %s has not opted into r
 
     it.each([1, 4, 13, 14])('should reject iteration with the original transport error for status %s', async code => {
         const iterator = context.readModels[method](context.model)[Symbol.asyncIterator]();
+        const next = iterator.next().catch(error => error);
         context.streams[0].send({ Subscribed: true });
         await vi.advanceTimersByTimeAsync(0);
-        const next = iterator.next().catch(error => error);
         const failure = Object.assign(new Error('transport failed'), { code });
         // A keep-alive disconnect arriving first must not replace the watch stream error.
         await context.disconnect();
-        context.streams[0].signal.aborted.should.be.false;
+        context.streams[0].closed.should.be.false;
         context.streams[0].fail(failure);
         (await next).should.equal(failure);
         await context.connect();
@@ -36,11 +36,12 @@ describe.each(['watch', 'createWatcher'] as const)('when %s has not opted into r
 
     it('should complete iteration without restarting after stream completion', async () => {
         const iterator = context.readModels[method](context.model)[Symbol.asyncIterator]();
+        const next = iterator.next();
         context.streams[0].send({ Subscribed: true });
         context.streams[0].send({ ModelKey: 'received', ReadModel: '{}' });
         context.streams[0].end();
         await vi.advanceTimersByTimeAsync(1000);
-        (await iterator.next()).value.key.should.equal('received');
+        (await next).value.key.should.equal('received');
         (await iterator.next()).done!.should.be.true;
         context.streams.should.have.lengthOf(1);
     });

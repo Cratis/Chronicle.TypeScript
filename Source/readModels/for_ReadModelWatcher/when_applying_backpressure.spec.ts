@@ -14,8 +14,8 @@ describe('when applying read model watch backpressure', () => {
     });
     afterEach(() => context.readModels.dispose());
 
-    it.each(['watch', 'createWatcher'] as const)('should pause %s for a slow consumer and deliver more than the buffer limit without failure', async method => {
-        const iterator = context.readModels[method](context.model)[Symbol.asyncIterator]();
+    it('should pause a created watcher for a slow consumer and deliver more than the buffer limit without failure', async () => {
+        const iterator = context.readModels.createWatcher(context.model)[Symbol.asyncIterator]();
         const stream = context.streams[0];
         stream.send({ Subscribed: true });
         for (let index = 0; index < 2050; index++) stream.send({ ModelKey: `${index}`, ReadModel: '{}' });

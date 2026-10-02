@@ -13,10 +13,12 @@ export class a_watched_read_model {
     readonly model = class Model { id = ''; };
     readonly lifecycle = new ConnectionLifecycle();
     readonly streams: a_kernel_stream[] = [];
-    readonly watch = vi.fn((_request: unknown, options: { signal: AbortSignal }) => {
+    readonly watch = vi.fn((_request: unknown, options?: { signal: AbortSignal }) => {
         const stream = new a_kernel_stream();
-        stream.signal = options.signal;
-        options.signal.addEventListener('abort', () => stream.end(), { once: true });
+        if (options) {
+            stream.signal = options.signal;
+            options.signal.addEventListener('abort', () => stream.end(), { once: true });
+        }
         this.streams.push(stream);
         return stream;
     });

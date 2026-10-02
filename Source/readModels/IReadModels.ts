@@ -67,7 +67,8 @@ export interface IReadModels {
     getSnapshotsById<TReadModel>(readModelType: Constructor<TReadModel>, key: string): Promise<ReadModelSnapshot<TReadModel>[]>;
 
     /**
-     * Watches changes for a specific read model type.
+     * Watches changes for a specific read model type, opening the stream on the first next().
+     * Pulls changes only as the consumer requests them, without a client-side buffer or overflow limit.
      * @param readModelType - The read model type to observe.
      * @returns An async iterable of read model changes. Transport failures reject iteration.
      * @remarks Keeps its original return type so existing watch implementations and mocks can

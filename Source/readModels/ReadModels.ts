@@ -3,6 +3,7 @@
 
 import type {
     AppendedEvent,
+    ReadModelChangeset as ContractReadModelChangeset,
     ReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import {
@@ -181,8 +182,21 @@ export class ReadModels implements IReadModels {
     }
 
     /** @inheritdoc */
-    watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>> {
-        return this.createWatcher(readModelType);
+    async *watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>> {
+        const readModel = this.resolveReadModel(readModelType);
+
+        for await (const changeset of this._connection.readModels.watch({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ReadModelIdentifier: readModel.identifier,
+            EventSequenceId: readModel.eventSequenceId
+        })) {
+            if (changeset.Subscribed) {
+                continue;
+            }
+
+            yield await this.toChangeset(readModelType, readModel, changeset);
+        }
     }
 
     /** @inheritdoc */
@@ -198,34 +212,14 @@ export class ReadModels implements IReadModels {
                 ReadModelIdentifier: readModel.identifier,
                 EventSequenceId: readModel.eventSequenceId
             }, { signal: streamSignal }),
-            async changeset => {
-                const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
-                const occurred = changeset.Occurred?.Value ? new Date(changeset.Occurred.Value) : undefined;
-                const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
-                    this.schemaHasComplianceMetadata(readModel.schema);
-                return {
-                    namespace: changeset.Namespace,
-                    key: changeset.ModelKey,
-                    readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
-                    removed: changeset.Removed,
-                    changeType: changeset.ChangeType === ContractReadModelChangeType.Added ? ReadModelChangeType.Added :
-                        changeset.ChangeType === ContractReadModelChangeType.Removed ? ReadModelChangeType.Removed : ReadModelChangeType.Modified,
-                    changeContext: {
-                        eventStore: this._eventStore,
-                        namespace: changeset.Namespace,
-                        sequenceNumber: changeset.EventSequenceNumber,
-                        correlationId: changeset.CorrelationId ? fromContractsGuid(changeset.CorrelationId).toString() : undefined,
-                        occurred: occurred && !Number.isNaN(occurred.getTime()) ? occurred : undefined
-                    }
-                };
-            },
+            changeset => this.toChangeset(readModelType, readModel, changeset),
             signal,
             this._lifecycle,
             options
         );
     }
 
-    /** Stops all watchers owned by this event store. */
+    /** Stops all watchers created through createWatcher for this event store. */
     dispose(): void {
         this._watchCancellation.abort();
     }
@@ -386,6 +380,28 @@ export class ReadModels implements IReadModels {
 
     private isDocumentSubject(value: unknown): value is string {
         return typeof value === 'string' && value.length > 0;
+    }
+
+    private async toChangeset<TReadModel>(readModelType: Constructor<TReadModel>, readModel: ResolvedReadModel, changeset: ContractReadModelChangeset): Promise<ReadModelChangeset<TReadModel>> {
+        const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
+        const occurred = changeset.Occurred?.Value ? new Date(changeset.Occurred.Value) : undefined;
+        const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
+            this.schemaHasComplianceMetadata(readModel.schema);
+        return {
+            namespace: changeset.Namespace,
+            key: changeset.ModelKey,
+            readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
+            removed: changeset.Removed,
+            changeType: changeset.ChangeType === ContractReadModelChangeType.Added ? ReadModelChangeType.Added :
+                changeset.ChangeType === ContractReadModelChangeType.Removed ? ReadModelChangeType.Removed : ReadModelChangeType.Modified,
+            changeContext: {
+                eventStore: this._eventStore,
+                namespace: changeset.Namespace,
+                sequenceNumber: changeset.EventSequenceNumber,
+                correlationId: changeset.CorrelationId ? fromContractsGuid(changeset.CorrelationId).toString() : undefined,
+                occurred: occurred && !Number.isNaN(occurred.getTime()) ? occurred : undefined
+            }
+        };
     }
 
     private async releaseSnapshotInstances<TReadModel>(readModelType: Constructor<TReadModel>, snapshots: ReadModelSnapshot<TReadModel>[]): Promise<ReadModelSnapshot<TReadModel>[]> {
