@@ -3,7 +3,8 @@
 
 import { field } from '@cratis/fundamentals';
 import { chai, describe, it, type Assertion } from 'vitest';
-import { fromAllEvents, getFromAllEventsMetadata, fromAll, getFromAllMetadata, fromEvery, getFromEveryMetadata } from '../index.js';
+import { fromAllEvents, getFromAllEventsMetadata, fromAll, getFromAllMetadata, fromEvery, getFromEveryMetadata, childrenFrom, nested } from '../index.js';
+import { eventType } from '../../events/eventTypeDecorator.js';
 import { TypeIntrospector } from '../../types/index.js';
 import { ReadModelScenario } from '../../testing/ReadModelScenario.js';
 import { UnsupportedProjectionOperation } from '../../testing/projections/UnsupportedProjectionOperation.js';
@@ -58,6 +59,28 @@ describe('when compiling standard fromAllEvents without explicit event subscript
         should(compileModelBound(All).definition.All!.Properties.title).equal('name');
         should(compileModelBound(Alias).definition.SubscribesToAllEvents === undefined).be.true;
         should(getFromAllEventsMetadata(Alias.prototype, 'title') === undefined).be.true;
+    });
+
+    it('should collect standard child and nested mappings in the root All without widening the subscription', () => {
+        @eventType('standard-from-all-events-child-added')
+        class Added { @field(String) id = ''; }
+        class Detail { @field(String) @fromAllEvents(undefined, 'sequenceNumber') sequence = ''; }
+        class Child {
+            @field(String) id = '';
+            @field(String) @fromAllEvents('name') title = '';
+            @field(Detail) @nested detail = new Detail();
+        }
+        class Derived extends Child {}
+        class Parent {
+            @field(Array, { genericArguments: [Derived] }) @childrenFrom(Added, 'id') items: Derived[] = [];
+        }
+        const { definition } = compileModelBound(Parent);
+        should(definition.All).deep.equal({
+            Properties: { title: 'name', sequence: '$eventContext(SequenceNumber)' }, IncludeChildren: true, AutoMap: 0
+        });
+        should(definition.SubscribesToAllEvents === undefined).be.true;
+        should(definition.Children.items.All!.Properties).deep.equal({});
+        should(definition.Children.items.Nested.detail.All!.Properties).deep.equal({});
     });
 
     it('should reject all-event scenarios before replay with the standard decorator declaration', () => {
