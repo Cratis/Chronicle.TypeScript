@@ -29,19 +29,20 @@ class EcWatchBookService {
     async createBookAndWatch(title: string, author: string): Promise<void> {
         const bookId = Guid.create().toString();
 
-        // Start watching before appending so the update is observed once the projection catches up
-        const watchBook = async () => {
-            for await (const changeset of this.store.readModels.watch(EcWatchBookInventory)) {
+        const watcher = this.store.readModels.watch(EcWatchBookInventory);
+        try {
+            // Wait for the kernel's acknowledgment before appending to avoid missing the update.
+            await watcher.subscribed;
+            await this.store.eventLog.append(bookId, new EcWatchBookCreated(title, author));
+            for await (const changeset of watcher) {
                 if (changeset.key === bookId) {
                     console.log(`Book projection updated: ${changeset.readModel.title}`);
                     break;
                 }
             }
-        };
-        const watching = watchBook();
-
-        await this.store.eventLog.append(bookId, new EcWatchBookCreated(title, author));
-        await watching;
+        } finally {
+            watcher.dispose();
+        }
     }
 }
 ```
