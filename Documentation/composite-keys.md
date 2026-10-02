@@ -7,7 +7,7 @@ When an event property alone does not identify a read-model instance, combine it
 
 ## Configure the parts
 
-Inside a declarative projection, use `usingCompositeKey<TKey>()` for the instance key. `usingParentCompositeKey<TKey>()` emits a child's parent key, subject to the [kernel limitations below](#parent-and-join-keys). The following excerpt assumes the `CompositeRecordChanged`, `CompositeRecordKey` and read-model types in the [complete expression-parts example](./client-snippets/projections/declarative/composite-keys/expression-parts.md):
+Inside a declarative projection, use `usingCompositeKey<TKey>()` for the instance key. `usingParentCompositeKey<TKey>()` emits a child's parent key, subject to the [kernel limitations below](#parent-and-join-keys). The following excerpt assumes the `CompositeRecordChanged`, `CompositeRecordKey` and read-model types in the [complete expression-parts example](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/projections/declarative/composite-keys/expression-parts.md):
 
 ```typescript
 builder.from(CompositeRecordChanged, from => from
