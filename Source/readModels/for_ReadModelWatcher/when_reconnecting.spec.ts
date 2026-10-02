@@ -47,7 +47,7 @@ describe('when reconnecting a read model watcher', () => {
         await pending;
     });
 
-    it('should not deliver buffered changes from the previous connection', async () => {
+    it('should deliver buffered changes from the previous connection before new changes', async () => {
         context.streams[0].send({ Subscribed: true });
         context.streams[0].send({ ModelKey: 'old', ReadModel: '{"id":"old"}' });
         await watcher.subscribed;
@@ -56,7 +56,9 @@ describe('when reconnecting a read model watcher', () => {
         await context.connect();
         context.streams[1].send({ Subscribed: true });
         context.streams[1].send({ ModelKey: 'new', ReadModel: '{"id":"new"}' });
-        (await watcher[Symbol.asyncIterator]().next()).value.key.should.equal('new');
+        const iterator = watcher[Symbol.asyncIterator]();
+        (await iterator.next()).value.key.should.equal('old');
+        (await iterator.next()).value.key.should.equal('new');
     });
 
     it('should acknowledge a new subscription before consuming its buffered changes', async () => {

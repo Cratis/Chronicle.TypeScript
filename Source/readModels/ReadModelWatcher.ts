@@ -15,6 +15,9 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
     private _resolveSubscribed!: () => void;
     private _rejectSubscribed!: (error: unknown) => void;
     private _acknowledged = false;
+    private _hasSubscribed = false;
+    private _delivery = Promise.resolve();
+    private readonly _onResubscribed = new Set<() => void | Promise<void>>();
     private _controller?: AbortController;
     private _stopped = false;
     private _failed = false;
@@ -53,6 +56,12 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
 
     get subscribed(): Promise<void> {
         return this._subscribed;
+    }
+
+    onResubscribed(callback: () => void | Promise<void>): () => void {
+        if (this._stopped) return () => {};
+        this._onResubscribed.add(callback);
+        return () => { this._onResubscribed.delete(callback); };
     }
 
     [Symbol.asyncIterator](): AsyncIterableIterator<ReadModelChangeset<TReadModel>> {
@@ -102,7 +111,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         if (this._stopped) return;
         this.clearRestartTimer();
         this.cancelStream();
-        this._buffered.length = 0;
+        // Received changes are not replayed by the kernel. Keep them across reconnects.
         if (this._acknowledged) this.resetReadiness();
     }
 
@@ -134,32 +143,22 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
             for await (const change of this._open(controller.signal)) {
                 if (this._controller !== controller) return;
                 if (change.Subscribed) {
+                    if (this._acknowledged) continue;
                     this._acknowledged = true;
                     this._resolveSubscribed();
+                    const resubscribed = this._hasSubscribed;
+                    this._hasSubscribed = true;
+                    if (resubscribed) {
+                        const callbacks = [...this._onResubscribed];
+                        this._delivery = this._delivery.then(() => this.notifyResubscribed(callbacks));
+                        await this._delivery;
+                    }
                     continue;
                 }
-                let converted: ReadModelChangeset<TReadModel>;
-                try {
-                    converted = await this._convert(change);
-                } catch (error) {
-                    // Conversion includes compliance RPCs: even transport-coded errors here
-                    // are terminal, not permission to skip an unreleased change.
-                    if (this._controller === controller) this.finish(error, true);
-                    return;
-                }
-                if (this._controller !== controller) return;
-                const waiting = this._waiting.shift();
-                if (waiting) {
-                    waiting.resolve({ done: false, value: converted });
-                } else {
-                    // The kernel can send data before Subscribed. Never let consumer
-                    // backpressure prevent reading the readiness marker or a stream failure.
-                    if (this._buffered.length === ReadModelWatcher._bufferLimit) {
-                        this.finish(new Error('Read model watcher buffer exceeded 1024 changes. Consume changes faster or refresh the read model and create a new watcher.'), true);
-                        return;
-                    }
-                    this._buffered.push(converted);
-                }
+                // Finish converting changes already received, even if their stream disconnects.
+                // A new stream queues behind them so conversion cannot reorder delivery.
+                this._delivery = this._delivery.then(() => this.deliver(change));
+                await this._delivery;
             }
             if (this._controller === controller) {
                 if (this._lifecycle) this.restart();
@@ -170,6 +169,44 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
             const code = (error as { code?: number })?.code;
             if (this._lifecycle && code !== undefined && [1, 4, 13, 14].includes(code)) this.restart();
             else this.finish(error, true);
+        }
+    }
+
+    private async deliver(change: ContractChangeset): Promise<void> {
+        if (this._stopped) return;
+        let converted: ReadModelChangeset<TReadModel>;
+        try {
+            converted = await this._convert(change);
+        } catch (error) {
+            // Conversion includes compliance RPCs: even transport-coded errors here
+            // are terminal, not permission to skip an unreleased change.
+            this.finish(error, true);
+            return;
+        }
+        if (this._stopped) return;
+        const waiting = this._waiting.shift();
+        if (waiting) {
+            waiting.resolve({ done: false, value: converted });
+        } else {
+            // The kernel can send data before Subscribed. Never let consumer
+            // backpressure prevent reading the readiness marker or a stream failure.
+            if (this._buffered.length === ReadModelWatcher._bufferLimit) {
+                this.finish(new Error('Read model watcher buffer exceeded 1024 changes. Consume changes faster or refresh the read model and create a new watcher.'), true);
+                return;
+            }
+            this._buffered.push(converted);
+        }
+    }
+
+    private async notifyResubscribed(callbacks: (() => void | Promise<void>)[]): Promise<void> {
+        try {
+            for (const callback of callbacks) {
+                if (this._stopped) return;
+                if (this._onResubscribed.has(callback)) await callback();
+            }
+        } catch (error) {
+            // A failed refresh is not a recovered watch, even for transport-coded errors.
+            this.finish(error, true);
         }
     }
 
@@ -184,6 +221,7 @@ export class ReadModelWatcher<TReadModel> implements IReadModelWatcher<TReadMode
         if (!preserveBuffered) this._buffered.length = 0;
         for (const unsubscribe of this._unsubscribe) unsubscribe();
         this._unsubscribe.length = 0;
+        this._onResubscribed.clear();
         for (const waiting of this._waiting.splice(0)) {
             if (failed) waiting.reject(reason);
             else waiting.resolve({ done: true, value: undefined });

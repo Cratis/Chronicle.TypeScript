@@ -13,6 +13,17 @@ export interface IReadModelWatcher<TReadModel> extends AsyncIterable<ReadModelCh
      */
     readonly subscribed: Promise<void>;
 
+    /**
+     * Registers a callback after each subscription acknowledgment following the first.
+     * Refresh your query here: changes during an outage are not replayed. Register before
+     * awaiting subscribed; callbacks are not replayed for late registrations.
+     * Callbacks run in registration order and are awaited before reading more changes on
+     * the resumed stream. Do not wait for iteration inside a callback. A thrown error or
+     * rejected promise fails iteration. Reconnects retain already received changes.
+     * @returns An idempotent function that unregisters the callback. Disposal also unregisters it.
+     */
+    onResubscribed(callback: () => void | Promise<void>): () => void;
+
     /** Stops the stream and completes pending iteration. Safe to call more than once. */
     dispose(): void;
 }

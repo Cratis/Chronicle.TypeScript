@@ -60,6 +60,37 @@ describe.each([1, 4, 13, 14, undefined])('when a read model stream ends with sta
         await readiness;
     });
 
+    it('should notify resubscription only after recovery acknowledgment and continue iteration', async () => {
+        const resubscribed = vi.fn();
+        watcher.onResubscribed(resubscribed);
+        context.streams[0].send({ Subscribed: true });
+        await watcher.subscribed;
+        resubscribed.mock.calls.should.have.lengthOf(0);
+        const next = watcher[Symbol.asyncIterator]().next();
+        endStream();
+        await vi.advanceTimersByTimeAsync(1000);
+        resubscribed.mock.calls.should.have.lengthOf(0);
+        context.streams[1].send({ Subscribed: true });
+        context.streams[1].send({ ModelKey: 'resumed', ReadModel: '{}' });
+        (await next).value.key.should.equal('resumed');
+        resubscribed.mock.calls.should.have.lengthOf(1);
+    });
+
+    it('should keep received buffered changes after a transport failure or completion', async () => {
+        context.streams[0].send({ Subscribed: true });
+        await watcher.subscribed;
+        context.streams[0].send({ ModelKey: 'received', ReadModel: '{}' });
+        await vi.advanceTimersByTimeAsync(0);
+        endStream();
+        await vi.advanceTimersByTimeAsync(1000);
+        context.streams[1].send({ Subscribed: true });
+        context.streams[1].send({ ModelKey: 'resumed', ReadModel: '{}' });
+        await watcher.subscribed;
+        const iterator = watcher[Symbol.asyncIterator]();
+        (await iterator.next()).value.key.should.equal('received');
+        (await iterator.next()).value.key.should.equal('resumed');
+    });
+
     it('should cancel a scheduled restart when disposed', async () => {
         const readiness = watcher.subscribed.catch(error => error);
         endStream();
