@@ -9,7 +9,16 @@ Both legacy and standard TypeScript decorators are supported.
 
 Its mappings also apply to child projections through the root's `All` definition
 with `IncludeChildren`; they can update or clear child properties as events are
-processed. Decorating only a child model does not widen the root subscription.
+processed. Child and nested `@fromAllEvents` members contribute to that same
+root block by bare property name (for example, `title`, not `items.title`).
+Decorating only a child or nested model sets `IncludeChildren` but does not widen
+the root subscription.
+
+The compiler has one shared `All` block per read model. When any root property
+opts into `@fromAllEvents`, every `@fromEvery` and `@fromAll` mapping in that model,
+including inherited mappings, also applies to every event type and to children,
+as in .NET. Restricted and all-event shared mappings cannot be mixed in one
+model: an unrelated event can clear an existing sibling mapping too.
 If `@fromAllEvents` and `@fromEvery` (or `@fromAll`) target the same property,
 `@fromAllEvents` takes precedence regardless of decorator order.
 
@@ -24,8 +33,9 @@ for child mappings.
 
 Other evolution policies may require you to initiate replay; `@notRewindable`
 projections only apply the new behavior to future events after you opt in.
-Prefer `@fromEvery` when you want to map only events already subscribed to,
-without applying these shared mappings to children.
+Use `@fromEvery` without `@fromAllEvents` on the model or its children when you
+want to map only events already subscribed to, without applying these shared
+mappings to children.
 
 `@fromAll` remains a supported, deprecated alias for restricted mappings; prefer
 `@fromEvery`. Contrary to the earlier 'next major' announcement, its behavior will

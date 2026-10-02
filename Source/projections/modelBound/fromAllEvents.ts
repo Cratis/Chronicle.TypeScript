@@ -10,11 +10,16 @@ import type { FromAllEventsMetadata } from './FromAllEventsMetadata.js';
 const METADATA_KEY = 'chronicle:projection:fromAllEvents';
 
 /**
- * Subscribes the root projection to every event type and maps the decorated property on each event,
- * including events not declared with `fromEvent`. Mappings also apply to children and take precedence
- * over `fromEvery` and the deprecated `fromAll` alias on the same property.
+ * On a root property, subscribes the projection to every event type, including events not declared
+ * with `fromEvent`. The model has one shared All block: opting in makes every `fromEvery`/`fromAll`
+ * mapping in that model (including inherited mappings) apply to every event type and to children.
+ * Restricted and all-event shared mappings cannot be mixed in one model.
+ * On a child or nested member, contributes its bare property name to the root All block and sets
+ * IncludeChildren without widening the root subscription. Takes precedence over `fromEvery` and the
+ * deprecated `fromAll` alias on the same property.
  * Opting in changes the definition and may trigger replay; unrelated events can create rows or clear
- * mapped properties. Use `fromEvery` to map only already-subscribed events.
+ * mapped properties. Use `fromEvery` without `fromAllEvents` on the model or its children to keep
+ * shared mappings restricted to already-subscribed events and the root.
  * @param property - Optional event property name. If not specified, uses the model property name.
  * @param contextProperty - Optional event context property name.
  * @returns A property decorator.
