@@ -39,6 +39,9 @@ RUNTIME_INVALID_ERRORS = {
 
 BODY_SNIPPETS = {
     "get-started/client-flow": "",
+    "patterns/querying/now": "",
+    "patterns/querying/at-a-moment": "",
+    "patterns/querying/context": "",
     "events/appending/schema-validation": """
         const eventSourceId = 'order-123';
         const customerId = 'customer-42';
