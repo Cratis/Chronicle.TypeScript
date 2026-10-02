@@ -80,7 +80,8 @@ internal static class Program
                     "arithmetic-int32-operand-overflow.json", "arithmetic-uint32-operand.json", "arithmetic-unformatted-number.json",
                     "arithmetic-remove-recreate.json", "arithmetic-zero-operand.json", "arithmetic-assignment.json",
                     "from-all-only.json", "from-all-mixed.json", "from-all-exclude-children.json", "from-all-empty.json", "from-every-restricted.json",
-                    "composite-key-expression-parts.json", "composite-parent-key-expression-parts.json", "composite-join-key-expression-parts.json"
+                    "composite-key-expression-parts.json", "composite-parent-key-expression-parts.json", "composite-join-key-expression-parts.json",
+                    "composite-parent-key-without-constant.json", "composite-child-join-key-expression-parts.json"
                 })
                 {
                     if (!projectionFiles.Contains(Path.Combine("Source", "testing", "projections", "fixtures", required)))

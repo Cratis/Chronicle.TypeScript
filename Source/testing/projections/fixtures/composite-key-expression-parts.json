@@ -10,7 +10,7 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "TypeScript composite set-expression overload and .NET CompositeKeyBuilder/SetBuilder at v19.26.2: event property, context Subject, event source id and constant parts; executed by the packaged production pipeline. Composite identifiers remain outside ReadModelScenario's supported subset.",
+  "definitionSource": "TypeScript composite set-expression overload and .NET CompositeKeyBuilder/SetBuilder at v19.26.2: event property, context Subject, event source id and constant parts; bound to ProjectionBuilderFor by when_matching_kernel_fixtures.spec.ts and executed by the packaged production pipeline. Composite identifiers remain outside ReadModelScenario's supported subset.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-composite-expression-parts",

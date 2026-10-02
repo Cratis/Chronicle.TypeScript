@@ -10,7 +10,7 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "TypeScript usingParentCompositeKey with the v19.26.2 .NET set expressions, under a root using the same composite key. Context, event source id and constant parts select the child's parent; composite identifiers remain outside ReadModelScenario's supported subset.",
+  "definitionSource": "TypeScript ProjectionBuilderFor usingParentCompositeKey with the v19.26.2 .NET set expressions, under a root using the same composite key; bound by when_matching_kernel_fixtures.spec.ts. Context, event source id and constant parts select the child's parent only through the kernel's unanchored IsConstantExpression shortcut: the $value part bypasses parent-event lookup. This is not general composite-parent support (Cratis/Chronicle#551); composite identifiers remain outside ReadModelScenario's supported subset.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-composite-parent-expression-parts",

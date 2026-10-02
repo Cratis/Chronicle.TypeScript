@@ -7,7 +7,7 @@ When an event property alone does not identify a read-model instance, combine it
 
 ## Configure the parts
 
-Inside a declarative projection, use `usingCompositeKey<TKey>()` for the instance key or `usingParentCompositeKey<TKey>()` for a child's parent. The following excerpt assumes the `CompositeRecordChanged`, `CompositeRecordKey` and read-model types in the [complete expression-parts example](./client-snippets/projections/declarative/composite-keys/expression-parts.md):
+Inside a declarative projection, use `usingCompositeKey<TKey>()` for the instance key. `usingParentCompositeKey<TKey>()` emits a child's parent key, subject to the [kernel limitations below](#parent-and-join-keys). The following excerpt assumes the `CompositeRecordChanged`, `CompositeRecordKey` and read-model types in the [complete expression-parts example](./client-snippets/projections/declarative/composite-keys/expression-parts.md):
 
 ```typescript
 builder.from(CompositeRecordChanged, from => from
@@ -27,7 +27,9 @@ The event's order id, subject and source id determine the instance, while `order
 | Event source id | `.toEventSourceId()` | `$eventSourceId` |
 | Constant | `.toValue('orders')` | `$value(orders)` |
 
-The existing two-argument `set(target, eventAccessor)` is unchanged and can be mixed with the new form. Every `to` method returns the composite builder for chaining. Complete each one-argument `set` with a `to` method before building the projection; an unfinished part throws instead of emitting an invalid key.
+The existing two-argument `set(target, eventAccessor)` remains available and can be mixed with the new form. Every `to` method returns the composite builder for chaining. Complete each one-argument `set` with a `to` method before building the projection; an unfinished part throws instead of emitting an invalid key. `toValue` requires the selected property's TypeScript type: a numeric part cannot take a string constant.
+
+Setting the same target part twice now throws immediately, including when its first `set` is unfinished. This surfaces an invalid configuration earlier, matching .NET's duplicate-property check; the kernel's composite parser also rejects duplicates.
 
 Context paths use TypeScript spelling, including `causedBy.subject`; the client emits CLR-cased paths such as `$eventContext(CausedBy.Subject)`. The syntax uses parentheses, not `$eventContext.Subject`. Constants use the same validation and serialization as other `toValue` mappings, including `$null` for null. Characters the kernel cannot parse in a constant, such as commas, are rejected.
 
@@ -39,12 +41,14 @@ $composite(orderId=orderId,subject=$eventContext(Subject),sourceId=$eventSourceI
 
 ## Parent and join keys
 
-`usingParentCompositeKey` accepts the same part expressions, so children can select a parent whose identifier combines content and context. A join's `usingCompositeKey` also emits those expressions, matching the .NET client.
+`usingParentCompositeKey` accepts the same expressions as the .NET client, but Chronicle 19.26.2 does not generally resolve composite parents. With a root `From` subscription and a parent key combining content, context and source id **without a constant**, the first child can be deferred even though its parent exists. The kernel searches for a parent event using the composite object's string representation, then falls back to looking for an existing child through `items.id`; neither locates that first child's parent. [Chronicle #551 tracks composite parent resolution](https://github.com/Cratis/Chronicle/issues/551). The client does not reject these definitions, preserving .NET parity.
 
-Chronicle 19.26.2 ignores custom root join keys when resolving joins: backfill and live updates still match the join event's source id. Emitting a composite join expression does not change that kernel behavior. A join's parent-key methods have no wire effect because `JoinDefinition` has no parent-key field.
+A `$value(...)` part changes that path in 19.26.2: the kernel's unanchored constant-expression matcher classifies the entire composite parent expression as constant and bypasses parent-event lookup. The constant-bearing parent fixture succeeds through this shortcut, not through general composite-parent support. Do not rely on adding a constant as a supported workaround.
+
+Chronicle 19.26.2 ignores custom **root** join keys: backfill and live updates still match the join event's source id ([Chronicle #4165](https://github.com/Cratis/Chronicle/issues/4165)). **Child** joins do resolve custom composite key expressions and use the result as the child's array-indexer identifier. This does not imply arbitrary parent placement: the oracle fixture deliberately uses matching composite root and child identifiers, and its in-memory join replaces the matched root state with the join changes. A join's parent-key methods have no wire effect because `JoinDefinition` has no parent-key field.
 
 ## Testing boundary
 
-The in-process `ReadModelScenario` evaluator still rejects composite instance, parent and join keys before replay. Use kernel-backed tests for these projections. The packaged projection oracle covers context and constant parts for root and parent keys and captures the custom-join-key limitation; it does not prove persistent-sink behavior.
+The in-process `ReadModelScenario` evaluator still rejects composite instance, parent and join keys before replay. Use kernel-backed tests for these projections. The packaged projection oracle covers root keys, the constant-bearing parent shortcut, constant-free parent deferral, ignored root join keys and resolved child join keys. The deferral fixture captures an attempted `AddFuture` through the oracle's fail-closed futures guard, not a kernel exception or successful future storage. These fixtures do not prove persistent-sink behavior.
 
 For the shared projection concepts and other clients, continue with the [Chronicle composite keys guide](/chronicle/projections/declarative/composite-keys/).

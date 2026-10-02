@@ -10,7 +10,7 @@
     "version": "19.26.2",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
-  "definitionSource": "TypeScript join usingCompositeKey with .NET v19.26.2 set expressions. Like joins-custom-key, the packaged kernel ignores the custom join key: source-id matching still governs backfill and live updates. ReadModelScenario continues rejecting custom join keys.",
+  "definitionSource": "TypeScript root join usingCompositeKey with .NET v19.26.2 set expressions, bound to ProjectionBuilderFor by when_matching_kernel_fixtures.spec.ts. Like joins-custom-key, the packaged kernel ignores the custom join key: source-id matching still governs backfill and live updates. ReadModelScenario continues rejecting custom join keys.",
   "wireDefinition": {
     "EventSequenceId": "event-log",
     "Identifier": "oracle-composite-join-expression-parts",
