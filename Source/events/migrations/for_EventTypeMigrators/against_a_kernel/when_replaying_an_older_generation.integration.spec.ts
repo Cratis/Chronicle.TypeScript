@@ -121,6 +121,8 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying an older g
         })));
         const appended = await firstGenerationStore.eventLog.append(eventSourceId, Object.assign(new AuthorRegisteredV1(), { name: 'Jane Doe' }));
         appendedSequenceNumber = appended.sequenceNumber.value;
+        // The backlog is the regression setup; without it the race this spec guards against cannot occur.
+        if (appendedSequenceNumber < 500n) throw new Error(`Expected the 500-event backlog before the target event, but it was appended at ${appendedSequenceNumber}.`);
         firstGenerationClient.dispose();
 
         // Registration starts a background migration job; it does not mean stored history has been migrated.
