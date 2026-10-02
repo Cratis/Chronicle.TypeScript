@@ -3,6 +3,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, chai, describe, it } from 'vitest';
+import { ObserverRunningState } from '@cratis/chronicle.contracts';
 import { field } from '@cratis/fundamentals';
 import { ChronicleClient } from '../../../ChronicleClient.js';
 import { ChronicleOptions } from '../../../ChronicleOptions.js';
@@ -52,9 +53,9 @@ const artifacts: IClientArtifactsProvider = {
     globalForHandlers: []
 };
 
-async function eventually(accept: () => boolean, timeoutMs = 30_000): Promise<void> {
+async function eventually(accept: () => boolean | Promise<boolean>, timeoutMs = 30_000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
-    while (!accept()) {
+    while (!await accept()) {
         if (Date.now() > deadline) throw new Error('Timed out waiting for the kernel');
         await new Promise(resolve => setTimeout(resolve, 250));
     }
@@ -77,6 +78,18 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying reactors a
         EventSequenceId: 'event-log'
     });
 
+    const waitForActiveObservers = (lastHandledSequenceNumber?: bigint) => eventually(async () => {
+        const observers = await Promise.all(['OnceOnlyReactor', 'ReplayableReactor'].map(observerId =>
+            connection.observers.getObserverInformation({
+                EventStore: storeName,
+                Namespace: 'Default',
+                ObserverId: observerId,
+                EventSequenceId: 'event-log'
+            })));
+        return observers.every(observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
+            (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber));
+    }, 15_000);
+
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
             discoveryPatterns: [],
@@ -85,8 +98,14 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying reactors a
         store = await client.getEventStore(storeName);
         connection = (store as unknown as { _connection: ChronicleConnection })._connection;
 
-        (await store.eventLog.append(randomUUID(), Object.assign(new ThingHappened(), { name: 'first' }))).isSuccess.should.be.true;
+        // Registration starts observation in the background. Append only after both subscriptions
+        // are active, so initial catch-up cannot race the explicit replay's state transition.
+        await waitForActiveObservers();
+        const appended = await store.eventLog.append(randomUUID(), Object.assign(new ThingHappened(), { name: 'first' }));
+        appended.isSuccess.should.be.true;
         await eventually(() => onceOnlyInvocations.length === 1 && replayableInvocations.length === 1);
+        // The handlers update their sinks before the kernel acknowledges delivery and records progress.
+        await waitForActiveObservers(appended.sequenceNumber.value);
 
         onceOnlyJobId = (await replay('OnceOnlyReactor')).JobId;
         replayableJobId = (await replay('ReplayableReactor')).JobId;
