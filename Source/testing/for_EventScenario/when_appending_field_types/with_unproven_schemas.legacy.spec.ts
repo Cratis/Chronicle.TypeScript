@@ -26,6 +26,7 @@ for (const schema of [
             const scenario = new EventScenario({ artifacts: { eventTypes: [Recorded] }, constraints: 'disabled' });
             const event = new Recorded();
             event.key = schema.type === 'string' ? '2025-01-02' : schema.type === 'object' ? { value: 42 } : 1.5;
+            if (schema.format === 'date-time') event.key = '2025-01-02T03:04:05.000Z';
             if (schema.type === 'integer') event.key = 42;
             (await scenario.append('A', event)).isSuccess.should.equal(true);
         });
@@ -68,15 +69,14 @@ for (const protection of ['compliance', 'security'] as const) {
     });
 }
 
-describe('when appending a uuid schema alias', () => {
-    it('should compare the key with the same Guid normalization', async () => {
+describe('when registering a uuid constraint schema alias', () => {
+    it('should reject unproven constraint semantics but accept a valid unconstrained payload', async () => {
         class Recorded { @field(Guid) @unique('UuidAlias') key: Guid | string = Guid.empty; }
         eventType('UuidAlias')(Recorded);
         getEventTypeMetadata(Recorded)!.schema.properties!.key.format = 'uuid';
-        const scenario = new EventScenario({ artifacts: { eventTypes: [Recorded] } });
-        const first = new Recorded(); first.key = 'abcdef01-abcd-abcd-abcd-abcdef012345';
-        const duplicate = new Recorded(); duplicate.key = first.key.toUpperCase();
-        await scenario.append('A', first);
-        (await scenario.append('B', duplicate)).isSuccess.should.equal(false);
+        (() => new EventScenario({ artifacts: { eventTypes: [Recorded] } }))
+            .should.throw(UnsupportedEventSequenceOperation, 'artifacts.constraints');
+        const scenario = new EventScenario({ artifacts: { eventTypes: [Recorded] }, constraints: 'disabled' });
+        (await scenario.append('A', new Recorded())).isSuccess.should.equal(true);
     });
 });

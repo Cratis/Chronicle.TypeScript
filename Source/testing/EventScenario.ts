@@ -115,12 +115,12 @@ export class EventScenario {
                         }
                         for (const schema of schemas) {
                             const supported = schema?.type === 'boolean' && schema.format === undefined ||
-                                schema?.type === 'string' && (schema.format === undefined || ['guid', 'uuid'].includes(schema.format)) ||
+                                schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
                                 schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
                             if (!supported) throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 `Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
                         }
-                        const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid' || schema?.format === 'uuid');
+                        const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid');
                         if (extendedKey && (definitions.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
                             removedWith.some(id => id !== undefined))) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,

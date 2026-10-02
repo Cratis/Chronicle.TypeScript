@@ -19,7 +19,7 @@ const provenString = /^[A-Za-z0-9 .@_:\-|{}$\u00e9]*$/;
 
 function kernelKeyString(value: unknown, name: string, schema?: JsonSchema): string {
     // constraints-field-types.json: the kernel converts Guid keys before comparing or reporting them.
-    if (schema?.format === 'guid' || schema?.format === 'uuid') {
+    if (schema?.format === 'guid') {
         if (typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) return value.toLowerCase();
         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, 'Only dashed Guid keys are fixture-backed.');
     }
