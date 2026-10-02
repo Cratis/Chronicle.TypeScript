@@ -25,6 +25,7 @@ import { createHandlerInstanceValidator } from '../observation/createHandlerInst
 import { getReactorMetadata } from '../reactors/reactor.js';
 import { normalizeReactorSideEffects } from '../reactors/ReactorSideEffects.js';
 import type { ReactorServices } from '../reactors/ReactorServices.js';
+import { ReactorDelivery } from '../reactors/ReactorDelivery.js';
 import { EventScenario } from './EventScenario.js';
 import type { ReactorDeliveryResult } from './ReactorDeliveryResult.js';
 import type { ReactorScenarioOptions } from './ReactorScenarioOptions.js';
@@ -239,7 +240,10 @@ export class ReactorScenario {
                     // A swallowed unsupported call fails this event like a throwing handler: nothing is recorded.
                     this.throwIfViolated(delivery);
                     return this.record(result, event.context, selection.methodName!, deliveryIndex);
-                });
+                }, new ReactorDelivery(getReactorMetadata(this._reactor)!.id.value,
+                    event.context.eventStore ?? this._options.eventStore ?? 'test-event-store',
+                    event.context.namespace ?? this._options.namespace ?? 'default', 'event-log',
+                    event.context.eventSourceId, event.context.sequenceNumber));
                 this.throwIfViolated(delivery);
                 handled.push(event.context);
             }
