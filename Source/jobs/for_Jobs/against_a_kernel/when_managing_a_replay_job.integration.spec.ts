@@ -3,12 +3,13 @@
 
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, chai, describe, it } from 'vitest';
-import { JobStatus, JobStepStatus, type JobStepSummaryResponse, type JobSummaryResponse } from '@cratis/chronicle.contracts';
+import { JobStatus, JobStepStatus, ObserverRunningState, type JobStepSummaryResponse, type JobSummaryResponse } from '@cratis/chronicle.contracts';
 import { field, Guid } from '@cratis/fundamentals';
 import { ChronicleClient } from '../../../ChronicleClient.js';
 import { ChronicleOptions } from '../../../ChronicleOptions.js';
 import { fromContractsGuid } from '../../../connection/Guid.js';
 import type { IClientArtifactsProvider } from '../../../artifacts/index.js';
+import type { ChronicleConnection } from '../../../connection/index.js';
 import { eventType } from '../../../events/index.js';
 import type { IEventStore } from '../../../IEventStore.js';
 import { fromEvent } from '../../../projections/index.js';
@@ -55,8 +56,10 @@ async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boole
 }
 
 describe.skipIf(!connectionString && !process.env.CI)('when managing a replay job against a kernel', () => {
+    const storeName = `Jobs${randomUUID().replaceAll('-', '').slice(0, 12)}`;
     let client: ChronicleClient;
     let store: IEventStore;
+    let connection: ChronicleConnection;
     let jobId: JobId;
     let listed: JobSummaryResponse[];
     let stopped: JobSummaryResponse | undefined;
@@ -65,19 +68,36 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
     let stopUnknownJob: unknown;
     let deleteUnknownJob: unknown;
 
+    const waitForActiveObserver = (lastHandledSequenceNumber?: bigint) => eventually(
+        () => connection.observers.getObserverInformation({
+            EventStore: storeName,
+            Namespace: 'Default',
+            ObserverId: 'Item',
+            EventSequenceId: 'event-log'
+        }),
+        observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
+            (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber),
+        15_000);
+
+    // Readiness (30s) and the existing job-state waits (90s) leave 30s for RPC overhead.
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
             discoveryPatterns: [],
             clientArtifactsProvider: artifacts
         }));
-        store = await client.getEventStore(`Jobs${randomUUID().replaceAll('-', '').slice(0, 12)}`);
+        store = await client.getEventStore(storeName);
+        connection = (store as unknown as { _connection: ChronicleConnection })._connection;
 
+        // Append only after initial catch-up completes, so it cannot race the explicit replay.
+        await waitForActiveObserver();
         // Enough events that the replay is still running when it is stopped; a stopped job stays until deleted,
         // where a completed one is removed and could not be listed reliably.
-        await store.eventLog.appendMany(Array.from({ length: 500 }, (_, index) => ({
+        const appended = await store.eventLog.appendMany(Array.from({ length: 500 }, (_, index) => ({
             eventSourceId: randomUUID(),
             event: Object.assign(new ItemAdded(), { name: `Item ${index}` })
         })));
+        // ReplayForModel uses Observer.Replay too; wait for acknowledged progress before requesting it.
+        await waitForActiveObserver(appended.at(-1)!.sequenceNumber.value);
 
         jobId = await store.projections.replayForModel(Item);
 
@@ -98,7 +118,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
 
         stopUnknownJob = await store.jobs.stop(randomUUID()).catch((error: unknown) => error);
         deleteUnknownJob = await store.jobs.delete(randomUUID()).catch((error: unknown) => error);
-    });
+    }, 150_000);
 
     afterAll(() => client?.dispose());
 

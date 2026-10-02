@@ -3,6 +3,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, chai, describe, it } from 'vitest';
+import { ObserverRunningState } from '@cratis/chronicle.contracts';
 import { field } from '@cratis/fundamentals';
 import { ChronicleClient } from '../../../ChronicleClient.js';
 import { ChronicleOptions } from '../../../ChronicleOptions.js';
@@ -65,12 +66,11 @@ const artifacts: IClientArtifactsProvider = {
     globalForHandlers: []
 };
 
-// 30s was occasionally too tight for this reactor's initial catch-up under concurrent
-// kernel load in CI (observed timing out at 31.2s on a run that passed cleanly on retry
-// with no code change); 45s keeps the polling assertion honest while tolerating that jitter.
-async function eventually(accept: () => boolean, timeoutMs = 45_000): Promise<void> {
+// Keep the existing 45s replay polling budget for concurrent kernel load in CI.
+// Initial observation is gated separately by the bounded readiness waits below.
+async function eventually(accept: () => boolean | Promise<boolean>, timeoutMs = 45_000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
-    while (!accept()) {
+    while (!await accept()) {
         if (Date.now() > deadline) throw new Error('Timed out waiting for the kernel');
         await new Promise(resolve => setTimeout(resolve, 250));
     }
@@ -86,6 +86,17 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
     let jobId: string | undefined;
     let invocationsBeforeReplay: string[];
 
+    const waitForActiveObserver = (lastHandledSequenceNumber?: bigint) => eventually(async () => {
+        const observer = await connection.observers.getObserverInformation({
+            EventStore: storeName,
+            Namespace: 'Default',
+            ObserverId: 'MixedOnceOnlyReactor',
+            EventSequenceId: 'event-log'
+        });
+        return observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
+            (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber);
+    }, 15_000);
+
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
             discoveryPatterns: [],
@@ -94,10 +105,17 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying a reactor 
         store = await client.getEventStore(storeName);
         connection = (store as unknown as { _connection: ChronicleConnection })._connection;
 
+        // Registration starts observation in the background. Append only after the subscription
+        // is active, so initial catch-up cannot race the explicit replay's state transition.
+        await waitForActiveObserver();
         (await store.eventLog.append(randomUUID(), Object.assign(new MethodOnceOnlyHappened(), { name: 'a' }))).isSuccess.should.be.true;
         (await store.eventLog.append(randomUUID(), Object.assign(new MethodReplayableHappened(), { name: 'b' }))).isSuccess.should.be.true;
-        (await store.eventLog.append(randomUUID(), Object.assign(new MethodReplayOnceOnlyHappened(), { name: 'c' }))).isSuccess.should.be.true;
-        await eventually(() => invocations.length === 3);
+        const appended = await store.eventLog.append(randomUUID(), Object.assign(new MethodReplayOnceOnlyHappened(), { name: 'c' }));
+        appended.isSuccess.should.be.true;
+        // With initial catch-up complete, 30s leaves room for both 15s readiness waits in the hook.
+        await eventually(() => invocations.length === 3, 30_000);
+        // The handlers update their sink before the kernel acknowledges delivery and records progress.
+        await waitForActiveObserver(appended.sequenceNumber.value);
         invocationsBeforeReplay = [...invocations];
 
         jobId = (await connection.observers.replay({
