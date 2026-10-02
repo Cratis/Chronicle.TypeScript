@@ -1,16 +1,16 @@
 ---
 title: Observability reference
-description: Configure Chronicle client privacy and logging, propagate trace context, and look up shared and legacy telemetry names.
+description: Configure Chronicle client privacy and logging, propagate trace context, and migrate to convention-only telemetry.
 ---
 
 <!-- Copyright (c) Cratis. All rights reserved. -->
 <!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
 
-Use this reference to select Chronicle client signals in your observability backend and control what they contain. The client follows the [Cratis OpenTelemetry convention](https://github.com/Cratis/Architecture/blob/main/decisions/0001-opentelemetry-convention.md), with a minor-release overlap for legacy names.
+Use this reference to select Chronicle client signals in your observability backend and control what they contain. The client follows the [Cratis OpenTelemetry convention](https://github.com/Cratis/Architecture/blob/main/decisions/0001-opentelemetry-convention.md), with convention-only names after the previous minor's overlap.
 
 ## SDK ownership and scope
 
-Both the tracer and meter use `Cratis.Chronicle.Client`, versioned with the installed `@cratis/chronicle` package version. The instrumentation scope already moved from `@cratis/chronicle` in 6.34 without an overlap. Neither span naming mode restores the old scope; both metric families also use the new scope. Update backend filters and SDK Views that still select `@cratis/chronicle`. `ChronicleInstrumentationName` and `ChronicleMeterName` expose the current scope; the deprecated `WellKnownTelemetryNames.legacyScope` only identifies the previous one.
+Both the tracer and meter use `Cratis.Chronicle.Client`, versioned with the installed `@cratis/chronicle` package version. The instrumentation scope already moved from `@cratis/chronicle` in 6.34 without an overlap. This major does not change the scope again. Update backend filters and SDK Views that still select `@cratis/chronicle`. `ChronicleInstrumentationName`, `ChronicleMeterName`, and `WellKnownTelemetryNames.scope` expose the current scope.
 
 Instrumentation is always available. The library depends on `@opentelemetry/api`; it does not install an SDK, exporter, resource, context manager, or propagator. Without an application SDK, tracing and metrics are no-ops. Configure the Node.js SDK in your application's bootstrap, preferably before importing the client, and use standard `OTEL_*` configuration for resources, sampling, and export. The host owns `service.name` and must opt into export; the client sends no telemetry to an endpoint itself.
 
@@ -20,7 +20,7 @@ Both `ChronicleOptions.fromConnectionString(connectionString, options)` and `Chr
 
 | `telemetry.eventSourceId` | Behavior |
 | --- | --- |
-| Absent | Omit event source identifiers from both shared and legacy span attributes. |
+| Absent | Omit event source identifiers from span attributes. |
 | `{ mode: 'raw' }` | Record the unmodified identifier. Use only when your privacy policy permits it. |
 | `{ mode: 'hmac', key: Uint8Array }` | Record a lowercase hexadecimal HMAC-SHA256 using your deployment key. |
 
@@ -28,11 +28,11 @@ Unknown modes and HMAC keys that are not non-empty `Uint8Array` values (includin
 
 Keep the HMAC key in your secret store, use a strong random key, and do not log it. Identical identifiers and keys produce identical values; rotating the key changes those values and breaks comparisons with earlier telemetry. Hashing does not make telemetry unrestricted data.
 
-**Upgrade privacy change:** event source identifiers are now off by default, including `chronicle.event_source_id`. Opt in explicitly if you need them. The policy affects telemetry only: identifiers sent to Chronicle are unchanged. Multi-source batches do not record identifier arrays, even with opt-in. Metrics never include event source identifiers or correlation identifiers.
+Event source identifiers remain off by default. Opt in explicitly if you need them. The policy affects telemetry only: identifiers sent to Chronicle are unchanged. Multi-source batches do not record identifier arrays, even with opt-in. Metrics never include event source identifiers or correlation identifiers.
 
 Exceptions in spans and diagnostics contain `error.type` and `exception.type`, not exception messages or stacks. Reactor diagnostics exclude event payloads and partition identifiers. Error details required by Chronicle's failure-reporting wire protocol are separate from telemetry and are unchanged.
 
-`cratis.event_sequence.number` is emitted as an integer only when JavaScript can represent it exactly (`Number.isSafeInteger`); larger values are omitted from that attribute. The legacy `chronicle.sequence_number` remains a string for every value, including sentinels. Exact sequence numbers above `Number.MAX_SAFE_INTEGER` remain available in that compatibility string attribute after the naming cutoff. Event sequence APIs continue to return `bigint` values without loss.
+`cratis.event_sequence.number` is emitted as an integer only when JavaScript can represent it exactly (`Number.isSafeInteger`); larger values are omitted from that attribute. The legacy string attribute `chronicle.sequence_number` is gone. Exact sequence numbers above `Number.MAX_SAFE_INTEGER` are no longer recorded in telemetry, even if an individual value happens to be representable as a JavaScript number. Event sequence APIs continue to return `bigint` values without loss.
 
 ## Trace propagation and correlation
 
@@ -59,38 +59,32 @@ Set the optional `logger: IChronicleLogger` option to route diagnostics to your 
 
 Each client has its own sink. Sink failures do not change RPC results or observation acknowledgements. The host decides how to ingest these records; do not send them through a second logging path too.
 
-When `logger` is absent, `DiagChronicleLogger` forwards sanitized records to OpenTelemetry `diag` for compatibility. Existing `diag.setLogger(...)` configuration still works. The `diag` default stays, including in the next major; the telemetry naming migration does not remove it. See [connection diagnostics](./connecting.md#connection-diagnostics).
+When `logger` is absent, `DiagChronicleLogger` forwards sanitized records to OpenTelemetry `diag` for compatibility. Existing `diag.setLogger(...)` configuration still works. The `diag` default is unchanged by this major. See [connection diagnostics](./connecting.md#connection-diagnostics).
 
-## Migrating to the convention names
+## Breaking changes in this major
 
-**Revised timetable:** this replaces the earlier “removed in the next major” plan announced in v6.40. Following [ADR 0001's one-minor overlap](https://github.com/Cratis/Architecture/blob/main/decisions/0001-opentelemetry-convention.md), built-in client instrumentation will stop emitting legacy span names, superseded `chronicle.*` attributes, and legacy metric instruments (millisecond histograms and counters) in an upcoming minor release. Track the cutoff in [the telemetry migration issue](https://github.com/Cratis/Chronicle.TypeScript/issues/171). This notice ships while legacy emission still works; the cutoff follows the promised minor overlap.
+Each operation produces one `CLIENT` span with a `cratis.chronicle.client.*` name. Legacy `chronicle.*` span names, span attributes, and metric instruments are no longer emitted. Update dashboards, alerts, and SDK Views using the old-to-new tables below before upgrading. The previous overlap minor lets you migrate consumers before losing the old signals.
 
-The TypeScript compatibility APIs—legacy constants, the `spanNames` option, and `ChronicleMetrics`—remain available without a removal deadline. After the cutoff, both `spanNames` values will be accepted as no-ops. `ChronicleMetrics` retains millisecond inputs, caller attributes, and dual recording. The exact-string `chronicle.sequence_number` attribute remains emitted for lossless sequence numbers.
+Remove the former `telemetry.spanNames` option from your configuration; it is no longer part of `ChronicleTelemetryOptions`. For JavaScript callers with leftover configuration, `'convention'` is silently ignored because it is already the only mode. `'legacy'` throws a `TypeError` at options construction with migration guidance. This is only a compatibility check for the removed setting, not a supported naming selector.
 
-Use the overlap to migrate dashboards and alerts before that minor release. Each operation still produces one `CLIENT` span, not duplicate spans. Both attribute families and both metric families are emitted in either span naming mode.
+Public constants change as follows:
 
-1. Opt in to convention span names per client with `telemetry.spanNames: 'convention'`. Other clients in the same process keep their own setting.
-2. Update dashboards, alerts, and SDK Views using the mappings below. Do not sum the legacy and convention instruments together: they describe the same measurements.
-3. Upgrade to the cutoff minor only after migrating your consumers. Built-in instrumentation then uses convention names only, except the exact-string sequence number attribute. Removing `spanNames` from your configuration is optional; the option remains accepted but no longer selects names.
+| Previous `WellKnownTelemetryNames` member | Replacement or action |
+| --- | --- |
+| `spans` with legacy values | `spans` now contains convention names; update span-name queries. |
+| `conventionSpans` | Removed; use `spans`. |
+| `legacyScope` | Removed; use `scope` (`Cratis.Chronicle.Client`, unchanged). |
+| `legacyAttributes` | Removed; use `attributes` and migrate attribute filters. |
+| `legacyMetrics` | Removed; use `metrics` and migrate instrument selectors and duration thresholds. |
 
-For example, configure a local development client (the host still owns OpenTelemetry SDK setup):
+The integer sequence-number attribute still uses `Number.isSafeInteger`. Removing the legacy string attribute means exact values above `Number.MAX_SAFE_INTEGER` are no longer recorded; use the `bigint` event sequence API when you need those values. The `diag` default logger and event-source-id opt-in policy are unchanged.
 
-```typescript
-import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
-
-const client = new ChronicleClient(ChronicleOptions.development({
-    telemetry: { spanNames: 'convention' }
-}));
-```
-
-The same `telemetry` object works in the second argument of `ChronicleOptions.fromConnectionString`. The optional `spanNames` accepts `'legacy'` (the default) or `'convention'`; any other value is rejected with a `TypeError` when constructing options. It applies to client operations, event stores, event logs, and dynamically created sequences. Scope, privacy policy, correlation, and attribute emission do not depend on the selected mode.
-
-`WellKnownTelemetryNames` exports the scope, span names, metric names, and attribute keys. The following old-to-new mappings are generated from those constants. `spans`, `legacyScope`, `legacyAttributes`, and `legacyMetrics` are deprecated in favor of `conventionSpans`, `scope`, `attributes`, and `metrics`, respectively. Their original values and literal types remain available; deprecation does not schedule API removal.
+Current names below are generated from `WellKnownTelemetryNames`; removed names are historical migration references, not aliases.
 
 <!-- telemetry-reference:start -->
 ### Span names
 
-| Operation | Legacy name (default) | Convention name (opt-in) |
+| Operation | Removed name | Current name |
 | --- | --- | --- |
 | `append` | `chronicle.event_sequences.append` | `cratis.chronicle.client.event_sequence.append` |
 | `appendMany` | `chronicle.event_sequences.append_many` | `cratis.chronicle.client.event_sequence.append_many` |
@@ -107,7 +101,7 @@ The same `telemetry` object works in the second argument of `ChronicleOptions.fr
 
 ### Attribute names
 
-| Concept | Legacy name | Convention name |
+| Concept | Removed name | Current name |
 | --- | --- | --- |
 | `correlationId` | — | `cratis.correlation_id` |
 | `eventStore` | `chronicle.event_store` | `cratis.event_store.name` |
@@ -127,7 +121,7 @@ The same `telemetry` object works in the second argument of `ChronicleOptions.fr
 
 ### Metric names
 
-| Instrument | Legacy name | Convention name | Legacy / convention unit |
+| Instrument | Removed name | Current name | Previous / current unit |
 | --- | --- | --- | --- |
 | `eventsAppended` | `chronicle.events.appended` | `cratis.chronicle.event_sequence.appended` | `{event}` |
 | `batchAppendsPerformed` | `chronicle.events.batch_appends` | `cratis.chronicle.event_sequence.batch_appends` | `{operation}` |
@@ -138,17 +132,17 @@ The same `telemetry` object works in the second argument of `ChronicleOptions.fr
 | `appendErrors` | `chronicle.events.append_errors` | `cratis.chronicle.event_sequence.append_errors` | `{error}` |
 <!-- telemetry-reference:end -->
 
-`ChronicleMetrics` preserves its existing methods, legacy attributes, and millisecond inputs while also recording the shared-convention instruments. `ChronicleConventionMetrics` exposes the new instruments directly and takes seconds for duration histograms. Do not record both for the same measurement.
+`ChronicleMetrics` is deprecated but preserves its existing method signatures and **millisecond duration inputs**. It translates historical input attribute keys, filters dimensions, and records only canonical instruments, converting milliseconds to seconds exactly once. Do not divide durations before passing them to this adapter. To migrate to `ChronicleConventionMetrics`, pass canonical attribute keys and divide millisecond durations by 1,000 yourself; its duration histograms take seconds directly. Do not record both APIs for the same measurement.
 
-Counters retain their existing counting semantics. Duration histograms measure completed append RPCs, including returned rejection results, but not thrown failures. Elapsed time is measured monotonically. New metric dimensions are event store, namespace, event sequence, and event type when known; batch size remains a legacy-only dimension. General cardinality overflow handling is deferred.
+Counters retain their existing counting semantics. Duration histograms measure completed append RPCs, including returned rejection results, but not thrown failures. Elapsed time is measured monotonically. Metric dimensions are event store, namespace, event sequence, and event type when known; the batch-size dimension is removed. General cardinality overflow handling is deferred.
 
 ### Duration thresholds and histogram buckets
 
 Divide **duration thresholds only** by 1,000 when switching from the legacy millisecond histograms to the convention second histograms. For example, an append latency alert at `250 ms` becomes `0.25 s`. Counter values and count/rate alert thresholds do not change scale.
 
-Both append duration histograms advise these explicit bucket boundaries; an SDK View can override them:
+Both append duration histograms now advise the seconds boundaries below; an SDK View can override them:
 
-| Legacy boundaries (`ms`) | Convention boundaries (`s`) |
+| Removed boundaries (`ms`) | Current boundaries (`s`) |
 | --- | --- |
 | `1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000` | `0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5` |
 
@@ -168,4 +162,4 @@ The convention instruments use these renamed dimensions where available:
 
 Update groupings, label filters, and View attribute allow-lists. The event count still appears on batch spans as `cratis.event.count`; it is not a replacement metric dimension. Event source and correlation identifiers remain excluded from metrics.
 
-SDK Views select instruments by scope and instrument name. Use scope `Cratis.Chronicle.Client` for both families and change each legacy instrument-name selector to its convention name. If you keep separate Views during the overlap, configure millisecond boundaries for legacy durations and second boundaries for convention durations. A View selecting the old `@cratis/chronicle` scope matches neither family.
+SDK Views select instruments by scope and instrument name. Use scope `Cratis.Chronicle.Client` and change each legacy instrument-name selector to its convention name, with seconds-based duration boundaries. Remove Views that target legacy instruments. A View selecting the old `@cratis/chronicle` scope matches no client instruments.

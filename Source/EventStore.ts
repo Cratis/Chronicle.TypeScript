@@ -201,7 +201,7 @@ export class EventStore implements IEventStore {
 
     /** @inheritdoc */
     async getNamespaces(): Promise<EventStoreNamespaceName[]> {
-        return observeOperation('getNamespaces', this._telemetry, async span => {
+        return observeOperation('getNamespaces', async span => {
             setTelemetryAttribute(span, 'eventStore', this.name.value);
             try {
                 const response = await this._connection.namespaces.allNamespaces({ EventStore: this.name.value });
