@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { TypeIntrospector } from '../../types/index.js';
 import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
 import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
+import { getFromAllEventsMetadata } from './fromAllEvents.js';
 
 /** Metadata stored by the fromAll property decorator. */
 export interface FromAllMetadata {
@@ -21,7 +22,9 @@ const METADATA_KEY = 'chronicle:projection:fromAll';
  * event type the projection is built from - the convention-based counterpart to declaring the same
  * mapping on every individual `fromEvent`. Equivalent to {@link fromEvery} for model-bound
  * projections.
- * @deprecated In the next major, @fromAll subscribes to every event type like fluent fromAll() and .NET [FromAll]; use @fromEvery to keep the current behavior.
+ * @deprecated @fromAll remains a supported, deprecated alias for restricted mappings; prefer @fromEvery.
+ * Contrary to the earlier 'next major' announcement, its behavior will not change;
+ * use @fromAllEvents to opt into all-event subscriptions.
  * @param property - Optional event property name. If not specified, uses the model property name.
  * @param contextProperty - Optional event context property name.
  * @returns A property decorator.
@@ -35,11 +38,13 @@ export function fromAll(property?: string, contextProperty?: string): ChronicleP
 }
 
 /**
- * Retrieves fromAll metadata stored on the given property.
+ * Retrieves fromAll metadata stored on the given property, falling back to fromAllEvents metadata
+ * for compatibility with existing model discovery. This reader does not imply an all-event subscription.
  * @param target - The class prototype.
  * @param propertyKey - The property name.
  * @returns The fromAll metadata, or undefined if not decorated.
  */
 export function getFromAllMetadata(target: object, propertyKey: string): FromAllMetadata | undefined {
-    return getPropertyMetadata<FromAllMetadata>(METADATA_KEY, target, propertyKey);
+    return getPropertyMetadata<FromAllMetadata>(METADATA_KEY, target, propertyKey)
+        ?? getFromAllEventsMetadata(target, propertyKey);
 }

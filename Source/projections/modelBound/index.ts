@@ -37,6 +37,8 @@ export { fromEvery, getFromEveryMetadata } from './fromEvery.js';
 export type { FromEveryMetadata } from './fromEvery.js';
 export { fromAll, getFromAllMetadata } from './fromAll.js';
 export type { FromAllMetadata } from './fromAll.js';
+export { fromAllEvents, getFromAllEventsMetadata } from './fromAllEvents.js';
+export type { FromAllEventsMetadata } from './FromAllEventsMetadata.js';
 export { noAutoMap, isNoAutoMap, isPropertyNoAutoMap } from './noAutoMap.js';
 export { eventSequence, eventLog, getEventSequenceMetadata } from './eventSequence.js';
 export { variantOf, getVariantOfMetadata } from './variantOf.js';

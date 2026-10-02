@@ -12,7 +12,7 @@ const finalizedMetadata = new FinalizationRegistry<WeakRef<object>>(reference =>
 
 export const modelBoundPropertyKeys = [
     'setFrom', 'setFromContext', 'setValue', 'addFrom', 'subtractFrom',
-    'increment', 'decrement', 'count', 'childrenFrom', 'join', 'fromEvery', 'fromAll'
+    'increment', 'decrement', 'count', 'childrenFrom', 'join', 'fromEvery', 'fromAll', 'fromAllEvents'
 ].map(name => `chronicle:projection:${name}`);
 
 /** Records a standard-decorated class with an event mapping on one of its fields. */

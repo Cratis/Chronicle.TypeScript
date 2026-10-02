@@ -37,6 +37,7 @@ import { getChildrenFromMetadata } from './modelBound/childrenFrom.js';
 import { getClearWithPropertyMetadata } from './modelBound/clearWith.js';
 import { getEventSequenceMetadata } from './modelBound/eventSequence.js';
 import { getFromAllMetadata } from './modelBound/fromAll.js';
+import { getFromAllEventsMetadata } from './modelBound/fromAllEvents.js';
 import { getFromEveryMetadata } from './modelBound/fromEvery.js';
 import { getFromEventMetadata } from './modelBound/fromEvent.js';
 import { isModelBoundProjection } from './modelBound/isModelBoundProjection.js';
@@ -290,6 +291,27 @@ export class ProjectionDefinitionCompiler {
         const removedWithJoinByEventType = new Map<string, { Key: ContractEventType; Value: { Key: string } }>();
         const childrenByProperty: Record<string, ChildrenDefinitionLike> = {};
         const nestedByProperty: Record<string, ChildrenDefinitionLike> = {};
+        const allProperties: Record<string, string> = {};
+        const subscribesToAllEvents = properties.some(property => getFromAllEventsMetadata(prototype, property) !== undefined);
+        if (subscribesToAllEvents) overrides.set('SubscribesToAllEvents', '@fromAllEvents');
+        let includeChildren = false;
+        const collectSharedMapping = (memberPrototype: object, property: string, isRoot = false) => {
+            const fromAllEvents = getFromAllEventsMetadata(memberPrototype, property);
+            // Preserve legacy child behavior: only the new decorator contributes child mappings.
+            const fromEvery = isRoot ? getFromEveryMetadata(memberPrototype, property) : undefined;
+            const mapping = fromAllEvents ?? fromEvery ?? (isRoot ? getFromAllMetadata(memberPrototype, property) : undefined);
+            if (!mapping) return;
+            if (fromAllEvents) {
+                includeChildren = true;
+                overrides.set('All', '@fromAllEvents');
+            }
+            // .NET collects child and nested members by bare name into the root All block,
+            // not by a path prefixed with the containing collection or nested property.
+            allProperties[property] = mapping.contextProperty
+                ? eventContextPropertyExpression(mapping.contextProperty)
+                : (mapping.property ?? property);
+            overrides.set(`All.Properties.${property}`, fromAllEvents ? '@fromAllEvents' : fromEvery ? '@fromEvery' : '@fromAll');
+        };
 
         const fromEvents = getFromEventMetadata(type);
         for (const fromEvent of fromEvents) {
@@ -363,11 +385,11 @@ export class ProjectionDefinitionCompiler {
             }
             const childrenFromList = getChildrenFromMetadata(prototype, property);
             if (childrenFromList.length > 0) {
-                childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList);
+                childrenByProperty[property] = buildChildrenEntry(type, property, childrenFromList, collectSharedMapping);
             }
             const propertyIsNested = isNested(prototype, property);
             if (propertyIsNested) {
-                nestedByProperty[property] = buildNestedEntry(type, property);
+                nestedByProperty[property] = buildNestedEntry(type, property, collectSharedMapping);
             }
             // A scalar root property clears back to no value when the given event is observed.
             // Nested single-object clearWith is handled by buildNestedEntry instead.
@@ -378,16 +400,7 @@ export class ProjectionDefinitionCompiler {
                     overrides.set(`${eventContractPath('From', toContractEventType(clearWith.eventType))}.Properties.${property}`, '@clearWith');
                 }
             }
-        }
-
-        const allProperties: Record<string, string> = {};
-        for (const property of properties) {
-            const fromEvery = getFromEveryMetadata(prototype, property) ?? getFromAllMetadata(prototype, property);
-            if (fromEvery) {
-                allProperties[property] = fromEvery.contextProperty
-                    ? eventContextPropertyExpression(fromEvery.contextProperty)
-                    : (fromEvery.property ?? property);
-            }
+            collectSharedMapping(prototype, property, true);
         }
 
         let from = Array.from(fromByEventType.values());
@@ -446,9 +459,10 @@ export class ProjectionDefinitionCompiler {
             FromEvery: [],
             All: {
                 Properties: allProperties,
-                IncludeChildren: false,
+                IncludeChildren: includeChildren,
                 AutoMap: AutoMap.Inherit
             },
+            ...(subscribesToAllEvents ? { SubscribesToAllEvents: true } : {}),
             RemovedWith: Array.from(removedWithByEventType.values()),
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
             LastUpdated: { Value: '' },
@@ -458,17 +472,10 @@ export class ProjectionDefinitionCompiler {
             Nested: nestedByProperty
         };
         const provenance = captureProjectionProvenance({ ...definition, From: preLoweringFrom, Join: preLoweringJoin }, true, overrides);
-        if (Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
+        if (!includeChildren && Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
             getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property))) {
             const index = provenance.findIndex(entry => entry.contractPath === 'All');
             if (index >= 0) provenance[index] = { contractPath: 'All', declaration: '@fromAll' };
-        }
-        for (const property of Object.keys(allProperties)) {
-            if (getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property)) {
-                const path = `All.Properties.${property}`;
-                const index = provenance.findIndex(entry => entry.contractPath === path);
-                if (index >= 0) provenance[index] = { contractPath: path, declaration: '@fromAll' };
-            }
         }
         if (variant) {
             provenance.push({ contractPath: 'Variant', declaration: '@variantOf' });
