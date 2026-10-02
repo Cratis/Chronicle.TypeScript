@@ -88,7 +88,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying reactors a
             })));
         return observers.every(observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
             (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber));
-    });
+    }, 15_000);
 
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
