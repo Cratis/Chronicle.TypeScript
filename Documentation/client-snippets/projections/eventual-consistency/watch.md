@@ -29,19 +29,22 @@ class EcWatchBookService {
     async createBookAndWatch(title: string, author: string): Promise<void> {
         const bookId = Guid.create().toString();
 
-        // Start watching before appending so the update is observed once the projection catches up
-        const watchBook = async () => {
-            for await (const changeset of this.store.readModels.watch(EcWatchBookInventory)) {
+        const watcher = this.store.readModels.createWatcher(EcWatchBookInventory);
+        try {
+            // Wait for the kernel's acknowledgment before appending to avoid missing the update.
+            await watcher.subscribed;
+            await this.store.eventLog.append(bookId, new EcWatchBookCreated(title, author));
+            for await (const changeset of watcher) {
                 if (changeset.key === bookId) {
                     console.log(`Book projection updated: ${changeset.readModel.title}`);
                     break;
                 }
             }
-        };
-        const watching = watchBook();
-
-        await this.store.eventLog.append(bookId, new EcWatchBookCreated(title, author));
-        await watching;
+        } finally {
+            watcher.dispose();
+        }
     }
 }
 ```
+
+`watchBookChanges()` keeps the lazy, pull-based async-iterable API: the stream starts on the first `next()`, with no client-side buffer or overflow limit. Use `createWatcher()` when you need to await subscription readiness before appending. Both methods propagate transport errors by default so callers can refresh and re-watch. Only `createWatcher()` supports resumption through `resume: true` or a registered `onResubscribed` callback. Its slow consumers get backpressure after acknowledgment unless they explicitly set `maxBuffered`; before each acknowledgment, its default 1,024-change limit can fail readiness rather than let backpressure hide the acknowledgment.

@@ -105,6 +105,7 @@ export class ReactorScenario {
             'getSnapshotsById', 'dehydrateSession', 'release', 'releaseMany']);
         const readModels = new Proxy({}, { get: (_, key) => {
             if (key === 'watch') return async function* () { unsupported('readModels.watch'); };
+            if (key === 'createWatcher') return () => unsupported('readModels.createWatcher');
             if (key === 'materialized') return unsupported('readModels.materialized');
             if (typeof key !== 'string' || !readModelMethods.has(key)) return undefined;
             return async () => unsupported(`readModels.${key}`);

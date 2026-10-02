@@ -3,15 +3,19 @@
 
 import type {
     AppendedEvent,
+    ReadModelChangeset as ContractReadModelChangeset,
     ReadModelObserverType
 } from '@cratis/chronicle.contracts';
 import {
-    ReadModelObserverType as ContractReadModelObserverType
+    ReadModelObserverType as ContractReadModelObserverType,
+    ReadModelChangeType as ContractReadModelChangeType
 } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
 import { JsonSerializer } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
+import type { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
+import { fromContractsGuid } from '../connection/Guid.js';
 import { ensureQuerySuccess } from '../connection/callResults.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
@@ -31,7 +35,11 @@ import { ReadModelSubjectResolver } from './ReadModelSubjectResolver.js';
 import { deserializeReadModel } from './deserializeReadModel.js';
 import type { ReadModelNamingPolicy } from './ReadModelNamingPolicy.js';
 import type { IReadModels } from './IReadModels.js';
+import type { IReadModelWatcher } from './IReadModelWatcher.js';
+import { ReadModelWatcher } from './ReadModelWatcher.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { ReadModelWatchOptions } from './ReadModelWatchOptions.js';
+import { ReadModelChangeType } from './ReadModelChangeType.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
 const unlimitedEventCount = BigInt('18446744073709551615');
@@ -52,6 +60,7 @@ interface ResolvedReadModel {
  */
 export class ReadModels implements IReadModels {
     readonly materialized: IMaterializedReadModels;
+    private readonly _watchCancellation = new AbortController();
 
     constructor(
         private readonly _eventStore: string,
@@ -60,7 +69,8 @@ export class ReadModels implements IReadModels {
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _defaultSinkTypeId: string,
         private readonly _isModelBoundProjectionRegistered?: (readModelType: Constructor) => boolean,
-        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy,
+        private readonly _lifecycle?: ConnectionLifecycle
     ) {
         this.materialized = new MaterializedReadModels(_eventStore, _namespace, _connection);
     }
@@ -185,16 +195,33 @@ export class ReadModels implements IReadModels {
                 continue;
             }
 
-            const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
-            const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
-                this.schemaHasComplianceMetadata(readModel.schema);
-            yield {
-                namespace: changeset.Namespace,
-                key: changeset.ModelKey,
-                readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
-                removed: changeset.Removed
-            };
+            yield await this.toChangeset(readModelType, readModel, changeset);
         }
+    }
+
+    /** @inheritdoc */
+    createWatcher<TReadModel>(readModelType: Constructor<TReadModel>, options?: ReadModelWatchOptions): IReadModelWatcher<TReadModel> {
+        const readModel = this.resolveReadModel(readModelType);
+        const signal = AbortSignal.any(options?.signal
+            ? [options.signal, this._watchCancellation.signal]
+            : [this._watchCancellation.signal]);
+        return new ReadModelWatcher(
+            streamSignal => this._connection.readModels.watch({
+                EventStore: this._eventStore,
+                Namespace: this._namespace,
+                ReadModelIdentifier: readModel.identifier,
+                EventSequenceId: readModel.eventSequenceId
+            }, { signal: streamSignal }),
+            changeset => this.toChangeset(readModelType, readModel, changeset),
+            signal,
+            this._lifecycle,
+            options
+        );
+    }
+
+    /** Stops all watchers created through createWatcher for this event store. */
+    dispose(): void {
+        this._watchCancellation.abort();
     }
 
     /** @inheritdoc */
@@ -353,6 +380,28 @@ export class ReadModels implements IReadModels {
 
     private isDocumentSubject(value: unknown): value is string {
         return typeof value === 'string' && value.length > 0;
+    }
+
+    private async toChangeset<TReadModel>(readModelType: Constructor<TReadModel>, readModel: ResolvedReadModel, changeset: ContractReadModelChangeset): Promise<ReadModelChangeset<TReadModel>> {
+        const instance = this.deserializeReadModel(readModelType, changeset.ReadModel);
+        const occurred = changeset.Occurred?.Value ? new Date(changeset.Occurred.Value) : undefined;
+        const requiresRelease = !changeset.Removed && readModel.observerType === ContractReadModelObserverType.Reducer &&
+            this.schemaHasComplianceMetadata(readModel.schema);
+        return {
+            namespace: changeset.Namespace,
+            key: changeset.ModelKey,
+            readModel: requiresRelease ? await this.release(readModelType, instance) : instance,
+            removed: changeset.Removed,
+            changeType: changeset.ChangeType === ContractReadModelChangeType.Added ? ReadModelChangeType.Added :
+                changeset.ChangeType === ContractReadModelChangeType.Removed ? ReadModelChangeType.Removed : ReadModelChangeType.Modified,
+            changeContext: {
+                eventStore: this._eventStore,
+                namespace: changeset.Namespace,
+                sequenceNumber: changeset.EventSequenceNumber,
+                correlationId: changeset.CorrelationId ? fromContractsGuid(changeset.CorrelationId).toString() : undefined,
+                occurred: occurred && !Number.isNaN(occurred.getTime()) ? occurred : undefined
+            }
+        };
     }
 
     private async releaseSnapshotInstances<TReadModel>(readModelType: Constructor<TReadModel>, snapshots: ReadModelSnapshot<TReadModel>[]): Promise<ReadModelSnapshot<TReadModel>[]> {

@@ -507,6 +507,9 @@ export class ChronicleClient implements IChronicleClient {
 
     private failConnection(error: Error): void {
         this._connectionFailure = error;
+        void this._lifecycle.failed(error, failure => {
+            this._logger.error('Failed lifecycle callback failed', { error: failure });
+        });
         this._keepAliveAbortController?.abort();
         this._connection.disconnect();
         if (this._watchdogHandle) {

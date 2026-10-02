@@ -175,16 +175,33 @@ describe('ReactorScenario live delivery', () => {
                 try {
                     for await (const _change of services.readModels.watch(Registered)) { /* Unsupported. */ }
                 } catch (error) { errors.push(error); }
+                try {
+                    await services.readModels.createWatcher(Registered).subscribed;
+                } catch (error) { errors.push(error); }
             }
         }
         const scenario = new ReactorScenario(ServiceRejection, options);
         let failure: unknown;
         await scenario.when.forEventSource('A').events(new Registered('first')).catch(error => { failure = error; });
-        errors.length.should.equal(10);
+        errors.length.should.equal(11);
         errors.every(error => error instanceof UnsupportedReactorOperation && String(error).includes('Use a kernel-backed test.')).should.be.true;
         // Swallowed rejections still fail the delivery with the first unsupported operation.
         (failure === errors[0]).should.be.true;
         scenario.results[0].completed.should.be.false;
+    });
+
+    it('should complete delivery if a reactor creates a watch without iterating it', async () => {
+        @reactor('uniterated-watch-reactor')
+        class UniteratedWatch {
+            registered(_event: Registered, _context: EventContext, services: ReactorServices) {
+                services.readModels.watch(Registered);
+                return new Skipped('produced');
+            }
+        }
+        const scenario = new ReactorScenario(UniteratedWatch, options);
+        await scenario.when.forEventSource('A').events(new Registered('first'));
+        scenario.results[0].completed.should.be.true;
+        scenario.shouldHaveProduced(Skipped, event => event.label === 'produced');
     });
 
     it('rejects behavior pattern queries through the default event store', async () => {

@@ -3,7 +3,9 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import type { IMaterializedReadModels } from './IMaterializedReadModels.js';
+import type { IReadModelWatcher } from './IReadModelWatcher.js';
 import type { ReadModelChangeset } from './ReadModelChangeset.js';
+import type { ReadModelWatchOptions } from './ReadModelWatchOptions.js';
 import type { ReadModelSnapshot } from './ReadModelSnapshot.js';
 
 /**
@@ -65,11 +67,24 @@ export interface IReadModels {
     getSnapshotsById<TReadModel>(readModelType: Constructor<TReadModel>, key: string): Promise<ReadModelSnapshot<TReadModel>[]>;
 
     /**
-     * Watches changes for a specific read model type.
+     * Watches changes for a specific read model type, opening the stream on the first next().
+     * Pulls changes only as the consumer requests them, without a client-side buffer or overflow limit.
      * @param readModelType - The read model type to observe.
-     * @returns An async iterable of read model changes.
+     * @returns An async iterable of read model changes. Transport failures reject iteration.
+     * @remarks Keeps its original return type so existing watch implementations and mocks can
+     * return plain async iterables. Use createWatcher for readiness and lifetime controls.
      */
     watch<TReadModel>(readModelType: Constructor<TReadModel>): AsyncIterable<ReadModelChangeset<TReadModel>>;
+
+    /**
+     * Starts a single-consumer watcher immediately, without requiring iteration for readiness.
+     * @param readModelType - The read model type to observe.
+     * @param options - Cancellation, opt-in resumption, and an optional overflow-failure limit.
+     * @returns A watcher with subscription readiness, resubscription callbacks, and explicit disposal.
+     * Transport failures reject iteration unless resume is true or an onResubscribed callback
+     * is registered. Resumed watches retain received changes but do not replay outage gaps.
+     */
+    createWatcher<TReadModel>(readModelType: Constructor<TReadModel>, options?: ReadModelWatchOptions): IReadModelWatcher<TReadModel>;
 
     /**
      * Dehydrates a read model session.
