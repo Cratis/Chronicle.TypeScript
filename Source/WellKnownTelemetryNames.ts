@@ -6,8 +6,8 @@ export const WellKnownTelemetryNames = {
     scope: 'Cratis.Chronicle.Client',
     /**
      * @deprecated Use scope. This historical scope is no longer emitted; the constant remains available.
-     * The revised timetable replaces the earlier "next major" plan: built-in legacy emission ends in an
-     * upcoming minor after ADR 0001's one-minor overlap. See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     * The minor-release naming cutoff replaces the earlier "next major" plan after ADR 0001's one-minor overlap.
+     * See https://github.com/Cratis/Chronicle.TypeScript/issues/171. Compatibility APIs have no removal deadline.
      */
     legacyScope: '@cratis/chronicle',
     attributes: {
@@ -29,8 +29,8 @@ export const WellKnownTelemetryNames = {
     },
     /**
      * @deprecated Use attributes. These constants remain available without a removal deadline.
-     * Replacing the earlier "next major" plan, built-in legacy attribute emission ends in an upcoming minor
-     * after ADR 0001's one-minor overlap, except the exact-string sequenceNumber attribute.
+     * Built-in instrumentation no longer emits these names, except the exact-string sequenceNumber attribute.
+     * This minor-release cutoff replaces the earlier "next major" plan after ADR 0001's one-minor overlap.
      * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
     legacyAttributes: {
@@ -48,8 +48,8 @@ export const WellKnownTelemetryNames = {
     },
     /**
      * @deprecated Use conventionSpans. These legacy constants remain available without a removal deadline.
-     * Replacing the earlier "next major" plan, built-in legacy span emission ends in an upcoming minor
-     * after ADR 0001's one-minor overlap. See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
+     * Built-in spans now use conventionSpans. This minor-release cutoff replaces the earlier "next major"
+     * plan after ADR 0001's one-minor overlap. See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
     spans: {
         append: 'chronicle.event_sequences.append',
@@ -65,6 +65,7 @@ export const WellKnownTelemetryNames = {
         getEventStores: 'chronicle.client.get_event_stores',
         getNamespaces: 'chronicle.event_store.get_namespaces'
     },
+    /** Canonical names used by built-in client spans. */
     conventionSpans: {
         append: 'cratis.chronicle.client.event_sequence.append',
         appendMany: 'cratis.chronicle.client.event_sequence.append_many',
@@ -90,8 +91,8 @@ export const WellKnownTelemetryNames = {
     },
     /**
      * @deprecated Use metrics (duration units are seconds). These constants remain available without a removal deadline.
-     * Replacing the earlier "next major" plan, built-in legacy metric emission ends in an upcoming minor
-     * after ADR 0001's one-minor overlap. ChronicleMetrics retains compatibility recording.
+     * Built-in instrumentation now uses canonical metrics; ChronicleMetrics retains compatibility recording.
+     * This minor-release cutoff replaces the earlier "next major" plan after ADR 0001's one-minor overlap.
      * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
     legacyMetrics: {

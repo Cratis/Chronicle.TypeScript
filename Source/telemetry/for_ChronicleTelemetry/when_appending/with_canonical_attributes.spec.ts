@@ -26,24 +26,23 @@ describe('when appending with a business correlation override', () => {
         await correlationIdManager.run(new CorrelationId('outer'), () => sequence.append('sensitive-id', new Recorded(), { correlationId: correlation }));
         span = telemetry.spans.getFinishedSpans()[0];
     });
-    it('should produce one client span with the unchanged operation name', () => {
+    it('should produce one client span with the convention operation name', () => {
         telemetry.spans.getFinishedSpans().should.have.lengthOf(1);
         span.kind.should.equal(SpanKind.CLIENT);
-        span.name.should.equal('chronicle.event_sequences.append');
+        span.name.should.equal('cratis.chronicle.client.event_sequence.append');
     });
     it('should use the versioned shared instrumentation scope', () => {
         span.instrumentationScope.name.should.equal('Cratis.Chronicle.Client');
         should.equal(span.instrumentationScope.version, clientVersion);
     });
-    it('should emit both registries on the same span', () => {
+    it('should emit canonical attributes with the exact-string sequence number exception', () => {
         span.attributes.should.include({
-            'cratis.event_store.name': 'store', 'chronicle.event_store': 'store',
-            'cratis.event_store.namespace': 'namespace', 'chronicle.namespace': 'namespace',
-            'cratis.event_sequence.id': 'event-log', 'chronicle.event_sequence_id': 'event-log',
-            'cratis.event_type.id': 'telemetry-recorded', 'chronicle.event_type_id': 'telemetry-recorded',
-            'cratis.event_type.generation': 1, 'chronicle.event_type_generation': 1,
-            'cratis.event_sequence.number': 42, 'chronicle.sequence_number': '42'
+            'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',
+            'cratis.event_sequence.id': 'event-log', 'cratis.event_type.id': 'telemetry-recorded',
+            'cratis.event_type.generation': 1, 'cratis.event_sequence.number': 42
         });
+        Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.deep.equal(['chronicle.sequence_number']);
+        span.attributes.should.have.property('chronicle.sequence_number', '42');
     });
     it('should scope the resolved correlation consistently for propagation', () => {
         should.equal(span.attributes['cratis.correlation_id'], correlation);

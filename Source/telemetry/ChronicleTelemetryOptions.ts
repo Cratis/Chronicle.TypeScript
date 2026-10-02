@@ -1,12 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-/** Per-client naming and privacy settings; instrumentation itself is always available. */
+/** Per-client privacy and compatibility settings; instrumentation itself is always available. */
 export interface ChronicleTelemetryOptions {
     /**
-     * Span naming convention. Defaults to legacy; both modes use the same scope and attribute families.
-     * Replacing the earlier "next major" plan, built-in legacy span emission ends in an upcoming
-     * minor after ADR 0001's one-minor overlap. Both values will remain accepted as no-ops, without a removal deadline.
+     * Retained naming selector. Both 'legacy' and 'convention' are accepted as no-ops;
+     * built-in instrumentation always uses conventionSpans, including when this option is absent.
+     * @deprecated No longer needed; built-in spans always use convention names. This option has no removal deadline.
+     * The minor-release naming cutoff replaces the earlier "next major" plan after ADR 0001's one-minor overlap.
      * See https://github.com/Cratis/Chronicle.TypeScript/issues/171.
      */
     spanNames?: 'legacy' | 'convention';

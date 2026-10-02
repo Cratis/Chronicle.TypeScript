@@ -6,22 +6,19 @@ import { SpanStatusCode, type Span, type AttributeValue } from '@opentelemetry/a
 import { WellKnownTelemetryNames as names } from '../WellKnownTelemetryNames.js';
 import type { ChronicleTelemetryOptions } from './ChronicleTelemetryOptions.js';
 
-/** Records a shared attribute and its legacy alias on the same span. */
-export function setTelemetryAttribute(span: Span, name: keyof typeof names.legacyAttributes, value: AttributeValue): void {
-    span.setAttribute(names.legacyAttributes[name], value);
-    if (name in names.attributes) {
-        span.setAttribute(names.attributes[name as keyof typeof names.attributes], value);
-    }
+/** Records a canonical shared or product-specific attribute. */
+export function setTelemetryAttribute(span: Span, name: keyof typeof names.attributes, value: AttributeValue): void {
+    span.setAttribute(names.attributes[name], value);
 }
 
-/** Preserves the legacy string; records the shared integer only when exactly representable. */
+/** Preserves the exact compatibility string; records the canonical integer only when exactly representable. */
 export function setSequenceNumber(span: Span, value: bigint): void {
     span.setAttribute(names.legacyAttributes.sequenceNumber, value.toString());
     const number = Number(value);
     if (Number.isSafeInteger(number)) span.setAttribute(names.attributes.sequenceNumber, number);
 }
 
-/** Applies the same privacy policy to both event source identifier names. */
+/** Records an event source identifier only under the client's explicit privacy policy. */
 export function setEventSourceId(span: Span, value: string | undefined, options?: ChronicleTelemetryOptions): void {
     try {
         const policy = options?.eventSourceId;

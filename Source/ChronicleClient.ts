@@ -19,7 +19,8 @@ import { EventStoreName } from './EventStoreName.js';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 import { IChronicleClient } from './IChronicleClient.js';
 import { IEventStore } from './IEventStore.js';
-import { ChronicleMetrics } from './Metrics.js';
+import { ChronicleConventionMetrics } from './Metrics.js';
+import { WellKnownTelemetryNames as names } from './WellKnownTelemetryNames.js';
 import { observeOperation } from './telemetry/observeOperation.js';
 import { runInBackgroundContext } from './telemetry/runInBackgroundContext.js';
 import { TypeDiscoverer } from './types/index.js';
@@ -123,7 +124,7 @@ export class ChronicleClient implements IChronicleClient {
                 ? new EventStoreNamespaceName(namespace)
                 : namespace;
 
-        return observeOperation('getEventStore', this.options.telemetry, async span => {
+        return observeOperation('getEventStore', async span => {
             setTelemetryAttribute(span, 'eventStore', storeName.value);
             setTelemetryAttribute(span, 'namespace', namespaceName.value);
             try {
@@ -158,9 +159,9 @@ export class ChronicleClient implements IChronicleClient {
                     }
                 });
 
-                ChronicleMetrics.eventStoreRetrievals.add(1, {
-                    'chronicle.event_store': storeName.value,
-                    'chronicle.namespace': namespaceName.value
+                ChronicleConventionMetrics.eventStoreRetrievals.add(1, {
+                    [names.attributes.eventStore]: storeName.value,
+                    [names.attributes.namespace]: namespaceName.value
                 });
                 span.setStatus({ code: SpanStatusCode.OK });
                 return store;
@@ -180,7 +181,7 @@ export class ChronicleClient implements IChronicleClient {
 
     /** @inheritdoc */
     async getEventStores(): Promise<EventStoreName[]> {
-        return observeOperation('getEventStores', this.options.telemetry, async span => {
+        return observeOperation('getEventStores', async span => {
             try {
                 const response = await this.withReconnect('get_event_stores', async () => {
                     await this.ensureConnected();

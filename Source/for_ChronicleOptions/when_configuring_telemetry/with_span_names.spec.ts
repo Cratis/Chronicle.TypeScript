@@ -6,27 +6,27 @@ import { ChronicleOptions } from '../../ChronicleOptions.js';
 import type { ChronicleTelemetryOptions } from '../../telemetry/ChronicleTelemetryOptions.js';
 
 chai.should();
-
-for (const spanNames of ['unknown', '', null, false, 0, {}, [], ['legacy']]) {
-    describe(`when configuring unsupported span names ${JSON.stringify(spanNames)}`, () => {
-        const telemetry = { spanNames } as unknown as ChronicleTelemetryOptions;
-        it('should reject the development options at construction', () => {
-            (() => ChronicleOptions.development({ telemetry })).should.throw(TypeError, 'telemetry.spanNames must be legacy or convention.');
+const factories = {
+    development: (telemetry: ChronicleTelemetryOptions) => ChronicleOptions.development({ telemetry }),
+    connectionString: (telemetry: ChronicleTelemetryOptions) => ChronicleOptions.fromConnectionString('chronicle://localhost:35000', { telemetry })
+};
+for (const [name, factory] of Object.entries(factories)) {
+    describe(`when configuring compatibility span names through ${name}`, () => {
+        for (const spanNames of ['legacy', 'convention'] as const) {
+            it(`should accept ${spanNames} without throwing or changing privacy`, () => {
+                factory({ spanNames, eventSourceId: { mode: 'raw' } }).telemetry!.should.deep.equal({
+                    spanNames, eventSourceId: { mode: 'raw' }
+                });
+            });
+        }
+        it('should accept privacy settings without a span name option', () => {
+            factory({ eventSourceId: { mode: 'raw' } }).telemetry!.eventSourceId!.should.deep.equal({ mode: 'raw' });
         });
-        it('should reject the connection string options at construction', () => {
-            (() => ChronicleOptions.fromConnectionString('chronicle://localhost:35000', { telemetry })).should.throw(TypeError, 'telemetry.spanNames must be legacy or convention.');
-        });
-    });
-}
-
-for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
-    describe(`when configuring supported span names ${spanNames ?? 'by default'}`, () => {
-        it('should preserve the choice with the event source identifier policy', () => {
-            const telemetry = { spanNames, eventSourceId: { mode: 'raw' as const } };
-            const development = ChronicleOptions.development({ telemetry });
-            const connection = ChronicleOptions.fromConnectionString('chronicle://localhost:35000', { telemetry });
-            development.telemetry!.should.deep.equal(telemetry);
-            connection.telemetry!.should.deep.equal(telemetry);
-        });
+        for (const spanNames of ['invalid', '', null, 42, {}]) {
+            it(`should reject the invalid JavaScript selector ${JSON.stringify(spanNames)}`, () => {
+                const telemetry = { spanNames } as unknown as ChronicleTelemetryOptions;
+                (() => factory(telemetry)).should.throw(TypeError, 'telemetry.spanNames must be legacy or convention.');
+            });
+        }
     });
 }

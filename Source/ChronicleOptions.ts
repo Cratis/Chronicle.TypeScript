@@ -41,7 +41,7 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
-    /** Per-client telemetry naming and privacy settings. Defaults to legacy span names and omitted event source identifiers. */
+    /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
     readonly telemetry?: ChronicleTelemetryOptions;
 
     /** Application diagnostic sink. Absent uses the OpenTelemetry diag compatibility adapter. */

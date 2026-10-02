@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-/** Generates the public reference from the same constants used by instrumentation. */
+/** Generates canonical built-in names and retained compatibility mappings from the public constants. */
 export function telemetryReference(names) {
     const table = (headers, rows) => [
         `| ${headers.join(' | ')} |`, `| ${headers.map(() => '---').join(' | ')} |`,
@@ -12,13 +12,12 @@ export function telemetryReference(names) {
     ].join('\n');
     const quote = value => value ? `\`${value}\`` : '—';
     return [
-        '### Span names', '', table(['Operation', 'Legacy name (default)', 'Convention name (opt-in)'],
-            Object.entries(names.spans).map(([key, value]) => [quote(key), quote(value), quote(names.conventionSpans[key])])), '',
-        '### Attribute names', '', table(['Concept', 'Legacy name', 'Convention name'], [
-            ...Object.entries(names.attributes).map(([key, value]) => [quote(key), quote(names.legacyAttributes[key]), quote(value)]),
-            ...Object.entries(names.legacyAttributes).filter(([key]) => !(key in names.attributes)).map(([key, value]) => [quote(key), quote(value), '—'])
-        ]), '',
-        '### Metric names', '', table(['Instrument', 'Legacy name', 'Convention name', 'Legacy / convention unit'],
+        '### Span names', '', table(['Operation', 'Compatibility constant (not emitted)', 'Built-in name'],
+            Object.entries(names.conventionSpans).map(([key, value]) => [quote(key), quote(names.spans[key]), quote(value)])), '',
+        '### Attribute names', '', table(['Concept', 'Compatibility name', 'Canonical name'],
+            Object.entries(names.attributes).map(([key, value]) => [quote(key), quote(names.legacyAttributes[key]), quote(value)])), '',
+        `Only ${quote(names.legacyAttributes.sequenceNumber)} remains emitted by built-in spans, as an exact string. Other compatibility attribute constants remain available but are not emitted.`, '',
+        '### Metric names', '', table(['Instrument', 'Compatibility instrument (ChronicleMetrics only)', 'Built-in instrument', 'Compatibility / canonical unit'],
             Object.entries(names.metrics).map(([key, value]) => [quote(key), quote(names.legacyMetrics[key]), quote(value),
                 key.includes('Duration') ? '`ms` / `s`' : quote(({ eventsAppended: '{event}', constraintViolations: '{violation}', appendErrors: '{error}' })[key] ?? '{operation}')]))
     ].join('\n');

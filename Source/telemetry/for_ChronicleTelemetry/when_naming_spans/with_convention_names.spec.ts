@@ -6,6 +6,7 @@ import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { ChronicleClient } from '../../../ChronicleClient.js';
 import type { IEventSequence } from '../../../eventSequences/IEventSequence.js';
+import type { ChronicleTelemetryOptions } from '../../ChronicleTelemetryOptions.js';
 import { EventSequenceId } from '../../../eventSequences/EventSequenceId.js';
 import { EventSequenceNumber } from '../../../eventSequences/EventSequenceNumber.js';
 import { clientVersion } from '../../../connection/clientVersion.js';
@@ -30,14 +31,14 @@ const operations = {
 };
 
 for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
-    const expected = spanNames === 'convention' ? conventionSpans : legacySpans;
+    const options: ChronicleTelemetryOptions | undefined = spanNames === undefined ? undefined : { spanNames };
     for (const sequenceId of [EventSequenceId.eventLog, new EventSequenceId('dynamic')]) {
         for (const operation of Object.keys(operations) as (keyof typeof operations)[]) {
-            describe(`when naming ${operation} on ${sequenceId.value} with ${spanNames ?? 'default'} names`, () => {
+            describe(`when naming ${operation} on ${sequenceId.value} with ${spanNames ?? 'default'} configuration`, () => {
                 let instance: ChronicleClient;
                 let span: ReadableSpan;
                 beforeEach(async () => {
-                    instance = client(spanNames === undefined ? undefined : { spanNames });
+                    instance = client(options);
                     const store = await instance.getEventStore('store', 'namespace');
                     const sequence = sequenceId === EventSequenceId.eventLog ? store.eventLog : store.getEventSequence(sequenceId);
                     telemetry.spans.reset();
@@ -45,32 +46,35 @@ for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
                     span = telemetry.spans.getFinishedSpans()[0];
                 });
                 afterEach(() => instance.dispose());
-                it('should emit exactly one client span with the selected name', () => {
+                it('should emit exactly one convention client span and no legacy span', () => {
                     telemetry.spans.getFinishedSpans().should.have.lengthOf(1);
-                    span.name.should.equal(expected[operation]);
+                    span.name.should.equal(conventionSpans[operation]).and.not.equal(legacySpans[operation]);
                     span.kind.should.equal(SpanKind.CLIENT);
                 });
                 it('should retain the versioned shared instrumentation scope', () => {
                     span.instrumentationScope.name.should.equal('Cratis.Chronicle.Client');
                     should.equal(span.instrumentationScope.version, clientVersion);
                 });
-                it('should retain both attribute families', () => {
+                it('should emit canonical attributes with only the exact-string sequence number exception', () => {
                     span.attributes.should.include({
-                        'chronicle.event_store': 'store', 'cratis.event_store.name': 'store',
-                        'chronicle.namespace': 'namespace', 'cratis.event_store.namespace': 'namespace',
-                        'chronicle.event_sequence_id': sequenceId.value, 'cratis.event_sequence.id': sequenceId.value
+                        'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',
+                        'cratis.event_sequence.id': sequenceId.value
                     });
+                    const hasSequenceNumber = ['append', 'getTailSequenceNumber', 'getFromSequenceNumber', 'redact'].includes(operation);
+                    Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.deep.equal(
+                        hasSequenceNumber ? ['chronicle.sequence_number'] : []);
+                    if (hasSequenceNumber) span.attributes.should.have.property('chronicle.sequence_number', '42');
                 });
             });
         }
     }
 
     for (const operation of ['getEventStore', 'getEventStores', 'getNamespaces'] as const) {
-        describe(`when naming ${operation} with ${spanNames ?? 'default'} names`, () => {
+        describe(`when naming ${operation} with ${spanNames ?? 'default'} configuration`, () => {
             let instance: ChronicleClient;
             let span: ReadableSpan;
             beforeEach(async () => {
-                instance = client(spanNames === undefined ? undefined : { spanNames });
+                instance = client(options);
                 if (operation === 'getNamespaces') {
                     const store = await instance.getEventStore('store', 'namespace');
                     telemetry.spans.reset();
@@ -83,56 +87,57 @@ for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
                 span = telemetry.spans.getFinishedSpans()[0];
             });
             afterEach(() => instance.dispose());
-            it('should emit exactly one client span with the selected name and shared scope', () => {
+            it('should emit exactly one convention client span and no legacy span', () => {
                 telemetry.spans.getFinishedSpans().should.have.lengthOf(1);
-                span.name.should.equal(expected[operation]);
+                span.name.should.equal(conventionSpans[operation]).and.not.equal(legacySpans[operation]);
                 span.kind.should.equal(SpanKind.CLIENT);
                 span.instrumentationScope.name.should.equal('Cratis.Chronicle.Client');
                 should.equal(span.instrumentationScope.version, clientVersion);
             });
+            it('should not emit legacy attributes', () => {
+                Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.be.empty;
+            });
             if (operation !== 'getEventStores') {
-                it('should retain both event store attributes', () => {
-                    span.attributes.should.include({ 'chronicle.event_store': 'store', 'cratis.event_store.name': 'store' });
+                it('should retain the canonical event store attribute', () => {
+                    span.attributes.should.include({ 'cratis.event_store.name': 'store' });
                 });
             }
         });
     }
 }
 
-describe('when interleaving two clients with different span naming modes', () => {
+describe('when legacy and convention configurations coexist in one process', () => {
     let legacy: ChronicleClient;
     let convention: ChronicleClient;
-    let spans: ReadableSpan[];
     beforeEach(async () => {
-        legacy = client({ spanNames: 'legacy' });
+        legacy = client({ spanNames: 'legacy', eventSourceId: { mode: 'raw' } });
         convention = client({ spanNames: 'convention' });
         const [legacyStore, conventionStore] = await Promise.all([
-            legacy.getEventStore('legacy-store'), convention.getEventStore('convention-store')
+            legacy.getEventStore('legacy-client'), convention.getEventStore('convention-client')
         ]);
-        await Promise.all([convention.getEventStores(), legacy.getEventStores()]);
-        await Promise.all([legacyStore.getNamespaces(), conventionStore.getNamespaces()]);
-        await conventionStore.eventLog.append('source', new Recorded());
-        await legacyStore.eventLog.append('source', new Recorded());
-        const id = new EventSequenceId('dynamic');
-        await legacyStore.getEventSequence(id).append('source', new Recorded());
-        await conventionStore.getEventSequence(id).append('source', new Recorded());
-        await legacy.getEventStore('legacy-store');
-        await convention.getEventStore('convention-store');
-        spans = telemetry.spans.getFinishedSpans();
+        telemetry.spans.reset();
+        await Promise.all([
+            legacyStore.eventLog.append('legacy-source', new Recorded()),
+            conventionStore.eventLog.append('convention-source', new Recorded())
+        ]);
     });
     afterEach(() => { legacy.dispose(); convention.dispose(); });
-    it('should keep each client and its cached stores in its own mode', () => {
-        spans.should.have.lengthOf(12);
-        spans.filter(span => span.attributes['cratis.event_store.name'] === 'legacy-store').map(span => span.name).should.deep.equal([
-            legacySpans.getEventStore, legacySpans.getNamespaces, legacySpans.append, legacySpans.append, legacySpans.getEventStore
+    it('should emit one canonical span per operation regardless of the retained selector', () => {
+        telemetry.spans.getFinishedSpans().map(span => span.name).should.deep.equal([
+            conventionSpans.append, conventionSpans.append
         ]);
-        spans.filter(span => span.attributes['cratis.event_store.name'] === 'convention-store').map(span => span.name).should.deep.equal([
-            conventionSpans.getEventStore, conventionSpans.getNamespaces, conventionSpans.append, conventionSpans.append, conventionSpans.getEventStore
-        ]);
-        spans.map(span => span.name).should.include(legacySpans.getEventStores).and.include(conventionSpans.getEventStores);
     });
-    it('should use the same tracer scope in both modes', () => {
-        new Set(spans.map(span => `${span.instrumentationScope.name}/${span.instrumentationScope.version}`)).should.deep.equal(
-            new Set([`Cratis.Chronicle.Client/${clientVersion}`]));
+    it('should keep privacy local to each client', () => {
+        const spans = telemetry.spans.getFinishedSpans();
+        spans.find(span => span.attributes['cratis.event_store.name'] === 'legacy-client')!
+            .attributes.should.have.property('cratis.event_source.id', 'legacy-source');
+        spans.find(span => span.attributes['cratis.event_store.name'] === 'convention-client')!
+            .attributes.should.not.have.property('cratis.event_source.id');
+    });
+    it('should not restore legacy metric instruments for either client', async () => {
+        const scopes = (await telemetry.reader.collect()).resourceMetrics.scopeMetrics;
+        scopes.should.have.lengthOf(1);
+        scopes[0].metrics.should.not.be.empty;
+        scopes[0].metrics.filter(metric => metric.descriptor.name.startsWith('chronicle.')).should.be.empty;
     });
 });
