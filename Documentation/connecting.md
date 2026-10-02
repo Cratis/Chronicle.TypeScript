@@ -47,7 +47,8 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
-| `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
+| `telemetry` | Event source identifiers omitted; legacy span names | Per-client naming and identifier privacy; see [Observability](./observability.md#privacy-options). |
+| `telemetry.spanNames` | `'legacy'` | Optional `'legacy'` or `'convention'` span names for this client and its event stores and sequences; invalid values throw at construction. See [Migrating to the convention names](./observability.md#migrating-to-the-convention-names). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
 
 `ChronicleOptions.development(options)` takes the same second argument.
@@ -108,7 +109,7 @@ When the kernel rejects a cached token as unauthenticated, for example after a k
 
 Supply `ChronicleOptions.logger` to send structured diagnostics to your application logger. Records include error types, not exception messages or stacks; see the [logging contract](./observability.md#application-diagnostics).
 
-Without a custom logger, the client retains its OpenTelemetry `diag` adapter during the minor-release overlap. It discards messages until you register a diagnostics logger. Existing configuration still works:
+Without a custom logger, the client uses its OpenTelemetry `diag` adapter; this default stays after the naming migration. It discards messages until you register a diagnostics logger. Existing configuration still works:
 
 ```typescript
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';

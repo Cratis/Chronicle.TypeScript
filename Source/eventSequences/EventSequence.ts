@@ -80,7 +80,7 @@ export class EventSequence implements IEventSequence {
             'chronicle.event_type_id': eventType.id.value
         };
 
-        return observeOperation(names.spans.append, async span => {
+        return observeOperation('append', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setEventSourceId(span, eventSourceId, this._telemetry);
             setTelemetryAttribute(span, 'eventTypeId', eventType.id.value);
@@ -183,7 +183,7 @@ export class EventSequence implements IEventSequence {
             'chronicle.events_count': eventsForEventSourceIds.length
         };
 
-        return observeOperation(names.spans.appendMany, async span => {
+        return observeOperation('appendMany', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             if (distinctEventSourceIds.length === 1) {
                 setEventSourceId(span, distinctEventSourceIds[0], this._telemetry);
@@ -299,7 +299,7 @@ export class EventSequence implements IEventSequence {
         eventStreamId?: string,
         filterEventTypes?: Constructor[]
     ): Promise<EventSequenceNumber> {
-        return observeOperation(names.spans.getTailSequenceNumber, async span => {
+        return observeOperation('getTailSequenceNumber', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setEventSourceId(span, eventSourceId, this._telemetry);
             try {
@@ -339,7 +339,7 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async hasEventsFor(eventSourceId: string): Promise<boolean> {
-        return observeOperation(names.spans.hasEventsFor, async span => {
+        return observeOperation('hasEventsFor', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setEventSourceId(span, eventSourceId, this._telemetry);
             try {
@@ -371,7 +371,7 @@ export class EventSequence implements IEventSequence {
         eventStreamId?: string,
         eventSourceType?: string
     ): Promise<AppendedEvent[]> {
-        return observeOperation(names.spans.getForEventSourceIdAndEventTypes, async span => {
+        return observeOperation('getForEventSourceIdAndEventTypes', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setEventSourceId(span, eventSourceId, this._telemetry);
             try {
@@ -406,7 +406,7 @@ export class EventSequence implements IEventSequence {
         eventSourceId?: string,
         filterEventTypes?: Constructor[]
     ): Promise<AppendedEvent[]> {
-        return observeOperation(names.spans.getFromSequenceNumber, async span => {
+        return observeOperation('getFromSequenceNumber', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setSequenceNumber(span, sequenceNumber.value);
             setEventSourceId(span, eventSourceId, this._telemetry);
@@ -438,7 +438,7 @@ export class EventSequence implements IEventSequence {
         const causationChain = causationManager.getCurrentChain();
         const identity = identityProvider.getCurrent();
 
-        return observeOperation(names.spans.redact, async span => {
+        return observeOperation('redact', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setSequenceNumber(span, sequenceNumber.value);
             try {
@@ -472,7 +472,7 @@ export class EventSequence implements IEventSequence {
         const identity = identityProvider.getCurrent();
         const wireEventTypeIds = (eventTypes ?? []).map(constructor => getEventTypeFor(constructor as unknown as Function).id.value);
 
-        return observeOperation(names.spans.redactForEventSource, async span => {
+        return observeOperation('redactForEventSource', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setEventSourceId(span, eventSourceId, this._telemetry);
             try {
@@ -518,7 +518,7 @@ export class EventSequence implements IEventSequence {
 
     /** @inheritdoc */
     async completeStream(eventStreamType: string, eventStreamId: string): Promise<CompleteStreamResult> {
-        return observeOperation(names.spans.completeStream, async span => {
+        return observeOperation('completeStream', this._telemetry, async span => {
             this.setSequenceAttributes(span);
             setTelemetryAttribute(span, 'eventStreamType', eventStreamType);
             setTelemetryAttribute(span, 'eventStreamId', eventStreamId);
