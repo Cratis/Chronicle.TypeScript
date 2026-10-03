@@ -4,12 +4,12 @@
   "oracle": "eventScenario",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.26.2",
-    "descriptorSha256": "4b867c47b2e4d125306bb3cb062b106fa19d7a500accb5650fc1ac709e97596f"
+    "version": "19.30.0",
+    "descriptorSha256": "f94f279c5667503f37099708e530a29d92b698d2bd4caee8aaa534cbb69fcead"
   },
   "constraintDescriptorSha256": "6c5ec2367fdfbe95fd9f09c05fcf40645dd43db5c98a3d616443845828d3e253",
   "definitionSource": "Explicit unscoped single-property definitions installed and asserted by FieldConstraintOracle against Cratis.Chronicle.Testing 19.26.2; literal JSON sent directly to the packaged append service without .NET client normalization.",

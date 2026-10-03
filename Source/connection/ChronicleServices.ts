@@ -5,6 +5,7 @@ import type {
     ConstraintsClient,
     EventSeedingClient,
     EventSequencesClient,
+    EventSourcesClient,
     EventStoresClient,
     EventTypesClient,
     ExternalServicesClient,
@@ -37,6 +38,7 @@ export interface ChronicleServices {
     identities: IdentitiesClient;
     eventSequences: EventSequencesClient;
     eventTypes: EventTypesClient;
+    eventSources: EventSourcesClient;
     constraints: ConstraintsClient;
     observers: ObserversClient;
     eventStoreSubscriptions: EventStoreSubscriptionsClient;

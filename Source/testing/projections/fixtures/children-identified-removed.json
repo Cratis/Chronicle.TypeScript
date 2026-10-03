@@ -3,11 +3,11 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.26.2",
+    "version": "19.30.0",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
   "definitionSource": "Shape emitted by the TypeScript ProjectionDefinitionCompiler for a fluent children(m => m.lines, c => c.identifiedBy(l => l.lineId).from(ItemAdded/ItemRenamed, f => f.usingKey(e => e.itemId)).removedWith(ItemRemoved, r => r.usingKey(e => e.itemId))) (child item schema given explicitly); verified by kernel conversion and execution.",
@@ -297,7 +297,7 @@
       "sequenceNumber": "1",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {
@@ -332,7 +332,7 @@
       "sequenceNumber": "2",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {
@@ -367,7 +367,7 @@
       "sequenceNumber": "3",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {
@@ -394,7 +394,7 @@
       "sequenceNumber": "4",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {
@@ -421,7 +421,7 @@
       "sequenceNumber": "5",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {
@@ -456,7 +456,7 @@
       "sequenceNumber": "6",
       "engineState": {
         "cart-1": {
-          "__initialized": true,
+          "__initialized": false,
           "id": "cart-1",
           "lines": [
             {

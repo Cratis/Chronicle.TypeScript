@@ -47,6 +47,8 @@ import { causationManager, CausationType } from '../auditing/index.js';
 import { toContractsGuid } from '../connection/Guid.js';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
+import type { IEventSources } from '../eventSources/IEventSources.js';
+import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 
 /**
@@ -64,13 +66,15 @@ export class EventSequence implements IEventSequence {
         private readonly _connection: ChronicleConnection,
         private readonly _unitOfWorkManager: IUnitOfWorkManager,
         private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
-        private readonly _telemetry?: ChronicleTelemetryOptions
+        private readonly _telemetry?: ChronicleTelemetryOptions,
+        private readonly _eventSources?: IEventSources
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
 
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
+        const routing = resolveSingleRouting(this._eventSources, options);
         const { eventType, correlationId, content, tags, causationChain, identity, subject } = prepareSingleAppend(event, options);
 
         const sequenceMetricAttributes = {
@@ -88,14 +92,17 @@ export class EventSequence implements IEventSequence {
             if (options?.sourceType) span.setAttribute(names.attributes.eventSourceType, options.sourceType);
             const startTime = performance.now();
             try {
+                const concurrencyScope = options?.concurrencyScope ?? (routing
+                    ? await deriveConcurrencyScope(routing, eventSourceId, options?.streamId, this.tailReader)
+                    : undefined);
                 const response = await this._connection.eventSequences.append({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     CorrelationId: toContractsGuid(correlationId),
-                    EventSourceType: options?.sourceType,
+                    EventSourceType: routing?.sourceType ?? options?.sourceType,
                     EventSourceId: eventSourceId,
-                    EventStreamType: options?.streamType,
+                    EventStreamType: routing?.streamType ?? options?.streamType,
                     EventStreamId: options?.streamId,
                     EventType: {
                         Id: eventType.id.value,
@@ -109,7 +116,8 @@ export class EventSequence implements IEventSequence {
                         Properties: { ...c.properties }
                     })),
                     CausedBy: toContractsCausedBy(identity),
-                    ConcurrencyScope: this.toContractConcurrencyScope(options?.concurrencyScope),
+                    ConcurrencyScope: this.toContractConcurrencyScope(concurrencyScope),
+                    EventSource: routing?.eventSource,
                     Tags: tags,
                     Occurred: options?.occurred === undefined ? undefined : { Value: options.occurred.toISOString() },
                     Subject: subject ?? eventSourceId
@@ -159,9 +167,13 @@ export class EventSequence implements IEventSequence {
         eventsOrOptions?: object[] | AppendOptions,
         options?: AppendOptions
     ): Promise<AppendResult[]> {
-        const { eventsForEventSourceIds, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend } =
+        const { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend } =
             prepareBatchAppend(eventSourceIdOrEvents, eventsOrOptions, options);
 
+        const wireEvents: Array<(typeof eventsToAppend)[number] & { EventSource?: string }> = eventsToAppend;
+        const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
+        const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
 
         const batchMetricAttributes = {
@@ -178,12 +190,24 @@ export class EventSequence implements IEventSequence {
             setTelemetryAttribute(span, 'eventCount', eventsForEventSourceIds.length);
             const startTime = performance.now();
             try {
+                routings.forEach((routing, index) => {
+                    if (!routing) return;
+                    wireEvents[index] = {
+                        ...wireEvents[index],
+                        EventSourceType: routing.sourceType,
+                        EventStreamType: routing.streamType ?? wireEvents[index].EventStreamType,
+                        EventSource: routing.eventSource
+                    };
+                });
+                for (const [id, { routing, streamId }] of derivedGuards) {
+                    concurrencyScopes.set(id, await deriveConcurrencyScope(routing, id, streamId, this.tailReader));
+                }
                 const response = await this._connection.eventSequences.appendManyForEventSources({
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
                     CorrelationId: toContractsGuid(correlationId),
-                    Events: eventsToAppend,
+                    Events: wireEvents,
                     Causation: batchCausationChain.map(c => ({
                         Occurred: { Value: c.occurred.toISOString() },
                         Type: c.type.name,
@@ -597,6 +621,9 @@ export class EventSequence implements IEventSequence {
             callerSignal?.removeEventListener('abort', forwardAbort);
         }
     }
+
+    private readonly tailReader = (source?: string, sourceType?: string, streamType?: string, streamId?: string) =>
+        this.getTailSequenceNumber(source, sourceType, streamType, streamId);
 
     private toContractConcurrencyScope(scope?: ConcurrencyScope) {
         return {

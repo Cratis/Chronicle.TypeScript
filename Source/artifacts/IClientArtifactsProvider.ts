@@ -36,4 +36,7 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered global read model variant handler constructors. */
     readonly globalForHandlers: Constructor[];
+
+    /** Gets discovered event source definition constructors. Optional so existing providers keep working. */
+    readonly eventSources?: Constructor[];
 }

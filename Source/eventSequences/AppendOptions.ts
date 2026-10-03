@@ -3,6 +3,7 @@
 
 import { Guid } from '@cratis/fundamentals';
 import type { Tag } from '../events/Tag.js';
+import type { Constructor } from '@cratis/fundamentals';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
 
 /**
@@ -47,4 +48,17 @@ export interface AppendOptions {
      * The kernel requires at least one event in a batch, so scope-only batches are not supported.
      */
     concurrencyScopes?: Record<string, ConcurrencyScope>;
+
+    /**
+     * Routes the append through a registered event source definition: the class decorated with `@eventSource`, or its name.
+     * Sets the event source type and the wire `EventSource` key. Explicit `sourceType`/`streamType` values must not contradict it.
+     * When no `concurrencyScope` is supplied and the definition declares concurrency dimensions, the scope is derived from them.
+     */
+    eventSource?: Constructor | string;
+
+    /**
+     * The name of a stream declared by {@link eventSource}. Becomes the event stream type. Requires `eventSource`.
+     * Use `streamId` for the identifier within the stream.
+     */
+    eventStream?: string;
 }

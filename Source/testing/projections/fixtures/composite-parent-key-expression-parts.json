@@ -3,11 +3,11 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.26.2",
+    "version": "19.30.0",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
   "definitionSource": "TypeScript ProjectionBuilderFor usingParentCompositeKey with the v19.26.2 .NET set expressions, under a root using the same composite key; bound by when_matching_kernel_fixtures.spec.ts. Context, event source id and constant parts select the child's parent only through the kernel's unanchored IsConstantExpression shortcut: the $value part bypasses parent-event lookup. This is not general composite-parent support (Cratis/Chronicle#551); composite identifiers remain outside ReadModelScenario's supported subset.",

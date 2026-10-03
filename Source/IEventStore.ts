@@ -6,6 +6,7 @@ import { IEventSequence } from './eventSequences/IEventSequence.js';
 import { EventSequenceId } from './eventSequences/EventSequenceId.js';
 import { EventStoreName } from './EventStoreName.js';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
+import type { IEventSources } from './eventSources/IEventSources.js';
 import { IEventTypes } from './events/IEventTypes.js';
 import { IConstraints } from './events/constraints/IConstraints.js';
 import { IProjections } from './projections/IProjections.js';
@@ -37,6 +38,13 @@ export interface IEventStore {
 
     /** The primary event log sequence for this event store. */
     readonly eventLog: IEventLog;
+
+    /**
+     * The event source definitions for this event store.
+     * Optional so custom {@link IEventStore} implementations written before event sources existed keep compiling;
+     * the built-in `EventStore` always provides it.
+     */
+    readonly eventSources?: IEventSources;
 
     /** The event types manager for this event store. */
     readonly eventTypes: IEventTypes;

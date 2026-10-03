@@ -11,6 +11,7 @@ import {
     ConstraintsDefinition,
     EventSeedingDefinition,
     EventSequencesDefinition,
+    EventSourcesDefinition,
     EventStoresDefinition,
     EventTypesDefinition,
     ExternalServicesDefinition,
@@ -168,6 +169,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.eventSequences;
     }
 
+    get eventSources() {
+        return this._services.eventSources;
+    }
+
     get eventTypes() {
         return this._services.eventTypes;
     }
@@ -311,6 +316,7 @@ export class ChronicleConnection implements ChronicleServices {
             identities: factory.create(IdentitiesDefinition, this._channel),
             eventSequences: eventSequenceFactory.create(EventSequencesDefinition, this._channel),
             eventTypes: factory.create(EventTypesDefinition, this._channel),
+            eventSources: factory.create(EventSourcesDefinition, this._channel),
             constraints: factory.create(ConstraintsDefinition, this._channel),
             observers: factory.create(ObserversDefinition, this._channel),
             eventStoreSubscriptions: factory.create(EventStoreSubscriptionsDefinition, this._channel),

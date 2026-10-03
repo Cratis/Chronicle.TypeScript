@@ -31,6 +31,12 @@ export interface EventContext {
     /** The stream identifier returned by the kernel. */
     readonly eventStreamId?: string;
 
+    /**
+     * The registered event source definition the event was appended through.
+     * Undefined for events appended without a definition, including events stored before event sources existed.
+     */
+    readonly eventSource?: string;
+
     /** The compliance subject returned by the kernel. */
     readonly subject?: string;
 
