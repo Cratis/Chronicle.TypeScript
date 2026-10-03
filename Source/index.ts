@@ -3,6 +3,7 @@
 
 import * as events from './events/index.js';
 import * as eventSequences from './eventSequences/index.js';
+import * as eventSources from './eventSources/index.js';
 import * as reactors from './reactors/index.js';
 import * as reducers from './reducers/index.js';
 import * as seeding from './seeding/index.js';
@@ -48,6 +49,7 @@ export { DiagChronicleLogger } from './logging/DiagChronicleLogger.js';
 
 export * from './events/index.js';
 export * from './eventSequences/index.js';
+export * from './eventSources/index.js';
 export * from './reactors/index.js';
 export * from './reducers/index.js';
 export * from './seeding/index.js';
@@ -74,6 +76,7 @@ export * from './confidentiality/index.js';
 export {
     events,
     eventSequences,
+    eventSources,
     reactors,
     reducers,
     seeding,

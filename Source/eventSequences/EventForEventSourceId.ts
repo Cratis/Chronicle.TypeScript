@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { Constructor } from '@cratis/fundamentals';
 import type { Tag } from '../events/Tag.js';
 
 /**
@@ -34,4 +35,16 @@ export interface EventForEventSourceId {
      * append time.
      */
     readonly tags?: ReadonlyArray<string | Tag>;
+
+    /**
+     * Optional registered event source definition (class decorated with `@eventSource`, or its name) for this event.
+     * Overrides `AppendOptions.eventSource`, so one batch can mix several event sources.
+     */
+    readonly eventSource?: Constructor | string;
+
+    /**
+     * Optional stream name declared by the event's event source. Overrides `AppendOptions.eventStream`.
+     * When this event names a different `eventSource` than the options, the options' stream is not inherited.
+     */
+    readonly eventStream?: string;
 }

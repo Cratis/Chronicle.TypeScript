@@ -33,5 +33,8 @@ export enum DecoratorType {
     EventTypeMigration = 'eventTypeMigration',
 
     /** Global read model variant handler artifacts discovered through the globalFor decorator. */
-    GlobalForHandler = 'globalForHandler'
+    GlobalForHandler = 'globalForHandler',
+
+    /** Event source definition artifacts discovered through the eventSource decorator. */
+    EventSource = 'eventSource'
 }

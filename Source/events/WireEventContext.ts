@@ -7,6 +7,8 @@ import type { AppendedEventResponse } from '@cratis/chronicle.contracts';
 export type WireEventContext = Omit<NonNullable<AppendedEventResponse['Context']>, 'ObservationState'> & {
     /** Numeric wire value shared by the generated observation-state enums. */
     ObservationState: number;
+    /** The registered event source name; empty or absent when the event was not appended through a definition. */
+    EventSource?: string;
     /** Store metadata is carried by observer deliveries, but not every read response. */
     EventStore?: string;
     /** Namespace metadata is carried by observer deliveries, but not every read response. */

@@ -81,4 +81,9 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     get globalForHandlers(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.GlobalForHandler);
     }
+
+    /** @inheritdoc */
+    get eventSources(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.EventSource);
+    }
 }

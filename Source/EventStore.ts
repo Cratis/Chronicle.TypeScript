@@ -6,6 +6,8 @@ import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOp
 import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleConnection } from './connection/index.js';
+import { EventSources } from './eventSources/EventSources.js';
+import type { IEventSources } from './eventSources/IEventSources.js';
 import { ConnectionLifecycle } from './connection/ConnectionLifecycle.js';
 import { ensureQuerySuccess } from './connection/callResults.js';
 import { EventLog } from './eventSequences/EventLog.js';
@@ -68,6 +70,7 @@ export class EventStore implements IEventStore {
 
     readonly eventLog: IEventLog;
     readonly eventTypes: IEventTypes;
+    readonly eventSources: IEventSources;
     readonly constraints: IConstraints;
     readonly projections: IProjections;
     readonly reactors: IReactors;
@@ -106,8 +109,9 @@ export class EventStore implements IEventStore {
         const artifacts = this._artifacts;
         this._constraints = new Constraints(name.value, _connection, artifacts);
         this.constraints = this._constraints;
+        this.eventSources = new EventSources(name.value, _connection, artifacts);
         const resolveConstraintMessage = this._constraints.resolveMessageFor.bind(this._constraints);
-        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry);
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
@@ -139,6 +143,7 @@ export class EventStore implements IEventStore {
         });
 
         await this.eventTypes.discover();
+        await this.eventSources.discover();
         await Promise.all([
             this.constraints.discover(),
             this.projections.discover(),
@@ -162,6 +167,7 @@ export class EventStore implements IEventStore {
         });
 
         await this.eventTypes.register();
+        await this.eventSources.register();
         await Promise.all([
             this.constraints.register(),
             this.projections.register(),
@@ -194,7 +200,7 @@ export class EventStore implements IEventStore {
 
         const sequence = new EventSequence(
             id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager,
-            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry
+            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry, this.eventSources
         );
         this._sequences.set(id.value, sequence);
         return sequence;

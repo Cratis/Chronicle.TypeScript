@@ -20,6 +20,7 @@ export function toClientEventContext(context: WireEventContext): EventContext {
         eventSourceType: context.EventSourceType,
         eventStreamType: context.EventStreamType,
         eventStreamId: context.EventStreamId,
+        eventSource: context.EventSource ? context.EventSource : undefined,
         subject: context.Subject,
         hash: context.Hash,
         observationState: context.ObservationState,
