@@ -8,6 +8,8 @@
   href: testing.md
 - name: Preserve Existing Append Routes
   href: migrate-append-routing.md
+- name: Event Sources and Streams
+  href: event-sources.md
 - name: Constraints
   href: constraints.md
 - name: Composite Keys
