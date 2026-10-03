@@ -61,4 +61,6 @@ When no `concurrencyScope` (and no matching entry in `concurrencyScopes`) is sup
 
 `context.eventSource` on appended events, reactor and reducer deliveries holds the definition name. It is `undefined` for events appended without a definition, including events stored before event sources existed.
 
-Event source routing needs a Kernel that supports registered event sources (Chronicle 19.30.0 or later) and `@cratis/chronicle.contracts` 19.30.0. Existing appends, options and event contexts are unchanged. Transactional (`unitOfWork`) appends and the in-process test scenarios do not support definitions yet; the scenarios reject the new options.
+Event source routing needs a Kernel that supports registered event sources (Chronicle 19.30.0 or later) and `@cratis/chronicle.contracts` 19.30.0. Existing appends, options and event contexts are unchanged. Transactional appends accept the same routing: `eventLog.transactional.append(id, event, { eventSource, eventStream })` is carried through to the append on commit and validated there. The in-process test scenarios do not support definitions; they throw `UnsupportedEventSequenceOperation` for `eventSource`/`eventStream` instead of dropping them.
+
+`IEventStore.eventSources` is optional on the interface so custom `IEventStore` implementations keep compiling; the built-in `EventStore` always provides it.

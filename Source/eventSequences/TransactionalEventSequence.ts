@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { TransactionalEventRouting } from '../transactions/TransactionalEventRouting.js';
 import { IUnitOfWork } from '../transactions/IUnitOfWork.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -21,14 +22,14 @@ export class TransactionalEventSequence implements ITransactionalEventSequence {
     }
 
     /** @inheritdoc */
-    async append(eventSourceId: string, event: object): Promise<void> {
-        this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event);
+    async append(eventSourceId: string, event: object, routing?: TransactionalEventRouting): Promise<void> {
+        this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, routing);
     }
 
     /** @inheritdoc */
-    async appendMany(eventSourceId: string, events: object[]): Promise<void> {
+    async appendMany(eventSourceId: string, events: object[], routing?: TransactionalEventRouting): Promise<void> {
         for (const event of events) {
-            this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event);
+            this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, routing);
         }
     }
 }

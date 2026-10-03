@@ -39,8 +39,12 @@ export interface IEventStore {
     /** The primary event log sequence for this event store. */
     readonly eventLog: IEventLog;
 
-    /** The event source definitions for this event store. */
-    readonly eventSources: IEventSources;
+    /**
+     * The event source definitions for this event store.
+     * Optional so custom {@link IEventStore} implementations written before event sources existed keep compiling;
+     * the built-in `EventStore` always provides it.
+     */
+    readonly eventSources?: IEventSources;
 
     /** The event types manager for this event store. */
     readonly eventTypes: IEventTypes;

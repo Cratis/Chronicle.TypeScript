@@ -9,6 +9,7 @@ import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { IEventStore } from '../IEventStore.js';
+import { TransactionalEventRouting } from './TransactionalEventRouting.js';
 import { IUnitOfWork } from './IUnitOfWork.js';
 
 interface EventForEventSourceIdWithSequenceNumber {
@@ -46,14 +47,16 @@ export class UnitOfWork implements IUnitOfWork {
     }
 
     /** @inheritdoc */
-    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object): void {
+    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, routing?: TransactionalEventRouting): void {
         this.throwIfCompleted();
         this._events.push({
             sequenceNumber: this._events.length,
             eventSequenceId,
             eventForEventSourceId: {
                 eventSourceId,
-                event
+                event,
+                ...(routing?.eventSource !== undefined ? { eventSource: routing.eventSource } : {}),
+                ...(routing?.eventStream !== undefined ? { eventStream: routing.eventStream } : {})
             }
         });
     }
