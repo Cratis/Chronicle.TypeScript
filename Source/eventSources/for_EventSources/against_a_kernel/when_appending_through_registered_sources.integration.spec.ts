@@ -20,8 +20,12 @@ class AccountEventSource {}
 @eventSource({ name: 'Customer' })
 class CustomerEventSource {}
 
+@eventSource({ name: 'Ledger' })
+@eventStream('Monthly', { concurrency: ConcurrencyDimensions.eventSourceId | ConcurrencyDimensions.eventStreamId })
+class LedgerEventSource {}
+
 const artifacts: IClientArtifactsProvider = {
-    eventTypes: [FundsDeposited], eventSources: [AccountEventSource, CustomerEventSource], readModels: [], reactors: [], reducers: [],
+    eventTypes: [FundsDeposited], eventSources: [AccountEventSource, CustomerEventSource, LedgerEventSource], readModels: [], reactors: [], reducers: [],
     seeders: [], constraints: [], projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: []
 };
 
@@ -88,5 +92,15 @@ describe.skipIf(!connectionString && !process.env.CI)('when appending through re
         const [customerEvent] = await eventsFor(customer);
         accountEvent.context.eventSource!.should.equal('Account');
         customerEvent.context.eventSource!.should.equal('Customer');
+    });
+
+    it('should guard a shared event source id once and reject differing guards without writing', async () => {
+        const id = randomUUID();
+        const ledger = (streamId: string) => ({ eventSourceId: id, event: deposit(1), eventSource: LedgerEventSource, eventStream: 'Monthly', eventStreamId: streamId });
+        const shared = await store.eventLog.appendMany([ledger('2026-01'), ledger('2026-01')]);
+        shared.every(_ => _.isSuccess).should.equal(true);
+        const error = await store.eventLog.appendMany([ledger('2026-01'), ledger('2026-02')]).catch(e => e as Error);
+        (error instanceof Error).should.equal(true);
+        (await eventsFor(id)).should.have.length(2);
     });
 });

@@ -48,7 +48,7 @@ import { toContractsGuid } from '../connection/Guid.js';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
 import type { IEventSources } from '../eventSources/IEventSources.js';
-import { deriveConcurrencyScope, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
+import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 
 /**
@@ -172,6 +172,8 @@ export class EventSequence implements IEventSequence {
 
         const wireEvents: Array<(typeof eventsToAppend)[number] & { EventSource?: string }> = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
+        const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
 
         const batchMetricAttributes = {
@@ -197,10 +199,7 @@ export class EventSequence implements IEventSequence {
                         EventSource: routing.eventSource
                     };
                 });
-                for (const [index, routing] of routings.entries()) {
-                    const { eventSourceId: id, eventStreamId } = eventsForEventSourceIds[index];
-                    if (!routing || concurrencyScopes.get(id) !== undefined) continue;
-                    const streamId = eventStreamId ?? appendOptions?.streamId;
+                for (const [id, { routing, streamId }] of derivedGuards) {
                     concurrencyScopes.set(id, await deriveConcurrencyScope(routing, id, streamId, this.tailReader));
                 }
                 const response = await this._connection.eventSequences.appendManyForEventSources({

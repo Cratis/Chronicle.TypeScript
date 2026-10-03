@@ -31,6 +31,65 @@ export function resolveBatchRouting(
     });
 }
 
+/** A derived guard required by a registered-definition event of a batch. */
+export interface RequiredGuard {
+    /** The routing whose dimensions produce the guard. */
+    readonly routing: ResolvedEventRouting;
+    /** The stream id the guard's stream-id dimension (if any) applies to. */
+    readonly streamId: string | undefined;
+}
+
+/** The predicate a guard evaluates: only the values of the dimensions the routing selects. */
+function guardPredicate(routing: ResolvedEventRouting, eventSourceId: string, streamId: string | undefined): string | undefined {
+    const dimensions = routing.dimensions;
+    if (dimensions === ConcurrencyDimensions.none) return undefined;
+    const has = (flag: number) => (dimensions & flag) !== 0;
+    return JSON.stringify([
+        has(ConcurrencyDimensions.eventSourceId) ? eventSourceId : null,
+        has(ConcurrencyDimensions.eventSourceType) ? routing.sourceType : null,
+        has(ConcurrencyDimensions.eventStreamType) ? routing.streamType ?? null : null,
+        has(ConcurrencyDimensions.eventStreamId) ? streamId ?? null : null
+    ]);
+}
+
+/**
+ * Determines the single derived guard every event source id of a batch needs.
+ * The Kernel accepts one concurrency scope per event source id, so equivalent predicates share one
+ * scope (an unguarded event never suppresses a guarded one) and differing predicates are rejected
+ * before anything is written.
+ * @param routings - The resolved routing per event, aligned with {@link events}.
+ * @param events - The batch events.
+ * @param sharedStreamId - The shared stream id from the append options.
+ * @param explicitIds - Event source ids that carry an explicit scope; they are never derived.
+ * @returns The guard to derive per event source id.
+ * @throws Error when one event source id needs differing guards.
+ */
+export function planDerivedGuards(
+    routings: Array<ResolvedEventRouting | undefined>,
+    events: EventForEventSourceId[],
+    sharedStreamId: string | undefined,
+    explicitIds: ReadonlySet<string> = new Set()
+): Map<string, RequiredGuard> {
+    const guards = new Map<string, { guard: RequiredGuard; predicate: string }>();
+    routings.forEach((routing, index) => {
+        const { eventSourceId, eventStreamId } = events[index];
+        if (!routing || explicitIds.has(eventSourceId)) return;
+        const streamId = eventStreamId ?? sharedStreamId;
+        const predicate = guardPredicate(routing, eventSourceId, streamId);
+        if (predicate === undefined) return;
+        const existing = guards.get(eventSourceId);
+        if (!existing) {
+            guards.set(eventSourceId, { guard: { routing, streamId }, predicate });
+        } else if (existing.predicate !== predicate) {
+            throw new Error(
+                `Event source id '${eventSourceId}' needs differing concurrency guards within one batch ` +
+                `('${existing.guard.routing.eventSource}' and '${routing.eventSource}'), but Chronicle accepts one concurrency scope per event source id. ` +
+                'Pass an explicit shared concurrencyScopes entry for the id, or append the events in separate batches.');
+        }
+    });
+    return new Map([...guards].map(([id, { guard }]) => [id, guard]));
+}
+
 /** The tail reader a derived concurrency scope needs. */
 export type TailReader = (eventSourceId?: string, sourceType?: string, streamType?: string, streamId?: string) => Promise<EventSequenceNumber>;
 

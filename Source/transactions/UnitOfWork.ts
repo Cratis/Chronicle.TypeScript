@@ -8,6 +8,7 @@ import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation.js'
 import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { planDerivedGuards, resolveBatchRouting } from '../eventSequences/resolveEventSourceRouting.js';
 import { IEventStore } from '../IEventStore.js';
 import { TransactionalEventRouting } from './TransactionalEventRouting.js';
 import { IUnitOfWork } from './IUnitOfWork.js';
@@ -101,6 +102,13 @@ export class UnitOfWork implements IUnitOfWork {
                 const events = eventsByEventSequence.get(key) ?? [];
                 events.push(eventToAppend);
                 eventsByEventSequence.set(key, events);
+            }
+
+            // Resolve routing and required guards for every group first: a rejection must not follow a written group.
+            const eventSources = this._eventStore.eventSources;
+            for (const eventsForSequence of eventSources ? eventsByEventSequence.values() : []) {
+                const events = eventsForSequence.map(_ => _.eventForEventSourceId);
+                planDerivedGuards(events.map(_ => resolveBatchRouting(eventSources, _)), events, undefined);
             }
 
             for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {

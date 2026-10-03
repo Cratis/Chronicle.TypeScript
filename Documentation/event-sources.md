@@ -57,6 +57,8 @@ An `appendMany` with `EventForEventSourceId` entries can carry `eventSource` and
 
 When no `concurrencyScope` (and no matching entry in `concurrencyScopes`) is supplied, and the definition declares concurrency dimensions, the client reads the tail sequence number for exactly those dimensions and uses it as the expected scope. A stream's dimensions replace the source's when it declares any. An empty scope expects no matching event. An explicit scope always wins, and a definition with no dimensions adds no check.
 
+Chronicle accepts one concurrency scope per event source id in a batch. In `appendMany` (and when a unit of work commits), every registered-definition event contributes its required guard: events that need the same predicate share one scope, and an event without a guard never suppresses a later guarded one. When one event source id needs different predicates (for example two monthly stream ids, or two definitions with different dimensions), the client throws before anything is written. Pass an explicit shared `concurrencyScopes` entry for that id, or append the events in separate batches. Explicit scopes and batches that use no definition behave as before.
+
 ## Read the event source back
 
 `context.eventSource` on appended events, reactor and reducer deliveries holds the definition name. It is `undefined` for events appended without a definition, including events stored before event sources existed.
