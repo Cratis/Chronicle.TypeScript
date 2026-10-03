@@ -3,11 +3,11 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.26.2",
+    "version": "19.30.0",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
   "definitionSource": "Root All and SubscribesToAllEvents in the generated @cratis/chronicle.contracts 19.26.2 wire shape, matching TypeScript fromAll/fromEvery emission; converted and executed by the packaged 19.26.2 kernel. All-event operations remain outside the in-process evaluator boundary.",

@@ -138,7 +138,8 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             if (!state) {
                 // SetInitialState: an event only a child subscribes to creates an uninitialized parent.
                 state = from ? this.initialState(key, event) : this.identityState(key, event, false);
-            } else if (state.__initialized === false) {
+            } else if (state.__initialized === false && from) {
+                // Chronicle 19.30.0 no longer initializes a parent on events only a child subscribes to.
                 for (const [name, value] of Object.entries(this.initialValues())) if (!(name in state)) state[name] = value;
                 state.__initialized = true;
             }

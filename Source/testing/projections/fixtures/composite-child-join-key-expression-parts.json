@@ -3,11 +3,11 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.26.2",
-    "commit": "1f8d832"
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.26.2",
+    "version": "19.30.0",
     "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
   },
   "definitionSource": "TypeScript ProjectionBuilderFor: root From ItemAdded usingCompositeKey, children identifiedBy id with From ItemAdded usingCompositeKey/usingParentCompositeKey, and child Join ItemNamed on id using the same content/Subject/event-source-id/constant expressions. See when_matching_kernel_fixtures.spec.ts. Unlike a root join, the child join resolves its custom key. Chronicle 19.26.2 uses the resolved child-join key as both the root document key and the child identifier, so a child join only updates children whose root has the same identifier (https://github.com/Cratis/Chronicle/issues/4530). Children are created through the `$value` parent-key shortcut; this fixture isolates child-join key evaluation, not parent resolution. Root and child identifiers deliberately coincide; this proves custom-key evaluation and live updates, not arbitrary parent lookup or persistent-sink placement. The in-memory join replaces the matched root state with its join changes, dropping title and __initialized; the untouched subject's root remains unchanged. This is a Chronicle in-memory sink bug: root properties and sibling children are dropped (https://github.com/Cratis/Chronicle/issues/4531), so in-memory results can differ from persistent storage. ReadModelScenario rejects composite identifiers and child joins.",

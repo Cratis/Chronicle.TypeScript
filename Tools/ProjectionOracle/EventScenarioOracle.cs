@@ -141,8 +141,7 @@ internal static class EventScenarioOracle
             };
             // The .NET client ordinarily sends its own root. For this fixture, put the
             // TypeScript client's two entries on the same ambient chain the .NET client sends.
-            var ambient = (AsyncLocal<List<Causation>>)typeof(CausationManager)
-                .GetField("_current", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            var ambient = AmbientCausation.Open();
             var previous = ambient.Value;
             if (action["clientCausation"]?.GetValue<bool>() == true)
             {
@@ -163,7 +162,7 @@ internal static class EventScenarioOracle
             }
             finally
             {
-                ambient.Value = previous!;
+                ambient.Value = previous;
             }
             string? waitError = null;
             try { await result.WaitForCompletion(); }
@@ -782,8 +781,7 @@ internal static class EventScenarioOracle
         {
             var entries = operation!["events"]!.AsArray();
             var shared = operation["options"];
-            var ambient = (AsyncLocal<List<Causation>>)typeof(CausationManager)
-                .GetField("_current", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            var ambient = AmbientCausation.Open();
             var previous = ambient.Value;
             if (operation["clientCausation"]?.GetValue<bool>() == true)
             {
@@ -847,7 +845,7 @@ internal static class EventScenarioOracle
                 ["concurrencyViolation"] = result.ConcurrencyViolations.Any()
             });
             }
-            finally { ambient.Value = previous!; }
+            finally { ambient.Value = previous; }
         }
         var history = (await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First)).Select(entry => (JsonNode?)new JsonObject {
             ["sequence"] = entry.Context.SequenceNumber.Value.ToString(),
