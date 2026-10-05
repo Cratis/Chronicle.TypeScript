@@ -7,6 +7,7 @@ import { correlationIdManager } from '../correlation/index.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { mergeTags } from '../events/mergeTags.js';
+import { mergeNamedTags } from '../events/mergeNamedTags.js';
 import { identityProvider } from '../identity/index.js';
 import { resolveEventSubject } from '../compliance/resolveEventSubject.js';
 import type { AppendOptions } from './AppendOptions.js';
@@ -45,6 +46,8 @@ export function prepareBatchAppend(
     for (const { eventSourceId } of eventsForEventSourceIds) {
         if (!concurrencyScopes.has(eventSourceId)) concurrencyScopes.set(eventSourceId, appendOptions?.concurrencyScope);
     }
+    // Validate every event's named tags before anything is sent; the order of entries is preserved.
+    const namedTags = eventsForEventSourceIds.map(({ namedTags: instanceNamedTags }) => mergeNamedTags(instanceNamedTags, appendOptions?.namedTags));
     const eventsToAppend = eventsForEventSourceIds.map(({ eventSourceId, event, eventStreamType, eventStreamId, eventSourceType, subject, occurred, tags: instanceTags }) => {
         const eventType = getEventTypeFor(event.constructor as Function);
         const tags = mergeTags(getTagsFor(event.constructor as Function), instanceTags, appendOptions?.tags);
@@ -60,5 +63,5 @@ export function prepareBatchAppend(
             Subject: subject ?? appendOptions?.subject ?? resolveEventSubject(event) ?? eventSourceId
         };
     });
-    return { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend };
+    return { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend, namedTags };
 }

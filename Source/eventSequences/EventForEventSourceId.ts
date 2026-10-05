@@ -3,6 +3,7 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import type { Tag } from '../events/Tag.js';
+import type { NamedTag } from '../events/NamedTag.js';
 
 /**
  * Represents an event paired with the event source identifier it belongs to.
@@ -35,6 +36,12 @@ export interface EventForEventSourceId {
      * append time.
      */
     readonly tags?: ReadonlyArray<string | Tag>;
+
+    /**
+     * Optional structured named tags for this event. They are merged, in order, with the shared
+     * `AppendOptions.namedTags`; the first occurrence of each exact name and value pair is kept.
+     */
+    readonly namedTags?: ReadonlyArray<NamedTag>;
 
     /**
      * Optional registered event source definition (class decorated with `@eventSource`, or its name) for this event.

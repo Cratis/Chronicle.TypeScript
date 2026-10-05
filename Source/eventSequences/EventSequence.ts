@@ -14,6 +14,7 @@ import { prepareBatchAppend } from './prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from './createAppendNotification.js';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
+import type { NamedTag } from '../events/NamedTag.js';
 import { toClientEventContext } from '../events/toClientEventContext.js';
 import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
@@ -75,7 +76,7 @@ export class EventSequence implements IEventSequence {
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const routing = resolveSingleRouting(this._eventSources, options);
-        const { eventType, correlationId, content, tags, causationChain, identity, subject } = prepareSingleAppend(event, options);
+        const { eventType, correlationId, content, tags, namedTags, causationChain, identity, subject } = prepareSingleAppend(event, options);
 
         const sequenceMetricAttributes = {
             [names.attributes.eventStore]: this._eventStoreName,
@@ -95,7 +96,7 @@ export class EventSequence implements IEventSequence {
                 const concurrencyScope = options?.concurrencyScope ?? (routing
                     ? await deriveConcurrencyScope(routing, eventSourceId, options?.streamId, this.tailReader)
                     : undefined);
-                const response = await this._connection.eventSequences.append({
+                const request = {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
@@ -121,7 +122,11 @@ export class EventSequence implements IEventSequence {
                     Tags: tags,
                     Occurred: options?.occurred === undefined ? undefined : { Value: options.occurred.toISOString() },
                     Subject: subject ?? eventSourceId
-                });
+                };
+                // Named tags travel on the dedicated call so a kernel without support rejects them instead of dropping them.
+                const response = namedTags.length === 0
+                    ? await this._connection.eventSequences.append(request)
+                    : await this._connection.eventSequences.appendWithNamedTags({ ...request, NamedTags: toContractsNamedTags(namedTags) });
 
                 const appendResponse = ensureCommandResponse('append event', response);
                 const durationInSeconds = (performance.now() - startTime) / 1000;
@@ -145,7 +150,7 @@ export class EventSequence implements IEventSequence {
 
                 if (this.appendOperations.hasSubscribers) {
                     this.appendOperations.publish([createAppendNotification(eventSourceId, event, result,
-                        correlationId.toString(), mapAppendNotificationCausation(causationChain), tags)]);
+                        correlationId.toString(), mapAppendNotificationCausation(causationChain), tags, undefined, namedTags)]);
                 }
 
                 return result;
@@ -167,7 +172,7 @@ export class EventSequence implements IEventSequence {
         eventsOrOptions?: object[] | AppendOptions,
         options?: AppendOptions
     ): Promise<AppendResult[]> {
-        const { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend } =
+        const { eventsForEventSourceIds, appendOptions, correlationId, batchCausationChain, identity, concurrencyScopes, eventsToAppend, namedTags } =
             prepareBatchAppend(eventSourceIdOrEvents, eventsOrOptions, options);
 
         const wireEvents: Array<(typeof eventsToAppend)[number] & { EventSource?: string }> = eventsToAppend;
@@ -202,7 +207,7 @@ export class EventSequence implements IEventSequence {
                 for (const [id, { routing, streamId }] of derivedGuards) {
                     concurrencyScopes.set(id, await deriveConcurrencyScope(routing, id, streamId, this.tailReader));
                 }
-                const response = await this._connection.eventSequences.appendManyForEventSources({
+                const request = {
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     EventSequenceId: this.id.value,
@@ -218,7 +223,13 @@ export class EventSequence implements IEventSequence {
                         EventSourceId: eventSourceId,
                         Scope: this.toContractConcurrencyScope(scope)
                     }))
-                });
+                };
+                const response = namedTags.every(tagsForEvent => tagsForEvent.length === 0)
+                    ? await this._connection.eventSequences.appendManyForEventSources(request)
+                    : await this._connection.eventSequences.appendManyForEventSourcesWithNamedTags({
+                        ...request,
+                        Events: wireEvents.map((wireEvent, index) => ({ ...wireEvent, NamedTags: toContractsNamedTags(namedTags[index]) }))
+                    });
 
                 const appendManyResponse = ensureCommandResponse('append many events', response);
                 const durationInSeconds = (performance.now() - startTime) / 1000;
@@ -266,7 +277,7 @@ export class EventSequence implements IEventSequence {
                     this.appendOperations.publish(result.map((appendResult: AppendResult, index: number) => {
                         const { eventSourceId, event } = eventsForEventSourceIds[index];
                         return createAppendNotification(eventSourceId, event, appendResult, correlationId.toString(),
-                            causationEntries, eventsToAppend[index].Tags, occurredAt);
+                            causationEntries, eventsToAppend[index].Tags, occurredAt, namedTags[index]);
                     }));
                 }
 
@@ -642,6 +653,15 @@ export class EventSequence implements IEventSequence {
             }))
         };
     }
+}
+
+/**
+ * Converts structured named tags into the sequence contract shape.
+ * @param namedTags - The validated named tags.
+ * @returns The wire named tags.
+ */
+function toContractsNamedTags(namedTags: readonly NamedTag[]): { Name: string; Value: string }[] {
+    return namedTags.map(tag => ({ Name: tag.name, Value: tag.value }));
 }
 
 /**

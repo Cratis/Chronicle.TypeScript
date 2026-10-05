@@ -3,6 +3,7 @@
 
 import { Guid } from '@cratis/fundamentals';
 import type { Tag } from '../events/Tag.js';
+import type { NamedTag } from '../events/NamedTag.js';
 import type { Constructor } from '@cratis/fundamentals';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
 
@@ -41,6 +42,16 @@ export interface AppendOptions {
      * by the individual {@link EventForEventSourceId} entries.
      */
     tags?: ReadonlyArray<string | Tag>;
+
+    /**
+     * Optional structured named tags shared by every event being appended. For the
+     * `appendMany(events: EventForEventSourceId[], options?)` overload they are merged after each entry's own
+     * {@link EventForEventSourceId.namedTags}; the first occurrence of each exact name and value pair is kept.
+     * When any event ends up with named tags, the append uses the kernel's dedicated named-tag call, so a kernel
+     * without named-tag support rejects it instead of silently dropping the tags.
+     * @throws {@link InvalidNamedTag} (from the append) when an entry has a blank name or a non-string value.
+     */
+    namedTags?: ReadonlyArray<NamedTag>;
 
     /**
      * Optional labeled concurrency scopes, keyed by event source id. Labels need not be append targets.
