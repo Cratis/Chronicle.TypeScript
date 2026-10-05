@@ -27,7 +27,8 @@ export interface IUnitOfWork {
      * @param eventSequenceId - The identifier of the event sequence to append to.
      * @param eventSourceId - The event source identifier.
      * @param event - The event payload.
-     * @param options - Optional registered event source / stream routing and named tags for this event.
+     * @param options - Optional append metadata for this event: registered event source / stream routing, stream and source
+     * types, stream identifier, subject, occurrence time, tags, named tags and concurrency scope. Kept with the event until commit.
      * @throws {@link InvalidNamedTag} when a named tag is invalid; the event is not added.
      */
     addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void;

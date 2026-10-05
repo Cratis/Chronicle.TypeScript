@@ -12,7 +12,10 @@ import { planDerivedGuards, resolveBatchRouting } from '../eventSequences/resolv
 import { ensureNamedTagBatchIsSupported } from '../eventSequences/ensureNamedTagBatchIsSupported.js';
 import { IEventStore } from '../IEventStore.js';
 import type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';
-import { mergeNamedTags } from '../events/mergeNamedTags.js';
+import type { ConcurrencyScope } from '../eventSequences/ConcurrencyScope.js';
+import { ConflictingConcurrencyScopesInUnitOfWork } from './ConflictingConcurrencyScopesInUnitOfWork.js';
+import { concurrencyScopesAreEqual } from './concurrencyScopesAreEqual.js';
+import { toEventForEventSourceId } from './toEventForEventSourceId.js';
 import { IUnitOfWork } from './IUnitOfWork.js';
 
 interface EventForEventSourceIdWithSequenceNumber {
@@ -26,6 +29,7 @@ interface EventForEventSourceIdWithSequenceNumber {
  */
 export class UnitOfWork implements IUnitOfWork {
     private _events: EventForEventSourceIdWithSequenceNumber[] = [];
+    private _concurrencyScopes = new Map<string, Map<string, ConcurrencyScope>>();
     private _appendResults: AppendResult[] = [];
     private _isCommitted = false;
     private _isRolledBack = false;
@@ -52,17 +56,21 @@ export class UnitOfWork implements IUnitOfWork {
     /** @inheritdoc */
     addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void {
         this.throwIfCompleted();
-        const namedTags = mergeNamedTags(options?.namedTags);
+        const eventForEventSourceId = toEventForEventSourceId(eventSourceId, event, options);
+        const scope = options?.concurrencyScope;
+        const scopesForSequence = this._concurrencyScopes.get(eventSequenceId.value) ?? new Map<string, ConcurrencyScope>();
+        if (scope !== undefined) {
+            const enrolled = scopesForSequence.get(eventSourceId);
+            if (enrolled !== undefined && !concurrencyScopesAreEqual(enrolled, scope)) {
+                throw new ConflictingConcurrencyScopesInUnitOfWork(eventSequenceId.value);
+            }
+            scopesForSequence.set(eventSourceId, { ...scope, ...(scope.eventTypes ? { eventTypes: [...scope.eventTypes] } : {}) });
+            this._concurrencyScopes.set(eventSequenceId.value, scopesForSequence);
+        }
         this._events.push({
             sequenceNumber: this._events.length,
             eventSequenceId,
-            eventForEventSourceId: {
-                eventSourceId,
-                event,
-                ...(options?.eventSource !== undefined ? { eventSource: options.eventSource } : {}),
-                ...(options?.eventStream !== undefined ? { eventStream: options.eventStream } : {}),
-                ...(namedTags.length > 0 ? { namedTags } : {})
-            }
+            eventForEventSourceId
         });
     }
 
@@ -115,16 +123,23 @@ export class UnitOfWork implements IUnitOfWork {
 
             // Resolve routing and required guards for every group first: a rejection must not follow a written group.
             const eventSources = this._eventStore.eventSources;
-            for (const eventsForSequence of eventSources ? eventsByEventSequence.values() : []) {
-                const events = eventsForSequence.map(_ => _.eventForEventSourceId);
-                planDerivedGuards(events.map(_ => resolveBatchRouting(eventSources, _)), events, undefined);
+            if (eventSources) {
+                for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {
+                    const events = eventsForSequence.map(_ => _.eventForEventSourceId);
+                    const explicitIds = new Set(this._concurrencyScopes.get(eventSequenceId)?.keys() ?? []);
+                    planDerivedGuards(events.map(_ => resolveBatchRouting(eventSources, _)), events, undefined, explicitIds);
+                }
             }
 
             for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {
                 const sequence = this._eventStore.getEventSequence(new EventSequenceId(eventSequenceId));
+                const scopes = this._concurrencyScopes.get(eventSequenceId);
                 const appendResults = await sequence.appendMany(
                     eventsForSequence.map(_ => _.eventForEventSourceId),
-                    { correlationId: this.correlationId }
+                    {
+                        correlationId: this.correlationId,
+                        ...(scopes && scopes.size > 0 ? { concurrencyScopes: Object.fromEntries(scopes) } : {})
+                    }
                 );
 
                 appendResults.forEach((appendResult, index) => {
@@ -148,6 +163,7 @@ export class UnitOfWork implements IUnitOfWork {
         this.throwIfCompleted();
         this._isRolledBack = true;
         this._events = [];
+        this._concurrencyScopes = new Map();
         this._appendResults = [];
         this._onCompleted(this);
     }
