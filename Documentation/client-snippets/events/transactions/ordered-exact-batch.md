@@ -24,7 +24,7 @@ class TransactionalTransferWorkflow {
     constructor(private readonly store: IEventStore) {}
 
     async tryCommitTransfer(expectedAuthorizationRevision: bigint): Promise<boolean> {
-        // Sent immediately as one ordered, atomic batch; TypeScript's unit of work has no concurrency scopes.
+        // Sent immediately as one ordered, atomic batch; a TypeScript unit of work only scopes the event sources it appends to.
         const results = await this.store.eventLog.appendMany([
             { eventSourceId: 'account-from', event: new TransferDebited(100) },
             { eventSourceId: 'account-to', event: new TransferCredited(100) }
