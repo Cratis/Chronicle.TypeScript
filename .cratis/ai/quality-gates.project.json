@@ -1,0 +1,31 @@
+{
+  "$comment": [
+    "Project-owned overrides for the managed quality gates (merged by gate id).",
+    "This repository has no linter, so frontend-lint stays a no-op until an ESLint config exists.",
+    "The other frontend gates run the repository's own scripts from the workspace root (see .github/workflows/build.yml)."
+  ],
+  "gates": [
+    {
+      "id": "frontend-lint",
+      "requires": { "commands": ["yarn"], "paths": ["eslint.config.mjs"] }
+    },
+    {
+      "id": "frontend-compile",
+      "description": "yarn build — zero TypeScript errors",
+      "workingDirectory": ".",
+      "command": ["yarn", "build"]
+    },
+    {
+      "id": "frontend-compile-specs",
+      "description": "standard-decorator type checks — zero TypeScript errors",
+      "workingDirectory": ".",
+      "command": ["yarn", "workspace", "@cratis/chronicle", "test:standard-types"]
+    },
+    {
+      "id": "frontend-specs",
+      "description": "yarn test — zero failures",
+      "workingDirectory": ".",
+      "command": ["yarn", "test"]
+    }
+  ]
+}
