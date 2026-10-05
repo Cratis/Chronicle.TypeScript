@@ -78,9 +78,16 @@ describe.skipIf(!connectionString && !process.env.CI)('when registering a webhoo
     });
 
     afterAll(async () => {
-        await store?.webhooks.remove(defaultWebhookId);
-        await store?.webhooks.remove(restrictedWebhookId);
+        const failures: unknown[] = [];
+        for (const id of [defaultWebhookId, restrictedWebhookId]) {
+            try {
+                await store?.webhooks.remove(id);
+            } catch (error) {
+                failures.push(error);
+            }
+        }
         client?.dispose();
+        if (failures.length > 0) throw failures[0];
     });
 
     it('should keep a default webhook replayable', () => defaultWebhook.IsReplayable.should.be.true);
@@ -88,6 +95,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when registering a webhoo
     it('should keep the webhook not replayable', () => restrictedWebhook.IsReplayable.should.be.false);
     // The kernel records IsActive=false in WebhookAdded, but its MongoDB storage converter drops IsActive when reading
     // definitions back (Storage.MongoDB/Observation/Webhooks/WebhookDefinitionConverters.cs, ToKernel), so every
-    // kernel up to at least 19.30.0 lists the webhook as active.
+    // kernel up to at least 19.30.0 lists the webhook as active (Cratis/Chronicle#4581). The client sending
+    // IsActive=false is covered by the unit spec when_registering_a_webhook_that_is_not_replayable_and_not_active.spec.ts.
     it.todo('should keep the webhook not active once the kernel reads IsActive back from storage');
 });

@@ -103,9 +103,15 @@ describe.skipIf(!connectionString && !process.env.CI)('when delivering events to
     });
 
     afterAll(async () => {
-        await store?.webhooks.remove(webhookId);
-        client?.dispose();
-        await receiver.stop();
+        try {
+            await store?.webhooks.remove(webhookId);
+        } finally {
+            try {
+                await receiver.stop();
+            } finally {
+                client?.dispose();
+            }
+        }
     });
 
     it('should post to the target path', () => `${request.method} ${request.path}`.should.equal('POST /parcels'));
