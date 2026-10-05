@@ -6,7 +6,7 @@ import { AppendError } from '../eventSequences/AppendError.js';
 import { ConcurrencyViolation } from '../eventSequences/ConcurrencyViolation.js';
 import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
-import { TransactionalEventRouting } from './TransactionalEventRouting.js';
+import type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';
 import { AppendResult } from '../eventSequences/AppendResult.js';
 
 /**
@@ -27,9 +27,10 @@ export interface IUnitOfWork {
      * @param eventSequenceId - The identifier of the event sequence to append to.
      * @param eventSourceId - The event source identifier.
      * @param event - The event payload.
-     * @param routing - Optional registered event source / stream routing for this event.
+     * @param options - Optional registered event source / stream routing and named tags for this event.
+     * @throws {@link InvalidNamedTag} when a named tag is invalid; the event is not added.
      */
-    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, routing?: TransactionalEventRouting): void;
+    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void;
 
     /**
      * Gets all events currently buffered in this unit of work.
