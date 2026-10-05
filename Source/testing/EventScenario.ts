@@ -127,7 +127,7 @@ export class EventScenario {
                                 `Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
                         }
                         const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid');
-                        if (extendedKey && (definitions.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
+                        if (extendedKey && (applicable.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
                             removedWith.some(id => id !== undefined))) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'Guid and numeric keys require one isolated definition covering one event type without removers; shared definitions and removal combinations are not fixture-backed.');
