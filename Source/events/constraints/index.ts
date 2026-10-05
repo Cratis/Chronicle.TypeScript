@@ -7,6 +7,8 @@ export type { IConstraintBuilder } from './IConstraintBuilder.js';
 export type { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder.js';
 export { constraint, getConstraintMetadata, isConstraint } from './constraint.js';
 export { unique } from './unique.js';
+export type { UniqueOptions } from './UniqueOptions.js';
+export type { ConstraintEventSequence } from './ConstraintEventSequences.js';
 export { removeConstraint } from './removeConstraint.js';
 export type { ConstraintMetadata } from './constraint.js';
 export type { IConstraints } from './IConstraints.js';

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { ConstraintEventSequence } from './ConstraintEventSequences.js';
 import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder.js';
 
 /**
@@ -25,6 +26,25 @@ export interface IConstraintBuilder {
      * @returns This builder for fluent chaining.
      */
     perEventStreamId(): IConstraintBuilder;
+
+    /**
+     * Applies the constraints defined on this builder only to specific event sequences.
+     * By default a constraint applies to every event sequence its event types are appended to, and each
+     * sequence keeps its own index. The Kernel neither validates nor indexes a constraint for a sequence it does
+     * not apply to, so a fact forwarded to another sequence (such as the outbox) does not claim a value there.
+     * It applies to every constraint on this builder wherever in the chain it is called; calling it again adds
+     * to the event sequences already declared.
+     * @param eventSequenceIds - The event sequences the constraints apply to.
+     * @returns This builder for fluent chaining.
+     */
+    forEventSequences(...eventSequenceIds: ConstraintEventSequence[]): IConstraintBuilder;
+
+    /**
+     * Applies the constraints defined on this builder only to the event log.
+     * Shorthand for {@link IConstraintBuilder.forEventSequences} with `EventSequenceId.eventLog`.
+     * @returns This builder for fluent chaining.
+     */
+    forEventLog(): IConstraintBuilder;
 
     /**
      * Starts building a unique constraint using a fluent builder callback.

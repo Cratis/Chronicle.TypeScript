@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { EventSequenceId } from '../../eventSequences/EventSequenceId.js';
+import { ConstraintEventSequence, normalizeConstraintEventSequences } from './ConstraintEventSequences.js';
 import { IConstraintBuilder } from './IConstraintBuilder.js';
 import { IUniqueConstraintBuilder } from './IUniqueConstraintBuilder.js';
 import { UniqueConstraintBuilder, UniqueConstraintCapture } from './UniqueConstraintBuilder.js';
@@ -28,6 +30,8 @@ export interface ConstraintCapture {
     scope: ConstraintScopeCapture;
     uniqueConstraint?: UniqueConstraintCapture;
     uniqueEventType?: UniqueEventTypeCapture;
+    /** Identifiers of the event sequences the constraint applies to; empty or omitted means every event sequence. */
+    eventSequences?: string[];
 }
 
 /**
@@ -61,6 +65,18 @@ export class ConstraintBuilder implements IConstraintBuilder {
     perEventStreamId(): IConstraintBuilder {
         this.capture.scope.perEventStreamId = true;
         return this;
+    }
+
+    /** @inheritdoc */
+    forEventSequences(...eventSequenceIds: ConstraintEventSequence[]): IConstraintBuilder {
+        const eventSequences = normalizeConstraintEventSequences([...(this.capture.eventSequences ?? []), ...eventSequenceIds]);
+        if (eventSequences.length > 0) this.capture.eventSequences = eventSequences;
+        return this;
+    }
+
+    /** @inheritdoc */
+    forEventLog(): IConstraintBuilder {
+        return this.forEventSequences(EventSequenceId.eventLog);
     }
 
     /** @inheritdoc */
