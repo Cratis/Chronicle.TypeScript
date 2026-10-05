@@ -13,6 +13,7 @@ import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { EventContext } from '../events/EventContext.js';
 import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
+import { mergeNamedTags } from '../events/mergeNamedTags.js';
 import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
 import { getDeclaredEventStreamTypeFor, getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
@@ -297,6 +298,8 @@ export class ReactorScenario {
             throw new UnsupportedReactorOperation('handler.return', this._reactor.name,
                 'Only registered events and production EventForEventSourceId wrappers may be recorded; commands and unknown values are unsupported.');
         }
+        // Production validates named tags before appending, failing the delivery on an invalid tag; so does recording.
+        for (const target of events) mergeNamedTags(target.namedTags);
         for (const target of events) {
             this._effects.push(Object.freeze({ kind: 'event', value: target.event, target, triggeringContext: context,
                 handler, deliveryIndex }));

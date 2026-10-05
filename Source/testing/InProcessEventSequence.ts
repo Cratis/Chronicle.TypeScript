@@ -17,7 +17,7 @@ import { EventTypeId } from '../events/EventTypeId.js';
 import { EventTypeGeneration } from '../events/EventTypeGeneration.js';
 import { Identity } from '../identity/Identity.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
-import { singleAppendRoute } from './singleAppendRoute.js';
+import { hasNamedTags, singleAppendRoute } from './singleAppendRoute.js';
 import type { AppendResult } from '../eventSequences/AppendResult.js';
 import type { AppendedEventWithResult } from '../eventSequences/AppendedEventWithResult.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
@@ -215,7 +215,8 @@ export class InProcessEventSequence implements IEventSequence {
                     subject: resolveStoredSubject(prepared.subject, eventSourceId), hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
                     eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
                     causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
-                    tags: prepared.tags.map(tag => new Tag(tag))
+                    tags: prepared.tags.map(tag => new Tag(tag)),
+                    namedTags: []
                 }
             };
             const violations = this.validateConstraints([...this._history, ...(this._stagedSeeds ?? [])], [stored]);
@@ -254,10 +255,13 @@ export class InProcessEventSequence implements IEventSequence {
             for (const entry of entries) {
                 if (typeof sourceOrEvents === 'string') break;
                 if (!entry || typeof entry !== 'object' || Reflect.ownKeys(entry).some(key =>
-                    !['eventSourceId', 'event', 'eventSourceType', 'eventStreamType', 'eventStreamId', 'subject', 'occurred', 'tags'].includes(String(key)))) {
+                    !['eventSourceId', 'event', 'eventSourceType', 'eventStreamType', 'eventStreamId', 'subject', 'occurred', 'tags', 'namedTags'].includes(String(key)))) {
                     throw this.unsupported('appendMany.entry', this.id.value, 'Unrecognized per-entry metadata.');
                 }
                 const individual = entry as EventForEventSourceId;
+                if (hasNamedTags(individual.namedTags)) {
+                    throw this.unsupported('appendMany.namedTags', this.id.value, 'Named tags are not fixture-backed.');
+                }
                 if (individual.occurred !== undefined) this.checkedDate(individual.occurred, 'appendMany.occurred');
                 if (individual.subject !== undefined && individual.subject !== null && typeof individual.subject !== 'string') {
                     throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
@@ -271,7 +275,8 @@ export class InProcessEventSequence implements IEventSequence {
             try {
                 const batchOptions: AppendOptions | undefined = shared?.correlationId === undefined && this._correlationId
                     ? { correlationId: this._correlationId(), sourceType: shared?.sourceType, streamType: shared?.streamType,
-                        streamId: shared?.streamId, subject: shared?.subject, occurred: shared?.occurred, tags: shared?.tags }
+                        streamId: shared?.streamId, subject: shared?.subject, occurred: shared?.occurred, tags: shared?.tags,
+                        namedTags: shared?.namedTags }
                     : shared;
                 if (batchOptions?.correlationId !== undefined) this.validateGuid(batchOptions.correlationId, 'appendMany.correlationId');
                 prepared = typeof sourceOrEvents === 'string'
@@ -318,7 +323,8 @@ export class InProcessEventSequence implements IEventSequence {
                     eventStreamId: wire.EventStreamId || 'Default', subject: resolveStoredSubject(wire.Subject, eventSourceId), hash, causedBy: identity,
                     observationState: EventObservationState.Initial, eventType, occurred, correlationId: correlationId.toString(),
                     causation: batchCausationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
-                    tags: wire.Tags.map(tag => new Tag(tag))
+                    tags: wire.Tags.map(tag => new Tag(tag)),
+                    namedTags: []
                 } };
                 return { stored, result: this.success(sequenceNumber, event.constructor.name) };
             });
@@ -411,7 +417,10 @@ export class InProcessEventSequence implements IEventSequence {
         if (!options || typeof options !== 'object' || Array.isArray(options)) {
             throw this.unsupported('appendMany.options', this.id.value, 'Append options must be an object.');
         }
-        const allowed = ['correlationId', 'sourceType', 'streamType', 'streamId', 'subject', 'occurred', 'tags'];
+        if (hasNamedTags(options.namedTags)) {
+            throw this.unsupported('appendMany.namedTags', this.id.value, 'Named tags are not fixture-backed.');
+        }
+        const allowed = ['correlationId', 'sourceType', 'streamType', 'streamId', 'subject', 'occurred', 'tags', 'namedTags'];
         if (Reflect.ownKeys(options).some(key => !allowed.includes(String(key))) ||
             options.concurrencyScope !== undefined || options.concurrencyScopes !== undefined || options.eventSourceId !== undefined) {
             throw this.unsupported('appendMany.options', this.id.value, 'Concurrency and unrecognized metadata are not fixture-backed.');
@@ -492,7 +501,8 @@ export class InProcessEventSequence implements IEventSequence {
             context: { ...event.context, eventType, occurred: new Date(event.context.occurred),
                 causedBy: causedBy && new Identity(causedBy.subject, causedBy.name, causedBy.userName, causedBy.onBehalfOf),
                 causation: event.context.causation.map(item => ({ ...item, occurred: item.occurred && new Date(item.occurred), properties: { ...item.properties } })),
-                tags: event.context.tags.map(item => new Tag(item.value)) }
+                tags: event.context.tags.map(item => new Tag(item.value)),
+                namedTags: [...(event.context.namedTags ?? [])] }
         };
     }
 
