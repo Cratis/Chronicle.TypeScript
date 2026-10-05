@@ -25,3 +25,5 @@ const constraintViolations = unitOfWork.getConstraintViolations();
 const concurrencyViolations = unitOfWork.getConcurrencyViolations();
 const appendErrors = unitOfWork.getAppendErrors();
 ```
+
+`transactional.append`, `transactional.appendMany` and `unitOfWork.addEvent` accept `namedTags` beside the event source routing options. Tags are validated when the event is added, so an invalid tag throws `InvalidNamedTag` before anything is committed.
