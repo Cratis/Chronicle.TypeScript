@@ -123,6 +123,7 @@ internal static class EventScenarioOracle
     {
         if (fixture["fieldConstraintCases"] is JsonArray) return await FieldConstraintOracle.Run(fixture);
         if (fixture["scopeCases"] is JsonArray) return await RunScopedConstraints(fixture);
+        if (fixture["eventSequenceCases"] is JsonArray) return await RunEventSequenceConstraints(fixture);
         if (fixture["isolatedConstraintOperations"] is JsonArray) return await RunIsolatedConstraints(fixture);
         if (fixture["constraintOperations"] is JsonArray) return await RunConstraints(fixture);
         if (fixture["routeCases"] is JsonArray) return await RunOmittedRoutes(fixture);
@@ -368,6 +369,27 @@ internal static class EventScenarioOracle
         return new JsonObject { ["cases"] = results };
     }
 
+    // Each case installs its definitions alone in a fresh packaged scenario, which appends to the event log only.
+    // Definitions declare the event sequences they apply to; the packaged kernel decides whether they validate there.
+    static async Task<JsonNode> RunEventSequenceConstraints(JsonObject fixture)
+    {
+        var cases = fixture["eventSequenceCases"]!.AsArray();
+        var names = cases.Select(test => test!["name"]!.GetValue<string>()).ToArray();
+        string[] required = ["property-event-log", "property-event-log-and-outbox", "property-outbox", "cycle-event-log", "cycle-outbox", "once-event-log", "once-outbox"];
+        if (names.Distinct().Count() != names.Length || required.Any(name => !names.Contains(name)) ||
+            cases.Any(test => test!["kind"]?.GetValue<string>() != "kernelSemantics" ||
+                test["constraintDefinitions"] is not JsonArray definitions ||
+                definitions.Any(definition => definition!["eventSequences"] is not JsonArray sequences || sequences.Count == 0)))
+            throw new InvalidOperationException("Event sequence fixtures require every case, and every definition must declare its event sequences.");
+        var results = new JsonArray();
+        foreach (var test in cases)
+        {
+            results.Add(new JsonObject { ["name"] = test!["name"]!.DeepClone(),
+                ["result"] = await RunIsolatedConstraints(test.AsObject()) });
+        }
+        return new JsonObject { ["cases"] = results };
+    }
+
     static T Decode<T>(JsonNode bytes) => ProtoBuf.Serializer.Deserialize<T>(new MemoryStream(Convert.FromBase64String(bytes.GetValue<string>())));
 
     static async Task<JsonNode> RunIsolatedConstraints(JsonObject fixture, JsonObject? wireFixture = null)
@@ -402,6 +424,9 @@ internal static class EventScenarioOracle
                 !properties.Select(property => property.Key).SequenceEqual(pair.Value.Properties) ||
                 properties.Any(property => property.Value?.GetValue<string>() != pair.Value.SchemaType)))
             throw new InvalidOperationException("Isolated constraint fixture must declare exactly the installed event schemas.");
+        static EventSequenceId[] EventSequencesOf(JsonNode node) => node["eventSequences"] is JsonArray sequences
+            ? sequences.Select(item => (EventSequenceId)item!.GetValue<string>()).ToArray()
+            : [];
         var definitions = fixture["constraintDefinitions"]!.AsArray().Select((node, index) =>
         {
             var name = node!["name"]!.GetValue<string>();
@@ -433,7 +458,8 @@ internal static class EventScenarioOracle
                 var cycleMessage = node["message"]?.GetValue<string>() ?? "";
                 return (IConstraintDefinition)new UniqueEventTypeConstraintDefinition(name, _ => cycleMessage,
                     covered.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(),
-                    cycleRemovals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), scope);
+                    cycleRemovals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), scope)
+                { EventSequences = EventSequencesOf(node) };
             }
             var events = node["events"]!.AsArray().Select(entry =>
             {
@@ -458,7 +484,8 @@ internal static class EventScenarioOracle
                 throw new InvalidOperationException($"Unsupported fixture removal for {name}.");
             var message = node["message"]?.GetValue<string>() ?? "";
             return (IConstraintDefinition)new UniqueConstraintDefinition(name, _ => message, events,
-                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), ignoreCasing, scope);
+                removals.Select(alias => (EventTypeId)known[alias].Type.Name).ToArray(), ignoreCasing, scope)
+            { EventSequences = EventSequencesOf(node) };
         }).ToImmutableArray();
         if (definitions.Length == 0 || definitions.Select(definition => definition.Name.Value).Distinct().Count() != definitions.Length)
             throw new InvalidOperationException("Fixture definitions must be present and have distinct names.");
@@ -479,6 +506,7 @@ internal static class EventScenarioOracle
             {
                 if (installed[index] is not KernelUniqueType actualType || actualType.Name.Value != definition.Name.Value ||
                     !MatchesScope(actualType.Scope, uniqueType.Scope) ||
+                    !actualType.EventSequences.Select(id => id.Value).SequenceEqual(uniqueType.EventSequences.Select(id => id.Value)) ||
                     !actualType.EventTypeIds.Select(id => id.Value).SequenceEqual(uniqueType.EventTypeIds.Select(id => id.Value)) ||
                     !actualType.RemovedWith.Select(id => id.Value).SequenceEqual(uniqueType.RemovedWith.Select(id => id.Value)))
                     throw new InvalidOperationException($"Installed kernel event-type definition does not match fixture {definition.Name.Value}.");
@@ -488,6 +516,7 @@ internal static class EventScenarioOracle
                 actual.IgnoreCasing != ((UniqueConstraintDefinition)definition).IgnoreCasing ||
                 actual.IgnoreCasing != fixture["constraintDefinitions"]![index]!["ignoreCasing"]!.GetValue<bool>() ||
                 !MatchesScope(actual.Scope, ((UniqueConstraintDefinition)definition).Scope) ||
+                !actual.EventSequences.Select(id => id.Value).SequenceEqual(((UniqueConstraintDefinition)definition).EventSequences.Select(id => id.Value)) ||
                 !actual.RemovedWith.Select(id => id.Value).SequenceEqual(
                     fixture["constraintDefinitions"]![index]!["removedWithEventTypeIds"]!.AsArray()
                         .Select(alias => known[alias!.GetValue<string>()].Type.Name)) ||

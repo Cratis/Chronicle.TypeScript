@@ -69,7 +69,8 @@ export class InProcessConstraints {
     private readonly _propertyRemovalTypes = new Set<string>();
 
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>,
-        private readonly _schemas: ReadonlyMap<string, JsonSchema> = new Map()) {
+        private readonly _schemas: ReadonlyMap<string, JsonSchema> = new Map(),
+        private readonly _inapplicable: ReadonlySet<string> = new Set()) {
         const coveredTypes = new Map<string, string>();
         const removalOwners = new Map<string, string>();
         for (const [name, capture] of _definitions) {
@@ -160,6 +161,9 @@ export class InProcessConstraints {
     }
 
     hasRemovalType(eventTypeId: string): boolean { return this._removalTypes.has(eventTypeId); }
+
+    /** Whether a named definition is scoped to event sequences other than the scenario's, so it takes no part. */
+    isInapplicable(name: string): boolean { return this._inapplicable.has(name); }
 
     isConstrainedProperty(eventTypeId: string, property: string): boolean {
         return this._constrainedProperties.get(eventTypeId)?.has(property) ?? false;

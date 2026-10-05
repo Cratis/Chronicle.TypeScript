@@ -85,9 +85,15 @@ export class EventScenario {
                         }
                     }
                 }
-                constraints = new InProcessConstraints(definitions, new Map(eventTypes.map(type =>
-                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])));
-                for (const [name, capture] of definitions) {
+                // The scenario appends to the event log only. A definition scoped to other event sequences is neither
+                // validated nor indexed there by the kernel (constraints-event-sequences.json), so it takes no part.
+                const eventLog = EventSequenceId.eventLog.value;
+                const applicable = new Map([...definitions].filter(([, capture]) =>
+                    !capture.eventSequences?.length || capture.eventSequences.includes(eventLog)));
+                const inapplicable = new Set([...definitions.keys()].filter(name => !applicable.has(name)));
+                constraints = new InProcessConstraints(applicable, new Map(eventTypes.map(type =>
+                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])), inapplicable);
+                for (const [name, capture] of applicable) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
                         capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
                     const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
