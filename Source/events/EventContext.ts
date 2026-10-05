@@ -4,6 +4,7 @@
 import { EventType } from './EventType.js';
 import { CausationEntry } from './CausationEntry.js';
 import { Tag } from './Tag.js';
+import type { NamedTag } from './NamedTag.js';
 import type { Identity } from '../identity/Identity.js';
 
 /**
@@ -63,4 +64,11 @@ export interface EventContext {
 
     /** The tags the event carries. */
     readonly tags: ReadonlyArray<Tag>;
+
+    /**
+     * The structured named tags the event carries, in the order the kernel stored them.
+     * Always present on events read from or delivered by the kernel (empty when the event has none);
+     * optional so that contexts constructed by hand remain valid.
+     */
+    readonly namedTags?: ReadonlyArray<NamedTag>;
 }

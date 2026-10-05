@@ -21,5 +21,8 @@ export { filterEventsByTag, getFilterTagsFor } from './filterEventsByTagDecorato
 export { eventSourceType, getEventSourceTypeFor } from './eventSourceTypeDecorator.js';
 export { eventStreamType, getEventStreamTypeFor } from './eventStreamTypeDecorator.js';
 export { mergeTags } from './mergeTags.js';
+export { NamedTag } from './NamedTag.js';
+export { InvalidNamedTag } from './InvalidNamedTag.js';
+export { mergeNamedTags } from './mergeNamedTags.js';
 export * from './constraints/index.js';
 export * from './migrations/index.js';

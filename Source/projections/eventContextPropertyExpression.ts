@@ -23,8 +23,9 @@ const contextProperties = {
     correlationId: true,
     causation: true,
     tags: true
-    // eventSource is deliberately not projectable: its kernel resolution is not part of the supported expression set.
-} satisfies Record<Exclude<keyof EventContext, 'eventSource'>, true>;
+    // eventSource and namedTags are deliberately not projectable: their kernel resolution is not part of the
+    // supported expression set.
+} satisfies Record<Exclude<keyof EventContext, 'eventSource' | 'namedTags'>, true>;
 
 // Mirror the kernel's DerivedPropertyFunctions registry: Week() applies to dates only.
 const derivedFunctions: Record<string, string> = { week: 'Week' };
