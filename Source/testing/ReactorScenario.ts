@@ -19,6 +19,7 @@ import { getDeclaredEventStreamTypeFor, getEventStreamTypeFor } from '../events/
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
+import { ensureNamedTagBatchIsSupported } from '../eventSequences/ensureNamedTagBatchIsSupported.js';
 import { EventStoreName } from '../EventStoreName.js';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
 import type { IEventStore } from '../IEventStore.js';
@@ -300,6 +301,8 @@ export class ReactorScenario {
         }
         // Production validates named tags before appending, failing the delivery on an invalid tag; so does recording.
         for (const target of events) mergeNamedTags(target.namedTags);
+        ensureNamedTagBatchIsSupported(events.some(event => mergeNamedTags(event.namedTags).length > 0),
+            events.some(event => event.eventSource !== undefined));
         for (const target of events) {
             this._effects.push(Object.freeze({ kind: 'event', value: target.event, target, triggeringContext: context,
                 handler, deliveryIndex }));
