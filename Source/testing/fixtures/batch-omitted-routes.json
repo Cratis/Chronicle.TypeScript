@@ -4,24 +4,59 @@
   "oracle": "eventScenario",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "f94f279c5667503f37099708e530a29d92b698d2bd4caee8aaa534cbb69fcead"
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
   },
   "routeCases": [
-    { "source": "A", "name": "omitted", "active": true },
-    { "source": "C", "name": "partial", "active": true, "streamId": "stream1" },
-    { "source": "B", "name": "empty", "active": false, "sourceType": "", "streamType": "", "streamId": "" }
+    {
+      "source": "A",
+      "name": "omitted",
+      "active": true
+    },
+    {
+      "source": "C",
+      "name": "partial",
+      "active": true,
+      "streamId": "stream1"
+    },
+    {
+      "source": "B",
+      "name": "empty",
+      "active": false,
+      "sourceType": "",
+      "streamType": "",
+      "streamId": ""
+    }
   ],
   "expected": {
-    "sequences": ["0", "1", "2"],
+    "sequences": [
+      "0",
+      "1",
+      "2"
+    ],
     "routes": [
-      { "source": "A", "sourceType": "Default", "streamType": "All", "streamId": "Default" },
-      { "source": "C", "sourceType": "Default", "streamType": "All", "streamId": "stream1" },
-      { "source": "B", "sourceType": "Default", "streamType": "All", "streamId": "Default" }
+      {
+        "source": "A",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default"
+      },
+      {
+        "source": "C",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "stream1"
+      },
+      {
+        "source": "B",
+        "sourceType": "Default",
+        "streamType": "All",
+        "streamId": "Default"
+      }
     ]
   }
 }

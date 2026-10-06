@@ -3,12 +3,12 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "TypeScript ProjectionBuilderFor usingParentCompositeKey with the v19.26.2 .NET set expressions, under a root using the same composite key; bound by when_matching_kernel_fixtures.spec.ts. Context, event source id and constant parts select the child's parent only through the kernel's unanchored IsConstantExpression shortcut: the $value part bypasses parent-event lookup. This is not general composite-parent support (Cratis/Chronicle#551); composite identifiers remain outside ReadModelScenario's supported subset.",
   "wireDefinition": {
@@ -239,12 +239,12 @@
       "engineState": {
         "orders_order-1_alice": {
           "items": [],
+          "__initialized": true,
           "id": {
             "subject": "alice",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         }
@@ -271,12 +271,12 @@
               "name": "first"
             }
           ],
+          "__initialized": true,
           "id": {
             "subject": "alice",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         }
@@ -308,12 +308,12 @@
               "name": "updated"
             }
           ],
+          "__initialized": true,
           "id": {
             "subject": "alice",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         }
@@ -345,23 +345,23 @@
               "name": "updated"
             }
           ],
+          "__initialized": true,
           "id": {
             "subject": "alice",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         },
         "orders_order-1_bob": {
           "items": [],
+          "__initialized": true,
           "id": {
             "subject": "bob",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "another subject",
           "__subject": "bob"
         }
@@ -402,12 +402,12 @@
               "name": "updated"
             }
           ],
+          "__initialized": true,
           "id": {
             "subject": "alice",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         },
@@ -418,12 +418,12 @@
               "name": "separate"
             }
           ],
+          "__initialized": true,
           "id": {
             "subject": "bob",
             "sourceId": "order-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "another subject",
           "__subject": "bob"
         }

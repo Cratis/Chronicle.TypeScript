@@ -3,12 +3,12 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "TypeScript root join usingCompositeKey with .NET v19.26.2 set expressions, bound to ProjectionBuilderFor by when_matching_kernel_fixtures.spec.ts. Like joins-custom-key, the packaged kernel ignores the custom join key: source-id matching still governs backfill and live updates. ReadModelScenario continues rejecting custom join keys.",
   "wireDefinition": {
@@ -172,8 +172,8 @@
       "sequenceNumber": "1",
       "engineState": {
         "order-1": {
-          "id": "order-1",
           "__initialized": true,
+          "id": "order-1",
           "customerId": "customer-1",
           "customerName": "first",
           "__subject": "order-1"
@@ -191,8 +191,8 @@
       "sequenceNumber": "2",
       "engineState": {
         "order-1": {
-          "id": "order-1",
           "__initialized": true,
+          "id": "order-1",
           "customerId": "customer-1",
           "customerName": "updated",
           "__subject": "order-1"

@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Probe p13: canonical GUID key and uppercase GUID $value normalization; executed against the packaged kernel.",
   "wireDefinition": {
@@ -96,8 +96,8 @@
       "sequenceNumber": "0",
       "engineState": {
         "12345678-1234-1234-1234-123456789abc": {
-          "id": "12345678-1234-1234-1234-123456789abc",
           "__initialized": true,
+          "id": "12345678-1234-1234-1234-123456789abc",
           "owner": "abcdefab-abcd-abcd-abcd-abcdefabcdef",
           "__subject": "12345678-1234-1234-1234-123456789abc"
         }

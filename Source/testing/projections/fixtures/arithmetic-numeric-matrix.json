@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
@@ -268,8 +268,8 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 2.5,
           "countedDouble": 1,
           "incrementedDouble": 1,
@@ -301,8 +301,8 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 2,
           "incrementedDouble": 2,
@@ -334,8 +334,8 @@
       "sequenceNumber": "2",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 3,
           "incrementedDouble": 3,
@@ -367,8 +367,8 @@
       "sequenceNumber": "3",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 4,
           "incrementedDouble": 4,
@@ -400,8 +400,8 @@
       "sequenceNumber": "4",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 4,
           "incrementedDouble": 4,
@@ -435,8 +435,8 @@
       "sequenceNumber": "5",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 4,
           "incrementedDouble": 4,
@@ -470,8 +470,8 @@
       "sequenceNumber": "6",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 4,
           "incrementedDouble": 4,
@@ -505,8 +505,8 @@
       "sequenceNumber": "7",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "addedDouble": 4,
           "countedDouble": 4,
           "incrementedDouble": 4,
@@ -520,8 +520,8 @@
           "subtractedInt32": -2
         },
         "record-b": {
-          "id": "record-b",
           "__initialized": true,
+          "id": "record-b",
           "addedDouble": 3.5,
           "countedDouble": 1,
           "incrementedDouble": 1,

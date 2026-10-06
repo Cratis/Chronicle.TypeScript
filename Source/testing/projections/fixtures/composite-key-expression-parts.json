@@ -3,12 +3,12 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "TypeScript composite set-expression overload and .NET CompositeKeyBuilder/SetBuilder at v19.26.2: event property, context Subject, event source id and constant parts; bound to ProjectionBuilderFor by when_matching_kernel_fixtures.spec.ts and executed by the packaged production pipeline. Composite identifiers remain outside ReadModelScenario's supported subset.",
   "wireDefinition": {
@@ -167,13 +167,13 @@
       "sequenceNumber": "0",
       "engineState": {
         "orders_order-1_source-1_alice": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "alice",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "created",
           "__subject": "alice"
         }
@@ -194,13 +194,13 @@
       "sequenceNumber": "1",
       "engineState": {
         "orders_order-1_source-1_alice": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "alice",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "updated",
           "__subject": "alice"
         }
@@ -221,24 +221,24 @@
       "sequenceNumber": "2",
       "engineState": {
         "orders_order-1_source-1_alice": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "alice",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "updated",
           "__subject": "alice"
         },
         "orders_order-1_source-1_bob": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "bob",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "another subject",
           "__subject": "bob"
         }
@@ -268,35 +268,35 @@
       "sequenceNumber": "3",
       "engineState": {
         "orders_order-1_source-1_alice": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "alice",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "updated",
           "__subject": "alice"
         },
         "orders_order-1_source-1_bob": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "bob",
             "sourceId": "source-1",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "another subject",
           "__subject": "bob"
         },
         "orders_order-1_source-2_alice": {
+          "__initialized": true,
           "id": {
             "orderId": "order-1",
             "subject": "alice",
             "sourceId": "source-2",
             "category": "orders"
           },
-          "__initialized": true,
           "title": "another source",
           "__subject": "alice"
         }

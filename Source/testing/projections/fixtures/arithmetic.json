@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Phase-one arithmetic contract, generated expectations from the pinned production kernel.",
   "wireDefinition": {
@@ -169,8 +169,8 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 2.5,
           "count": 1,
           "increments": 1,
@@ -190,8 +190,8 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 5.5,
           "count": 2,
           "increments": 2,
@@ -211,8 +211,8 @@
       "sequenceNumber": "2",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 4.5,
           "count": 2,
           "increments": 1,

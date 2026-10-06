@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Probe p9: schema-converted non-empty initial state; executed against the packaged kernel.",
   "wireDefinition": {
@@ -107,9 +107,9 @@
           "count": 0,
           "flag": false,
           "owner": "00000000-0000-0000-0000-000000000000",
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {

@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <ChronicleVersion>19.30.0</ChronicleVersion>
+    <ChronicleVersion>19.31.10</ChronicleVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Cratis.Chronicle.Testing" Version="$(ChronicleVersion)" GeneratePathProperty="true" />

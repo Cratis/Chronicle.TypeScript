@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
@@ -393,8 +393,8 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 2,
           "__subject": "record-a"
         }
@@ -410,8 +410,8 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 0,
           "__subject": "record-a"
         }
@@ -427,8 +427,8 @@
       "sequenceNumber": "2",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 1,
           "__subject": "record-a"
         }
@@ -444,8 +444,8 @@
       "sequenceNumber": "3",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 2,
           "__subject": "record-a"
         }
@@ -461,8 +461,8 @@
       "sequenceNumber": "4",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 1,
           "__subject": "record-a"
         }
@@ -478,8 +478,8 @@
       "sequenceNumber": "5",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 4,
           "__subject": "record-a",
           "label": "explicit",
@@ -499,8 +499,8 @@
       "sequenceNumber": "6",
       "engineState": {
         "record-a": {
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "total": 5,
           "__subject": "record-a",
           "label": "explicit",

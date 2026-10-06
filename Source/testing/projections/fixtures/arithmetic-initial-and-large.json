@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. ",
   "wireDefinition": {
@@ -219,8 +219,8 @@
           "count": 1.5,
           "incremented": 2.5,
           "decremented": -2.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         }
       },
@@ -242,8 +242,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         }
       },
@@ -265,8 +265,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         }
       },
@@ -288,8 +288,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         },
         "record-b": {
@@ -297,8 +297,8 @@
           "count": 1.5,
           "incremented": 2.5,
           "decremented": -2.5,
-          "id": "record-b",
           "__initialized": true,
+          "id": "record-b",
           "__subject": "record-b"
         }
       },
@@ -327,8 +327,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         },
         "record-b": {
@@ -336,8 +336,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-b",
           "__initialized": true,
+          "id": "record-b",
           "__subject": "record-b"
         }
       },
@@ -366,8 +366,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-a",
           "__initialized": true,
+          "id": "record-a",
           "__subject": "record-a"
         },
         "record-b": {
@@ -375,8 +375,8 @@
           "count": 2.5,
           "incremented": 3.5,
           "decremented": -3.5,
-          "id": "record-b",
           "__initialized": true,
+          "id": "record-b",
           "__subject": "record-b"
         }
       },

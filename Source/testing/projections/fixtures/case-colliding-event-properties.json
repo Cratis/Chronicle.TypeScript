@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Probe exact-case mappings of two event properties differing only by case against the packaged kernel.",
   "wireDefinition": {
@@ -138,8 +138,8 @@
       "sequenceNumber": "0",
       "engineState": {
         "case-a": {
-          "id": "case-a",
           "__initialized": true,
+          "id": "case-a",
           "lower": "lowercase",
           "upper": "uppercase",
           "__subject": "case-a"
@@ -157,15 +157,15 @@
       "sequenceNumber": "1",
       "engineState": {
         "case-a": {
-          "id": "case-a",
           "__initialized": true,
+          "id": "case-a",
           "lower": "lowercase",
           "upper": "uppercase",
           "__subject": "case-a"
         },
         "case-b": {
-          "id": "case-b",
           "__initialized": true,
+          "id": "case-b",
           "lower": "uppercase",
           "upper": "uppercase",
           "__subject": "case-b"
@@ -188,22 +188,22 @@
       "sequenceNumber": "2",
       "engineState": {
         "case-a": {
-          "id": "case-a",
           "__initialized": true,
+          "id": "case-a",
           "lower": "lowercase",
           "upper": "uppercase",
           "__subject": "case-a"
         },
         "case-b": {
-          "id": "case-b",
           "__initialized": true,
+          "id": "case-b",
           "lower": "uppercase",
           "upper": "uppercase",
           "__subject": "case-b"
         },
         "case-c": {
-          "id": "case-c",
           "__initialized": true,
+          "id": "case-c",
           "upper": "uppercase",
           "__subject": "case-c"
         }

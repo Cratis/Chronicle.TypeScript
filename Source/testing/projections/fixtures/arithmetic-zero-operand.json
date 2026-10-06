@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. Zero arithmetic does not create an absent accumulator; a populated accumulator returning to zero remains present.",
   "wireDefinition": {
@@ -199,9 +199,9 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {
@@ -218,9 +218,9 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {
@@ -237,9 +237,9 @@
       "sequenceNumber": "2",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {
@@ -256,9 +256,9 @@
       "sequenceNumber": "3",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
           "__subject": "record-a",
-          "__initialized": true,
           "added": 0.5,
           "subtracted": -0.5
         }
@@ -277,9 +277,9 @@
       "sequenceNumber": "4",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
           "__subject": "record-a",
-          "__initialized": true,
           "added": 0,
           "subtracted": 0
         }
@@ -298,9 +298,9 @@
       "sequenceNumber": "5",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
           "__subject": "record-a",
-          "__initialized": true,
           "added": 1.5,
           "subtracted": -1.5,
           "integerAdded": 2,
@@ -321,9 +321,9 @@
       "sequenceNumber": "6",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
           "__subject": "record-a",
-          "__initialized": true,
           "added": 0,
           "subtracted": 0,
           "integerAdded": 0,

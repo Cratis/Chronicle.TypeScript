@@ -3,12 +3,12 @@
   "kind": "kernelSemantics",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Hand-written against @cratis/chronicle.contracts 19.26.2 root Join wire shape (fluent .join and model-bound @join); executed by the packaged projection pipeline.",
   "wireDefinition": {
@@ -366,8 +366,8 @@
       "sequenceNumber": "2",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "latest",
@@ -387,16 +387,16 @@
       "sequenceNumber": "3",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "latest",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-1",
           "title": "two",
           "customerName": "latest",
@@ -422,24 +422,24 @@
       "sequenceNumber": "4",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "latest",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-1",
           "title": "two",
           "customerName": "latest",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C"
         }
@@ -467,24 +467,24 @@
       "sequenceNumber": "5",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "updated",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-1",
           "title": "two",
           "customerName": "updated",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C"
         }
@@ -512,24 +512,24 @@
       "sequenceNumber": "6",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "updated",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-1",
           "title": "two",
           "customerName": "updated",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C"
         }
@@ -557,24 +557,24 @@
       "sequenceNumber": "7",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "updated",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-1",
           "title": "two",
           "customerName": "updated",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -604,24 +604,24 @@
       "sequenceNumber": "8",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "updated",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -651,24 +651,24 @@
       "sequenceNumber": "9",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "title": "one",
           "customerName": "only A",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -698,16 +698,16 @@
       "sequenceNumber": "10",
       "engineState": {
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -731,16 +731,16 @@
       "sequenceNumber": "11",
       "engineState": {
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -764,23 +764,23 @@
       "sequenceNumber": "12",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "customerName": "after removal",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"
@@ -809,23 +809,23 @@
       "sequenceNumber": "13",
       "engineState": {
         "A": {
-          "id": "A",
           "__initialized": true,
+          "id": "A",
           "customerId": "customer-1",
           "customerName": "after removal",
           "__subject": "A"
         },
         "B": {
-          "id": "B",
           "__initialized": true,
+          "id": "B",
           "customerId": "customer-2",
           "title": "moved",
           "customerName": "other",
           "__subject": "B"
         },
         "C": {
-          "id": "C",
           "__initialized": true,
+          "id": "C",
           "customerId": "customer-2",
           "__subject": "C",
           "customerName": "other"

@@ -3,12 +3,12 @@
   "kind": "oracleGuard",
   "license": "Copyright (c) Cratis. MIT; see LICENSE.",
   "chronicle": {
-    "version": "19.30.0",
-    "commit": "dfa5ea4"
+    "version": "19.31.10",
+    "commit": "9f2e927"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Root All and SubscribesToAllEvents in the generated @cratis/chronicle.contracts 19.26.2 wire shape, matching TypeScript fromAll/fromEvery emission; converted and executed by the packaged 19.26.2 kernel. All-event operations remain outside the in-process evaluator boundary.",
   "wireDefinition": {
@@ -214,9 +214,9 @@
       "sequenceNumber": "0",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {
@@ -232,9 +232,9 @@
       "sequenceNumber": "1",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         }
       },
       "publicRead": {
@@ -250,14 +250,14 @@
       "sequenceNumber": "2",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         },
         "record-b": {
+          "__initialized": true,
           "id": "record-b",
-          "__subject": "record-b",
-          "__initialized": true
+          "__subject": "record-b"
         }
       },
       "publicRead": {
@@ -279,14 +279,14 @@
       "sequenceNumber": "3",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         },
         "record-b": {
+          "__initialized": true,
           "id": "record-b",
-          "__subject": "record-b",
-          "__initialized": true
+          "__subject": "record-b"
         }
       },
       "publicRead": {
@@ -308,14 +308,14 @@
       "sequenceNumber": "4",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         },
         "record-b": {
+          "__initialized": true,
           "id": "record-b",
-          "__subject": "record-b",
-          "__initialized": true
+          "__subject": "record-b"
         }
       },
       "publicRead": {
@@ -337,14 +337,14 @@
       "sequenceNumber": "5",
       "engineState": {
         "record-a": {
+          "__initialized": true,
           "id": "record-a",
-          "__subject": "record-a",
-          "__initialized": true
+          "__subject": "record-a"
         },
         "record-b": {
+          "__initialized": true,
           "id": "record-b",
-          "__subject": "record-b",
-          "__initialized": true
+          "__subject": "record-b"
         }
       },
       "publicRead": {
