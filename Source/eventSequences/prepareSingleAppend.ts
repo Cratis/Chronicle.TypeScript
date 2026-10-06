@@ -5,6 +5,7 @@ import { Guid, JsonSerializer } from '@cratis/fundamentals';
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { mergeTags } from '../events/mergeTags.js';
+import { mergeNamedTags } from '../events/mergeNamedTags.js';
 import { identityProvider } from '../identity/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
 import { correlationIdManager } from '../correlation/index.js';
@@ -20,8 +21,9 @@ export function prepareSingleAppend(event: object, options?: AppendOptions) {
     const subject = options?.subject ?? resolveEventSubject(event);
     const content = JsonSerializer.serialize(event);
     const tags = mergeTags(getTagsFor(event.constructor as Function), options?.tags);
+    const namedTags = mergeNamedTags(options?.namedTags);
     const causationChain = causationManager.run(CausationType.appendEvent, { eventType: eventType.id.value },
         () => causationManager.getCurrentChain());
     const identity = identityProvider.getCurrent();
-    return { eventType, correlationId, content, tags, causationChain, identity, subject };
+    return { eventType, correlationId, content, tags, namedTags, causationChain, identity, subject };
 }

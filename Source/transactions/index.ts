@@ -7,3 +7,4 @@ export { NoUnitOfWorkHasBeenStarted } from './NoUnitOfWorkHasBeenStarted.js';
 export { UnitOfWork } from './UnitOfWork.js';
 export { UnitOfWorkManager } from './UnitOfWorkManager.js';
 export type { TransactionalEventRouting } from './TransactionalEventRouting.js';
+export type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';

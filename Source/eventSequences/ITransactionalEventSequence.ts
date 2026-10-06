@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { TransactionalEventRouting } from '../transactions/TransactionalEventRouting.js';
+import type { TransactionalAppendOptions } from '../transactions/TransactionalAppendOptions.js';
 import { IUnitOfWork } from '../transactions/IUnitOfWork.js';
 
 /**
@@ -15,15 +15,15 @@ export interface ITransactionalEventSequence {
      * Adds a single event to the current unit of work.
      * @param eventSourceId - The identifier of the event source.
      * @param event - The event to append.
-     * @param routing - Optional registered event source / stream routing.
+     * @param options - Optional registered event source / stream routing and named tags.
      */
-    append(eventSourceId: string, event: object, routing?: TransactionalEventRouting): Promise<void>;
+    append(eventSourceId: string, event: object, options?: TransactionalAppendOptions): Promise<void>;
 
     /**
      * Adds multiple events to the current unit of work.
      * @param eventSourceId - The identifier of the event source.
      * @param events - The events to append.
-     * @param routing - Optional registered event source / stream routing applied to every event.
+     * @param options - Optional registered event source / stream routing and named tags applied to every event.
      */
-    appendMany(eventSourceId: string, events: object[], routing?: TransactionalEventRouting): Promise<void>;
+    appendMany(eventSourceId: string, events: object[], options?: TransactionalAppendOptions): Promise<void>;
 }

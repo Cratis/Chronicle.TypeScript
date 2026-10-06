@@ -9,8 +9,10 @@ import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { planDerivedGuards, resolveBatchRouting } from '../eventSequences/resolveEventSourceRouting.js';
+import { ensureNamedTagBatchIsSupported } from '../eventSequences/ensureNamedTagBatchIsSupported.js';
 import { IEventStore } from '../IEventStore.js';
-import { TransactionalEventRouting } from './TransactionalEventRouting.js';
+import type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';
+import { mergeNamedTags } from '../events/mergeNamedTags.js';
 import { IUnitOfWork } from './IUnitOfWork.js';
 
 interface EventForEventSourceIdWithSequenceNumber {
@@ -48,16 +50,18 @@ export class UnitOfWork implements IUnitOfWork {
     }
 
     /** @inheritdoc */
-    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, routing?: TransactionalEventRouting): void {
+    addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void {
         this.throwIfCompleted();
+        const namedTags = mergeNamedTags(options?.namedTags);
         this._events.push({
             sequenceNumber: this._events.length,
             eventSequenceId,
             eventForEventSourceId: {
                 eventSourceId,
                 event,
-                ...(routing?.eventSource !== undefined ? { eventSource: routing.eventSource } : {}),
-                ...(routing?.eventStream !== undefined ? { eventStream: routing.eventStream } : {})
+                ...(options?.eventSource !== undefined ? { eventSource: options.eventSource } : {}),
+                ...(options?.eventStream !== undefined ? { eventStream: options.eventStream } : {}),
+                ...(namedTags.length > 0 ? { namedTags } : {})
             }
         });
     }
@@ -94,6 +98,11 @@ export class UnitOfWork implements IUnitOfWork {
         this.throwIfCompleted();
 
         if (this._events.length > 0) {
+            // Validate the entire commit before writing any sequence, including combinations in different groups.
+            ensureNamedTagBatchIsSupported(
+                this._events.some(entry => (entry.eventForEventSourceId.namedTags?.length ?? 0) > 0),
+                this._events.some(entry => entry.eventForEventSourceId.eventSource !== undefined)
+            );
             const resultsBySequenceNumber = new Map<number, AppendResult>();
             const eventsByEventSequence = new Map<string, EventForEventSourceIdWithSequenceNumber[]>();
 

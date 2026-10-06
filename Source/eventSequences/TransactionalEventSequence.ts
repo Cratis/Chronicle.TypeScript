@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { TransactionalEventRouting } from '../transactions/TransactionalEventRouting.js';
+import type { TransactionalAppendOptions } from '../transactions/TransactionalAppendOptions.js';
+import { mergeNamedTags } from '../events/mergeNamedTags.js';
 import { IUnitOfWork } from '../transactions/IUnitOfWork.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -22,14 +23,16 @@ export class TransactionalEventSequence implements ITransactionalEventSequence {
     }
 
     /** @inheritdoc */
-    async append(eventSourceId: string, event: object, routing?: TransactionalEventRouting): Promise<void> {
-        this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, routing);
+    async append(eventSourceId: string, event: object, options?: TransactionalAppendOptions): Promise<void> {
+        this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, options);
     }
 
     /** @inheritdoc */
-    async appendMany(eventSourceId: string, events: object[], routing?: TransactionalEventRouting): Promise<void> {
+    async appendMany(eventSourceId: string, events: object[], options?: TransactionalAppendOptions): Promise<void> {
+        // Validate once up front so an invalid tag adds none of the events.
+        const shared = options?.namedTags === undefined ? options : { ...options, namedTags: mergeNamedTags(options.namedTags) };
         for (const event of events) {
-            this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, routing);
+            this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, shared);
         }
     }
 }

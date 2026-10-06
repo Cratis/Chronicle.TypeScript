@@ -3,6 +3,7 @@
 
 import { getEventTypeFor } from '../events/eventTypeDecorator.js';
 import { Tag } from '../events/Tag.js';
+import type { NamedTag } from '../events/NamedTag.js';
 import type { CausationEntry } from '../events/CausationEntry.js';
 import type { AppendResult } from './AppendResult.js';
 import type { AppendedEventWithResult } from './AppendedEventWithResult.js';
@@ -17,7 +18,7 @@ export function mapAppendNotificationCausation(chain: readonly Causation[]): Cau
 /** Maps a successful append into the client-side appendOperations notification shape. */
 export function createAppendNotification(
     eventSourceId: string, event: object, result: AppendResult, correlationId: string,
-    causation: CausationEntry[], tags: readonly string[], occurredAt = new Date()
+    causation: CausationEntry[], tags: readonly string[], occurredAt = new Date(), namedTags: readonly NamedTag[] = []
 ): AppendedEventWithResult {
     const eventType = getEventTypeFor(event.constructor);
     return {
@@ -25,7 +26,8 @@ export function createAppendNotification(
             context: {
                 sequenceNumber: result.sequenceNumber.value, eventSourceId, eventType, occurred: occurredAt, correlationId,
                 causation,
-                tags: tags.map(value => new Tag(value))
+                tags: tags.map(value => new Tag(value)),
+                namedTags: [...namedTags]
             },
             eventType,
             content: event as Record<string, unknown>

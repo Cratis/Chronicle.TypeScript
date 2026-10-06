@@ -8,6 +8,7 @@ import { EventType } from './EventType.js';
 import { EventTypeGeneration } from './EventTypeGeneration.js';
 import { EventTypeId } from './EventTypeId.js';
 import { Tag } from './Tag.js';
+import { NamedTag } from './NamedTag.js';
 import type { WireEventContext } from './WireEventContext.js';
 
 /** Converts kernel metadata identically for reads, reactors, and reducers. */
@@ -37,7 +38,8 @@ export function toClientEventContext(context: WireEventContext): EventContext {
             occurred: causation.Occurred ? new Date(causation.Occurred.Value) : undefined,
             properties: { ...causation.Properties }
         })),
-        tags: (context.Tags ?? []).map(value => new Tag(value))
+        tags: (context.Tags ?? []).map(value => new Tag(value)),
+        namedTags: (context.NamedTags ?? []).map(tag => new NamedTag(tag.Name, tag.Value))
     };
 }
 
