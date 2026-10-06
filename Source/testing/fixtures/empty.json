@@ -8,8 +8,8 @@
     "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "f94f279c5667503f37099708e530a29d92b698d2bd4caee8aaa534cbb69fcead"
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
   },
   "actions": [],
   "expected": {

@@ -7,8 +7,8 @@
     "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "Issue #106 arithmetic wire inputs against contracts 19.26.2; expectations captured from the packaged kernel. String operands remain outside the numeric-schema subset.",
   "wireDefinition": {
