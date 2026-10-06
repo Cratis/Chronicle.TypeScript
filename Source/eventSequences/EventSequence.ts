@@ -51,6 +51,7 @@ import type { ConcurrencyScope } from './ConcurrencyScope.js';
 import type { IEventSources } from '../eventSources/IEventSources.js';
 import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
+import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -177,6 +178,7 @@ export class EventSequence implements IEventSequence {
 
         const wireEvents: Array<(typeof eventsToAppend)[number] & { EventSource?: string }> = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        ensureNamedTagBatchIsSupported(namedTags.some(tagsForEvent => tagsForEvent.length > 0), routings.some(routing => routing !== undefined));
         const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
         const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];

@@ -9,6 +9,7 @@ import { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { planDerivedGuards, resolveBatchRouting } from '../eventSequences/resolveEventSourceRouting.js';
+import { ensureNamedTagBatchIsSupported } from '../eventSequences/ensureNamedTagBatchIsSupported.js';
 import { IEventStore } from '../IEventStore.js';
 import type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';
 import { mergeNamedTags } from '../events/mergeNamedTags.js';
@@ -97,6 +98,11 @@ export class UnitOfWork implements IUnitOfWork {
         this.throwIfCompleted();
 
         if (this._events.length > 0) {
+            // Validate the entire commit before writing any sequence, including combinations in different groups.
+            ensureNamedTagBatchIsSupported(
+                this._events.some(entry => (entry.eventForEventSourceId.namedTags?.length ?? 0) > 0),
+                this._events.some(entry => entry.eventForEventSourceId.eventSource !== undefined)
+            );
             const resultsBySequenceNumber = new Map<number, AppendResult>();
             const eventsByEventSequence = new Map<string, EventForEventSourceIdWithSequenceNumber[]>();
 
