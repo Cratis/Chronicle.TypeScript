@@ -7,8 +7,8 @@
     "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "a903fcf649d56800fd8c3c9598087feebca11c7a3faa2cd50c725f65d87c0e70"
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
   },
   "definitionSource": "TypeScript ProjectionBuilderFor: root usingCompositeKey and child usingParentCompositeKey with orderId content, Subject context and event source id, without a constant part. See when_matching_kernel_fixtures.spec.ts. Chronicle 19.26.2 cannot find the existing parent through this composite; the first child event attempts AddFuture and reaches the oracle's fail-closed futures guard, leaving the parent unchanged. The captured NotSupportedException belongs to that guard, not to the kernel; no future is stored or replayed. Composite parent resolution is tracked by Cratis/Chronicle#551.",
   "wireDefinition": {

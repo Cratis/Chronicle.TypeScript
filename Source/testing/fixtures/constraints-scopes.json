@@ -8,10 +8,10 @@
     "commit": "dfa5ea4"
   },
   "tsContracts": {
-    "version": "19.30.0",
-    "descriptorSha256": "f94f279c5667503f37099708e530a29d92b698d2bd4caee8aaa534cbb69fcead"
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
   },
-  "constraintDescriptorSha256": "6c5ec2367fdfbe95fd9f09c05fcf40645dd43db5c98a3d616443845828d3e253",
+  "constraintDescriptorSha256": "9aa6a0fb78fe79f136dda3da99d3dedf7f0d30a74024b38709b0c7037a08a813",
   "definitionSource": "Explicit client definitions, with scopes decoded from the pinned TypeScript protobuf encoder; installed packaged kernel definitions are asserted. Every operation also executes encoded TypeScript requests in an independent packaged scenario.",
   "scopeCases": [
     {
