@@ -77,6 +77,9 @@ jobs:
         image: cratis/chronicle:19.30.0-development
         ports:
           - 35000:35000
+        # The webhook delivery specifications run an HTTP receiver in the job (on the runner host); this lets the
+        # kernel reach it as host.docker.internal, the same address Docker Desktop provides locally.
+        options: --add-host=host.docker.internal:host-gateway
 
     steps:
       - name: Checkout code
