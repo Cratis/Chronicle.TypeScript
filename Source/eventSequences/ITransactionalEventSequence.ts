@@ -15,7 +15,7 @@ export interface ITransactionalEventSequence {
      * Adds a single event to the current unit of work.
      * @param eventSourceId - The identifier of the event source.
      * @param event - The event to append.
-     * @param options - Optional registered event source / stream routing and named tags.
+     * @param options - Optional append metadata (routing, subject, occurrence time, tags, named tags, concurrency scope) kept with the event until commit.
      */
     append(eventSourceId: string, event: object, options?: TransactionalAppendOptions): Promise<void>;
 
@@ -23,7 +23,7 @@ export interface ITransactionalEventSequence {
      * Adds multiple events to the current unit of work.
      * @param eventSourceId - The identifier of the event source.
      * @param events - The events to append.
-     * @param options - Optional registered event source / stream routing and named tags applied to every event.
+     * @param options - Optional append metadata (routing, subject, occurrence time, tags, named tags, concurrency scope) applied to every event.
      */
     appendMany(eventSourceId: string, events: object[], options?: TransactionalAppendOptions): Promise<void>;
 }
