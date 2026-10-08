@@ -85,9 +85,15 @@ export class EventScenario {
                         }
                     }
                 }
-                constraints = new InProcessConstraints(definitions, new Map(eventTypes.map(type =>
-                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])));
-                for (const [name, capture] of definitions) {
+                // The scenario appends to the event log only. A definition scoped to other event sequences is neither
+                // validated nor indexed there by the kernel (constraints-event-sequences.json), so it takes no part.
+                const eventLog = EventSequenceId.eventLog.value;
+                const applicable = new Map([...definitions].filter(([, capture]) =>
+                    !capture.eventSequences?.length || capture.eventSequences.includes(eventLog)));
+                const inapplicable = new Set([...definitions.keys()].filter(name => !applicable.has(name)));
+                constraints = new InProcessConstraints(applicable, new Map(eventTypes.map(type =>
+                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])), inapplicable);
+                for (const [name, capture] of applicable) {
                     const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
                         capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
                     const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
@@ -121,7 +127,7 @@ export class EventScenario {
                                 `Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
                         }
                         const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid');
-                        if (extendedKey && (definitions.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
+                        if (extendedKey && (applicable.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
                             removedWith.some(id => id !== undefined))) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                                 'Guid and numeric keys require one isolated definition covering one event type without removers; shared definitions and removal combinations are not fixture-backed.');

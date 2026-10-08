@@ -110,7 +110,8 @@ export class InProcessEventSequence implements IEventSequence {
             if (eventType.generation.value !== 1 || eventType.tombstone) {
                 throw this.unsupported('artifacts.eventTypes', type.name, 'Only generation 1, non-tombstone events are proven.');
             }
-            if (options.constraints !== 'disabled' && getRemovedConstraintNames(type).length &&
+            if (options.constraints !== 'disabled' &&
+                getRemovedConstraintNames(type).some(name => !this._constraints?.isInapplicable(name)) &&
                 !this._constraints?.hasRemovalType(eventType.id.value)) {
                 throw this.unsupported('artifacts.eventTypes.constraints', type.name, 'Constraint removal is not fixture-backed.');
             }

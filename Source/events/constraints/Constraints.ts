@@ -15,10 +15,18 @@ import { getUniqueEventMetadata, getUniquePropertyMetadata } from './unique.js';
 import { getRemovedConstraintNames } from './removeConstraint.js';
 import { TypeIntrospector } from '../../types/TypeIntrospector.js';
 import { getEventTypeFor } from '../eventTypeDecorator.js';
+import { combineConstraintEventSequences } from './ConstraintEventSequences.js';
 
 /** Resolves the name registered with the Chronicle Kernel. */
 function wireNameOf(capture: ConstraintCapture): string {
     return capture.uniqueEventType?.name ?? capture.name;
+}
+
+/** Combine another declaration's event sequences into a capture; an empty result means every event sequence. */
+function combineEventSequencesInto(capture: ConstraintCapture, declared: readonly string[] | undefined): void {
+    const combined = combineConstraintEventSequences([capture.eventSequences, declared]);
+    if (combined.length > 0) capture.eventSequences = combined;
+    else delete capture.eventSequences;
 }
 
 const decoratorScope: ConstraintScopeCapture = {
@@ -63,6 +71,7 @@ export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eve
                 for (const id of capture.uniqueEventType.removedWithEventTypeIds ?? []) {
                     if (!removedWith.includes(id)) removedWith.push(id);
                 }
+                combineEventSequencesInto(existing, capture.eventSequences);
             } else if (existing) {
                 throw new Error(`Duplicate constraint name '${name}'.`);
             } else {
@@ -87,12 +96,14 @@ export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eve
                 if (!capture) {
                     const builder = new ConstraintBuilder(name);
                     builder.uniqueFor(eventType, eventMetadata.message, name);
+                    builder.forEventSequences(...(eventMetadata.eventSequences ?? []));
                     capture = builder.capture;
                     captures.set(name, capture);
                 } else if (!capture.uniqueEventType) {
                     throw new Error(`Constraint '${name}' is not a unique event type constraint.`);
                 } else {
                     assertMatchingScope(name, capture.scope, decoratorScope);
+                    combineEventSequencesInto(capture, eventMetadata.eventSequences);
                     if (eventMetadata.message && !capture.uniqueEventType.message) capture.uniqueEventType.message = eventMetadata.message;
                     capture.uniqueEventType.eventTypeIds ??= [capture.uniqueEventType.eventTypeId];
                     const id = getEventTypeFor(eventType).id.value;
@@ -108,8 +119,11 @@ export function compileConstraints(provider: Pick<IClientArtifactsProvider, 'eve
                 if (!capture) {
                     const builder = new ConstraintBuilder(name);
                     builder.unique(() => {});
+                    builder.forEventSequences(...(metadata.eventSequences ?? []));
                     capture = builder.capture;
                     captures.set(name, capture);
+                } else {
+                    combineEventSequencesInto(capture, metadata.eventSequences);
                 }
                 if (!capture.uniqueConstraint) throw new Error(`Constraint '${name}' is not a unique property constraint.`);
                 assertMatchingScope(name, capture.scope, decoratorScope);
@@ -188,6 +202,8 @@ export class Constraints implements IConstraints {
                 EventStreamType: capture.scope.perEventStreamType ? '*' : '',
                 EventStreamId: capture.scope.perEventStreamId ? '*' : ''
             };
+            // Empty means every event sequence, which is what the Kernel assumes when the field is omitted.
+            const eventSequences = [...new Set(capture.eventSequences ?? [])];
 
             if (capture.uniqueConstraint) {
                 const uc = capture.uniqueConstraint;
@@ -210,7 +226,8 @@ export class Constraints implements IConstraints {
                         },
                         Value1: undefined
                     },
-                    Scope: scope
+                    Scope: scope,
+                    EventSequences: eventSequences
                 };
             }
 
@@ -226,7 +243,8 @@ export class Constraints implements IConstraints {
                             EventTypeIds: uet.eventTypeIds ?? [uet.eventTypeId]
                         }
                     },
-                    Scope: scope
+                    Scope: scope,
+                    EventSequences: eventSequences
                 };
             }
 
@@ -235,7 +253,8 @@ export class Constraints implements IConstraints {
                 Type: ConstraintType.Unknown,
                 RemovedWith: [],
                 Definition: undefined,
-                Scope: scope
+                Scope: scope,
+                EventSequences: eventSequences
             };
         });
 
