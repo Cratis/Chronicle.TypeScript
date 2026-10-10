@@ -546,15 +546,17 @@ export class EventSequence implements IEventSequence {
         describeSpan: (span: Span) => void,
         send: (causedBy: { Causation: ReturnType<typeof toContractsCausation>; CausedBy: object }) => Promise<CallResultLike>
     ): Promise<void> {
-        const causedBy = {
-            Causation: toContractsCausation(causationManager.getCurrentChain()),
-            CausedBy: toContractsCausedBy(identityProvider.getCurrent())
-        };
+        const causationChain = causationManager.getCurrentChain();
+        const identity = identityProvider.getCurrent();
 
         return observeOperation(operationName, async span => {
             this.setSequenceAttributes(span);
             describeSpan(span);
             try {
+                const causedBy = {
+                    Causation: toContractsCausation(causationChain),
+                    CausedBy: toContractsCausedBy(identity)
+                };
                 ensureCommandSuccess(description, await send(causedBy));
                 span.setStatus({ code: SpanStatusCode.OK });
             } catch (error) {

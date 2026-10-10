@@ -477,7 +477,9 @@ export class Reducers implements IReducers {
     ): Promise<void> {
         for (const event of outcome.failed ? [] : operation.Events) {
             try {
-                await this.processEvent(session, event, outcome, artifact);
+                // Skipped events stay synchronous; only an actual handler invocation is awaited.
+                const pending = this.processEvent(session, event, outcome, artifact);
+                if (pending) await pending;
             } catch (err) {
                 this._logger.error('Error handling event in reducer', { reducerId: session.id, error: err });
                 outcome.recordFailure(err);
@@ -486,12 +488,12 @@ export class Reducers implements IReducers {
         }
     }
 
-    private async processEvent(
+    private processEvent(
         { id, dispatcher }: ReducerObservationSession,
         event: AppendedEvent,
         outcome: ReductionOutcome,
         artifact: ActivatedArtifact<Record<string, Function>>
-    ): Promise<void> {
+    ): Promise<void> | undefined {
         const eventTypeId = event.Context?.EventType?.Id;
         if (!eventTypeId) {
             this._logger.warn('Event missing event type context', { reducerId: id });
@@ -516,9 +518,16 @@ export class Reducers implements IReducers {
             hasState: outcome.currentState !== undefined
         });
 
-        outcome.currentState = await runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, outcome.currentState, context),
-            { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName });
-        outcome.lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+        return this.invokeHandler(
+            () => runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, outcome.currentState, context),
+                { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName }),
+            outcome,
+            event.Context!.SequenceNumber);
+    }
+
+    private async invokeHandler(invoke: () => Promise<unknown>, outcome: ReductionOutcome, sequenceNumber: bigint): Promise<void> {
+        outcome.currentState = await invoke();
+        outcome.lastSuccessfullyObservedEvent = sequenceNumber;
     }
 
     private disconnectAll(): void {
