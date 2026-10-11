@@ -27,6 +27,25 @@ import { TypeDiscoverer } from './types/index.js';
 import { takeUnregisteredModelBoundMappings } from './types/modelBoundPropertyMetadata.js';
 import { reachableReadModelTypes } from './readModels/rootReadModelTypes.js';
 
+const connectionIndicators = [
+    'deadline exceeded',
+    'unavailable',
+    'connection',
+    'connectivity',
+    'channel',
+    'socket',
+    'econnrefused',
+    'etimedout'
+];
+
+const errorCodeOf = (error: unknown): number | undefined => (error as { code?: number })?.code;
+
+const isTerminalServerError = (error: unknown): error is IncompatibleChronicleServer | RejectedChronicleCredentials =>
+    error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials;
+
+/** gRPC status codes DEADLINE_EXCEEDED (4), INTERNAL (13) and UNAVAILABLE (14) are worth a reconnect. */
+const hasReconnectableStatusCode = (error: unknown): boolean => [4, 13, 14].includes(Number(errorCodeOf(error) ?? -1));
+
 /**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
  * Chronicle Kernel via {@link ChronicleConnection}.
@@ -118,46 +137,13 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     async getEventStore(name: string | EventStoreName, namespace?: string | EventStoreNamespaceName): Promise<IEventStore> {
         const storeName = typeof name === 'string' ? new EventStoreName(name) : name;
-        const namespaceName = namespace === undefined
-            ? EventStoreNamespaceName.default
-            : typeof namespace === 'string'
-                ? new EventStoreNamespaceName(namespace)
-                : namespace;
+        const namespaceName = this.toNamespaceName(namespace);
 
         return observeOperation('getEventStore', async span => {
             setTelemetryAttribute(span, 'eventStore', storeName.value);
             setTelemetryAttribute(span, 'namespace', namespaceName.value);
             try {
-                const store = await this.withReconnect('get_event_store', async () => {
-                    await this.ensureConnected();
-
-                    const key = `${storeName.value}/${namespaceName.value}`;
-                    const existing = this._stores.get(key);
-                    if (existing) {
-                        this._logger.verbose('Returning cached event store', {
-                            eventStore: storeName.value,
-                            namespace: namespaceName.value
-                        });
-                        return existing;
-                    }
-
-                    this._logger.debug('Ensuring event store exists in kernel', {
-                        eventStore: storeName.value
-                    });
-                    ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
-
-                    const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry);
-                    this._stores.set(key, created);
-
-                    try {
-                        await this.registerArtifactsForStore(created, 'new-store');
-                        return created;
-                    } catch (error) {
-                        if (this._stores.get(key) === created) this._stores.delete(key);
-                        created.disposeObservations();
-                        throw error;
-                    }
-                });
+                const store = await this.withReconnect('get_event_store', () => this.getOrCreateEventStore(storeName, namespaceName));
 
                 ChronicleConventionMetrics.eventStoreRetrievals.add(1, {
                     [names.attributes.eventStore]: storeName.value,
@@ -177,6 +163,42 @@ export class ChronicleClient implements IChronicleClient {
                 span.end();
             }
         });
+    }
+
+    private toNamespaceName(namespace: string | EventStoreNamespaceName | undefined): EventStoreNamespaceName {
+        if (namespace === undefined) return EventStoreNamespaceName.default;
+        return typeof namespace === 'string' ? new EventStoreNamespaceName(namespace) : namespace;
+    }
+
+    private async getOrCreateEventStore(storeName: EventStoreName, namespaceName: EventStoreNamespaceName): Promise<EventStore> {
+        await this.ensureConnected();
+
+        const key = `${storeName.value}/${namespaceName.value}`;
+        const existing = this._stores.get(key);
+        if (existing) {
+            this._logger.verbose('Returning cached event store', {
+                eventStore: storeName.value,
+                namespace: namespaceName.value
+            });
+            return existing;
+        }
+
+        this._logger.debug('Ensuring event store exists in kernel', {
+            eventStore: storeName.value
+        });
+        ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
+
+        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry);
+        this._stores.set(key, created);
+
+        try {
+            await this.registerArtifactsForStore(created, 'new-store');
+            return created;
+        } catch (error) {
+            if (this._stores.get(key) === created) this._stores.delete(key);
+            created.disposeObservations();
+            throw error;
+        }
     }
 
     /** @inheritdoc */
@@ -300,51 +322,57 @@ export class ChronicleClient implements IChronicleClient {
         if (this._connectionFailure) throw this._connectionFailure;
 
         if (!this._reconnectOperation) {
-            this._reconnectOperation = runInBackgroundContext(async () => {
-                this._logger.warn('Reconnecting to Chronicle kernel', {
-                    reason,
-                    error
-                });
-
-                if (this._lifecycle.isConnected) {
-                    await this._lifecycle.disconnected(disconnectError => {
-                        this._logger.error('Disconnected lifecycle callback failed', {
-                            error: disconnectError
-                        });
-                    });
-                }
-
-                let attempt = 0;
-                while (!this._isDisposed) {
-                    try {
-                        await this._connection.resetChannel();
-                        await this._connection.connect();
-                        await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
-                        this._consecutiveCredentialRejections = 0;
-                        this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
-                        await this.startKernelKeepAlive();
-                        await this._lifecycle.connected(connectedError => {
-                            this._logger.error('Connected lifecycle callback failed after reconnect', {
-                                error: connectedError
-                            });
-                        });
-                        return;
-                    } catch (reconnectError) {
-                        const terminal = this.terminalConnectionError(reconnectError);
-                        if (terminal) {
-                            this.failConnection(terminal);
-                            throw terminal;
-                        }
-                        attempt++;
-                        await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
-                    }
-                }
-            }).finally(() => {
+            this._reconnectOperation = runInBackgroundContext(() => this.recoverConnection(reason, error)).finally(() => {
                 this._reconnectOperation = undefined;
             });
         }
 
         await this._reconnectOperation;
+    }
+
+    private async recoverConnection(reason: string, error: unknown): Promise<void> {
+        this._logger.warn('Reconnecting to Chronicle kernel', {
+            reason,
+            error
+        });
+
+        if (this._lifecycle.isConnected) {
+            await this._lifecycle.disconnected(disconnectError => {
+                this._logger.error('Disconnected lifecycle callback failed', {
+                    error: disconnectError
+                });
+            });
+        }
+
+        await this.reconnectWithRetry();
+    }
+
+    private async reconnectWithRetry(): Promise<void> {
+        let attempt = 0;
+        while (!this._isDisposed) {
+            try {
+                await this._connection.resetChannel();
+                await this._connection.connect();
+                await this._connection.server.getVersionInfo({}, { signal: AbortSignal.timeout(10_000) });
+                this._consecutiveCredentialRejections = 0;
+                this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
+                await this.startKernelKeepAlive();
+                await this._lifecycle.connected(connectedError => {
+                    this._logger.error('Connected lifecycle callback failed after reconnect', {
+                        error: connectedError
+                    });
+                });
+                return;
+            } catch (reconnectError) {
+                const terminal = this.terminalConnectionError(reconnectError);
+                if (terminal) {
+                    this.failConnection(terminal);
+                    throw terminal;
+                }
+                attempt++;
+                await this.backOff(attempt, 'Reconnect attempt failed, retrying', reconnectError);
+            }
+        }
     }
 
     /**
@@ -392,7 +420,7 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private terminalConnectionError(error: unknown): Error | undefined {
-        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return error;
+        if (isTerminalServerError(error)) return error;
         const rejection = (error as { code?: number })?.code === 16 &&
             (this.options.connectionString.apiKey || this.hasOAuthCredentialRejection(error));
         this._consecutiveCredentialRejections = rejection ? this._consecutiveCredentialRejections + 1 : 0;
@@ -410,29 +438,20 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private shouldReconnect(error: unknown): boolean {
-        if (error instanceof IncompatibleChronicleServer || error instanceof RejectedChronicleCredentials) return false;
-        if ((error as { code?: number })?.code === 16 &&
-            (this.options.connectionString.apiKey || !!(error as { tokenFailure?: Error })?.tokenFailure)) return true;
-        const code = Number((error as { code?: number })?.code ?? -1);
+        if (isTerminalServerError(error)) return false;
+        return this.isRejectedAuthentication(error) ||
+            hasReconnectableStatusCode(error) ||
+            this.mentionsConnectionProblem(error);
+    }
+
+    private isRejectedAuthentication(error: unknown): boolean {
+        if (errorCodeOf(error) !== 16) return false;
+        return !!this.options.connectionString.apiKey || !!(error as { tokenFailure?: Error })?.tokenFailure;
+    }
+
+    private mentionsConnectionProblem(error: unknown): boolean {
         const details = String((error as { details?: string })?.details ?? '');
-        const message = this.toErrorMessage(error);
-
-        if (code === 4 || code === 13 || code === 14) {
-            return true;
-        }
-
-        const connectionIndicators = [
-            'deadline exceeded',
-            'unavailable',
-            'connection',
-            'connectivity',
-            'channel',
-            'socket',
-            'econnrefused',
-            'etimedout'
-        ];
-
-        const combined = `${details} ${message}`.toLowerCase();
+        const combined = `${details} ${this.toErrorMessage(error)}`.toLowerCase();
         return connectionIndicators.some(indicator => combined.includes(indicator));
     }
 
@@ -452,10 +471,14 @@ export class ChronicleClient implements IChronicleClient {
         this._watchdogHandle.unref?.();
     }
 
+    private get cannotRunHealthCheck(): boolean {
+        return this._isDisposed || !this._lifecycle.isConnected || this._healthCheckInFlight;
+    }
+
     private async runHealthCheck(): Promise<void> {
         // A black-holed connection makes the probe itself hang, so without the
         // in-flight guard every tick would stack another one that never returns.
-        if (this._isDisposed || !this._lifecycle.isConnected || this._healthCheckInFlight) {
+        if (this.cannotRunHealthCheck) {
             return;
         }
 

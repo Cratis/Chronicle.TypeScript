@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
-import { ObservationState, ReadModelObserverType, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { AppendedEvent, ReadModelObserverType, ReduceOperationMessage, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -19,6 +19,9 @@ import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
 import { ReducerEventDispatcher } from './ReducerEventDispatcher.js';
+import { ReducerObservation } from './ReducerObservation.js';
+import { ReducerObservationSession } from './ReducerObservationSession.js';
+import { ReductionOutcome } from './ReductionOutcome.js';
 import { getReadModelMetadata } from '../readModels/index.js';
 import { getReadModelId } from '../readModels/readModel.js';
 import { buildReadModelDefinition } from '../readModels/buildReadModelDefinition.js';
@@ -31,13 +34,9 @@ import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
 import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
-import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
-
-/** Sentinel sequence number sent back when no event was successfully processed. */
-const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
 
 /**
  * A push-based async queue that implements {@link AsyncIterable} for use with nice-grpc
@@ -259,24 +258,18 @@ export class Reducers implements IReducers {
                 handlers: dispatcher.handlers.map(e => e.methodName)
             });
 
-            void this.runObservation(id, reducerType, eventSequenceId, readModelName, dispatcher);
+            void this.runObservation({ id, reducerType, eventSequenceId, readModelName, dispatcher });
         });
     }
 
-    private async runObservation(
-        id: string,
-        reducerType: Constructor,
-        eventSequenceId: string,
-        readModelName: string,
-        dispatcher: ReducerEventDispatcher
-    ): Promise<void> {
+    private async runObservation(observation: ReducerObservation): Promise<void> {
         try {
-            await this.observeReducer(id, reducerType, eventSequenceId, readModelName, dispatcher);
+            await this.observeReducer(observation);
         } catch (error) {
-            this._logger.error('Reducer observation loop exited with error', { reducerId: id, error });
+            this._logger.error('Reducer observation loop exited with error', { reducerId: observation.id, error });
         }
 
-        this.scheduleReobserve(id, reducerType, dispatcher);
+        this.scheduleReobserve(observation.id, observation.reducerType, observation.dispatcher);
     }
 
     /**
@@ -317,184 +310,30 @@ export class Reducers implements IReducers {
         return (reducerType as Function).name;
     }
 
-    private async observeReducer(
-        id: string,
-        reducerType: Constructor,
-        eventSequenceId: string,
-        readModelName: string,
-        dispatcher: ReducerEventDispatcher
-    ): Promise<void> {
+    private async observeReducer(observation: ReducerObservation): Promise<void> {
+        const { id, reducerType } = observation;
         const queue = new AsyncQueue<ReducerMessage>();
         const controller = new AbortController();
         this._queues.set(id, queue);
         this._observations.set(id, controller);
-        const isActive = getReducerMetadata(reducerType)?.isActive ?? true;
 
-        queue.send({
-            Content: {
-                Value0: {
-                    ConnectionId: this._lifecycle.connectionId,
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    Reducer: {
-                        ReducerId: id,
-                        EventSequenceId: eventSequenceId,
-                        EventTypes: dispatcher.handlers.map(et => ({
-                            EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
-                            Key: EVENT_SOURCE_ID_KEY
-                        })),
-                        ReadModel: readModelName,
-                        Hash: '',
-                        IsActive: isActive,
-                        Tags: getTagsFor(reducerType).map(t => t.value),
-                        Filters: {
-                            FilterTags: getFilterTagsFor(reducerType).map(t => t.value),
-                            EventSourceType: getEventSourceTypeFor(reducerType),
-                            EventStreamType: getEventStreamTypeFor(reducerType)
-                        }
-                    }
-                },
-                Value1: undefined
-            }
-        });
+        queue.send(this.createRegistrationMessage(observation));
 
         try {
             const reducerInstance = this._artifactActivator ? undefined : new (reducerType as new () => Record<string, Function>)();
-            if (reducerInstance) dispatcher.validateInstance(reducerInstance);
+            if (reducerInstance) observation.dispatcher.validateInstance(reducerInstance);
+            const session: ReducerObservationSession = { ...observation, signal: controller.signal, reducerInstance };
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
-                let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
-                let state = ObservationState.Success;
-                const exceptionMessages: string[] = [];
-                let exceptionStackTrace = '';
-                let readModelState: string | undefined;
-
-                this._logger.debug('Received reduce operation', {
-                    reducerId: id,
-                    count: operation.Events.length,
-                    hasInitialState: operation.InitialState !== '',
-                    replayState: operation.ReplayState
-                });
-
-                try {
-                    if (this._artifactActivator && operation.ReplayState !== ReplayState.REPLAY_STATE_None) {
-                        if (!this._eventStore) throw new Error('Reducer activation requires the owning event store.');
-                        await withActivatedArtifact(reducerType, {
-                            kind: ArtifactKind.Reducer, artifactId: id, eventStore: this._eventStore,
-                            readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
-                            signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
-                            replayState: operation.ReplayState
-                        }, this._artifactActivator, artifact => {
-                            dispatcher.validateInstance(artifact.instance);
-                            return runActivated(artifact, () =>
-                                notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
-                                { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState });
-                        }, this._connection.logger);
-                    } else if (reducerInstance) {
-                        await notifyReplayLifecycle(reducerInstance, operation.ReplayState, operation.Partition);
-                    }
-                } catch (err) {
-                    this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: id, error: err });
-                    if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
-                        exceptionMessages.push(String(err.processingError));
-                    }
-                    exceptionMessages.push(String(err));
-                    exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
-                    state = ObservationState.Failed;
-                }
-
-                let currentState: unknown = operation.InitialState
+                // Delivery steps are awaited here, not inside a wrapper async function, so that
+                // async-context updates made by handlers reach this loop as they did originally.
+                const outcome = this.beginReduction(session, operation);
+                await this.notifyReplayTransition(session, operation, outcome);
+                outcome.currentState = operation.InitialState
                     ? JSON.parse(operation.InitialState) as unknown
                     : undefined;
-
-                const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
-                    for (const event of state === ObservationState.Failed ? [] : operation.Events) {
-                        try {
-                            const eventTypeId = event.Context?.EventType?.Id;
-                            if (!eventTypeId) {
-                                this._logger.warn('Event missing event type context', { reducerId: id });
-                                continue;
-                            }
-
-                            const entry = dispatcher.handlerFor(eventTypeId);
-                            if (!entry) {
-                                this._logger.debug('No handler registered for event type — skipping', { reducerId: id, eventTypeId });
-                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                                continue;
-                            }
-
-                            const content = JSON.parse(event.Content) as Record<string, unknown>;
-                            const context = toClientEventContext(event.Context!);
-
-                            this._logger.info('Invoking reducer handler', {
-                                reducerId: id,
-                                method: entry.methodName,
-                                sequenceNumber: event.Context!.SequenceNumber.toString(),
-                                eventTypeId,
-                                hasState: currentState !== undefined
-                            });
-
-                            currentState = await runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, currentState, context),
-                                { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName });
-                            lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                        } catch (err) {
-                            this._logger.error('Error handling event in reducer', { reducerId: id, error: err });
-                            exceptionMessages.push(String(err));
-                            exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
-                            state = ObservationState.Failed;
-                            break;
-                        }
-                    }
-                };
-
-                const firstInvocableEvent = this._artifactActivator && state === ObservationState.Success
-                    ? operation.Events.find(event =>
-                        !!event.Context?.EventType?.Id && !!dispatcher.handlerFor(event.Context.EventType.Id))
-                    : undefined;
-                if (firstInvocableEvent && this._artifactActivator) {
-                    try {
-                        if (!this._eventStore) throw new Error('Reducer activation requires the owning event store.');
-                        await withActivatedArtifact(reducerType as new () => Record<string, Function>, {
-                            kind: ArtifactKind.Reducer, artifactId: id, eventStore: this._eventStore,
-                            readModels: this._eventStore.readModels, eventSequenceId, partition: operation.Partition,
-                            signal: controller.signal, delivery: ArtifactDelivery.Events,
-                            eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, artifact => {
-                            dispatcher.validateInstance(artifact.instance);
-                            return processEvents(artifact);
-                        }, this._connection.logger);
-                    } catch (err) {
-                        this._logger.error('Error activating reducer', { reducerId: id, error: err });
-                        exceptionMessages.push(String(err));
-                        const completionStack = err instanceof Error ? (err.stack ?? '') : '';
-                        exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
-                            ? `${exceptionStackTrace}\n${completionStack}` : completionStack;
-                        state = ObservationState.Failed;
-                        if (err instanceof ArtifactCompletionFailed) {
-                            lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
-                        }
-                    }
-                } else {
-                    await processEvents({ instance: reducerInstance ?? {} });
-                }
-
-                if (state === ObservationState.Success && currentState !== undefined) {
-                    readModelState = JSON.stringify(currentState);
-                }
-
-                queue.send({
-                    Content: {
-                        Value0: undefined,
-                        Value1: {
-                            Partition: operation.Partition,
-                            State: state,
-                            LastSuccessfulObservation: lastSuccessfullyObservedEvent,
-                            ExceptionMessages: exceptionMessages,
-                            ExceptionStackTrace: exceptionStackTrace,
-                            ReadModelState: readModelState ?? ''
-                        }
-                    }
-                });
+                await this.reduceEvents(session, operation, outcome);
+                queue.send(outcome.toMessage(operation.Partition));
             }
         } catch (err) {
             if (!this._queues.has(id)) {
@@ -512,6 +351,181 @@ export class Reducers implements IReducers {
             }
             queue.complete();
         }
+    }
+
+    private createRegistrationMessage({ id, reducerType, eventSequenceId, readModelName, dispatcher }: ReducerObservation): ReducerMessage {
+        return {
+            Content: {
+                Value0: {
+                    ConnectionId: this._lifecycle.connectionId,
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    Reducer: {
+                        ReducerId: id,
+                        EventSequenceId: eventSequenceId,
+                        EventTypes: dispatcher.handlers.map(et => ({
+                            EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
+                            Key: EVENT_SOURCE_ID_KEY
+                        })),
+                        ReadModel: readModelName,
+                        Hash: '',
+                        IsActive: getReducerMetadata(reducerType)?.isActive ?? true,
+                        Tags: getTagsFor(reducerType).map(t => t.value),
+                        Filters: {
+                            FilterTags: getFilterTagsFor(reducerType).map(t => t.value),
+                            EventSourceType: getEventSourceTypeFor(reducerType),
+                            EventStreamType: getEventStreamTypeFor(reducerType)
+                        }
+                    }
+                },
+                Value1: undefined
+            }
+        };
+    }
+
+    private beginReduction(session: ReducerObservationSession, operation: ReduceOperationMessage): ReductionOutcome {
+        this._logger.debug('Received reduce operation', {
+            reducerId: session.id,
+            count: operation.Events.length,
+            hasInitialState: operation.InitialState !== '',
+            replayState: operation.ReplayState
+        });
+
+        return new ReductionOutcome();
+    }
+
+    private async notifyReplayTransition(
+        session: ReducerObservationSession,
+        operation: ReduceOperationMessage,
+        outcome: ReductionOutcome
+    ): Promise<void> {
+        try {
+            if (this._artifactActivator && operation.ReplayState !== ReplayState.REPLAY_STATE_None) {
+                await this.notifyActivatedReplayTransition(session, operation, this._artifactActivator);
+            } else if (session.reducerInstance) {
+                await notifyReplayLifecycle(session.reducerInstance, operation.ReplayState, operation.Partition);
+            }
+        } catch (err) {
+            this._logger.error('Error notifying reducer of replay lifecycle transition', { reducerId: session.id, error: err });
+            outcome.recordReplayNotificationFailure(err);
+        }
+    }
+
+    private async notifyActivatedReplayTransition(
+        { id, reducerType, eventSequenceId, dispatcher, signal }: ReducerObservationSession,
+        operation: ReduceOperationMessage,
+        activator: ClientArtifactsActivator
+    ): Promise<void> {
+        const eventStore = this.requireEventStore();
+        await withActivatedArtifact(reducerType, {
+            kind: ArtifactKind.Reducer, artifactId: id, eventStore,
+            readModels: eventStore.readModels, eventSequenceId, partition: operation.Partition,
+            signal, delivery: ArtifactDelivery.ReplayNotification,
+            replayState: operation.ReplayState
+        }, activator, artifact => {
+            dispatcher.validateInstance(artifact.instance);
+            return runActivated(artifact, () =>
+                notifyReplayLifecycle(artifact.instance, operation.ReplayState, operation.Partition),
+                { delivery: ArtifactDelivery.ReplayNotification, replayState: operation.ReplayState });
+        }, this._connection.logger);
+    }
+
+    private requireEventStore(): IEventStore {
+        if (!this._eventStore) throw new Error('Reducer activation requires the owning event store.');
+        return this._eventStore;
+    }
+
+    private async reduceEvents(
+        session: ReducerObservationSession,
+        operation: ReduceOperationMessage,
+        outcome: ReductionOutcome
+    ): Promise<void> {
+        const { id, reducerType, eventSequenceId, dispatcher, signal, reducerInstance } = session;
+        const firstInvocableEvent = this._artifactActivator && !outcome.failed
+            ? operation.Events.find(event =>
+                !!event.Context?.EventType?.Id && !!dispatcher.handlerFor(event.Context.EventType.Id))
+            : undefined;
+        if (!firstInvocableEvent || !this._artifactActivator) {
+            await this.processEvents(session, operation, outcome, { instance: reducerInstance ?? {} });
+            return;
+        }
+
+        try {
+            const eventStore = this.requireEventStore();
+            await withActivatedArtifact(reducerType as new () => Record<string, Function>, {
+                kind: ArtifactKind.Reducer, artifactId: id, eventStore,
+                readModels: eventStore.readModels, eventSequenceId, partition: operation.Partition,
+                signal, delivery: ArtifactDelivery.Events,
+                eventContext: toClientEventContext(firstInvocableEvent.Context!)
+            }, this._artifactActivator, artifact => {
+                dispatcher.validateInstance(artifact.instance);
+                return this.processEvents(session, operation, outcome, artifact);
+            }, this._connection.logger);
+        } catch (err) {
+            this._logger.error('Error activating reducer', { reducerId: id, error: err });
+            outcome.recordActivationFailure(err);
+        }
+    }
+
+    private async processEvents(
+        session: ReducerObservationSession,
+        operation: ReduceOperationMessage,
+        outcome: ReductionOutcome,
+        artifact: ActivatedArtifact<Record<string, Function>>
+    ): Promise<void> {
+        for (const event of outcome.failed ? [] : operation.Events) {
+            try {
+                // Skipped events stay synchronous; only an actual handler invocation is awaited.
+                const pending = this.processEvent(session, event, outcome, artifact);
+                if (pending) await pending;
+            } catch (err) {
+                this._logger.error('Error handling event in reducer', { reducerId: session.id, error: err });
+                outcome.recordFailure(err);
+                break;
+            }
+        }
+    }
+
+    private processEvent(
+        { id, dispatcher }: ReducerObservationSession,
+        event: AppendedEvent,
+        outcome: ReductionOutcome,
+        artifact: ActivatedArtifact<Record<string, Function>>
+    ): Promise<void> | undefined {
+        const eventTypeId = event.Context?.EventType?.Id;
+        if (!eventTypeId) {
+            this._logger.warn('Event missing event type context', { reducerId: id });
+            return;
+        }
+
+        const entry = dispatcher.handlerFor(eventTypeId);
+        if (!entry) {
+            this._logger.debug('No handler registered for event type — skipping', { reducerId: id, eventTypeId });
+            outcome.lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
+            return;
+        }
+
+        const content = JSON.parse(event.Content) as Record<string, unknown>;
+        const context = toClientEventContext(event.Context!);
+
+        this._logger.info('Invoking reducer handler', {
+            reducerId: id,
+            method: entry.methodName,
+            sequenceNumber: event.Context!.SequenceNumber.toString(),
+            eventTypeId,
+            hasState: outcome.currentState !== undefined
+        });
+
+        return this.invokeHandler(
+            () => runActivated(artifact, () => dispatcher.invoke(artifact.instance, entry, content, outcome.currentState, context),
+                { delivery: ArtifactDelivery.Events, eventContext: context, methodName: entry.methodName }),
+            outcome,
+            event.Context!.SequenceNumber);
+    }
+
+    private async invokeHandler(invoke: () => Promise<unknown>, outcome: ReductionOutcome, sequenceNumber: bigint): Promise<void> {
+        outcome.currentState = await invoke();
+        outcome.lastSuccessfullyObservedEvent = sequenceNumber;
     }
 
     private disconnectAll(): void {
