@@ -325,7 +325,15 @@ export class Reducers implements IReducers {
             const session: ReducerObservationSession = { ...observation, signal: controller.signal, reducerInstance };
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
-                queue.send(await this.reduce(session, operation));
+                // Delivery steps are awaited here, not inside a wrapper async function, so that
+                // async-context updates made by handlers reach this loop as they did originally.
+                const outcome = this.beginReduction(session, operation);
+                await this.notifyReplayTransition(session, operation, outcome);
+                outcome.currentState = operation.InitialState
+                    ? JSON.parse(operation.InitialState) as unknown
+                    : undefined;
+                await this.reduceEvents(session, operation, outcome);
+                queue.send(outcome.toMessage(operation.Partition));
             }
         } catch (err) {
             if (!this._queues.has(id)) {
@@ -375,9 +383,7 @@ export class Reducers implements IReducers {
         };
     }
 
-    private async reduce(session: ReducerObservationSession, operation: ReduceOperationMessage): Promise<ReducerMessage> {
-        const outcome = new ReductionOutcome();
-
+    private beginReduction(session: ReducerObservationSession, operation: ReduceOperationMessage): ReductionOutcome {
         this._logger.debug('Received reduce operation', {
             reducerId: session.id,
             count: operation.Events.length,
@@ -385,15 +391,7 @@ export class Reducers implements IReducers {
             replayState: operation.ReplayState
         });
 
-        await this.notifyReplayTransition(session, operation, outcome);
-
-        outcome.currentState = operation.InitialState
-            ? JSON.parse(operation.InitialState) as unknown
-            : undefined;
-
-        await this.reduceEvents(session, operation, outcome);
-
-        return outcome.toMessage(operation.Partition);
+        return new ReductionOutcome();
     }
 
     private async notifyReplayTransition(
