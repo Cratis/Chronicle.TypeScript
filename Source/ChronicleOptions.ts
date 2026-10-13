@@ -24,6 +24,8 @@ type ChronicleOptionsConstructorParams = {
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
     readModelNamingPolicy?: ReadModelNamingPolicy;
+    maxReceiveMessageSize?: number | null;
+    maxSendMessageSize?: number | null;
 };
 
 type ChronicleOptionsFactoryParams = {
@@ -35,6 +37,8 @@ type ChronicleOptionsFactoryParams = {
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
     readModelNamingPolicy?: ReadModelNamingPolicy;
+    maxReceiveMessageSize?: number | null;
+    maxSendMessageSize?: number | null;
 };
 
 /**
@@ -103,6 +107,18 @@ export class ChronicleOptions {
      */
     readonly readModelNamingPolicy?: ReadModelNamingPolicy;
 
+    /**
+     * The largest gRPC message, in bytes, the client accepts from the kernel. Defaults to 100 MB, matching the
+     * other Chronicle clients. `null` leaves it at gRPC's own default of 4 MB, which is not recommended.
+     */
+    readonly maxReceiveMessageSize: number | null;
+
+    /**
+     * The largest gRPC message, in bytes, the client sends to the kernel. Defaults to 100 MB, matching the
+     * other Chronicle clients. `null` leaves it at gRPC's own default.
+     */
+    readonly maxSendMessageSize: number | null;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -114,6 +130,8 @@ export class ChronicleOptions {
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
+        this.maxReceiveMessageSize = options.maxReceiveMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxReceiveMessageSize;
+        this.maxSendMessageSize = options.maxSendMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxSendMessageSize;
         const spanNames = options.telemetry?.spanNames;
         if (spanNames !== undefined && spanNames !== 'legacy' && spanNames !== 'convention') {
             throw new TypeError('telemetry.spanNames must be legacy or convention.');
@@ -130,6 +148,9 @@ export class ChronicleOptions {
         this.telemetry = options.telemetry;
         this.logger = options.logger;
     }
+
+    /** The default maximum gRPC message size in bytes: 100 MB. */
+    static readonly defaultMaxMessageSize = 100 * 1024 * 1024;
 
     private static defaultDiscoveryPatterns(): string[] {
         const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');
@@ -173,6 +194,8 @@ export class ChronicleOptions {
             reactorResultHandler: options?.reactorResultHandler,
             artifactActivator: options?.artifactActivator,
             readModelNamingPolicy: options?.readModelNamingPolicy,
+            maxReceiveMessageSize: options?.maxReceiveMessageSize,
+            maxSendMessageSize: options?.maxSendMessageSize,
             telemetry: options?.telemetry,
             logger: options?.logger
         });
