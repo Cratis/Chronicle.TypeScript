@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { FastForwardResult } from './FastForwardResult.js';
 import { ObserverInformation } from './ObserverInformation.js';
 import { ObserverRemovalResult } from './ObserverRemovalResult.js';
 
@@ -29,4 +30,13 @@ export interface IObservers {
      * @returns An {@link ObserverRemovalResult} describing what happened.
      */
     remove(observerId: string): Promise<ObserverRemovalResult>;
+
+    /**
+     * Fast forwards an observer to the tail of the event log, skipping every event it has not yet handled
+     * without invoking it. Its failed partitions are discarded. State it has already built is kept, so the
+     * effect of the skipped events is missing from it; replay the observer instead to rebuild.
+     * @param observerId - The identifier of the observer to fast forward.
+     * @returns A {@link FastForwardResult} describing what happened and where the observer is now.
+     */
+    fastForward(observerId: string): Promise<FastForwardResult>;
 }

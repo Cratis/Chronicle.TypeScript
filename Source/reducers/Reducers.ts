@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
-import { AppendedEvent, ReadModelObserverType, ReduceOperationMessage, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { AppendedEvent, EventGenerationDelivery, ReadModelObserverType, ReduceOperationMessage, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -370,6 +370,7 @@ export class Reducers implements IReducers {
                         ReadModel: readModelName,
                         Hash: '',
                         IsActive: getReducerMetadata(reducerType)?.isActive ?? true,
+                        GenerationDelivery: EventGenerationDelivery.Compatibility,
                         Tags: getTagsFor(reducerType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reducerType).map(t => t.value),

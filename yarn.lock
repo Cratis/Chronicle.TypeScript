@@ -45,12 +45,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cratis/chronicle.contracts@npm:19.56.1":
+  version: 19.56.1
+  resolution: "@cratis/chronicle.contracts@npm:19.56.1"
+  dependencies:
+    "@bufbuild/protobuf": "npm:^2.14.0"
+    "@grpc/grpc-js": "npm:^1.14.4"
+    nice-grpc: "npm:^2.1.17"
+  checksum: 10c0/6449637c85863e82f67f7960134bc0067898fa29793366d12fb7bf80e3d31f38149adbca2bc678663776c2ba404ef45c8659c90ee50ae830c46289ea9b5d5a51
+  languageName: node
+  linkType: hard
+
 "@cratis/chronicle@workspace:*, @cratis/chronicle@workspace:Source":
   version: 0.0.0-use.local
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.16.0"
-    "@cratis/chronicle.contracts": "npm:19.31.10"
+    "@cratis/chronicle.contracts": "npm:19.56.1"
     "@cratis/fundamentals": "npm:7.22.4"
     "@grpc/grpc-js": "npm:^1.14.5"
     "@opentelemetry/api": "npm:^1.9.1"

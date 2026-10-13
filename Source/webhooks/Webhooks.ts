@@ -102,7 +102,9 @@ export class Webhooks implements IWebhooks {
                 Headers: webhook.Headers
             },
             IsReplayable: webhook.IsReplayable,
-            IsActive: webhook.IsActive
+            IsActive: webhook.IsActive,
+            IsNotReplayable: !webhook.IsReplayable,
+            IsInactive: !webhook.IsActive
         }));
     }
 

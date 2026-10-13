@@ -14,6 +14,9 @@ export { toObserverInformation, toObserverType } from './toObserverInformation.j
 export { ObserverRemovalOutcome } from './ObserverRemovalOutcome.js';
 export type { ObserverRemovalResult } from './ObserverRemovalResult.js';
 export { toObserverRemovalOutcome, toObserverRemovalResult } from './toObserverRemovalResult.js';
+export { FastForwardOutcome } from './FastForwardOutcome.js';
+export type { FastForwardResult } from './FastForwardResult.js';
+export { toFastForwardOutcome, toFastForwardResult } from './toFastForwardResult.js';
 export type { IObservers } from './IObservers.js';
 export { Observers } from './Observers.js';
 export type { ICanBeNotifiedWhenReplay } from './ICanBeNotifiedWhenReplay.js';
