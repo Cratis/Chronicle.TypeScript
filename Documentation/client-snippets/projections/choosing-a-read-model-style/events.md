@@ -1,5 +1,5 @@
 ```typescript
-import { eventType } from '@cratis/chronicle';
+import { eventType, pii } from '@cratis/chronicle';
 
 @eventType()
 class ChoosingStyleBookRegistered {
@@ -9,7 +9,7 @@ class ChoosingStyleBookRegistered {
 
 @eventType()
 class ChoosingStyleBookBorrowed {
-    memberName = '';
+    @pii() memberName = '';
 }
 
 @eventType()
