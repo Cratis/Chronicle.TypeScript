@@ -93,7 +93,12 @@ export class ChronicleClient implements IChronicleClient {
         const connectionOptions = options.connectionString.disableTls
             ? { connectionString: options.connectionString, credentials: options.connectionString.createCredentials() }
             : { connectionString: options.connectionString };
-        this._connection = new ChronicleConnection({ ...connectionOptions, logger: options.logger });
+        this._connection = new ChronicleConnection({
+            ...connectionOptions,
+            logger: options.logger,
+            maxReceiveMessageSize: options.maxReceiveMessageSize ?? undefined,
+            maxSendMessageSize: options.maxSendMessageSize ?? undefined
+        });
 
         this._logger.info('Created Chronicle client', {
             serverAddress: `${options.connectionString.serverAddress.host}:${options.connectionString.serverAddress.port}`,
