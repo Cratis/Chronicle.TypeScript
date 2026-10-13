@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
-import { ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { EventGenerationDelivery, ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -276,6 +276,8 @@ export class Reactors implements IReactors {
                             Key: EVENT_SOURCE_ID_KEY
                         })),
                         IsReplayable: !isOnceOnly(reactorType),
+                        IsNotReplayable: isOnceOnly(reactorType),
+                        GenerationDelivery: EventGenerationDelivery.Compatibility,
                         Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {
                             FilterTags: getFilterTagsFor(reactorType).map(t => t.value),

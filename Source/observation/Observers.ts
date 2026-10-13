@@ -3,9 +3,11 @@
 
 import { ChronicleConnection } from '../connection/index.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import { FastForwardResult } from './FastForwardResult.js';
 import { IObservers } from './IObservers.js';
 import { ObserverInformation } from './ObserverInformation.js';
 import { ObserverRemovalResult } from './ObserverRemovalResult.js';
+import { toFastForwardResult } from './toFastForwardResult.js';
 import { toObserverInformation } from './toObserverInformation.js';
 import { toObserverRemovalResult } from './toObserverRemovalResult.js';
 
@@ -45,5 +47,17 @@ export class Observers implements IObservers {
         });
 
         return toObserverRemovalResult(response);
+    }
+
+    /** @inheritdoc */
+    async fastForward(observerId: string): Promise<FastForwardResult> {
+        const response = await this._connection.observers.fastForward({
+            EventStore: this._eventStore,
+            Namespace: this._namespace,
+            ObserverId: observerId,
+            EventSequenceId: EventSequenceId.eventLog.value
+        });
+
+        return toFastForwardResult(response);
     }
 }

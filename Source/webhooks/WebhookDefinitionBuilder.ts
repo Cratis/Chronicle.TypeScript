@@ -138,7 +138,9 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
                 Headers: Object.fromEntries(this._headers)
             },
             IsReplayable: this._isReplayable,
-            IsActive: this._isActive
+            IsActive: this._isActive,
+            IsNotReplayable: !this._isReplayable,
+            IsInactive: !this._isActive
         };
     }
 }

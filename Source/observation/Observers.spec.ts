@@ -1,9 +1,10 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ObserverRemovalOutcome as ContractObserverRemovalOutcome, ObserverRunningState as ContractObserverRunningState, ObserverType as ContractObserverType } from '@cratis/chronicle.contracts';
+import { FastForwardOutcome as ContractFastForwardOutcome, ObserverRemovalOutcome as ContractObserverRemovalOutcome, ObserverRunningState as ContractObserverRunningState, ObserverType as ContractObserverType } from '@cratis/chronicle.contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { ChronicleConnection } from '../connection/index.js';
+import { FastForwardOutcome } from './FastForwardOutcome.js';
 import { ObserverRemovalOutcome } from './ObserverRemovalOutcome.js';
 import { ObserverRunningState } from './ObserverRunningState.js';
 import { ObserverType } from './ObserverType.js';
@@ -21,14 +22,17 @@ function wireObserverInformation() {
     };
 }
 
-function createObservers(getObserversResult?: unknown, removeObserverResult?: unknown) {
+function createObservers(getObserversResult?: unknown, removeObserverResult?: unknown, fastForwardResult?: unknown) {
+    const fastForward = vi.fn().mockResolvedValue(
+        fastForwardResult ?? { Outcome: ContractFastForwardOutcome.FastForwarded, PreviousNextEventSequenceNumber: 5n, NextEventSequenceNumber: 101n }
+    );
     const getObservers = vi.fn().mockResolvedValue(getObserversResult ?? { items: [] });
     const removeObserver = vi.fn().mockResolvedValue(
         removeObserverResult ?? { Outcome: ContractObserverRemovalOutcome.Removed, BlockingNamespace: '' }
     );
-    const connection = { observers: { getObservers, removeObserver } } as unknown as ChronicleConnection;
+    const connection = { observers: { getObservers, removeObserver, fastForward } } as unknown as ChronicleConnection;
     const observers = new Observers('my-event-store', 'my-namespace', connection);
-    return { observers, getObservers, removeObserver };
+    return { observers, getObservers, removeObserver, fastForward };
 }
 
 describe('Observers', () => {
@@ -110,6 +114,39 @@ describe('Observers', () => {
             expect(result.isRemoved).toBe(false);
             expect(result.outcome).toEqual(ObserverRemovalOutcome.ObserverActive);
             expect(result.blockingNamespace).toEqual('production');
+        });
+    });
+
+    describe('when fast forwarding an observer', () => {
+        it('should ask for that observer on the event log', async () => {
+            const { observers, fastForward } = createObservers();
+            await observers.fastForward('employee-alerts');
+
+            const request = fastForward.mock.calls[0][0];
+            expect(request.EventStore).toEqual('my-event-store');
+            expect(request.Namespace).toEqual('my-namespace');
+            expect(request.ObserverId).toEqual('employee-alerts');
+            expect(request.EventSequenceId).toEqual('event-log');
+        });
+
+        it('should report what happened and where the observer is now', async () => {
+            const { observers } = createObservers();
+            const result = await observers.fastForward('employee-alerts');
+
+            expect(result.outcome).toEqual(FastForwardOutcome.FastForwarded);
+            expect(result.previousNextEventSequenceNumber.value).toEqual(5n);
+            expect(result.nextEventSequenceNumber.value).toEqual(101n);
+        });
+
+        it('should report a replaying observer as replaying', async () => {
+            const { observers } = createObservers(undefined, undefined, {
+                Outcome: ContractFastForwardOutcome.ObserverReplaying,
+                PreviousNextEventSequenceNumber: 5n,
+                NextEventSequenceNumber: 5n
+            });
+            const result = await observers.fastForward('employee-alerts');
+
+            expect(result.outcome).toEqual(FastForwardOutcome.Replaying);
         });
     });
 });
