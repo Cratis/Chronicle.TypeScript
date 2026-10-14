@@ -188,7 +188,7 @@
         "undici": "^8.11.2"
     },
     "devDependencies": {
-        "@cratis/fundamentals": "7.22.4",
+        "@cratis/fundamentals": "7.24.1",
         "@opentelemetry/context-async-hooks": "2.11.0",
         "@opentelemetry/core": "2.11.0",
         "@opentelemetry/instrumentation-grpc": "0.222.0",
@@ -203,6 +203,6 @@
         "vitest": "^5.0.3"
     },
     "peerDependencies": {
-        "@cratis/fundamentals": "^7.22.4"
+        "@cratis/fundamentals": "^7.24.1"
     }
 }

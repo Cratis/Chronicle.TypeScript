@@ -61,7 +61,7 @@ describe('when evaluating a fluent root join', () => {
         scenario.given.forEventSource('customer').events(new CustomerNamed('name'));
         (await scenario.instanceForEventSourceId('A'))!.customerName.should.equal('name');
         (await scenario.instanceForEventSourceId('B'))!.customerName.should.equal('name');
-        ((await scenario.instanceForEventSourceId('C'))!.customerName === undefined).should.be.true;
+        (await scenario.instanceForEventSourceId('C'))!.customerName.should.equal('');
     });
 
     it('should retain joined history across removal without resurrecting the removed root', async () => {
@@ -95,7 +95,7 @@ describe('when evaluating a fluent root join', () => {
         (await first.instance)!.customerName.should.equal('second');
         const second = new ReadModelScenario(Order, artifacts);
         second.given.forEventSource('A').events(new OrderPlaced('customer'));
-        ((await second.instance)!.customerName === undefined).should.be.true;
+        (await second.instance)!.customerName.should.equal('');
     });
 
     it('should update the root keys when observing a committed event sequence', async () => {

@@ -44,8 +44,8 @@ describe('when evaluating joins with standard model-bound decorators', () => {
         const result = (await scenario.instance)!;
         result.customerName.should.equal('before');
         result.city.should.equal('Oslo');
-        (result.name === undefined).should.be.true;
-        (result.ignored === undefined).should.be.true;
+        result.name.should.equal('');
+        result.ignored.should.equal('');
     });
 
     it('should fan out subsequent join events to all matching roots', async () => {

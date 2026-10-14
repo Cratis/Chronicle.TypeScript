@@ -47,8 +47,8 @@ describe('when evaluating joins with legacy model-bound decorators', () => {
         const result = (await scenario.instance)!;
         result.customerName.should.equal('before');
         result.city.should.equal('Oslo');
-        (result.name === undefined).should.be.true;
-        (result.ignored === undefined).should.be.true;
+        result.name.should.equal('');
+        result.ignored.should.equal('');
     });
 
     it('should update existing roots and recreate a removed root from the latest joined history', async () => {

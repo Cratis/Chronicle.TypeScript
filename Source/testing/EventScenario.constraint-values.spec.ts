@@ -168,11 +168,11 @@ describe('fixture-backed unique scalar values', () => {
         const results = scenario.results;
         const unprovenKeys = ['!', '#', '%', '&', "'", '(', ')', '*', '+', ',', '/', ';', '<', '=', '>', '?', '[', ']', '^', '`', '~'];
         const invalidContent: unknown[] = [1, 0, 1.5, undefined, [], {}, new Date(), 'É', 'e\u0301', '"', '\\', '\n'];
-        // The production serializer throws on null before checkedContent can run.
+        // Fundamentals preserves null in JSON, so checkedContent rejects it as unsupported string content.
         for (const [value, operation] of [
             ...unprovenKeys.map(value => [value, 'artifacts.constraints']),
             ...invalidContent.map(value => [value, 'append.content']),
-            [null, 'append.serialization']
+            [null, 'append.content']
         ] as Array<[unknown, string]>) {
             const bad = new OracleDomainText('valid');
             Object.assign(bad, { key: value });
