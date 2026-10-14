@@ -149,7 +149,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
 
         await append(knownSource, Object.assign(new Unrelated(), { marker: 'no-value' }));
         allAfterUnrelated = await eventually(() => store.readModels.findInstanceById(AllWithChildren, knownSource),
-            model => model !== null && (model.lastValue === null || model.lastValue === undefined));
+            model => model !== null && model.lastValue === '');
 
         await append(unrelatedSource, Object.assign(new Unrelated(), { marker: 'new-source' }));
         allOnly = await eventually(() => store.readModels.findInstanceById(AllOnly, unrelatedSource), model => model !== null);
@@ -183,7 +183,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         (restrictedAfterChild!.children[0].lastValue !== 'child-value').should.be.true;
     });
     it('should clear the mapped root property on an unrelated event without that value', () => {
-        (allAfterUnrelated!.lastValue === null || allAfterUnrelated!.lastValue === undefined).should.be.true;
+        allAfterUnrelated!.lastValue.should.equal('');
     });
     it('should leave the restricted alias unchanged on an unrelated event', () => restrictedAfterUnrelated!.lastValue.should.equal(restrictedAfterChild!.lastValue));
     it('should apply a child-declared all-event mapping through the shared root All block', () => {
@@ -195,7 +195,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         childOnlyAfterChild!.rootValue.should.equal('child-value');
         childOnlyAfterChild!.children[0].id.should.equal('child-one');
         // The explicitly subscribed root From entry maps the root, not the child's shared values.
-        (childOnlyAfterChild!.children[0].lastValue === undefined).should.be.true;
+        childOnlyAfterChild!.children[0].lastValue.should.equal('');
         childOnlyAfterUnrelated!.rootValue.should.equal('child-value');
         (unrelatedChildOnly === null).should.be.true;
     });

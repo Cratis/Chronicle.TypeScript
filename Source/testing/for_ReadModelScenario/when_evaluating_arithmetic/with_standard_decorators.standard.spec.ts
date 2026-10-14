@@ -84,7 +84,7 @@ describe('when evaluating arithmetic with standard model-bound decorators', () =
     it('should suppress aggregate-only AutoMap and restore it for mixed mappings', async () => {
         const scenario = new ReadModelScenario(Totals, artifacts);
         scenario.given.forEventSource('A').events(new Added(2));
-        should((await scenario.instance)!.title === undefined).be.true;
+        should((await scenario.instance)!.title).equal('');
         scenario.given.forEventSource('A').events(new Renamed());
         const result = (await scenario.instance)!;
         should([result.total, result.title, result.label]).deep.equal([3, 'automapped', 'explicit']);
