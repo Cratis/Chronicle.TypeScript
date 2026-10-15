@@ -6,6 +6,7 @@ export { ReactorDelivery } from './ReactorDelivery.js';
 export { reactor, getReactorMetadata, isReactor } from './reactor.js';
 export { handles } from '../events/handles.js';
 export { onceOnly } from './onceOnly.js';
+export { startAtTail } from './startAtTail.js';
 export { replay } from './replay.js';
 export type { ReactorMetadata } from './reactor.js';
 export type { IReactors } from './IReactors.js';
