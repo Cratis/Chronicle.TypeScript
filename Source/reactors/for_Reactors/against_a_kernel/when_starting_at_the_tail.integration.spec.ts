@@ -101,6 +101,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when registering a reacto
     });
 
     it('should leave a reactor that is not marked to catch up on all history', () => {
-        fromTheBeginning.should.deep.equal(['one', 'two', 'three', 'after']);
+        // Each event has its own event source, so the kernel may deliver the partitions in any order.
+        [...fromTheBeginning].sort().should.deep.equal(['after', 'one', 'three', 'two']);
     });
 });
