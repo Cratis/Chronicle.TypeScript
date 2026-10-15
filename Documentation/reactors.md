@@ -132,3 +132,21 @@ class OrderReactor {
 `@replay()` uses the `replay<EventClassName>` method naming convention; `@replay(OrderPlaced)` also accepts an explicit event type when a different name is useful. A replay-only handler subscribes to its event type, but does not run during live delivery. Without a replay-specific handler, the ordinary event handler (camelCase or `@handles`) runs for replayed events unless that method has `@onceOnly()`. When both are present, **only** the replay handler runs during replay; method-level `@onceOnly()` on the ordinary handler does not prevent it. Both decorators support legacy and standard TypeScript decorator syntax.
 
 These policies apply to the **per-event observation state** sent by the kernel, not the separate begin/end replay lifecycle notifications. A message with both a notification and events notifies first, then handles the events; a failed notification fails the partition instead. `@onceOnly()` excludes replay, **not duplicates or retries**. Explicit writes and returned appends are not automatically one transaction with the triggering delivery; make effects idempotent, including under concurrent retries. Replay is not an append sandbox: unguarded explicit or returned writes can happen again during replay.
+
+## Start at the tail
+
+A new reactor catches up from the very beginning of the event sequence, as ordinary observation, so one whose handlers have side effects acts on every historical event the moment it is deployed. `@onceOnly()` does not prevent that, because it only excludes replay. Put `@startAtTail()` on the reactor class and the first time Chronicle sees it, the reactor begins at the tail of the event sequence and observes only what is appended afterwards.
+
+```typescript
+import { reactor, startAtTail } from '@cratis/chronicle';
+
+@reactor()
+@startAtTail()
+class SendWelcomeEmails {
+    welcomeEmailRequested(event: WelcomeEmailRequested): void {
+        // Runs for events appended after this reactor was first registered.
+    }
+}
+```
+
+The marker only affects the first registration. A reactor that already has a position keeps it, so it never skips events after a restart. Renaming the reactor or moving it changes its default id and makes it a new reactor, which starts at the tail again; give `@reactor()` an explicit id to keep the old position. An explicit replay still replays from the beginning. Both the Chronicle server and this client must support it: a server that predates it ignores the request and the reactor catches up from the beginning. The marker is not inherited by subclasses.

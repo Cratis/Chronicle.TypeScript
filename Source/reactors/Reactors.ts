@@ -22,6 +22,7 @@ import { IReactors } from './IReactors.js';
 import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
 import { isOnceOnly } from './onceOnly.js';
+import { isStartAtTail } from './startAtTail.js';
 import { getReactorEventTypes, selectReactorHandler, invokeReactorHandler } from './ReactorDispatcher.js';
 import type { ReactorEventTypeEntry } from './ReactorDispatcher.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
@@ -277,6 +278,7 @@ export class Reactors implements IReactors {
                         })),
                         IsReplayable: !isOnceOnly(reactorType),
                         IsNotReplayable: isOnceOnly(reactorType),
+                        StartAtTail: isStartAtTail(reactorType),
                         GenerationDelivery: EventGenerationDelivery.Compatibility,
                         Tags: getTagsFor(reactorType).map(t => t.value),
                         Filters: {

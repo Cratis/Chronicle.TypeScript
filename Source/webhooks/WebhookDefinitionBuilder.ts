@@ -1,12 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type {
-    BasicAuthorization,
-    BearerTokenAuthorization,
-    OAuthAuthorization,
-    OneOfBasicAuthorizationBearerTokenAuthorizationOAuthAuthorization,
-    WebhookDefinition
+import {
+    EventGenerationDelivery,
+    type BasicAuthorization,
+    type BearerTokenAuthorization,
+    type OAuthAuthorization,
+    type OneOfBasicAuthorizationBearerTokenAuthorizationOAuthAuthorization,
+    type WebhookDefinition
 } from '@cratis/chronicle.contracts';
 import { Constructor } from '@cratis/fundamentals';
 import { IEventTypes } from '../events/IEventTypes.js';
@@ -140,7 +141,8 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
             IsReplayable: this._isReplayable,
             IsActive: this._isActive,
             IsNotReplayable: !this._isReplayable,
-            IsInactive: !this._isActive
+            IsInactive: !this._isActive,
+            GenerationDelivery: EventGenerationDelivery.Compatibility
         };
     }
 }
