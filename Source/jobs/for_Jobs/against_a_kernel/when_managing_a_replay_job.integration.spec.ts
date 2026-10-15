@@ -68,18 +68,18 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
     let stopUnknownJob: unknown;
     let deleteUnknownJob: unknown;
 
-    const waitForActiveObserver = (lastHandledSequenceNumber?: bigint) => eventually(
-        () => connection.observers.getObserverInformation({
-            EventStore: storeName,
-            Namespace: 'Default',
-            ObserverId: 'Item',
-            EventSequenceId: 'event-log'
-        }),
-        observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
-            (lastHandledSequenceNumber === undefined || observer.LastHandledEventSequenceNumber === lastHandledSequenceNumber),
-        15_000);
+    const observerRequest = {
+        EventStore: storeName,
+        Namespace: 'Default',
+        ObserverId: 'Item',
+        EventSequenceId: 'event-log'
+    };
+    const waitForActiveObserver = () => eventually(
+        () => connection.observers.getObserverInformation(observerRequest),
+        observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active,
+        30_000);
 
-    // Readiness (30s) and the existing job-state waits (90s) leave 30s for RPC overhead.
+    // Readiness (30s), append completion (90s), and job-state waits (90s) leave 30s for RPC overhead.
     beforeAll(async () => {
         client = new ChronicleClient(ChronicleOptions.fromConnectionString(connectionString!, {
             discoveryPatterns: [],
@@ -96,8 +96,18 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
             eventSourceId: randomUUID(),
             event: Object.assign(new ItemAdded(), { name: `Item ${index}` })
         })));
-        // ReplayForModel uses Observer.Replay too; wait for acknowledged progress before requesting it.
-        await waitForActiveObserver(appended.at(-1)!.sequenceNumber.value);
+        // ReplayForModel uses Observer.Replay too; wait for the kernel's completion signal before requesting it.
+        appended.every(_ => _.isSuccess).should.equal(true, 'All 500 events must append before waiting for observers');
+        const lastAppend = appended.at(-1)!;
+        try {
+            const completion = await lastAppend.waitForCompletion(90_000);
+            completion.isSuccess.should.equal(true, `Observer completion failed: ${JSON.stringify(completion.failedPartitions)}`);
+        } catch (error) {
+            const lastState = await connection.observers.getObserverInformation(observerRequest, { signal: AbortSignal.timeout(5_000) })
+                .then(observer => `subscribed=${observer.IsSubscribed}, runningState=${observer.RunningState}, lastHandled=${observer.LastHandledEventSequenceNumber}`)
+                .catch((diagnosticError: unknown) => `observer state unavailable: ${String(diagnosticError)}`);
+            throw new Error(`Waiting for Item to finish handling the 500 appended events failed; ${lastState}`, { cause: error });
+        }
 
         jobId = await store.projections.replayForModel(Item);
 
@@ -118,7 +128,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
 
         stopUnknownJob = await store.jobs.stop(randomUUID()).catch((error: unknown) => error);
         deleteUnknownJob = await store.jobs.delete(randomUUID()).catch((error: unknown) => error);
-    }, 150_000);
+    }, 240_000);
 
     afterAll(() => client?.dispose());
 
