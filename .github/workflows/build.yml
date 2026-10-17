@@ -80,13 +80,17 @@ jobs:
         # The webhook delivery specifications run an HTTP receiver in the job (on the runner host); this lets the
         # kernel reach it as host.docker.internal, the same address Docker Desktop provides locally.
         options: --add-host=host.docker.internal:host-gateway
-      # A kernel that honors StartAtTail (Chronicle 19.70.0 or later) for the specification that needs it. The other
-      # kernel-backed specifications stay on the older kernel: against 19.56.0 and later the from-all-events child
-      # mapping specifications fail, which is a separate problem from this one.
+      # A kernel that honors StartAtTail (Chronicle 19.70.0 or later) for the specification that needs it.
       chronicle-tail:
         image: cratis/chronicle:19.70.0-development
         ports:
           - 35001:35000
+      # A kernel that applies child all-event mappings from the child's own All block without copying root mappings
+      # into new children (Chronicle 19.78.1 or later), for the from-all-events specification that asserts it.
+      chronicle-child-mappings:
+        image: cratis/chronicle:19.78.1-development
+        ports:
+          - 35002:35000
 
     steps:
       - name: Checkout code
@@ -117,14 +121,23 @@ jobs:
       - name: Wait for the kernel that honors StartAtTail
         run: timeout 180 bash -c 'until curl -skf https://localhost:35001/health > /dev/null; do sleep 2; done'
 
+      - name: Wait for the kernel that owns child all-event mappings
+        run: timeout 180 bash -c 'until curl -skf https://localhost:35002/health > /dev/null; do sleep 2; done'
+
       - name: Kernel-backed specifications
         working-directory: ./Source
         env:
           CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
-        run: yarn test:integration --exclude '**/when_starting_at_the_tail.integration.spec.ts'
+        run: yarn test:integration --exclude '**/when_starting_at_the_tail.integration.spec.ts' --exclude '**/when_subscribing_with_from_all_events.integration.spec.ts'
 
       - name: Start-at-tail specification
         working-directory: ./Source
         env:
           CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35001
         run: yarn test:integration reactors/for_Reactors/against_a_kernel/when_starting_at_the_tail
+
+      - name: Child all-event mapping specification
+        working-directory: ./Source
+        env:
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35002
+        run: yarn test:integration projections/for_ProjectionDefinitionCompiler/against_a_kernel/when_subscribing_with_from_all_events

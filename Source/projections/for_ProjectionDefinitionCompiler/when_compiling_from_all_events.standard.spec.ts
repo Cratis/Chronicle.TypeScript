@@ -61,26 +61,66 @@ describe('when compiling standard fromAllEvents without explicit event subscript
         should(getFromAllEventsMetadata(Alias.prototype, 'title') === undefined).be.true;
     });
 
-    it('should collect standard child and nested mappings in the root All without widening the subscription', () => {
+    it('should collect standard child and nested mappings on their owning levels without widening the subscription', () => {
         @eventType('standard-from-all-events-child-added')
         class Added { @field(String) id = ''; }
-        class Detail { @field(String) @fromAllEvents(undefined, 'sequenceNumber') sequence = ''; }
+        class Detail {
+            @field(String) @fromAllEvents(undefined, 'sequenceNumber') sequence = '';
+            @field(String) @fromAllEvents() label = '';
+        }
         class Child {
             @field(String) id = '';
             @field(String) @fromAllEvents('name') title = '';
+            @field(String) @fromEvery('everyName') @fromAll('aliasName') restricted = '';
             @field(Detail) @nested detail = new Detail();
         }
         class Derived extends Child {}
-        class Parent {
+        class Sibling extends Child { @field(String) @fromAllEvents('siblingName') override title = ''; }
+        class Group {
             @field(Array, { genericArguments: [Derived] }) @childrenFrom(Added, 'id') items: Derived[] = [];
         }
-        const { definition } = compileModelBound(Parent);
-        should(definition.All).deep.equal({
-            Properties: { title: 'name', sequence: '$eventContext(SequenceNumber)' }, IncludeChildren: true, AutoMap: 0
-        });
+        class Parent {
+            @field(Array, { genericArguments: [Group] }) @childrenFrom(Added, 'id') groups: Group[] = [];
+            @field(Array, { genericArguments: [Sibling] }) @childrenFrom(Added, 'id') siblings: Sibling[] = [];
+            @field(Detail) @nested detail = new Detail();
+        }
+        const { compiled, definition } = compileModelBound(Parent);
+        should(definition.All).deep.equal({ Properties: {}, IncludeChildren: false, AutoMap: 0 });
         should(definition.SubscribesToAllEvents === undefined).be.true;
-        should(definition.Children.items.All!.Properties).deep.equal({});
-        should(definition.Children.items.Nested.detail.All!.Properties).deep.equal({});
+        should(definition.Children.groups.All!.Properties).deep.equal({});
+        should(definition.Children.groups.Children.items.All!.Properties).deep.equal({ title: 'name', restricted: 'everyName' });
+        should(definition.Children.siblings.All!.Properties).deep.equal({ title: 'siblingName', restricted: 'everyName' });
+        const detailMappings = { sequence: '$eventContext(SequenceNumber)', label: 'label' };
+        should(definition.Children.groups.Children.items.Nested.detail.All!.Properties).deep.equal(detailMappings);
+        should(definition.Nested.detail.All!.Properties).deep.equal(detailMappings);
+        should(compiled.provenance.get(definition)).include.deep.members([
+            { contractPath: 'Children.groups.Children.items.All.Properties.restricted', declaration: '@fromEvery' },
+            { contractPath: 'Children.groups.Children.items.Nested.detail.All.Properties.sequence', declaration: '@fromAllEvents' }
+        ]);
+    });
+
+    it('should preserve independent same-named root and child mappings in either property order', () => {
+        @eventType('standard-all-same-name-added')
+        class Added { @field(String) id = ''; }
+        class Child {
+            @field(String) id = '';
+            @field(String) @fromEvery('ignored') @fromAllEvents('childName') title = '';
+            @field(String) @fromAllEvents('childOther') @fromEvery('ignored') other = '';
+        }
+        class RootFirst {
+            @field(String) @fromAllEvents('rootName') title = '';
+            @field(Array, { genericArguments: [Child] }) @childrenFrom(Added, 'id') items: Child[] = [];
+        }
+        class ChildFirst {
+            @field(Array, { genericArguments: [Child] }) @childrenFrom(Added, 'id') items: Child[] = [];
+            @field(String) @fromAllEvents('rootName') title = '';
+        }
+        for (const type of [RootFirst, ChildFirst]) {
+            const { definition } = compileModelBound(type);
+            should(definition.All!.Properties).deep.equal({ title: 'rootName' });
+            should(definition.Children.items.All!.Properties).deep.equal({ title: 'childName', other: 'childOther' });
+            should(definition.SubscribesToAllEvents).be.true;
+        }
     });
 
     it('should reject all-event scenarios before replay with the standard decorator declaration', () => {

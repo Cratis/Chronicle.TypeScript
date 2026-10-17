@@ -41,6 +41,14 @@ Every option is optional; an omitted `key` or `parentKey` defaults to the event 
 
 With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.
 
+## All-event mappings on children and nested objects
+
+`@fromAllEvents` maps a property on the object where you declare it. On a child or nested type, it populates that object's property, including on the event that creates it. Root and child properties with the same name can map from different event properties without overwriting each other's mappings. `@fromEvery` on a child or nested property also stays on that object and applies to its handled events.
+
+Only a root `@fromAllEvents` enables sequence-wide subscription for the root projection. A child annotation does not subscribe the root to unrelated events. Root mappings still run on child events when the root mapping includes them, but root values are never copied into child objects.
+
+Earlier TypeScript clients sent child and nested `@fromAllEvents` mappings as bare root property names. Chronicle 19.78.1 can recover those mappings when the root schema does not declare the same property. Upgrade the client when both levels declare it, then replay affected projections to rebuild previously materialized child values. Child-local mappings use the existing child definition contract; no new contract package is required.
+
 ## Projection tags
 
 Apply `@tag('Analytics')` or `@tags('Analytics', 'Reporting')` to a declarative projection class, or to the read model class for a model-bound projection. Import either decorator from `@cratis/chronicle`. Both decorator modes support repeated declarations; duplicate values are emitted once, sorted for deterministic definition hashing. For declarative projections, only tags on the projection class are sent, not tags on its read model.

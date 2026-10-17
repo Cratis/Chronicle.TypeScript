@@ -294,23 +294,23 @@ export class ProjectionDefinitionCompiler {
         const allProperties: Record<string, string> = {};
         const subscribesToAllEvents = properties.some(property => getFromAllEventsMetadata(prototype, property) !== undefined);
         if (subscribesToAllEvents) overrides.set('SubscribesToAllEvents', '@fromAllEvents');
-        let includeChildren = false;
-        const collectSharedMapping = (memberPrototype: object, property: string, isRoot = false) => {
+        const all = { Properties: allProperties, IncludeChildren: false, AutoMap: AutoMap.Inherit };
+        const collectSharedMapping = (memberPrototype: object, property: string, destination: ChildrenDefinitionLike['All'], path: string) => {
             const fromAllEvents = getFromAllEventsMetadata(memberPrototype, property);
-            // Preserve legacy child behavior: only the new decorator contributes child mappings.
-            const fromEvery = isRoot ? getFromEveryMetadata(memberPrototype, property) : undefined;
-            const mapping = fromAllEvents ?? fromEvery ?? (isRoot ? getFromAllMetadata(memberPrototype, property) : undefined);
+            const fromEvery = getFromEveryMetadata(memberPrototype, property);
+            const mapping = fromAllEvents ?? fromEvery ?? (path === 'All' ? getFromAllMetadata(memberPrototype, property) : undefined);
             if (!mapping) return;
+            const declaration = fromAllEvents ? '@fromAllEvents' : fromEvery ? '@fromEvery' : '@fromAll';
             if (fromAllEvents) {
-                includeChildren = true;
-                overrides.set('All', '@fromAllEvents');
+                destination.IncludeChildren = true;
+                overrides.set(path, declaration);
+            } else if (path !== 'All' && !overrides.has(path)) {
+                overrides.set(path, declaration);
             }
-            // .NET collects child and nested members by bare name into the root All block,
-            // not by a path prefixed with the containing collection or nested property.
-            allProperties[property] = mapping.contextProperty
+            destination.Properties[property] = mapping.contextProperty
                 ? eventContextPropertyExpression(mapping.contextProperty)
                 : (mapping.property ?? property);
-            overrides.set(`All.Properties.${property}`, fromAllEvents ? '@fromAllEvents' : fromEvery ? '@fromEvery' : '@fromAll');
+            overrides.set(`${path}.Properties.${property}`, declaration);
         };
 
         const fromEvents = getFromEventMetadata(type);
@@ -400,7 +400,7 @@ export class ProjectionDefinitionCompiler {
                     overrides.set(`${eventContractPath('From', toContractEventType(clearWith.eventType))}.Properties.${property}`, '@clearWith');
                 }
             }
-            collectSharedMapping(prototype, property, true);
+            collectSharedMapping(prototype, property, all, 'All');
         }
 
         let from = Array.from(fromByEventType.values());
@@ -457,11 +457,7 @@ export class ProjectionDefinitionCompiler {
             Join: join,
             Children: childrenByProperty,
             FromEvery: [],
-            All: {
-                Properties: allProperties,
-                IncludeChildren: includeChildren,
-                AutoMap: AutoMap.Inherit
-            },
+            All: all,
             ...(subscribesToAllEvents ? { SubscribesToAllEvents: true } : {}),
             RemovedWith: Array.from(removedWithByEventType.values()),
             RemovedWithJoin: Array.from(removedWithJoinByEventType.values()),
@@ -472,7 +468,14 @@ export class ProjectionDefinitionCompiler {
             Nested: nestedByProperty
         };
         const provenance = captureProjectionProvenance({ ...definition, From: preLoweringFrom, Join: preLoweringJoin }, true, overrides);
-        if (!includeChildren && Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
+        // The shared provenance reader captures root capabilities only; preserve the
+        // declaring level for child/nested all-event diagnostics collected above.
+        for (const [contractPath, declaration] of overrides) {
+            if (contractPath.startsWith('Children.') || contractPath.startsWith('Nested.')) {
+                provenance.push({ contractPath, declaration });
+            }
+        }
+        if (!all.IncludeChildren && Object.keys(allProperties).length && Object.keys(allProperties).every(property =>
             getFromAllMetadata(prototype, property) && !getFromEveryMetadata(prototype, property))) {
             const index = provenance.findIndex(entry => entry.contractPath === 'All');
             if (index >= 0) provenance[index] = { contractPath: 'All', declaration: '@fromAll' };
