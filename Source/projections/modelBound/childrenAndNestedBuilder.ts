@@ -234,12 +234,14 @@ function discoverIdentifiedBy(childType: Function | undefined, eventKey: string 
  * `@childrenFrom`/`@nested` properties the child/nested type itself declares.
  * @param definition - The children definition being populated.
  * @param childType - The resolved child/nested type, when available.
- * @param collectSharedMapping - Collects member mappings into the root's shared All definition.
+ * @param path - The contract path of this child or nested definition.
+ * @param collectSharedMapping - Collects member mappings into their owning All definition.
  */
 function populateFromType(
     definition: ChildrenDefinitionLike,
     childType: Function | undefined,
-    collectSharedMapping?: (prototype: object, property: string) => void
+    path: string,
+    collectSharedMapping?: (prototype: object, property: string, all: ChildrenDefinitionLike['All'], path: string) => void
 ): void {
     if (!childType) {
         return;
@@ -281,8 +283,7 @@ function populateFromType(
 
     const prototype = childType.prototype;
     const properties = TypeIntrospector.getTrackedProperties(childType);
-    // Like .NET, collect this type's members before descending into its children.
-    for (const property of properties) collectSharedMapping?.(prototype, property);
+    for (const property of properties) collectSharedMapping?.(prototype, property, definition.All, `${path}.All`);
     for (const property of properties) {
         applyPropertyMappings(prototype, property, fromByEventType);
 
@@ -307,11 +308,11 @@ function populateFromType(
 
         const childrenFromList = getChildrenFromMetadata(prototype, property);
         if (childrenFromList.length > 0) {
-            definition.Children[property] = buildChildrenEntry(childType, property, childrenFromList, collectSharedMapping);
+            definition.Children[property] = buildChildrenEntry(childType, property, childrenFromList, collectSharedMapping, `${path}.Children.${property}`);
         }
 
         if (isNested(prototype, property)) {
-            definition.Nested[property] = buildNestedEntry(childType, property, collectSharedMapping);
+            definition.Nested[property] = buildNestedEntry(childType, property, collectSharedMapping, `${path}.Nested.${property}`);
         }
     }
 
@@ -325,14 +326,16 @@ function populateFromType(
  * @param type - The class declaring the property.
  * @param property - The property name.
  * @param metadataList - The `@childrenFrom` metadata entries declared on the property (one per creating event type).
- * @param collectSharedMapping - Collects member mappings into the root's shared All definition.
+ * @param collectSharedMapping - Collects member mappings into their owning All definition.
+ * @param path - The contract path of this children definition.
  * @returns The wire-shaped children definition.
  */
 export function buildChildrenEntry(
     type: Function,
     property: string,
     metadataList: ChildrenFromMetadata[],
-    collectSharedMapping?: (prototype: object, property: string) => void
+    collectSharedMapping?: (prototype: object, property: string, all: ChildrenDefinitionLike['All'], path: string) => void,
+    path = `Children.${property}`
 ): ChildrenDefinitionLike {
     const childType = resolveChildElementType(type, property);
     const definition = createEmptyChildrenDefinition(type, childType);
@@ -352,7 +355,7 @@ export function buildChildrenEntry(
         });
     }
 
-    populateFromType(definition, childType, collectSharedMapping);
+    populateFromType(definition, childType, path, collectSharedMapping);
 
     // For non-aggregate-only creating events, populate an unmapped child identifier from
     // the creating event's key. IdentifiedBy selects the child property; it is not itself
@@ -395,13 +398,15 @@ export function buildChildrenEntry(
  * Builds the `ChildrenDefinition` for a `@nested` single-object property.
  * @param type - The class declaring the property.
  * @param property - The property name.
- * @param collectSharedMapping - Collects member mappings into the root's shared All definition.
+ * @param collectSharedMapping - Collects member mappings into their owning All definition.
+ * @param path - The contract path of this nested definition.
  * @returns The wire-shaped nested definition.
  */
 export function buildNestedEntry(
     type: Function,
     property: string,
-    collectSharedMapping?: (prototype: object, property: string) => void
+    collectSharedMapping?: (prototype: object, property: string, all: ChildrenDefinitionLike['All'], path: string) => void,
+    path = `Nested.${property}`
 ): ChildrenDefinitionLike {
     const nestedType = resolveNestedType(type, property);
     const definition = createEmptyChildrenDefinition(type, nestedType);
@@ -414,6 +419,6 @@ export function buildNestedEntry(
         definition.RemovedWith.push({ Key: eventType, Value: { Key: '$eventSourceId', ParentKey: '' } });
     }
 
-    populateFromType(definition, nestedType, collectSharedMapping);
+    populateFromType(definition, nestedType, path, collectSharedMapping);
     return definition;
 }

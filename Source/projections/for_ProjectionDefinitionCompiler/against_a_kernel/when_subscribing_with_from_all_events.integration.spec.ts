@@ -65,8 +65,8 @@ class AllWithChildMappings {
     @field(Array, { genericArguments: [AllMappedChild] }) @childrenFrom(ChildAdded, 'childId') children: AllMappedChild[] = [];
 }
 
-// Without root all-event subscription, the shared All block needs a root From entry
-// for ChildAdded as well as the child's creating entry.
+// The root fromEvery mapping handles ChildAdded only because the root explicitly
+// subscribes to it; the child's All mapping belongs to the child independently.
 @fromEvent(Started)
 @fromEvent(ChildAdded)
 class ChildOnlyMappings {
@@ -80,20 +80,6 @@ const artifacts: IClientArtifactsProvider = {
     projections: [], reactors: [], reducers: [], seeders: [], constraints: [], webhooks: [],
     eventTypeMigrations: [], globalForHandlers: []
 };
-
-async function eventually<T>(read: () => Promise<T>, accept: (value: T) => boolean): Promise<T> {
-    const deadline = Date.now() + 20_000;
-    let value = await read();
-    while (!accept(value)) {
-        if (Date.now() > deadline) {
-            const state = JSON.stringify(value, (_key, member: unknown) => typeof member === 'bigint' ? member.toString() : member);
-            throw new Error(`Timed out waiting for the projected state: ${state}`);
-        }
-        await new Promise(resolve => setTimeout(resolve, 100));
-        value = await read();
-    }
-    return value;
-}
 
 describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllEvents against a kernel', () => {
     const knownSource = randomUUID();
@@ -111,25 +97,32 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
     let allAfterUnrelated: AllWithChildren | null;
     let restrictedAfterUnrelated: RestrictedWithChildren | null;
     let allChildMappingsAfterChild: AllWithChildMappings | null;
+    let allChildMappingsAfterUpdate: AllWithChildMappings | null;
     let childOnlyAfterChild: ChildOnlyMappings | null;
     let childOnlyAfterUnrelated: ChildOnlyMappings | null;
     let unrelatedChildOnly: ChildOnlyMappings | null;
 
-    async function append(source: string, event: object): Promise<bigint> {
+    async function append(source: string, event: object, waitForObservers = true): Promise<bigint> {
         const result = await store.eventLog.append(source, event);
         result.isSuccess.should.be.true;
+        if (waitForObservers) {
+            const completion = await result.waitForCompletion(20_000);
+            completion.isSuccess.should.equal(true, `Observer completion failed: ${JSON.stringify(completion.failedPartitions)}`);
+        }
         return result.sequenceNumber.value;
     }
 
     async function waitForObserver(observerId: string, sequenceNumber: bigint): Promise<void> {
         const connection = (store as unknown as { _connection: ChronicleConnection })._connection;
-        await eventually(() => connection.observers.getObserverInformation({
+        const observer = await connection.observers.getObserverInformation({
             EventStore: storeName,
             Namespace: 'Default',
             ObserverId: observerId,
             EventSequenceId: 'event-log'
-        }), observer => observer.IsSubscribed && observer.RunningState === ObserverRunningState.Active &&
-            observer.LastHandledEventSequenceNumber >= sequenceNumber);
+        }, { signal: AbortSignal.timeout(5_000) });
+        observer.IsSubscribed.should.equal(true, `${observerId} must be subscribed`);
+        observer.RunningState.should.equal(ObserverRunningState.Active);
+        (observer.LastHandledEventSequenceNumber >= sequenceNumber).should.equal(true, `${observerId} must have handled ${sequenceNumber}`);
     }
 
     beforeAll(async () => {
@@ -138,27 +131,33 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         }));
         store = await client.getEventStore(storeName);
 
-        await append(knownSource, Object.assign(new Started(), { value: 'started' }));
-        allAfterStarted = await eventually(() => store.readModels.findInstanceById(AllWithChildren, knownSource), model => model?.lastValue === 'started');
-        await eventually(() => store.readModels.findInstanceById(RestrictedWithChildren, knownSource), model => model?.lastValue === 'started');
-        await append(knownSource, Object.assign(new ChildAdded(), { childId: 'child-one', value: 'child-value' }));
-        allAfterChild = await eventually(() => store.readModels.findInstanceById(AllWithChildren, knownSource), model => model?.children?.length === 1);
-        restrictedAfterChild = await eventually(() => store.readModels.findInstanceById(RestrictedWithChildren, knownSource), model => model?.children?.length === 1);
-        childOnlyAfterChild = await eventually(() => store.readModels.findInstanceById(ChildOnlyMappings, knownSource), model => model?.children?.length === 1);
-        allChildMappingsAfterChild = await eventually(() => store.readModels.findInstanceById(AllWithChildMappings, knownSource), model => model?.children?.length === 1);
+        const startedSequenceNumber = await append(knownSource, Object.assign(new Started(), { value: 'started' }));
+        await waitForObserver('AllWithChildren', startedSequenceNumber);
+        allAfterStarted = await store.readModels.findInstanceById(AllWithChildren, knownSource);
+        const childSequenceNumber = await append(knownSource, Object.assign(new ChildAdded(), { childId: 'child-one', value: 'child-value' }));
+        for (const observerId of ['AllWithChildren', 'RestrictedWithChildren', 'ChildOnlyMappings', 'AllWithChildMappings']) {
+            await waitForObserver(observerId, childSequenceNumber);
+        }
+        allAfterChild = await store.readModels.findInstanceById(AllWithChildren, knownSource);
+        restrictedAfterChild = await store.readModels.findInstanceById(RestrictedWithChildren, knownSource);
+        childOnlyAfterChild = await store.readModels.findInstanceById(ChildOnlyMappings, knownSource);
+        allChildMappingsAfterChild = await store.readModels.findInstanceById(AllWithChildMappings, knownSource);
 
-        await append(knownSource, Object.assign(new Unrelated(), { marker: 'no-value' }));
-        allAfterUnrelated = await eventually(() => store.readModels.findInstanceById(AllWithChildren, knownSource),
-            model => model !== null && model.lastValue === '');
+        const updatedSequenceNumber = await append(knownSource, Object.assign(new ChildAdded(), { childId: 'child-one', value: 'updated-child-value' }));
+        await waitForObserver('AllWithChildMappings', updatedSequenceNumber);
+        allChildMappingsAfterUpdate = await store.readModels.findInstanceById(AllWithChildMappings, knownSource);
 
-        await append(unrelatedSource, Object.assign(new Unrelated(), { marker: 'new-source' }));
-        allOnly = await eventually(() => store.readModels.findInstanceById(AllOnly, unrelatedSource), model => model !== null);
-        unrelatedAll = await eventually(() => store.readModels.findInstanceById(AllWithChildren, unrelatedSource), model => model !== null);
-        // A subscribed sentinel advances each restricted observer past both unrelated events.
-        // Progress on an all-event projection is not a barrier for another observer.
+        // This client's completion request carries only a global tail, so restricted
+        // observers cannot complete an unrelated append until a subscribed sentinel follows.
+        await append(knownSource, Object.assign(new Unrelated(), { marker: 'no-value' }), false);
+        await append(unrelatedSource, Object.assign(new Unrelated(), { marker: 'new-source' }), false);
         const sentinelSequenceNumber = await append(sentinelSource, Object.assign(new Started(), { value: 'sentinel' }));
-        await waitForObserver('RestrictedWithChildren', sentinelSequenceNumber);
-        await waitForObserver('ChildOnlyMappings', sentinelSequenceNumber);
+        for (const observerId of ['AllOnly', 'AllWithChildren', 'RestrictedWithChildren', 'ChildOnlyMappings']) {
+            await waitForObserver(observerId, sentinelSequenceNumber);
+        }
+        allAfterUnrelated = await store.readModels.findInstanceById(AllWithChildren, knownSource);
+        allOnly = await store.readModels.findInstanceById(AllOnly, unrelatedSource);
+        unrelatedAll = await store.readModels.findInstanceById(AllWithChildren, unrelatedSource);
         restrictedAfterUnrelated = await store.readModels.findInstanceById(RestrictedWithChildren, knownSource);
         unrelatedRestricted = await store.readModels.findInstanceById(RestrictedWithChildren, unrelatedSource);
         childOnlyAfterUnrelated = await store.readModels.findInstanceById(ChildOnlyMappings, knownSource);
@@ -173,10 +172,11 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         (unrelatedRestricted === null).should.be.true;
     });
     it('should give the explicit all-event mapping precedence over fromEvery', () => allAfterStarted!.lastValue.should.equal('started'));
-    it('should apply the root all-event mapping to a child', () => {
+    it('should update the root on a child event without copying its mapping into the child', () => {
+        allAfterChild!.lastValue.should.equal('child-value');
         allAfterChild!.children.should.have.lengthOf(1);
         allAfterChild!.children[0].id.should.equal('child-one');
-        allAfterChild!.children[0].lastValue.should.equal('child-value');
+        allAfterChild!.children[0].lastValue.should.equal('');
     });
     it('should not propagate the deprecated restricted alias mapping to children', () => {
         restrictedAfterChild!.children.should.have.lengthOf(1);
@@ -186,17 +186,21 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         allAfterUnrelated!.lastValue.should.equal('');
     });
     it('should leave the restricted alias unchanged on an unrelated event', () => restrictedAfterUnrelated!.lastValue.should.equal(restrictedAfterChild!.lastValue));
-    it('should apply a child-declared all-event mapping through the shared root All block', () => {
+    it('should apply a child-declared mapping on creation without changing an unmapped same-named root property', () => {
         allChildMappingsAfterChild!.children[0].lastValue.should.equal('child-value');
-        // The child event's key routes the all-event fallback to the child, not the root.
-        allChildMappingsAfterChild!.lastValue.should.equal('started');
+        allChildMappingsAfterChild!.source.should.equal(knownSource);
+        allChildMappingsAfterChild!.lastValue.should.equal('');
+    });
+    it('should update the existing child through its own All mapping on subsequent child events', () => {
+        allChildMappingsAfterUpdate!.children.should.have.lengthOf(1);
+        allChildMappingsAfterUpdate!.children[0].lastValue.should.equal('updated-child-value');
+        allChildMappingsAfterUpdate!.lastValue.should.equal('');
     });
     it('should keep the root subscription restricted when only the child declares fromAllEvents', () => {
         childOnlyAfterChild!.rootValue.should.equal('child-value');
         childOnlyAfterChild!.children[0].id.should.equal('child-one');
-        // The explicitly subscribed root From entry maps the root, not the child's shared values.
-        childOnlyAfterChild!.children[0].lastValue.should.equal('');
-        childOnlyAfterUnrelated!.rootValue.should.equal('child-value');
+        childOnlyAfterChild!.children[0].lastValue.should.equal('child-value');
+        childOnlyAfterUnrelated!.rootValue.should.equal('updated-child-value');
         (unrelatedChildOnly === null).should.be.true;
     });
 });

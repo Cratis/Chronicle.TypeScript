@@ -116,13 +116,13 @@ describe('when compiling fromAllEvents on a child model', () => {
         (definition.SubscribesToAllEvents === undefined).should.be.true;
         ('SubscribesToAllEvents' in definition.Children.items).should.be.false;
     });
-    it('should collect the child mapping by bare name in the root All without subscribing to all events', () => {
+    it('should collect the mapping only in the owning child All with its full diagnostic path', () => {
         const { compiled, definition } = compileModelBound(Parent);
-        definition.All!.should.deep.equal({ Properties: { title: 'name' }, IncludeChildren: true, AutoMap: 0 });
-        definition.Children.items.All!.Properties.should.deep.equal({});
+        definition.All!.should.deep.equal({ Properties: {}, IncludeChildren: false, AutoMap: 0 });
+        definition.Children.items.All!.should.deep.equal({ Properties: { title: 'name' }, IncludeChildren: true, AutoMap: 0 });
         compiled.provenance.get(definition)!.should.include.deep.members([
-            { contractPath: 'All', declaration: '@fromAllEvents' },
-            { contractPath: 'All.Properties.title', declaration: '@fromAllEvents' }
+            { contractPath: 'Children.items.All', declaration: '@fromAllEvents' },
+            { contractPath: 'Children.items.All.Properties.title', declaration: '@fromAllEvents' }
         ]);
     });
     it('should emit the subscription only at the root when the parent opts in', () => {
@@ -131,17 +131,26 @@ describe('when compiling fromAllEvents on a child model', () => {
         const { definition } = compileModelBound(AllParent);
         definition.SubscribesToAllEvents.should.be.true;
         definition.All!.should.deep.equal({
-            Properties: { source: '$eventContext(EventSourceId)', title: 'name' }, IncludeChildren: true, AutoMap: 0
+            Properties: { source: '$eventContext(EventSourceId)' }, IncludeChildren: true, AutoMap: 0
         });
         ('SubscribesToAllEvents' in definition.Children.items).should.be.false;
     });
-    it('should share one bare-name mapping when a later child member shadows a root member', () => {
-        class AllParent extends Model { items: Child[] = []; }
-        fromAllEvents('rootName')(AllParent.prototype, 'title');
-        field(Array, { genericArguments: [Child] })(AllParent.prototype, 'items');
-        childrenFrom(Added, 'id')(AllParent.prototype, 'items');
-        compileModelBound(AllParent).definition.All!.Properties.should.deep.equal({ title: 'name' });
-    });
+    for (const childFirst of [true, false]) {
+        it(`should keep same-named root and child sources independent with child declared ${childFirst ? 'first' : 'last'}`, () => {
+            class AllParent { title = ''; items: Child[] = []; }
+            const declareChild = () => {
+                field(Array, { genericArguments: [Child] })(AllParent.prototype, 'items');
+                childrenFrom(Added, 'id')(AllParent.prototype, 'items');
+            };
+            if (childFirst) declareChild();
+            field(String)(AllParent.prototype, 'title');
+            fromAllEvents('rootName')(AllParent.prototype, 'title');
+            if (!childFirst) declareChild();
+            const { definition } = compileModelBound(AllParent);
+            definition.All!.Properties.should.deep.equal({ title: 'rootName' });
+            definition.Children.items.All!.Properties.should.deep.equal({ title: 'name' });
+        });
+    }
 });
 
 describe('when compiling fromAllEvents on nested and inherited child models', () => {
@@ -172,16 +181,35 @@ describe('when compiling fromAllEvents on nested and inherited child models', ()
     field(Detail)(Parent.prototype, 'detail');
     nested(Parent.prototype, 'detail');
 
-    it('should collect grandchild and nested mappings into the root without path prefixes or legacy child mappings', () => {
-        const { definition } = compileModelBound(Parent);
-        definition.All!.should.deep.equal({
-            Properties: { title: 'name', label: 'label', sequence: '$eventContext(SequenceNumber)' },
-            IncludeChildren: true, AutoMap: 0
-        });
+    it('should keep grandchild and nested mappings on their declaring levels including inherited fromEvery', () => {
+        const { compiled, definition } = compileModelBound(Parent);
+        definition.All!.should.deep.equal({ Properties: {}, IncludeChildren: false, AutoMap: 0 });
         (definition.SubscribesToAllEvents === undefined).should.be.true;
-        definition.Children.groups.Children.children.All!.Properties.should.deep.equal({});
-        definition.Children.groups.Children.children.Nested.detail.All!.Properties.should.deep.equal({});
-        definition.Nested.detail.All!.Properties.should.deep.equal({});
+        definition.Children.groups.All!.Properties.should.deep.equal({});
+        definition.Children.groups.Children.children.All!.Properties.should.deep.equal({ title: 'name', ignored: 'ignoredEvery' });
+        const detailMappings = { label: 'label', sequence: '$eventContext(SequenceNumber)' };
+        definition.Children.groups.Children.children.Nested.detail.All!.Properties.should.deep.equal(detailMappings);
+        definition.Nested.detail.All!.Properties.should.deep.equal(detailMappings);
+        compiled.provenance.get(definition)!.should.include.deep.members([
+            { contractPath: 'Children.groups.Children.children.All.Properties.ignored', declaration: '@fromEvery' },
+            { contractPath: 'Children.groups.Children.children.Nested.detail.All.Properties.sequence', declaration: '@fromAllEvents' },
+            { contractPath: 'Nested.detail.All.Properties.label', declaration: '@fromAllEvents' }
+        ]);
+    });
+    it('should keep a sibling fromEvery context mapping local without enabling IncludeChildren or the deprecated child alias', () => {
+        class RestrictedChild { id = ''; source = ''; ignored = ''; }
+        for (const property of ['id', 'source', 'ignored']) field(String)(RestrictedChild.prototype, property);
+        fromEvery(undefined, 'eventSourceId')(RestrictedChild.prototype, 'source');
+        fromAll('ignoredAlias')(RestrictedChild.prototype, 'ignored');
+        class RestrictedParent { items: RestrictedChild[] = []; }
+        field(Array, { genericArguments: [RestrictedChild] })(RestrictedParent.prototype, 'items');
+        childrenFrom(Added, 'id')(RestrictedParent.prototype, 'items');
+        const { definition } = compileModelBound(RestrictedParent);
+        definition.All!.should.deep.equal({ Properties: {}, IncludeChildren: false, AutoMap: 0 });
+        definition.Children.items.All!.should.deep.equal({
+            Properties: { source: '$eventContext(EventSourceId)' }, IncludeChildren: false, AutoMap: 0
+        });
+        compileModelBound(Parent).definition.Children.groups.Children.children.All!.Properties.title.should.equal('name');
     });
     it('should collect a nested-only mapping without widening the root subscription', () => {
         class NestedOnly { detail = new Detail(); }
@@ -189,9 +217,8 @@ describe('when compiling fromAllEvents on nested and inherited child models', ()
         field(Detail)(NestedOnly.prototype, 'detail');
         nested(NestedOnly.prototype, 'detail');
         const { definition } = compileModelBound(NestedOnly);
-        definition.All!.should.deep.equal({
-            Properties: { label: 'label', sequence: '$eventContext(SequenceNumber)' }, IncludeChildren: true, AutoMap: 0
-        });
+        definition.All!.should.deep.equal({ Properties: {}, IncludeChildren: false, AutoMap: 0 });
+        definition.Nested.detail.All!.Properties.should.deep.equal({ label: 'label', sequence: '$eventContext(SequenceNumber)' });
         (definition.SubscribesToAllEvents === undefined).should.be.true;
         ('SubscribesToAllEvents' in definition.Nested.detail).should.be.false;
     });
