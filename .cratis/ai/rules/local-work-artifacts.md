@@ -43,16 +43,23 @@ dumps, and similar coordination files. These are **work records, not documentati
   main checkout when a pull request merges or you finish a task (hooks also run it after
   `gh pr merge` and at session start where the harness supports them, and **ship-changes**
   ends with it). It removes a worktree and its branch only on evidence the work reached the
-  default branch — pushed is not merged — and never forces; ignored files such as a nested
-  `.ai-work/`, `.env` files and local databases are deleted with it, so move anything you
+  default branch — pushed is not merged — and never forces. Worktrees with non-empty `.ai-work/`
+  directories are kept by default as "has untracked work records (.ai-work/)". Manual
+  `--include-work-records` permits deleting those records after you preserve what you need;
+  automatic hooks never opt in. Pin a long-lived worktree with `git worktree lock <path>`;
+  locked worktrees are always kept, even with opt-in. Other ignored files such as `.env` files
+  and local databases can still be deleted with a removed worktree, so move anything you
   still need out first. Do not hand-remove worktrees or `git branch -D` a delivered branch
   when the script can; and `gh pr merge --delete-branch` from inside a worktree leaves the
   worktree and branch behind, which is why the script exists. If the branch must outlive the
   task unmerged, leave the worktree and say so in the handoff. Never `--force` a removal; a
   refusal means look, not push harder.
+- **Scan for secrets before archiving or sharing.** Before anything from `.ai-work/` is archived,
+  attached or shared, run `gitleaks detect --no-git --source <dir>` (or the repository's equivalent)
+  and redact every finding. See [`secrets.md`](./secrets.md).
 - **A decision log is not a work record.** A decision — a durable choice with a
   decider and a date — is documentation: it lives in **`decisions/`** (or the
-  repository's documented decisions folder) and is reviewed like any other
+  repository's documented decisions folder, such as `.cratis/ai.json` `process.decisions.path`) and is reviewed like any other
   documentation. A handover may summarize decisions; it never holds the only
   copy. If a session produced a real decision, land the record in `decisions/`
   before the session's `.ai-work/` files are discarded.
