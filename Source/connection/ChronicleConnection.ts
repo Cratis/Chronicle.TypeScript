@@ -341,14 +341,24 @@ export class ChronicleConnection implements ChronicleServices {
 
     private warnWhenTlsValidationIsSkipped(candidates: ChronicleServerAddress[]): void {
         if (this._warnedAboutSkippedTlsValidation) return;
-        if (this._connectionString.disableTls || !this._connectionString.skipTlsValidation || this._options.credentials) return;
+        if (this._connectionString.disableTls || !this._connectionString.skipTlsValidation) return;
 
-        const remoteHosts = [...new Set(candidates.map(candidate => candidate.host).filter(host => !isLoopbackHost(host)))];
+        // Custom credentials replace the gRPC channel's TLS settings, but OAuth token requests
+        // (every mode except an API key) still skip validation.
+        const channelSkipsValidation = !this._options.credentials;
+        const tokensSkipValidation = !this._connectionString.apiKey;
+        if (!channelSkipsValidation && !tokensSkipValidation) return;
+
+        const hostnames = !channelSkipsValidation && this._options.authority
+            ? [new URL(this._options.authority).hostname]
+            : candidates.map(candidate => candidate.host);
+        const remoteHosts = [...new Set(hostnames.filter(host => !isLoopbackHost(host)))];
         if (remoteHosts.length === 0) return;
 
         this._warnedAboutSkippedTlsValidation = true;
+        const scope = channelSkipsValidation ? 'the gRPC channel and OAuth token requests' : 'OAuth token requests';
         createLogger('@cratis/chronicle/ChronicleConnection', this.logger).warn(
-            `TLS certificate validation is disabled for the gRPC channel and OAuth token requests to ${remoteHosts.join(', ')}. ` +
+            `TLS certificate validation is disabled for ${scope} to ${remoteHosts.join(', ')}. ` +
             'Set skipTlsValidation=false in the connection string, or skipTlsValidation = false on ChronicleConnectionStringBuilder, to validate the server certificate.',
             { hosts: remoteHosts });
     }

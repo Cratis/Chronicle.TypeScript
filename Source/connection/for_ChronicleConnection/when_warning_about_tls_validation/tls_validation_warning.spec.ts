@@ -2,14 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { credentials as grpcCredentials, type ChannelCredentials } from '@grpc/grpc-js';
 import { ChronicleConnection } from '../../ChronicleConnection.js';
 import type { ChronicleLogEntry } from '../../../logging/ChronicleLogEntry.js';
 
 const connections: ChronicleConnection[] = [];
 
-async function connectionWarnings(connectionString: string, resets = 0): Promise<ChronicleLogEntry[]> {
+async function connectionWarnings(connectionString: string, resets = 0, credentials?: ChannelCredentials): Promise<ChronicleLogEntry[]> {
     const entries: ChronicleLogEntry[] = [];
-    const connection = new ChronicleConnection({ connectionString, logger: { log: entry => { entries.push(entry); } } });
+    const connection = new ChronicleConnection({ connectionString, credentials, logger: { log: entry => { entries.push(entry); } } });
     connections.push(connection);
     await connection.resetChannel();
     for (let i = 0; i < resets; i++) await connection.resetChannel();
@@ -44,5 +45,16 @@ describe('TLS validation warning', () => {
 
     it('does not warn again on reconnect', async () => {
         expect(await connectionWarnings('chronicle://chronicle.example.com:35000', 2)).toHaveLength(1);
+    });
+
+    it('warns about OAuth token requests only when custom credentials are used with token auth', async () => {
+        const warnings = await connectionWarnings('chronicle://client:secret@chronicle.example.com:35000', 0, grpcCredentials.createInsecure());
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0].message).toContain('OAuth token requests to chronicle.example.com');
+        expect(warnings[0].message).not.toContain('gRPC channel');
+    });
+
+    it('does not warn when custom credentials are used with an API key', async () => {
+        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?apiKey=key', 0, grpcCredentials.createInsecure())).toHaveLength(0);
     });
 });
