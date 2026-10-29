@@ -74,7 +74,7 @@ Read models are inferred from `@projection('id', Model)`, `@reducer('id', sequen
 
 Decorated artifacts register when their modules are imported. When the entry file is TypeScript (run through a loader such as `tsx`), the client also scans `**/*.ts` files by default; compiled JavaScript scans nothing unless you set `discoveryPatterns`. See [artifact discovery](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/getting-started.md#artifact-discovery).
 
-The client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`. Set it for every server other than a local development kernel; see [Connect to Chronicle](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/connecting.md).
+The client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`. Set it for every server other than a local development kernel; the client logs a warning when it skips validation for a non-loopback host; see [Connect to Chronicle](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/connecting.md).
 
 ## Documentation
 

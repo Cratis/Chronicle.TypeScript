@@ -108,6 +108,7 @@ export class ChronicleConnection implements ChronicleServices {
     private readonly _addressResolver: ChronicleServerAddressResolver;
     private readonly _loadBalancerStrategy: ILoadBalancerStrategy;
     private _isConnected = false;
+    private _warnedAboutSkippedTlsValidation = false;
     private _clientsReady: Promise<void>;
 
     constructor(private readonly _options: ChronicleConnectionOptions) {
@@ -297,6 +298,7 @@ export class ChronicleConnection implements ChronicleServices {
         // on every call, so every connect/reconnect attempt picks up membership and load
         // changes rather than pinning to whatever was selected at startup.
         const candidates = await this._addressResolver.resolve(this._connectionString);
+        this.warnWhenTlsValidationIsSkipped(candidates);
         const selected = await this._loadBalancerStrategy.select(candidates);
         const serverAddress = formatServerAddress(selected);
         const tokenProvider = this.createTokenProvider(selected);
@@ -335,6 +337,20 @@ export class ChronicleConnection implements ChronicleServices {
             compliance: factory.create(ComplianceDefinition as any, this._channel) as any,
             externalServices: factory.create(ExternalServicesDefinition, this._channel)
         };
+    }
+
+    private warnWhenTlsValidationIsSkipped(candidates: ChronicleServerAddress[]): void {
+        if (this._warnedAboutSkippedTlsValidation) return;
+        if (this._connectionString.disableTls || !this._connectionString.skipTlsValidation || this._options.credentials) return;
+
+        const remoteHosts = [...new Set(candidates.map(candidate => candidate.host).filter(host => !isLoopbackHost(host)))];
+        if (remoteHosts.length === 0) return;
+
+        this._warnedAboutSkippedTlsValidation = true;
+        createLogger('@cratis/chronicle/ChronicleConnection', this.logger).warn(
+            `TLS certificate validation is disabled for the gRPC channel and OAuth token requests to ${remoteHosts.join(', ')}. ` +
+            'Set skipTlsValidation=false in the connection string, or skipTlsValidation = false on ChronicleConnectionStringBuilder, to validate the server certificate.',
+            { hosts: remoteHosts });
     }
 
     private createTokenProvider(selected: ChronicleServerAddress): ITokenProvider {
@@ -442,6 +458,11 @@ export class ChronicleConnection implements ChronicleServices {
             }
         };
     }
+}
+
+function isLoopbackHost(host: string): boolean {
+    const normalized = host.toLowerCase().replace(/^\[|\]$/g, '');
+    return normalized === 'localhost' || normalized === '::1' || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized);
 }
 
 /** Stops waiting for a token on cancellation without canceling the shared token request. */

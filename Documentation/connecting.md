@@ -71,10 +71,11 @@ A connection string without credentials does not fail. The client falls back to 
 
 The client uses TLS unless the connection string sets `disableTls=true`. Chronicle serves gRPC and the token endpoint over TLS on one port.
 
-:::danger[Validate the server certificate outside local development]
-`skipTlsValidation` defaults to `true` so that the development image's self-signed certificate works without configuration. With that default, the client accepts any certificate for both gRPC calls and token requests, so anyone who can intercept the connection can read the credentials and the events. Add `skipTlsValidation=false` to every connection string that points at a shared or production server.
+:::danger[Validate the server certificate for any non-local server]
+Set `skipTlsValidation=false` on every connection string that points at a server other than a local development kernel. `skipTlsValidation` defaults to `true` so that the development image's self-signed certificate works without configuration. With that default, the client accepts any certificate for both gRPC calls and token requests, so anyone who can intercept the connection can read the credentials and the events.
 :::
 
+When TLS is on and `skipTlsValidation` is `true`, the client logs one warning through the configured [logger](./observability.md#application-diagnostics) when the connection starts if any target host is not a loopback host (`localhost`, `127.x.x.x`, or `::1`). The warning names the host, says that certificate validation is disabled for the gRPC channel and OAuth token requests, and says how to enable it: `skipTlsValidation=false` in the connection string, or `skipTlsValidation = false` on `ChronicleConnectionStringBuilder`. It is logged once per connection, not on each call or reconnect. The default is unchanged.
 With `skipTlsValidation=false`, the server certificate must be trusted by the default Node.js and gRPC trust store. The TypeScript client has no option to supply a custom certificate authority bundle or a client certificate.
 
 Use `disableTls=true` only when something else protects the traffic, for example a service mesh that terminates TLS. Credentials and events then cross the network unencrypted between the client and that proxy.
