@@ -16,6 +16,9 @@ export interface ITransactionalEventSequence {
      * @param eventSourceId - The identifier of the event source.
      * @param event - The event to append.
      * @param options - Optional append metadata (routing, subject, occurrence time, tags, named tags, concurrency scope) kept with the event until commit.
+     * Accepts streamType/streamId/sourceType as aliases of eventStreamType/eventStreamId/eventSourceType.
+     * @throws {@link ConflictingAppendOptionNamesInUnitOfWork} when both names have different values; the event is not added.
+     * @throws {@link AppendOptionNotSupportedInUnitOfWork} when an unsupported option is given; the event is not added.
      */
     append(eventSourceId: string, event: object, options?: TransactionalAppendOptions): Promise<void>;
 
@@ -24,6 +27,9 @@ export interface ITransactionalEventSequence {
      * @param eventSourceId - The identifier of the event source.
      * @param events - The events to append.
      * @param options - Optional append metadata (routing, subject, occurrence time, tags, named tags, concurrency scope) applied to every event.
+     * Accepts streamType/streamId/sourceType as aliases of eventStreamType/eventStreamId/eventSourceType.
+     * @throws {@link ConflictingAppendOptionNamesInUnitOfWork} when both names have different values; the event is not added.
+     * @throws {@link AppendOptionNotSupportedInUnitOfWork} when an unsupported option is given; the event is not added.
      */
     appendMany(eventSourceId: string, events: object[], options?: TransactionalAppendOptions): Promise<void>;
 }
