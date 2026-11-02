@@ -104,6 +104,7 @@ export class ChronicleConnectionStringBuilder {
     private static readonly _schemeKey = 'Scheme';
     private static readonly _apiKeyKey = 'apiKey';
     private static readonly _disableTlsKey = 'disableTls';
+    private static readonly _skipKeepAliveKey = 'skipKeepAlive';
     private static readonly _skipTlsValidationKey = 'skipTlsValidation';
     private static readonly _certificatePathKey = 'certificatePath';
     private static readonly _certificatePasswordKey = 'certificatePassword';
@@ -251,6 +252,15 @@ export class ChronicleConnectionStringBuilder {
         this._properties.set(ChronicleConnectionStringBuilder._skipTlsValidationKey, value.toString());
     }
 
+    /** Skip the client keep-alive connection for short-lived processes. Defaults to false. */
+    get skipKeepAlive(): boolean {
+        return this._properties.get(ChronicleConnectionStringBuilder._skipKeepAliveKey) === 'true';
+    }
+
+    set skipKeepAlive(value: boolean) {
+        this._properties.set(ChronicleConnectionStringBuilder._skipKeepAliveKey, value.toString());
+    }
+
     get certificatePath(): string | undefined {
         return this._properties.get(ChronicleConnectionStringBuilder._certificatePathKey);
     }
@@ -345,6 +355,10 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push('disableTls=true');
         }
 
+        if (this.skipKeepAlive) {
+            queryParameters.push('skipKeepAlive=true');
+        }
+
         if (!this.skipTlsValidation) {
             queryParameters.push('skipTlsValidation=false');
         }
@@ -372,6 +386,7 @@ export class ChronicleConnectionStringBuilder {
                 key !== ChronicleConnectionStringBuilder._schemeKey &&
                 key !== ChronicleConnectionStringBuilder._apiKeyKey &&
                 key !== ChronicleConnectionStringBuilder._disableTlsKey &&
+                key !== ChronicleConnectionStringBuilder._skipKeepAliveKey &&
                 key !== ChronicleConnectionStringBuilder._skipTlsValidationKey &&
                 key !== ChronicleConnectionStringBuilder._certificatePathKey &&
                 key !== ChronicleConnectionStringBuilder._certificatePasswordKey &&
@@ -516,6 +531,11 @@ export class ChronicleConnectionString {
 
     get disableTls(): boolean {
         return this._builder.disableTls;
+    }
+
+    /** Whether the client skips the keep-alive connection for short-lived processes. */
+    get skipKeepAlive(): boolean {
+        return this._builder.skipKeepAlive;
     }
 
     /**

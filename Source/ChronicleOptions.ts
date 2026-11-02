@@ -15,6 +15,7 @@ type ChronicleOptionsConstructorParams = {
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
     connectionString: ChronicleConnectionString;
+    skipKeepAlive?: boolean;
     programIdentifier?: string;
     softwareVersion?: string;
     softwareCommit?: string;
@@ -29,6 +30,7 @@ type ChronicleOptionsConstructorParams = {
 };
 
 type ChronicleOptionsFactoryParams = {
+    skipKeepAlive?: boolean;
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
     clientArtifactsProvider?: IClientArtifactsProvider;
@@ -45,6 +47,9 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
+    /** Skip the keep-alive stream and health watchdog for short-lived processes. Either input can enable this. */
+    readonly skipKeepAlive: boolean;
+
     /** Per-client telemetry privacy settings. Event source identifiers are omitted by default. */
     readonly telemetry?: ChronicleTelemetryOptions;
 
@@ -121,6 +126,7 @@ export class ChronicleOptions {
 
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
+        this.skipKeepAlive = options.skipKeepAlive === true || options.connectionString.skipKeepAlive;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
         this.softwareCommit = options.softwareCommit ?? 'Unknown';
@@ -188,6 +194,7 @@ export class ChronicleOptions {
             : connectionString;
         return new ChronicleOptions({
             connectionString: parsed,
+            skipKeepAlive: options?.skipKeepAlive,
             clientArtifactsProvider: options?.clientArtifactsProvider,
             discoveryPatterns: options?.discoveryPatterns,
             defaultSinkTypeId: options?.defaultSinkTypeId,
