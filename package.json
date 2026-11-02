@@ -16,8 +16,11 @@
         "publish-version": "node ./publish-version.js"
     },
     "dependencies": {
-        "@cratis/chronicle.contracts": "19.31.10",
+        "@cratis/chronicle.contracts": "19.70.0",
         "glob": "^13.0.6"
+    },
+    "devDependencies": {
+        "@cratis/chronicle.contracts-oracle": "npm:@cratis/chronicle.contracts@19.31.10"
     },
     "resolutions": {
         "@grpc/grpc-js": "^1.14.5"

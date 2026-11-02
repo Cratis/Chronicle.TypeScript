@@ -45,13 +45,18 @@ internal static class Program
             {
                 throw new InvalidOperationException($"Probe requested {release} but loaded Chronicle {information}.");
             }
-            var package = Path.Combine("node_modules", "@cratis", "chronicle.contracts");
+            var package = Path.Combine("node_modules", "@cratis", "chronicle.contracts-oracle");
             var descriptor = Path.Combine(package, "generated", "projections.ts");
             if (!File.Exists(descriptor))
             {
-                throw new FileNotFoundException("Install pinned Yarn dependencies before checking the contracts descriptor.", descriptor);
+                throw new FileNotFoundException("Install pinned Yarn dependencies (including the @cratis/chronicle.contracts-oracle alias) before checking the contracts descriptor.", descriptor);
             }
-            var contracts = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(package, "package.json")))!["version"]!.GetValue<string>();
+            var contractsPackage = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(package, "package.json")))!;
+            if (contractsPackage["name"]?.GetValue<string>() != "@cratis/chronicle.contracts")
+            {
+                throw new InvalidOperationException($"{package} is not the @cratis/chronicle.contracts package.");
+            }
+            var contracts = contractsPackage["version"]!.GetValue<string>();
             var hash = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(descriptor)));
             var projectionFiles = args[0] == "--update-events"
                 ? []
