@@ -355,9 +355,7 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push('disableTls=true');
         }
 
-        if (this.skipKeepAlive) {
-            queryParameters.push('skipKeepAlive=true');
-        }
+        this.appendSkipKeepAlive(queryParameters);
 
         if (!this.skipTlsValidation) {
             queryParameters.push('skipTlsValidation=false');
@@ -379,14 +377,13 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push(`srvNameServer=${encodeURIComponent(this.srvNameServer)}`);
         }
 
-        for (const [key, value] of this._properties) {
+        for (const [key, value] of this.propertiesWithoutSkipKeepAlive()) {
             if (
                 key !== ChronicleConnectionStringBuilder._usernameKey &&
                 key !== ChronicleConnectionStringBuilder._passwordKey &&
                 key !== ChronicleConnectionStringBuilder._schemeKey &&
                 key !== ChronicleConnectionStringBuilder._apiKeyKey &&
                 key !== ChronicleConnectionStringBuilder._disableTlsKey &&
-                key !== ChronicleConnectionStringBuilder._skipKeepAliveKey &&
                 key !== ChronicleConnectionStringBuilder._skipTlsValidationKey &&
                 key !== ChronicleConnectionStringBuilder._certificatePathKey &&
                 key !== ChronicleConnectionStringBuilder._certificatePasswordKey &&
@@ -402,6 +399,14 @@ export class ChronicleConnectionStringBuilder {
         }
 
         return result;
+    }
+
+    private appendSkipKeepAlive(queryParameters: string[]): void {
+        if (this.skipKeepAlive) queryParameters.push('skipKeepAlive=true');
+    }
+
+    private propertiesWithoutSkipKeepAlive(): [string, string][] {
+        return [...this._properties].filter(([key]) => key !== ChronicleConnectionStringBuilder._skipKeepAliveKey);
     }
 
     private parseConnectionString(connectionString: string): void {

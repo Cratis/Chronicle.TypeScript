@@ -56,6 +56,7 @@ class ItemReducer { item() {} }
 let client: ChronicleClient;
 let artifacts: IClientArtifactsProvider;
 let interval: ReturnType<typeof vi.spyOn>;
+let timeout: ReturnType<typeof vi.spyOn>;
 function create(skipKeepAlive = true, discoveryPatterns: string[] = []) {
     client = new ChronicleClient(ChronicleOptions.fromConnectionString('chronicle://localhost:35000', {
         skipKeepAlive, discoveryPatterns, clientArtifactsProvider: artifacts
@@ -72,6 +73,7 @@ beforeEach(() => {
     artifacts = { eventTypes: [Item], readModels: [ItemModel], reactors: [], reducers: [], seeders: [],
         constraints: [], projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: [] };
     interval = vi.spyOn(globalThis, 'setInterval');
+    timeout = vi.spyOn(globalThis, 'setTimeout');
 });
 afterEach(() => { client?.dispose(); vi.restoreAllMocks(); });
 
@@ -88,6 +90,7 @@ describe('when skipping keep alive and connecting', () => {
         transport.connectStream.mock.calls.should.have.lengthOf(0);
         transport.connectionKeepAlive.mock.calls.should.have.lengthOf(0);
         interval.mock.calls.should.have.lengthOf(0);
+        timeout.mock.calls.should.have.lengthOf(0);
     });
     it('should preserve the default watchdog and keep alive', async () => {
         await create(false).getEventStore('store');
@@ -104,11 +107,25 @@ describe('when skipping keep alive and connecting', () => {
         transport.kernelConstructor.mock.calls.should.have.lengthOf(0);
         interval.mock.calls.should.have.lengthOf(0);
     });
-    it('should dispose before connecting and repeatedly without starting anything', () => {
+    it('should dispose before connecting and repeatedly without starting anything', async () => {
         create().dispose();
         client.dispose();
-        transport.resetChannel.mock.calls.should.have.lengthOf(0);
-        interval.mock.calls.should.have.lengthOf(0);
+        const [result] = await Promise.allSettled([client.getEventStore('store')]);
+        result.status.should.equal('rejected');
+        for (const spy of [transport.resetChannel, transport.connect, transport.getVersionInfo,
+            transport.connectStream, transport.connectionKeepAlive, transport.kernelConstructor, interval, timeout]) {
+            spy.mock.calls.should.have.lengthOf(0);
+        }
+    });
+    it('should dispose repeatedly after connecting without starting streams or timers', async () => {
+        await create().getEventStore('store');
+        client.dispose();
+        client.dispose();
+        transport.connect.mock.calls.should.have.lengthOf(1);
+        transport.resetChannel.mock.calls.should.have.lengthOf(1);
+        for (const spy of [transport.connectStream, transport.connectionKeepAlive, transport.kernelConstructor, interval, timeout]) {
+            spy.mock.calls.should.have.lengthOf(0);
+        }
     });
     for (const [kind, type, id] of [['Reactor', ItemReactor, 'skip-reactor'], ['Reducer', ItemReducer, 'skip-reducer']] as const) {
         it(`should refuse a ${kind} before any transport side effects on repeated retrieval`, async () => {

@@ -15,6 +15,13 @@ function parseMarker(line) {
     try { return JSON.parse(line); } catch { return {}; }
 }
 
+function isCompletionMarker(marker, mode) {
+    if (marker.mode !== mode) return false;
+    if (mode === 'preconnect-dispose') return marker.marker === 'disposed-before-connect';
+    if (['reactor', 'reducer'].includes(mode)) return marker.marker === 'observer-refused';
+    return marker.marker === 'operations-completed' && marker.expected === marker.actual;
+}
+
 function isExpectedExit(mode, code, signal, expectedKill) {
     if (mode === 'default') return expectedKill && signal === 'SIGKILL';
     return code === 0 && signal === null;
@@ -31,13 +38,13 @@ export async function checkExit(mode) {
         const deadline = setTimeout(() => {
             child.kill('SIGKILL');
             reject(new Error(`${mode}: timed out without natural exit; marker=${markerSeen}\n${stdout}\n${stderr}`));
-        }, 20_000);
+        }, 10_000);
         child.stdout.on('data', data => {
             stdout += data;
             const lines = stdout.split('\n').filter(Boolean);
             for (const line of lines) {
                 const marker = parseMarker(line);
-                if (marker.mode !== mode || !['operations-completed', 'observer-refused'].includes(marker.marker)) continue;
+                if (!isCompletionMarker(marker, mode)) continue;
                 if (markerSeen) continue;
                 markerSeen = true;
                 if (mode === 'default') {
@@ -47,7 +54,7 @@ export async function checkExit(mode) {
         });
         child.stderr.on('data', data => { stderr += data; });
         child.once('error', error => { clearTimeout(deadline); clearTimeout(markerTimer); reject(error); });
-        child.once('exit', (code, signal) => {
+        child.once('close', (code, signal) => {
             clearTimeout(deadline);
             clearTimeout(markerTimer);
             if (!markerSeen || !isExpectedExit(mode, code, signal, expectedKill)) {
@@ -56,6 +63,6 @@ export async function checkExit(mode) {
         });
     });
 }
-for (const mode of ['skip', 'default', 'reactor', 'reducer']) {
+for (const mode of ['skip', 'skip-dispose', 'default', 'default-dispose', 'preconnect-dispose', 'reactor', 'reducer']) {
     console.log(JSON.stringify(await checkExit(mode)));
 }

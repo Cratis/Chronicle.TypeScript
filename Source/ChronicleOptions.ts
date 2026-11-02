@@ -126,7 +126,7 @@ export class ChronicleOptions {
 
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
-        this.skipKeepAlive = options.skipKeepAlive === true || options.connectionString.skipKeepAlive;
+        this.skipKeepAlive = options.skipKeepAlive === true;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
         this.softwareVersion = options.softwareVersion ?? '0.0.0';
         this.softwareCommit = options.softwareCommit ?? 'Unknown';
@@ -180,6 +180,10 @@ export class ChronicleOptions {
         ];
     }
 
+    private static shouldSkipKeepAlive(connectionString: ChronicleConnectionString, options?: ChronicleOptionsFactoryParams): boolean {
+        return options?.skipKeepAlive === true || connectionString.skipKeepAlive;
+    }
+
     /**
      * Creates a {@link ChronicleOptions} instance from a connection string.
      * @param connectionString - The connection string to parse and use.
@@ -194,7 +198,7 @@ export class ChronicleOptions {
             : connectionString;
         return new ChronicleOptions({
             connectionString: parsed,
-            skipKeepAlive: options?.skipKeepAlive,
+            skipKeepAlive: ChronicleOptions.shouldSkipKeepAlive(parsed, options),
             clientArtifactsProvider: options?.clientArtifactsProvider,
             discoveryPatterns: options?.discoveryPatterns,
             defaultSinkTypeId: options?.defaultSinkTypeId,

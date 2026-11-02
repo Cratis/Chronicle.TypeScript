@@ -8,12 +8,9 @@ import { ClientObserversRequireKeepAlive } from '../connection/ClientObserversRe
 
 /** Refuse client-hosted observers before any network or registration side effects. */
 export function refuseClientHostedObservers(artifacts: Pick<IClientArtifactsProvider, 'reactors' | 'reducers'>): void {
-    for (const type of artifacts.reactors) {
-        const metadata = getReactorMetadata(type);
-        if (metadata) throw new ClientObserversRequireKeepAlive('Reactor', metadata.id.value);
-    }
-    for (const type of artifacts.reducers) {
-        const metadata = getReducerMetadata(type);
-        if (metadata) throw new ClientObserversRequireKeepAlive('Reducer', metadata.id.value);
-    }
+    const reactor = artifacts.reactors.map(getReactorMetadata).find(metadata => metadata !== undefined);
+    if (reactor) throw new ClientObserversRequireKeepAlive('Reactor', reactor.id.value);
+
+    const reducer = artifacts.reducers.map(getReducerMetadata).find(metadata => metadata !== undefined);
+    if (reducer) throw new ClientObserversRequireKeepAlive('Reducer', reducer.id.value);
 }
