@@ -1,12 +1,18 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-// Encode with the pinned production TypeScript contracts. In particular, empty string fields
+// Encode with the historical pinned production TypeScript contracts (alias). In particular, empty string fields
 // are omitted by ts-proto; assigning "" to a nullable .NET contract is NOT equivalent.
 import { readFileSync } from 'node:fs';
-import { AppendRequest, AppendManyForEventSourcesRequest, ConstraintScope } from '@cratis/chronicle.contracts';
+import { createRequire } from 'node:module';
+import { AppendRequest, AppendManyForEventSourcesRequest, ConstraintScope } from '@cratis/chronicle.contracts-oracle';
 
 const fixture = JSON.parse(readFileSync(0, 'utf8'));
+const contractsVersion = createRequire(import.meta.url)('@cratis/chronicle.contracts-oracle/package.json').version;
+if (contractsVersion !== fixture.tsContracts.version) {
+    console.error(`Oracle contracts alias is ${contractsVersion} but the fixture records ${fixture.tsContracts.version}.`);
+    process.exit(1);
+}
 const encode = (type, value) => Buffer.from(type.encode(type.fromPartial(value)).finish()).toString('base64');
 const cases = fixture.scopeCases.map(test => ({
     scopes: test.constraintDefinitions.map(definition => encode(ConstraintScope, {
