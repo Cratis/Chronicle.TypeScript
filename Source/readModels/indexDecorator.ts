@@ -41,7 +41,7 @@ export function getIndexesForType(type: Function): IndexDefinition[] {
         for (const [name, memberType] of TypeIntrospector.getMembers(current)) {
             const path = prefix ? `${prefix}.${name}` : name;
             if (hasPropertyMetadata(INDEX_METADATA_KEY, current.prototype, name)) {
-                indexes.push({ PropertyPath: path });
+                indexes.push({ PropertyPath: path, Properties: [] });
             }
 
             const nestedType = memberType === Array

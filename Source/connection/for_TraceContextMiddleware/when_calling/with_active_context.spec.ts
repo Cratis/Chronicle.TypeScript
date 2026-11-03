@@ -36,6 +36,7 @@ beforeEach(async () => {
         connectionKeepAlive: async () => ({})
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     server.add(EventStoresDefinition, {
+        ...Object.fromEntries(Object.keys(EventStoresDefinition.methods).map(name => [name, unused])),
         allEventStores: async () => {
             if (rejectNext) {
                 rejectNext = false;
