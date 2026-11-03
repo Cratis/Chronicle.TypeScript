@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { ObservationState, ReducerMessage } from '@cratis/chronicle.contracts';
+import { ObservationState, type PartitionResult, type ReducerMessage } from '@cratis/chronicle.contracts';
 import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 
 /** Sentinel sequence number sent back when no event was successfully processed. */
@@ -18,6 +18,7 @@ export class ReductionOutcome {
     lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
     readonly exceptionMessages: string[] = [];
     exceptionStackTrace = '';
+    retryAfterMilliseconds = 0;
     currentState: unknown;
 
     /** Gets whether the reduction has failed. */
@@ -30,6 +31,27 @@ export class ReductionOutcome {
         this.exceptionMessages.push(String(error));
         this.exceptionStackTrace = stackOf(error);
         this.state = ObservationState.Failed;
+    }
+
+    /**
+     * Records that a batch method deferred the reduction: nothing is written, and the event source is delivered again later.
+     * @param retryAfterMilliseconds - How long to wait before delivering again.
+     */
+    recordDeferral(retryAfterMilliseconds: number): void {
+        this.state = ObservationState.Deferred;
+        this.lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
+        this.retryAfterMilliseconds = retryAfterMilliseconds;
+    }
+
+    /**
+     * Copies the result of another outcome, such as a failed replay notification shared by every event source of a page.
+     * @param other - The outcome to copy.
+     */
+    copyFrom(other: ReductionOutcome): void {
+        this.state = other.state;
+        this.lastSuccessfullyObservedEvent = other.lastSuccessfullyObservedEvent;
+        this.exceptionMessages.push(...other.exceptionMessages);
+        this.exceptionStackTrace = other.exceptionStackTrace;
     }
 
     /** Records a failure to notify of a replay lifecycle transition. */
@@ -52,22 +74,50 @@ export class ReductionOutcome {
         }
     }
 
-    /** Creates the result message reported back to the kernel. */
-    toMessage(partition: string): ReducerMessage {
-        const readModelState = this.state === ObservationState.Success && this.currentState !== undefined
+    /** The read model state as JSON, or an empty string when there is nothing to write. */
+    get readModelState(): string {
+        return this.state === ObservationState.Success && this.currentState !== undefined
             ? JSON.stringify(this.currentState)
-            : undefined;
+            : '';
+    }
 
+    /**
+     * Creates the result for one event source of a page.
+     * @param partition - The partition (event source).
+     * @returns The {@link PartitionResult}.
+     */
+    toPartitionResult(partition: string): PartitionResult {
+        return {
+            Partition: partition,
+            State: this.state,
+            LastSuccessfulObservation: this.lastSuccessfullyObservedEvent,
+            ExceptionMessages: this.exceptionMessages,
+            ExceptionStackTrace: this.exceptionStackTrace,
+            RetryAfterMilliseconds: BigInt(Math.max(0, Math.round(this.retryAfterMilliseconds))),
+            ReadModelState: this.readModelState
+        };
+    }
+
+    /**
+     * Creates the legacy single-partition result message reported back to a kernel that does not deliver pages.
+     * @param partition - The partition (event source).
+     * @param deliveryId - The delivery identifier to echo.
+     * @returns The {@link ReducerMessage}.
+     */
+    toMessage(partition: string, deliveryId: bigint = 0n): ReducerMessage {
         return {
             Content: {
                 Value0: undefined,
                 Value1: {
                     Partition: partition,
-                    State: this.state,
+                    State: this.state === ObservationState.Deferred ? ObservationState.Failed : this.state,
                     LastSuccessfulObservation: this.lastSuccessfullyObservedEvent,
                     ExceptionMessages: this.exceptionMessages,
                     ExceptionStackTrace: this.exceptionStackTrace,
-                    ReadModelState: readModelState ?? ''
+                    ReadModelState: this.readModelState,
+                    DeliveryId: deliveryId,
+                    RetryAfterMilliseconds: 0n,
+                    Partitions: []
                 }
             }
         };
