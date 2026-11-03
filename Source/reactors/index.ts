@@ -13,3 +13,5 @@ export type { IReactors } from './IReactors.js';
 export { Reactors } from './Reactors.js';
 export type { ReactorResultHandler } from './ReactorResultHandler.js';
 export type { ReactorServices } from './ReactorServices.js';
+export { observes, batchSize, EventBatch, EventAndContext, BatchContext, ObservationOrigin } from '../observation/index.js';
+export type { BatchSizeOptions } from '../observation/index.js';

@@ -24,7 +24,7 @@ import { EventStoreName } from '../EventStoreName.js';
 import { EventStoreNamespaceName } from '../EventStoreNamespaceName.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { IReadModels } from '../readModels/IReadModels.js';
-import { getReactorEventTypes, invokeReactorHandler, selectReactorHandler } from '../reactors/ReactorDispatcher.js';
+import { getReactorBatchMethods, getReactorEventTypes, invokeReactorHandler, selectReactorHandler } from '../reactors/ReactorDispatcher.js';
 import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
 import { getReactorMetadata } from '../reactors/reactor.js';
 import { normalizeReactorSideEffects } from '../reactors/ReactorSideEffects.js';
@@ -89,6 +89,10 @@ export class ReactorScenario {
             eventTypeMigrations: eventTypeMigrations === undefined ? undefined : [...eventTypeMigrations]
         } });
         this._entries = getReactorEventTypes(_reactor, this._eventTypes);
+        if (getReactorBatchMethods(_reactor, this._eventTypes).length > 0) {
+            throw new UnsupportedReactorOperation('reactor.batchMethod', _reactor.name,
+                'Batch methods (@observes) are not fixture-backed yet.');
+        }
         this._validateInstance = createHandlerInstanceValidator(_reactor,
             this._entries.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)));
         // Every unsupported event-sequence operation is latched at its source, whichever result or stream carries it.
