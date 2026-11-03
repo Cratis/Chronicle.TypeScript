@@ -2,20 +2,18 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
-import { getHandledEventType } from '../events/handles.js';
-import { getInstanceMethods } from './getInstanceMethods.js';
+import { describeExplicitHandler, getInstanceMethods } from './getInstanceMethods.js';
 
-/** Captures @handles prototype methods during preflight and rejects instance properties hiding them, except bound methods. */
+/** Captures @handles and @observes prototype methods during preflight and rejects instance properties hiding them, except bound methods. */
 export function createHandlerInstanceValidator(type: Constructor, names: Iterable<string>, methods = getInstanceMethods(type)):
     (instance: object) => void {
-    const handlers = [...new Set(names)].filter(name => getHandledEventType(methods.get(name)!) !== undefined).map(name => {
+    const handlers = [...new Set(names)].filter(name => describeExplicitHandler(methods.get(name)!) !== undefined).map(name => {
         const method = methods.get(name)!;
         let declaring = type.prototype;
         while (declaring && Object.getOwnPropertyDescriptor(declaring, name)?.value !== method) {
             declaring = Object.getPrototypeOf(declaring);
         }
-        const eventType = getHandledEventType(method)!;
-        const declaration = `@handles(${(eventType as Function).name})`;
+        const declaration = describeExplicitHandler(method)!;
         return { name, method, declaration, declaringType: declaring?.constructor.name ?? type.name };
     });
     return instance => {
@@ -25,7 +23,7 @@ export function createHandlerInstanceValidator(type: Constructor, names: Iterabl
             const value: unknown = current ? Object.getOwnPropertyDescriptor(current, name)?.value : undefined;
             if (current === instance && typeof value === 'function' && isBoundCopyOf(value, method)) continue;
             if (current === instance || !current || value !== method) {
-                throw new Error(`Override '${name}' on '${type.name}' hides ${declaration} declared on '${declaringType}'; use a method with @handles instead of an instance field.`);
+                throw new Error(`Override '${name}' on '${type.name}' hides ${declaration} declared on '${declaringType}'; use a method with ${declaration.startsWith('@observes') ? '@observes' : '@handles'} instead of an instance field.`);
             }
         }
     };
