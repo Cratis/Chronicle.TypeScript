@@ -28,6 +28,7 @@ vi.mock('../../../connection/ChronicleConnection.js', () => ({
             fromSequenceNumber: async () => ({ IsAuthorized: true, Data: [] }),
             redact: async () => ({}),
             redactForEventSource: async () => ({}),
+            copyEventsForEventSource: async () => ({ Response: { lo: 1n, hi: 2n } }),
             completeStream: async () => ({ Response: { IsSuccess: true, SequenceNumber: 42n } })
         };
     }
