@@ -74,19 +74,19 @@ describe('when registering indexed read models through the startup paths', () =>
     it('should send indexes for a declarative projection', async () => {
         const { value, registerMany } = connection();
         await new Projections('store', 'Default', value, artifacts([], [DeclarativeProjection]), 'sink').register();
-        expect(indexesFor(registerMany, 'DeclarativeModel')).toEqual([{ PropertyPath: 'reference' }]);
+        expect(indexesFor(registerMany, 'DeclarativeModel')).toEqual([{ PropertyPath: 'reference', Properties: [] }]);
     });
 
     it('should send indexes for a model-bound projection', async () => {
         const { value, registerMany } = connection();
         await new Projections('store', 'Default', value, artifacts([ModelBoundModel]), 'sink').register();
-        expect(indexesFor(registerMany, 'ModelBoundModel')).toEqual([{ PropertyPath: 'reference' }]);
+        expect(indexesFor(registerMany, 'ModelBoundModel')).toEqual([{ PropertyPath: 'reference', Properties: [] }]);
     });
 
     it('should send indexes for a model-bound variant', async () => {
         const { value, registerMany } = connection();
         await new Projections('store', 'Default', value, artifacts([IndexedVariant]), 'sink').register();
-        expect(indexesFor(registerMany, 'IndexedVariant')).toEqual([{ PropertyPath: 'reference' }]);
+        expect(indexesFor(registerMany, 'IndexedVariant')).toEqual([{ PropertyPath: 'reference', Properties: [] }]);
     });
 
     it('should send indexes for a reducer read model', async () => {
@@ -94,6 +94,6 @@ describe('when registering indexed read models through the startup paths', () =>
         const reducers = new Reducers(artifacts([], [], [IndexedReducer]), value, 'store', 'Default', new ConnectionLifecycle(), 'sink');
         await reducers.register();
         reducers.dispose();
-        expect(indexesFor(registerMany, 'ReducedModel')).toEqual([{ PropertyPath: 'reference' }]);
+        expect(indexesFor(registerMany, 'ReducedModel')).toEqual([{ PropertyPath: 'reference', Properties: [] }]);
     });
 });

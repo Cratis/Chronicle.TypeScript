@@ -96,6 +96,7 @@ The scope, `diag` fallback, privacy options, and application/RPC behavior are un
 | `getFromSequenceNumber` | `chronicle.event_sequences.get_from_sequence_number` | `cratis.chronicle.client.event_sequence.get_from_sequence_number` |
 | `redact` | `chronicle.event_sequences.redact` | `cratis.chronicle.client.event_sequence.redact` |
 | `redactForEventSource` | `chronicle.event_sequences.redact_for_event_source` | `cratis.chronicle.client.event_sequence.redact_for_event_source` |
+| `copyForEventSource` | `chronicle.event_sequences.copy_for_event_source` | `cratis.chronicle.client.event_sequence.copy_for_event_source` |
 | `completeStream` | `chronicle.event_sequences.complete_stream` | `cratis.chronicle.client.event_sequence.complete_stream` |
 | `getEventStore` | `chronicle.client.get_event_store` | `cratis.chronicle.client.event_store.get` |
 | `getEventStores` | `chronicle.client.get_event_stores` | `cratis.chronicle.client.event_store.list` |

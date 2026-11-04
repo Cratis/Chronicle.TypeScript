@@ -9,3 +9,5 @@ export { UnitOfWorkManager } from './UnitOfWorkManager.js';
 export type { TransactionalEventRouting } from './TransactionalEventRouting.js';
 export type { TransactionalAppendOptions } from './TransactionalAppendOptions.js';
 export { ConflictingConcurrencyScopesInUnitOfWork } from './ConflictingConcurrencyScopesInUnitOfWork.js';
+export { ConflictingAppendOptionNamesInUnitOfWork } from './ConflictingAppendOptionNamesInUnitOfWork.js';
+export { AppendOptionNotSupportedInUnitOfWork } from './AppendOptionNotSupportedInUnitOfWork.js';

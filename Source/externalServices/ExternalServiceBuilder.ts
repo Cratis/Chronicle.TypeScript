@@ -56,7 +56,7 @@ export class ExternalServiceBuilder implements IExternalServiceBuilder {
         this._authorization = {
             Value0: undefined,
             Value1: undefined,
-            Value2: { Authority: authority, ClientId: clientId, ClientSecret: clientSecret }
+            Value2: { Authority: authority, ClientId: clientId, ClientSecret: clientSecret, Scope: '' }
         };
         return this;
     }

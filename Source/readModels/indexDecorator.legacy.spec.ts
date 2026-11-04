@@ -57,15 +57,15 @@ describe('read-model index registration with legacy decorators', () => {
                 expect.objectContaining({
                     ObserverIdentifier: 'indexed-orders',
                     Indexes: [
-                        { PropertyPath: 'customerId' },
-                        { PropertyPath: 'number' },
-                        { PropertyPath: 'address.zipCode' },
-                        { PropertyPath: 'lines.productId' }
+                        { PropertyPath: 'customerId', Properties: [] },
+                        { PropertyPath: 'number', Properties: [] },
+                        { PropertyPath: 'address.zipCode', Properties: [] },
+                        { PropertyPath: 'lines.productId', Properties: [] }
                     ]
                 }),
                 expect.objectContaining({
                     ObserverIdentifier: 'reduced-orders',
-                    Indexes: [{ PropertyPath: 'number' }]
+                    Indexes: [{ PropertyPath: 'number', Properties: [] }]
                 })
             ]
         }));
@@ -76,8 +76,8 @@ describe('read-model index registration with legacy decorators', () => {
         const connection = { readModels: { registerMany } } as unknown as ChronicleConnection;
         await new ReadModels('test', 'Default', connection, artifacts, 'sink').register(Order);
         expect(registerMany.mock.calls[0][0].ReadModels[0].Indexes).toEqual([
-            { PropertyPath: 'customerId' }, { PropertyPath: 'number' },
-            { PropertyPath: 'address.zipCode' }, { PropertyPath: 'lines.productId' }
+            { PropertyPath: 'customerId', Properties: [] }, { PropertyPath: 'number', Properties: [] },
+            { PropertyPath: 'address.zipCode', Properties: [] }, { PropertyPath: 'lines.productId', Properties: [] }
         ]);
     });
 });

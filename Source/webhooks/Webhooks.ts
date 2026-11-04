@@ -99,7 +99,8 @@ export class Webhooks implements IWebhooks {
             Target: {
                 Url: webhook.Url,
                 Authorization: undefined,
-                Headers: webhook.Headers
+                Headers: webhook.Headers,
+                ManagedIdentity: undefined
             },
             IsReplayable: webhook.IsReplayable,
             IsActive: webhook.IsActive,

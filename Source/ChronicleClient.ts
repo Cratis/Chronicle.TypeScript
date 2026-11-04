@@ -6,6 +6,8 @@ import { createLogger } from './logging/createLogger.js';
 import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { ChronicleOptions } from './ChronicleOptions.js';
+import { refuseClientHostedObservers } from './artifacts/refuseClientHostedObservers.js';
+import { ClientObserversRequireKeepAlive } from './connection/ClientObserversRequireKeepAlive.js';
 import { ChronicleConnection } from './connection/index.js';
 import { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
 import { OAuthTokenHttpError } from './connection/fetchOAuthAccessToken.js';
@@ -95,6 +97,7 @@ export class ChronicleClient implements IChronicleClient {
             : { connectionString: options.connectionString };
         this._connection = new ChronicleConnection({
             ...connectionOptions,
+            deferClientCreation: options.skipKeepAlive,
             logger: options.logger,
             maxReceiveMessageSize: options.maxReceiveMessageSize ?? undefined,
             maxSendMessageSize: options.maxSendMessageSize ?? undefined
@@ -136,7 +139,7 @@ export class ChronicleClient implements IChronicleClient {
             });
         });
 
-        this.startConnectionWatchdog();
+        if (!options.skipKeepAlive) this.startConnectionWatchdog();
     }
 
     /** @inheritdoc */
@@ -193,7 +196,7 @@ export class ChronicleClient implements IChronicleClient {
         });
         ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
 
-        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry);
+        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry, this.options.skipKeepAlive);
         this._stores.set(key, created);
 
         try {
@@ -300,12 +303,20 @@ export class ChronicleClient implements IChronicleClient {
         throw new Error('ChronicleClient was disposed during connection attempt.');
     }
 
+    private async validateClientObservers(): Promise<void> {
+        if (!this.options.skipKeepAlive) return;
+        await this._discoveryOperation;
+        refuseClientHostedObservers(this.options.clientArtifactsProvider);
+    }
+
     private async ensureConnected(): Promise<void> {
         if (this._isDisposed) {
             throw new Error('ChronicleClient is disposed. Create a new client instance before making calls.');
         }
 
         if (this._connectionFailure) throw this._connectionFailure;
+
+        await this.validateClientObservers();
 
         // Callers arriving during recovery must share its verdict, not create a competing channel.
         if (this._reconnectOperation) await this._reconnectOperation;
@@ -443,7 +454,7 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private shouldReconnect(error: unknown): boolean {
-        if (isTerminalServerError(error)) return false;
+        if (error instanceof ClientObserversRequireKeepAlive || isTerminalServerError(error)) return false;
         return this.isRejectedAuthentication(error) ||
             hasReconnectableStatusCode(error) ||
             this.mentionsConnectionProblem(error);
@@ -499,6 +510,8 @@ export class ChronicleClient implements IChronicleClient {
     }
 
     private async startKernelKeepAlive(): Promise<void> {
+        if (this.options.skipKeepAlive) return;
+
         this._keepAliveAbortController?.abort();
         this._keepAliveAbortController = new AbortController();
         const { signal } = this._keepAliveAbortController;
