@@ -10,6 +10,8 @@ import type { TransactionalEventRouting } from './TransactionalEventRouting.js';
  * Optional append metadata for an event added to a unit of work.
  * Every value is kept with the event and carried to the append when the unit of work commits,
  * where it is validated like any other append.
+ * `AppendOptions`' `correlationId`, `concurrencyScopes` and `eventSourceId` cannot be honored in a unit of work
+ * and throw {@link AppendOptionNotSupportedInUnitOfWork} when given.
  */
 export interface TransactionalAppendOptions extends TransactionalEventRouting {
     /** Optional stream type. When omitted or empty, the kernel selects the route. */
@@ -20,6 +22,15 @@ export interface TransactionalAppendOptions extends TransactionalEventRouting {
 
     /** Optional source type. When omitted or empty, the kernel selects the route. */
     readonly eventSourceType?: string;
+
+    /** Alias of {@link eventStreamType} (the `AppendOptions` name). Giving both with different values throws {@link ConflictingAppendOptionNamesInUnitOfWork}. */
+    readonly streamType?: string;
+
+    /** Alias of {@link eventStreamId} (the `AppendOptions` name). Giving both with different values throws {@link ConflictingAppendOptionNamesInUnitOfWork}. */
+    readonly streamId?: string;
+
+    /** Alias of {@link eventSourceType} (the `AppendOptions` name). Giving both with different values throws {@link ConflictingAppendOptionNamesInUnitOfWork}. */
+    readonly sourceType?: string;
 
     /** Optional occurrence time. When omitted, the kernel supplies the timestamp. */
     readonly occurred?: Date;

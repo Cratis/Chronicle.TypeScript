@@ -104,6 +104,7 @@ export class ChronicleConnectionStringBuilder {
     private static readonly _schemeKey = 'Scheme';
     private static readonly _apiKeyKey = 'apiKey';
     private static readonly _disableTlsKey = 'disableTls';
+    private static readonly _skipKeepAliveKey = 'skipKeepAlive';
     private static readonly _skipTlsValidationKey = 'skipTlsValidation';
     private static readonly _certificatePathKey = 'certificatePath';
     private static readonly _certificatePasswordKey = 'certificatePassword';
@@ -251,6 +252,15 @@ export class ChronicleConnectionStringBuilder {
         this._properties.set(ChronicleConnectionStringBuilder._skipTlsValidationKey, value.toString());
     }
 
+    /** Skip the client keep-alive connection for short-lived processes. Defaults to false. */
+    get skipKeepAlive(): boolean {
+        return this._properties.get(ChronicleConnectionStringBuilder._skipKeepAliveKey) === 'true';
+    }
+
+    set skipKeepAlive(value: boolean) {
+        this._properties.set(ChronicleConnectionStringBuilder._skipKeepAliveKey, value.toString());
+    }
+
     get certificatePath(): string | undefined {
         return this._properties.get(ChronicleConnectionStringBuilder._certificatePathKey);
     }
@@ -345,6 +355,8 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push('disableTls=true');
         }
 
+        this.appendSkipKeepAlive(queryParameters);
+
         if (!this.skipTlsValidation) {
             queryParameters.push('skipTlsValidation=false');
         }
@@ -365,7 +377,7 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push(`srvNameServer=${encodeURIComponent(this.srvNameServer)}`);
         }
 
-        for (const [key, value] of this._properties) {
+        for (const [key, value] of this.propertiesWithoutSkipKeepAlive()) {
             if (
                 key !== ChronicleConnectionStringBuilder._usernameKey &&
                 key !== ChronicleConnectionStringBuilder._passwordKey &&
@@ -387,6 +399,14 @@ export class ChronicleConnectionStringBuilder {
         }
 
         return result;
+    }
+
+    private appendSkipKeepAlive(queryParameters: string[]): void {
+        if (this.skipKeepAlive) queryParameters.push('skipKeepAlive=true');
+    }
+
+    private propertiesWithoutSkipKeepAlive(): [string, string][] {
+        return [...this._properties].filter(([key]) => key !== ChronicleConnectionStringBuilder._skipKeepAliveKey);
     }
 
     private parseConnectionString(connectionString: string): void {
@@ -516,6 +536,11 @@ export class ChronicleConnectionString {
 
     get disableTls(): boolean {
         return this._builder.disableTls;
+    }
+
+    /** Whether the client skips the keep-alive connection for short-lived processes. */
+    get skipKeepAlive(): boolean {
+        return this._builder.skipKeepAlive;
     }
 
     /**

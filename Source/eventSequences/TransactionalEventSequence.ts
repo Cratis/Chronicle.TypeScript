@@ -3,6 +3,7 @@
 
 import type { TransactionalAppendOptions } from '../transactions/TransactionalAppendOptions.js';
 import { mergeNamedTags } from '../events/mergeNamedTags.js';
+import { resolveTransactionalAppendOptions } from '../transactions/resolveTransactionalAppendOptions.js';
 import { IUnitOfWork } from '../transactions/IUnitOfWork.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { IEventSequence } from './IEventSequence.js';
@@ -29,8 +30,9 @@ export class TransactionalEventSequence implements ITransactionalEventSequence {
 
     /** @inheritdoc */
     async appendMany(eventSourceId: string, events: object[], options?: TransactionalAppendOptions): Promise<void> {
+        const resolved = resolveTransactionalAppendOptions(options);
         // Validate once up front so an invalid tag adds none of the events.
-        const shared = options?.namedTags === undefined ? options : { ...options, namedTags: mergeNamedTags(options.namedTags) };
+        const shared = resolved?.namedTags === undefined ? resolved : { ...resolved, namedTags: mergeNamedTags(resolved.namedTags) };
         for (const event of events) {
             this.unitOfWork.addEvent(this._eventSequence.id, eventSourceId, event, shared);
         }

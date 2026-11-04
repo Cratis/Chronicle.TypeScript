@@ -51,6 +51,12 @@ import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenPr
  * Configuration options for Chronicle connection.
  */
 export interface ChronicleConnectionOptions {
+    /**
+     * Do not resolve or select a server, or build the channel, until the first connect()/resetChannel().
+     * Used by short-lived clients so nothing touches the network before the caller's first operation.
+     */
+    deferClientCreation?: boolean;
+
     /** Optional client-owned diagnostic sink; absent preserves the diag adapter. */
     logger?: IChronicleLogger;
 
@@ -109,7 +115,7 @@ export class ChronicleConnection implements ChronicleServices {
     private readonly _loadBalancerStrategy: ILoadBalancerStrategy;
     private _isConnected = false;
     private _warnedAboutSkippedTlsValidation = false;
-    private _clientsReady: Promise<void>;
+    private _clientsReady?: Promise<void>;
 
     constructor(private readonly _options: ChronicleConnectionOptions) {
         if (_options.connectionString) {
@@ -129,12 +135,14 @@ export class ChronicleConnection implements ChronicleServices {
         this._addressResolver = new ChronicleServerAddressResolver();
         this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
 
-        this._clientsReady = runInBackgroundContext(() => this.createClients());
-        // Building the initial channel is async (address resolution + load balancer
-        // selection), so the constructor cannot await it. Real failures still surface to
-        // callers that await connect()/resetChannel(); this only prevents an unhandled
-        // rejection warning from the fire-and-forget initial build.
-        this._clientsReady.catch(() => {});
+        if (!_options.deferClientCreation) {
+            this._clientsReady = this.startClientCreation();
+            // Building the initial channel is async (address resolution + load balancer
+            // selection), so the constructor cannot await it. Real failures still surface to
+            // callers that await connect()/resetChannel(); this only prevents an unhandled
+            // rejection warning from the fire-and-forget initial build.
+            this._clientsReady.catch(() => {});
+        }
     }
 
     /** The diagnostic sink shared by services owned by this connection. */
@@ -250,8 +258,12 @@ export class ChronicleConnection implements ChronicleServices {
         return this._connections;
     }
 
+    private startClientCreation(): Promise<void> {
+        return runInBackgroundContext(() => this.createClients());
+    }
+
     async connect(): Promise<void> {
-        await this._clientsReady;
+        await (this._clientsReady ??= this.startClientCreation());
         // The bounded compatibility RPC establishes transport readiness and contract support together.
         await this._compatibility.verify();
         this._isConnected = true;
@@ -265,7 +277,7 @@ export class ChronicleConnection implements ChronicleServices {
         }
 
         this._isConnected = false;
-        this._clientsReady = runInBackgroundContext(() => this.createClients());
+        this._clientsReady = this.startClientCreation();
         await this._clientsReady;
     }
 

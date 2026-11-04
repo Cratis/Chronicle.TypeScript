@@ -115,6 +115,10 @@ jobs:
       - name: Yarn install
         run: yarn
 
+      - name: Compile the client for native integration probes
+        working-directory: ./Source
+        run: yarn compile
+
       - name: Wait for the kernel
         run: timeout 180 bash -c 'until curl -skf https://localhost:35000/health > /dev/null; do sleep 2; done'
 
