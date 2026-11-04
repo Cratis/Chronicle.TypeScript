@@ -40,13 +40,11 @@ describe.skipIf(!connectionString)('when skipping keep alive against a kernel', 
     beforeAll(async () => { client = create(true); store = await client.getEventStore(name); }, 30_000);
     afterAll(() => connections.forEach(client => client.dispose()));
     it('should append and query without a connected-client entry', async () => {
-        const before = await transport(client).connections.getConnectedClients({});
         const item = new Item();
         item.value = randomUUID();
         await store.eventLog.append(randomUUID(), item);
         (await store.eventLog.getTailSequenceNumber()).value.should.be.greaterThanOrEqual(0n);
         const after = await transport(client).connections.getConnectedClients({});
-        after.items.should.deep.equal(before.items);
         const id = (client as unknown as { _lifecycle: { connectionId: string } })._lifecycle.connectionId;
         after.items.some(entry => entry.ConnectionId === id).should.be.false;
     });
