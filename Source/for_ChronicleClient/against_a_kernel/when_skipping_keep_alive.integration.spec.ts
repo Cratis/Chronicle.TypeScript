@@ -36,7 +36,8 @@ function transport(client: ChronicleClient) {
 describe.skipIf(!connectionString)('when skipping keep alive against a kernel', () => {
     let client: ChronicleClient;
     let store: IEventStore;
-    const name = `skip-keep-alive-${randomUUID()}`;
+    // MongoDB caps database names at 63 bytes, and the kernel appends '+es+<namespace>' to the event store name.
+    const name = `skip-${randomUUID().slice(0, 8)}`;
     beforeAll(async () => { client = create(true); store = await client.getEventStore(name); }, 30_000);
     afterAll(() => connections.forEach(client => client.dispose()));
     it('should append and query without a connected-client entry', async () => {
@@ -57,7 +58,7 @@ describe.skipIf(!connectionString)('when skipping keep alive against a kernel', 
             const provider = artifacts();
             provider[kind].push(kind === 'reactors' ? Observer : Reducer);
             const candidate = create(true, provider);
-            const [result] = await Promise.allSettled([candidate.getEventStore(`refused-${randomUUID()}`)]);
+            const [result] = await Promise.allSettled([candidate.getEventStore(`refused-${randomUUID().slice(0, 8)}`)]);
             result.status.should.equal('rejected');
             if (result.status === 'rejected') result.reason.should.be.instanceOf(ClientObserversRequireKeepAlive);
         });
