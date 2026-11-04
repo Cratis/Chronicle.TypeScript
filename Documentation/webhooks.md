@@ -5,6 +5,10 @@ description: Register Chronicle webhooks from TypeScript, in code or as decorate
 
 See [Webhooks](/chronicle/webhooks/) for what a webhook is. Use `eventStore.webhooks` to register webhook observers for event streams.
 
+Start with the [TypeScript client setup](./getting-started.md). Choose one registration recipe for a webhook: make an explicit call, or declare an imported class for discovery.
+
+Chronicle sends events to the target URL from the kernel, so the URL must be reachable from the kernel, not only from your application. Use `withBearerToken`, `withBasicAuth`, or `withOAuth` rather than an unauthenticated endpoint, and keep the secrets in configuration.
+
 ## Register a webhook programmatically
 
 ```typescript
@@ -42,11 +46,13 @@ client.dispose();
 
 ## Define discoverable webhooks with decorators
 
-The `@webhook(...)` decorator registers a webhook class for discovery:
+For discovery instead of an explicit registration call, declare a class with `@webhook(...)`:
 
 - `@webhook(targetUrl)`
 - `@webhook(id, targetUrl)`
 - `@webhook(id, targetUrl, eventSequenceId)`
+
+Import the modules that declare the webhook classes before creating the event store. On store creation, `getEventStore(...)` discovers and registers the classes supplied by the client's artifact provider with the store's other artifacts. Looking up a cached store does not rerun that creation path.
 
 ```typescript
 import 'reflect-metadata';
@@ -61,10 +67,6 @@ class EmployeeWebhook implements IWebhook {
     }
 }
 ```
-
-`getEventStore(...)` registers every `@webhook` class whose module has been imported, together with the store's other artifacts.
-
-Chronicle sends events to the target URL from the kernel, so the URL must be reachable from the kernel, not only from your application. Use `withBearerToken`, `withBasicAuth`, or `withOAuth` rather than an unauthenticated endpoint, and keep the secrets in configuration.
 
 ## API
 
