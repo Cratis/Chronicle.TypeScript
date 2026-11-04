@@ -74,6 +74,7 @@ beforeEach(async () => {
         getVersionInfo: async () => ({})
     } as ServiceImplementation<typeof ServerDefinition>);
     server.add(EventStoresDefinition, {
+        ...Object.fromEntries(Object.keys(EventStoresDefinition.methods).map(name => [name, unused])),
         allEventStores: unused, ensureEventStore: success, observeEventStores: unused
     } as ServiceImplementation<typeof EventStoresDefinition>);
     server.add(ReadModelsDefinition, {
