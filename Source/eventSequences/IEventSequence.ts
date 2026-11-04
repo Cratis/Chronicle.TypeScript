@@ -6,6 +6,7 @@ import type { Guid } from '../connection/Guid.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { AppendedEventWithResult } from './AppendedEventWithResult.js';
 import { AppendOptions } from './AppendOptions.js';
+import { CompensateOptions } from './CompensateOptions.js';
 import { CompleteStreamResult } from './CompleteStreamResult.js';
 import { EventForEventSourceId } from './EventForEventSourceId.js';
 import { AppendResult } from './AppendResult.js';
@@ -161,6 +162,19 @@ export interface IEventSequence {
      * or other compliance erasure requirements. It is not a field-level mask.
      */
     redactForEventSource(eventSourceId: string, reason: string, eventTypes?: Constructor[]): Promise<void>;
+
+    /**
+     * Appends a compensating event that offsets an earlier event in this sequence.
+     * The compensation is appended to the event source, event stream and subject of the compensated event,
+     * so none of them are given. The event type of the compensation must be declared with `@compensationFor`
+     * for the type of the compensated event.
+     * @param compensationFor - The sequence number of the event to compensate for.
+     * @param event - The compensation event instance.
+     * @param options - Optional correlation identifier, tags and occurred time. Routing options are not used.
+     * @returns The append result. A rejected compensation, such as a missing compensated event or an event type
+     * that does not compensate for the type of the compensated event, is reported in `errors`.
+     */
+    compensate(compensationFor: EventSequenceNumber, event: object, options?: CompensateOptions): Promise<AppendResult>;
 
     /**
      * Copies the events of one event source onto another event source in this sequence, by starting a durable kernel job.

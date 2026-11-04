@@ -28,6 +28,7 @@ import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster.js';
 import { AppendOptions } from './AppendOptions.js';
 import { AppendResult } from './AppendResult.js';
 import { createAppendResult } from './createAppendResult.js';
+import { CompensateOptions } from './CompensateOptions.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
 import { CompleteStreamResult } from './CompleteStreamResult.js';
 import { ConstraintViolation } from './ConstraintViolation.js';
@@ -504,6 +505,56 @@ export class EventSequence implements IEventSequence {
                 span.end();
             }
         });
+    }
+
+    /** @inheritdoc */
+    async compensate(compensationFor: EventSequenceNumber, event: object, options?: CompensateOptions): Promise<AppendResult> {
+        causationManager.add(CausationType.compensate, { compensationFor: compensationFor.value.toString() });
+        const prepared = prepareSingleAppend(event, options);
+        const { eventType, correlationId, content, tags, causationChain, identity } = prepared;
+        const metricAttributes = { ...this.sequenceMetricAttributes, [names.attributes.eventTypeId]: eventType.id.value };
+
+        return observeOperation('compensate', async span => {
+            this.setSequenceAttributes(span);
+            setSequenceNumber(span, compensationFor.value);
+            setTelemetryAttribute(span, 'eventTypeId', eventType.id.value);
+            setTelemetryAttribute(span, 'eventTypeGeneration', eventType.generation.value);
+            const startTime = performance.now();
+            try {
+                const response = ensureCommandResponse('compensate event', await this._connection.eventSequences.compensate({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    CompensationFor: compensationFor.value,
+                    EventType: {
+                        Id: eventType.id.value,
+                        Generation: eventType.generation.value,
+                        Tombstone: eventType.tombstone
+                    },
+                    Content: content,
+                    CorrelationId: toContractsGuid(correlationId),
+                    Tags: tags,
+                    Occurred: toContractsOccurred(options?.occurred),
+                    Causation: toContractsCausation(causationChain),
+                    CausedBy: toContractsCausedBy(identity)
+                }));
+                const result = this.mapAppendResponse(
+                    response.SequenceNumber,
+                    response.ConstraintViolations ?? [],
+                    response.Errors ?? [],
+                    response.ConcurrencyViolation
+                );
+                span.setStatus({ code: SpanStatusCode.OK });
+                this.recordAppendMetrics(result, (performance.now() - startTime) / 1000, metricAttributes, this.sequenceMetricAttributes);
+                return result;
+            } catch (error) {
+                recordSafeException(span, error);
+                ChronicleConventionMetrics.appendErrors.add(1, this.sequenceMetricAttributes);
+                throw error;
+            } finally {
+                span.end();
+            }
+        }, correlationId);
     }
 
     /** @inheritdoc */

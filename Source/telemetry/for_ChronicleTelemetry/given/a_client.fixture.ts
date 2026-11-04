@@ -26,6 +26,7 @@ vi.mock('../../../connection/ChronicleConnection.js', () => ({
             hasEventsForEventSourceId: async (request: { EventSourceId: string }) => ({ IsAuthorized: true, Data: { HasEvents: request.EventSourceId !== 'empty' } }),
             forEventSourceIdAndEventTypes: async () => ({ IsAuthorized: true, Data: [] }),
             fromSequenceNumber: async () => ({ IsAuthorized: true, Data: [] }),
+            compensate: async () => ({ Response: { SequenceNumber: 43n, ConstraintViolations: [], Errors: [] } }),
             redact: async () => ({}),
             redactForEventSource: async () => ({}),
             copyEventsForEventSource: async () => ({ Response: { lo: 1n, hi: 2n } }),

@@ -393,6 +393,7 @@ export class InProcessEventSequence implements IEventSequence {
             (!ids.length || ids.includes(event.eventType.id.value))).map(event => this.snapshot(event));
     }
 
+    async compensate(): Promise<AppendResult> { throw this.unsupported('compensate', this.id.value, 'Compensation requires kernel storage.'); }
     async redact(): Promise<void> { throw this.unsupported('redact', this.id.value, 'Redaction requires kernel storage.'); }
     async redactForEventSource(): Promise<void> { throw this.unsupported('redactForEventSource', this.id.value, 'Redaction requires kernel storage.'); }
     async copy(): Promise<Guid> { throw this.unsupported('copy', this.id.value, 'Copying events requires kernel jobs.'); }

@@ -6,6 +6,7 @@ import { Constructor } from '@cratis/fundamentals';
 import { EventType } from './EventType.js';
 import { EventTypeId } from './EventTypeId.js';
 import { EventTypeGeneration } from './EventTypeGeneration.js';
+import { getCompensatedTypeFor } from './compensationForDecorator.js';
 import { DecoratorType, TypeDiscoverer, TypeIntrospector } from '../types/index.js';
 import { JsonSchema, JsonSchemaGenerator } from '../schemas/index.js';
 import { ChronicleClassDecorator } from '../types/standardDecoratorMetadata.js';
@@ -162,9 +163,17 @@ export function getEventTypeMetadata(target: Function): EventTypeMetadata | unde
  */
 export function getEventTypeJsonSchemaFor(target: Function): JsonSchema {
     const metadata = getEventTypeMetadata(target);
-    if (metadata) {
-        return metadata.schema;
-    }
+    const schema = metadata ? metadata.schema : JsonSchemaGenerator.createEmptySchema(target.name);
+    const compensated = getCompensatedEventTypeIdFor(target);
+    return compensated ? { ...schema, compensationFor: compensated.value } : schema;
+}
 
-    return JsonSchemaGenerator.createEmptySchema(target.name);
+/**
+ * Gets the identifier of the event type that a class declared with `@compensationFor` compensates for.
+ * @param target - The class constructor to inspect.
+ * @returns The compensated event type identifier, or undefined when the class is not a compensation.
+ */
+export function getCompensatedEventTypeIdFor(target: Function): EventTypeId | undefined {
+    const compensated = getCompensatedTypeFor(target);
+    return compensated ? getEventTypeFor(compensated as unknown as Function).id : undefined;
 }

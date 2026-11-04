@@ -10,6 +10,9 @@ import { EventTypeId } from './EventTypeId.js';
 import { Tag } from './Tag.js';
 import { NamedTag } from './NamedTag.js';
 import type { WireEventContext } from './WireEventContext.js';
+import { DecoratorType } from '../types/DecoratorType.js';
+import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
+import { getCompensatedTypeFor } from './compensationForDecorator.js';
 
 /** Converts kernel metadata identically for reads, reactors, and reducers. */
 export function toClientEventContext(context: WireEventContext): EventContext {
@@ -38,6 +41,7 @@ export function toClientEventContext(context: WireEventContext): EventContext {
             occurred: causation.Occurred ? new Date(causation.Occurred.Value) : undefined,
             properties: { ...causation.Properties }
         })),
+        compensationFor: toClientCompensationFor(context),
         tags: (context.Tags ?? []).map(value => new Tag(value)),
         namedTags: (context.NamedTags ?? []).map(tag => new NamedTag(tag.Name, tag.Value))
     };
@@ -45,4 +49,21 @@ export function toClientEventContext(context: WireEventContext): EventContext {
 
 function toClientIdentity(identity: WireEventContext['CausedBy']): Identity | undefined {
     return identity ? new Identity(identity.Subject, identity.Name, identity.UserName, toClientIdentity(identity.OnBehalfOf)) : undefined;
+}
+
+/**
+ * The wire format carries an unset compensation as zero, which is also a valid sequence number. Zero is therefore
+ * only a compensation when the event type is a registered compensation event type.
+ */
+function toClientCompensationFor(context: WireEventContext): bigint | undefined {
+    const compensationFor = context.CompensationFor;
+    if (compensationFor === undefined) {
+        return undefined;
+    }
+    if (compensationFor !== 0n) {
+        return compensationFor;
+    }
+    const eventTypeId = context.EventType?.Id;
+    const type = eventTypeId ? TypeDiscoverer.default.getTypeByDecoratorTypeAndName(DecoratorType.EventType, eventTypeId) : undefined;
+    return type && getCompensatedTypeFor(type) ? 0n : undefined;
 }
