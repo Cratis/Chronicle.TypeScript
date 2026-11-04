@@ -29,6 +29,9 @@ export interface IUnitOfWork {
      * @param event - The event payload.
      * @param options - Optional append metadata for this event: registered event source / stream routing, stream and source
      * types, stream identifier, subject, occurrence time, tags, named tags and concurrency scope. Kept with the event until commit.
+     * Accepts streamType/streamId/sourceType as aliases of eventStreamType/eventStreamId/eventSourceType.
+     * @throws {@link ConflictingAppendOptionNamesInUnitOfWork} when both names have different values; the event is not added.
+     * @throws {@link AppendOptionNotSupportedInUnitOfWork} when an unsupported option is given; the event is not added.
      * @throws {@link InvalidNamedTag} when a named tag is invalid; the event is not added.
      */
     addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void;

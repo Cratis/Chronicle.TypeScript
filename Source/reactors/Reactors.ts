@@ -35,6 +35,7 @@ import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
 import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
+import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -135,7 +136,8 @@ export class Reactors implements IReactors {
         private readonly _eventLog: IEventLog,
         private readonly _resultHandler?: ReactorResultHandler,
         private readonly _eventStore?: IEventStore,
-        private readonly _artifactActivator?: ClientArtifactsActivator
+        private readonly _artifactActivator?: ClientArtifactsActivator,
+        private readonly _skipKeepAlive: boolean = false
     ) {
         this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
         this._lifecycle = lifecycle;
@@ -168,6 +170,7 @@ export class Reactors implements IReactors {
 
     /** @inheritdoc */
     async register(): Promise<void> {
+        if (this._skipKeepAlive) refuseClientHostedObservers({ reactors: this._clientArtifacts.reactors, reducers: [] });
         if (this._registered || this._disposed) {
             return;
         }
