@@ -4,13 +4,13 @@ description: Where read models are documented, and how the TypeScript client dis
 sharedTopicBridge: true
 ---
 
-Read models are shared Chronicle concepts. Querying, snapshots, watching, and consistency are documented in the shared Chronicle section.
+To show an order's current state, query its read model rather than assembling the event history at every read. With a connected store and an already registered model, `store.readModels.findInstanceById(OrderSummary, key)` returns an `OrderSummary` or `null`. Use the key your projection or reducer assigns; do not assume it is always the event source ID. Check for `null` before reading the model's properties. [Getting a single read model](/chronicle/read-models/getting-single-instance/) explains the read-by-key task; use [collection reads](/chronicle/read-models/getting-collection-instances/) when you need more than one instance.
 
-- [Read models](/chronicle/read-models/)
-- [Getting a single read model](/chronicle/read-models/getting-single-instance/)
-- [Getting read model collections](/chronicle/read-models/getting-collection-instances/)
-- [Watching read models](/chronicle/read-models/watching-read-models/)
-- [TypeScript client setup](./getting-started.md)
+An accepted append can return before a projection or reducer has caught up, so an immediate read may be missing or out of date. Check `appendResult.isSuccess` first. In a script or test, you can then await `appendResult.waitForCompletion()` and inspect the returned result before reading. Observer failures are returned; timeout, cancellation, or RPC failures reject the wait. Neither outcome undoes the accepted append, so do not append the event again just because the wait did not complete successfully. A successful wait still does not guarantee a model for your chosen key. The [failed-partitions example](./failed-partitions.md#waiting-for-completion-instead-of-polling) separates these decisions. For service responses, choose an approach from the [eventual consistency guidance](/chronicle/projections/eventual-consistency/).
+
+Existing code may use `store.readModels.getInstanceById(Model, key)`, whose `Promise<Model>` signature does not signal absence. An empty kernel document produces a prototype-only model without populated fields, while a JSON `null` document can produce a model with constructor defaults. Use `findInstanceById` when absence matters instead of testing the truthiness of that legacy result. Both methods accept an optional session ID as their third argument. For compliance-bearing reducer reads, both reject when PII release fails rather than returning an unreleased instance. Collection reads, snapshots, and watches also reject if compliance release fails.
+
+Before either read, the model and the projection or reducer that builds it must be registered. [TypeScript client setup](./getting-started.md) covers connecting and artifact discovery, and the shared [read-model guidance](/chronicle/read-models/) covers the model lifecycle. The declaration below illustrates a model-bound mapping; it is not a complete append-to-read application and does not establish which keys your application produces.
 
 Read models are discovered from `@projection('id', Model)`, `@reducer('id', sequenceId, Model)`, or an exported model with model-bound event mappings such as `@fromEvent(Event)` and `@setFrom(Event)`. The model type supplies the schema; its class name is the default Chronicle read-model identifier.
 
@@ -55,15 +55,9 @@ Chronicle and the code that reads the collection must agree on the name. Arc's M
 
 For an existing model with a custom identifier, move the identifier to `static readonly readModelId = 'existing-id'` on the model before removing its deprecated `@readModel('existing-id')` decorator. The decorator remains supported for compatibility. Never change the identifier of a model with stored instances unless you plan a data migration. Two different model types with the same identifier fail registration rather than silently overwriting each other.
 
-`store.readModels.getInstanceById(Model, key)` is the canonical read-by-key API, as in the .NET client. Its existing `Promise<Model>` signature does not signal absence: an empty kernel document produces a prototype-only model without populated fields, while a JSON `null` document can produce a model with constructor defaults. The .NET client instead returns `null` for a missing instance; changing this TypeScript behavior would break existing callers. Use `store.readModels.findInstanceById(Model, key)` when you need an explicit `Model | null` result and check for absence before using it. Both methods accept an optional session ID as their third argument.
-
-Projections and reducers run after an append returns, so a read straight after an append can be missing or reflect older state. In scripts and tests, wait with `await appendResult.waitForCompletion()` first. In services, read the [eventual consistency](/chronicle/projections/eventual-consistency/) guidance.
-
-For compliance-bearing reducer reads, both methods reject when PII release fails rather than returning an unreleased instance. Collection reads, snapshots, and watches also reject if compliance release fails.
-
 ## Watch readiness and lifetime
 
-If you append before a watch is subscribed, you can miss the change. Use `store.readModels.createWatcher(Model)` and await `watcher.subscribed` before appending. The watcher starts immediately, even without iteration, and is an async iterable. See the [watching example](/chronicle/read-models/watching-read-models/) for readiness and cancellation together.
+If you need to react to changes after the initial query, use a watch. Subscribe before making the append whose change you want to see: call `store.readModels.createWatcher(Model)` and await `watcher.subscribed`. Appending first can miss the change. The watcher starts immediately, even without iteration, and is an async iterable. Readiness only tells you that the subscription is established; it is not the observer-completion wait described above. See the [watching example](/chronicle/read-models/watching-read-models/) for readiness and cancellation together.
 
 `store.readModels.watch(Model)` keeps its original `AsyncIterable<ReadModelChangeset<T>>` return type so existing `watch` implementations and mocks can still return plain async iterables or async generators. Its `for await` consumers still receive transport errors and can catch, refresh, and re-watch as before. The stream starts on the first `next()` and only pulls further changes as the consumer requests them. `watch()` has no client-side buffer or overflow limit, including before the subscription marker, and does not resume automatically. Use the new `IReadModels.createWatcher` method when you need readiness, callbacks, options, or disposal; custom `IReadModels` implementations can add that method without changing their existing `watch` method.
 

@@ -3,9 +3,11 @@ title: Event sources and streams
 description: Register named event sources and streams, append through them, and read the event source back from event metadata.
 ---
 
-An event source definition gives an event source a stable name, a description, default concurrency dimensions and an optional set of named streams. Routing belongs to the append, not to event types: the same event type can be appended through different definitions.
+Use an event source definition when an append needs a named source type, named streams, or default concurrency dimensions. The definition describes a kind of source, not one account or order: in the example below, `Account` is the definition name and `accountId` identifies the particular account. Routing belongs to the append, so the same event type can be appended through different definitions.
 
-Declare a definition with `@eventSource` and, optionally, one `@eventStream` per stream. Definitions are discovered and registered with the Kernel at startup, right after event types. Registration is an upsert, and the Kernel keeps definitions you stop registering. Two definitions with the same name, or one definition declaring the same stream twice, fail discovery with `DuplicateEventSourceName` or `DuplicateEventStreamName`. When you omit `name`, the class name without a trailing `EventSource` is used.
+The Account example keeps three choices separate. `AccountEventSource` selects the definition, `Transactions` selects a named stream within it, and `transfer-1` is an application-chosen stream ID. `deposit` makes one append; `depositAcrossSources` shows how a batch can override the shared source for one event. These are focused routing excerpts, not a complete banking application. They assume a connected `IEventLog` and [discovered artifacts](./getting-started.md#artifact-discovery); follow the existing [connection security guidance](./connecting.md#secure-the-connection-with-tls) before using a non-local server.
+
+Declare the definition with `@eventSource` and, optionally, one `@eventStream` per stream:
 
 ```typescript
 import { ConcurrencyDimensions, eventSource, eventStream, eventType, IEventLog } from '@cratis/chronicle';
@@ -45,13 +47,17 @@ async function depositAcrossSources(log: IEventLog, accountId: string, customerI
 
 ## Append through a definition
 
+Definitions are discovered and registered with the Kernel at startup, right after event types. Registration is an upsert, and the Kernel keeps definitions you stop registering. Two definitions with the same name, or one definition declaring the same stream twice, fail discovery with `DuplicateEventSourceName` or `DuplicateEventStreamName`. When you omit `name`, the class name without a trailing `EventSource` is used.
+
 Pass `eventSource` (the class or its name) in the append options, and optionally `eventStream`. The client:
 
 - writes the definition name as the event source type and as the `EventSource` key on the event;
 - writes the stream name as the event stream type, while `streamId` stays yours to choose;
 - throws `UnknownEventSource`, `EventStreamDoesNotBelongToEventSource`, `EventStreamRequiresEventSource` or `EventRoutingContradictsEventSource` before anything is sent. A batch is validated in full first, so it stays atomic.
 
-An `appendMany` with `EventForEventSourceId` entries can carry `eventSource` and `eventStream` per event; they win over the shared options, and a shared stream is never inherited by an event that names a different source.
+An `appendMany` with `EventForEventSourceId` entries can carry `eventSource` and `eventStream` per event; they win over the shared options, and a shared stream is never inherited by an event that names a different source. That is why the Customer entry in `depositAcrossSources` does not inherit `Transactions` from Account.
+
+Routing validation is not the final acceptance check. `deposit` returns an `AppendResult`; inspect its `isSuccess` and diagnostics. For `depositAcrossSources`, inspect every result in the returned array. [Event log](./event-log.md) explains append results and the separate decision to wait for observers.
 
 ## Concurrency
 
@@ -61,7 +67,7 @@ Chronicle accepts one concurrency scope per event source id in a batch. In `appe
 
 ## Read the event source back
 
-`context.eventSource` on appended events, reactor and reducer deliveries holds the definition name. It is `undefined` for events appended without a definition, including events stored before event sources existed.
+`context.eventSource` on appended events, reactor and reducer deliveries holds the definition name. In the Account example, that name is `Account`, not the account ID or `transfer-1`. It is `undefined` for events appended without a definition, including events stored before event sources existed. To restrict a reactor to a source or stream type, use the [reactor filters](./reactors.md#filtering-by-event-source-and-stream-type); a routing definition alone does not filter every observer.
 
 Event source routing needs a Kernel that supports registered event sources (Chronicle 19.30.0 or later) and `@cratis/chronicle.contracts` 19.30.0. Existing appends, options and event contexts are unchanged. Transactional appends accept the same routing: `eventLog.transactional.append(id, event, { eventSource, eventStream })` is carried through to the append on commit and validated there. The in-process test scenarios do not support definitions; they throw `UnsupportedEventSequenceOperation` for `eventSource`/`eventStream` instead of dropping them.
 
