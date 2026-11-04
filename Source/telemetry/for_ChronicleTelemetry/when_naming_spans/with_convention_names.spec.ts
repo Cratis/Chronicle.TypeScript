@@ -27,6 +27,7 @@ const operations = {
     getFromSequenceNumber: (sequence: IEventSequence) => sequence.getFromSequenceNumber(sequenceNumber),
     redact: (sequence: IEventSequence) => sequence.redact(sequenceNumber, 'reason'),
     redactForEventSource: (sequence: IEventSequence) => sequence.redactForEventSource('source', 'reason'),
+    copyForEventSource: (sequence: IEventSequence) => sequence.copy('source', 'target'),
     completeStream: (sequence: IEventSequence) => sequence.completeStream('stream-type', 'stream-id')
 };
 

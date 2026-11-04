@@ -53,7 +53,7 @@ describe('ExternalServices registration', () => {
         const request = await requestFor(builder => builder.http('https://example.com').withOAuth('https://auth', 'client', 'secret'));
         expect(request.ExternalServices[0].Endpoint?.Http?.Authorization).toEqual({
             Value0: undefined, Value1: undefined,
-            Value2: { Authority: 'https://auth', ClientId: 'client', ClientSecret: 'secret' }
+            Value2: { Authority: 'https://auth', ClientId: 'client', ClientSecret: 'secret', Scope: '' }
         });
     });
 

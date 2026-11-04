@@ -70,7 +70,8 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
         const value: OAuthAuthorization = {
             Authority: authority,
             ClientId: clientId,
-            ClientSecret: clientSecret
+            ClientSecret: clientSecret,
+            Scope: ''
         };
         this._authorization = {
             Value0: undefined,
@@ -136,7 +137,8 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
             Target: {
                 Url: targetUrl.value,
                 Authorization: this._authorization,
-                Headers: Object.fromEntries(this._headers)
+                Headers: Object.fromEntries(this._headers),
+                ManagedIdentity: undefined
             },
             IsReplayable: this._isReplayable,
             IsActive: this._isActive,

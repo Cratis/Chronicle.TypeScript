@@ -380,7 +380,8 @@ export class Reducers implements IReducers {
                             EventSourceType: getEventSourceTypeFor(reducerType),
                             EventStreamType: getEventStreamTypeFor(reducerType)
                         }
-                    }
+                    },
+                    PageDelivery: undefined
                 },
                 Value1: undefined
             }

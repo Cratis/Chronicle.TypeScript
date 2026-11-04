@@ -289,7 +289,8 @@ export class Reactors implements IReactors {
                             EventSourceType: getEventSourceTypeFor(reactorType),
                             EventStreamType: getEventStreamTypeFor(reactorType)
                         }
-                    }
+                    },
+                    PageDelivery: undefined
                 },
                 Value1: undefined
             }
@@ -441,7 +442,10 @@ export class Reactors implements IReactors {
                             State: state,
                             LastSuccessfulObservation: lastSuccessfullyObservedEvent,
                             ExceptionMessages: exceptionMessages,
-                            ExceptionStackTrace: exceptionStackTrace
+                            ExceptionStackTrace: exceptionStackTrace,
+                            DeliveryId: 0n,
+                            RetryAfterMilliseconds: 0n,
+                            Partitions: []
                         }
                     }
                 });

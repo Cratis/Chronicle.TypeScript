@@ -46,8 +46,8 @@ describe('inferred read models with standard decorators', () => {
         expect(registerMany).toHaveBeenCalledWith(expect.objectContaining({
             ReadModels: [expect.objectContaining({
                 Indexes: [
-                    { PropertyPath: 'customerId' },
-                    { PropertyPath: 'lines.productId' }
+                    { PropertyPath: 'customerId', Properties: [] },
+                    { PropertyPath: 'lines.productId', Properties: [] }
                 ]
             })]
         }));

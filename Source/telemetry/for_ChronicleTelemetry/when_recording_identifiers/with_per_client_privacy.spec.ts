@@ -30,10 +30,11 @@ for (const [label, policy, expected] of [
             await sequence.getForEventSourceIdAndEventTypes(source, [Recorded]);
             await sequence.getFromSequenceNumber(new EventSequenceNumber(1n), source);
             await sequence.redactForEventSource(source, 'private reason');
+            await sequence.copy(source, 'target');
             services.append.mock.calls[0][0].EventSourceId.should.equal(source);
         });
         it('should apply the policy only to the canonical name on every operation', () => {
-            telemetry.spans.getFinishedSpans().should.have.lengthOf(8);
+            telemetry.spans.getFinishedSpans().should.have.lengthOf(9);
             for (const span of telemetry.spans.getFinishedSpans()) {
                 should.equal(span.attributes['cratis.event_source.id'], expected);
                 should.equal(span.attributes['chronicle.event_source_id'], undefined);

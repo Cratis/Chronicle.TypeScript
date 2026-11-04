@@ -35,6 +35,7 @@ beforeAll(async () => {
         checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' })
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     server.add(EventStoresDefinition, {
+        ...Object.fromEntries(Object.keys(EventStoresDefinition.methods).map(name => [name, unused])),
         allEventStores: async () => ({ IsAuthorized: true, Data: [] }),
         ensureEventStore: unused,
         observeEventStores: async function* () {
