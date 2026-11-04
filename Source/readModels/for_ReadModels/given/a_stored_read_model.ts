@@ -44,7 +44,7 @@ export class AccountDocument {
 
 export class a_stored_read_model {
     readonly release = vi.fn<(request: ReleaseRequest) => Promise<ReleaseResponse>>()
-        .mockImplementation(async request => ({ HasError: false, Error: '', Payload: request.Payload }));
+        .mockImplementation(async request => ({ HasError: false, Error: '', Payload: request.Payload, FailedProperties: [], Strict: false }));
     readonly readModels: IReadModels;
 
     constructor() {
