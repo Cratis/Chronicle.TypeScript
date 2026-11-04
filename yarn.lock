@@ -34,7 +34,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@cratis/chronicle.contracts@npm:19.31.10":
+"@cratis/chronicle.contracts-oracle@npm:@cratis/chronicle.contracts@19.31.10":
   version: 19.31.10
   resolution: "@cratis/chronicle.contracts@npm:19.31.10"
   dependencies:
@@ -2057,7 +2057,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:19.31.10"
+    "@cratis/chronicle.contracts": "npm:19.70.0"
+    "@cratis/chronicle.contracts-oracle": "npm:@cratis/chronicle.contracts@19.31.10"
     glob: "npm:^13.0.6"
   languageName: unknown
   linkType: soft
