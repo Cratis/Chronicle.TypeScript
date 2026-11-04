@@ -107,6 +107,25 @@ After connecting, the client checks the connection every five seconds and watche
 
 When the kernel rejects a cached token as unauthenticated, for example after a key rotation, the client requests a new token and retries the call once. Observation streams are not retried within the call; they are observed again after a reconnect.
 
+## Short-lived processes
+
+For a CLI, script, or short-lived job, set `skipKeepAlive: true`:
+
+```typescript
+const client = new ChronicleClient(ChronicleOptions.development({ skipKeepAlive: true }));
+const store = await client.getEventStore('Library');
+// Append events or query the store. Dispose explicitly when you are finished.
+client.dispose();
+```
+
+The connection-string alternative is `chronicle://localhost:35000?skipKeepAlive=true`. The default is `false`. Either the string or the options can enable it; an explicit `false` option does not override a `true` string value. Only the exact string value `true` enables it.
+
+This skips the kernel keep-alive stream and the periodic connection-health watchdog. Connection and artifact discovery still happen on the first operation, unary calls still connect and retry as usual, and explicit disposal still closes resources. Event types, projections (including model-bound projections), read models, appends, and queries remain available. Read-model `watch` and `createWatcher` streams remain available too; a watch you open intentionally keeps running until cancelled or disposed. Other caller-owned streams can also keep the process alive.
+
+Client-hosted reactors and reducers require a long-running connection. With `skipKeepAlive`, any decorated reactor or reducer in the artifact provider is refused before channel creation, load-balancer probes, compatibility checks, or registration. This includes inactive reducers. `getEventStore()` rejects with `ClientObserversRequireKeepAlive`, whose `observerKind` and `observerId` identify the observer. Host these observers in a separate client without `skipKeepAlive`. Later direct registration is refused too. This option is not a way to run a reactor in a script or to force an exit while streams are open.
+
+Without caller-owned streams, the skipped-mode client does not keep a process alive after its pending calls finish; `dispose()` remains the recommended way to close the channel deterministically.
+
 ## Connection diagnostics
 
 Supply `ChronicleOptions.logger` to send structured diagnostics to your application logger. Records include error types, not exception messages or stacks; see the [logging contract](./observability.md#application-diagnostics).

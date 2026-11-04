@@ -4,25 +4,17 @@ description: Where reactors are documented, and how TypeScript reactors return s
 sharedTopicBridge: true
 ---
 
-Reactors are documented in the shared Chronicle docs with synchronized examples for C#, Kotlin, Java, Elixir, and TypeScript.
+Use a reactor when an event should trigger work, such as notifying a customer after an order is placed. Appending the event and running that work are separate steps: the append can succeed before the reactor handles it, and a failed delivery can be retried. Choose how to make external effects safe to repeat before deploying the handler.
 
-- [Getting started with reactors](/chronicle/reactors/getting-started/)
-- [Reactor event processing](/chronicle/reactors/event-processing/)
-- [Returning side effects](/chronicle/reactors/side-effects/)
-- [OnceOnly](/chronicle/reactors/once-only/)
-- [Replay](/chronicle/reactors/replay/)
-- [Handling events in batches](/chronicle/reactors/batches/)
-- [Reactors overview](/chronicle/reactors/)
-
-Use the [TypeScript get started page](/chronicle/clients/typescript/getting-started/) for package installation and connection setup.
+Start with [TypeScript connection and artifact setup](/chronicle/clients/typescript/getting-started/), then register the event and reactor classes with the store. [Getting started with reactors](/chronicle/reactors/getting-started/) shows that setup in context. The focused handler example below assumes those artifacts are discovered; it is not a complete application. [Reactor event processing](/chronicle/reactors/event-processing/) explains how delivery and acknowledgment fit together. To handle many events in one call, see [Handling events in batches](/chronicle/reactors/batches/) and [pages and batch methods](#pages-and-batch-methods) below.
 
 ## TypeScript client notes
 
 ### Choosing a handler name
 
-By default, Chronicle calls the method whose name is the camelCase name of a registered event class: `authorRegistered(event)` handles `AuthorRegistered`. No method decorator is needed for that convention.
+By default, Chronicle calls the method whose name is the camelCase name of a registered event class: `authorRegistered(event)` handles `AuthorRegistered`. That convention saves a method decorator when the name already says which event it handles. It still depends on the event being in the store's discovered catalog; TypeScript's parameter annotation alone cannot identify it at runtime.
 
-To name the method after what it does, use `@handles(AuthorRegistered)` instead:
+If a name such as `notify` better describes the work, use `@handles(AuthorRegistered)` to make the event selection explicit:
 
 ```typescript
 import { field } from '@cratis/fundamentals';
@@ -69,11 +61,13 @@ On a reactor, they also supply append metadata for **bare returned events**, mat
 
 ### Handler arguments and side effects
 
+A handler receives the event and can also accept its context, services, and delivery metadata. Use the services from that delivery when reading state or explicitly appending another event, rather than reaching for a different store. If the handler returns events instead, [Returning side effects](/chronicle/reactors/side-effects/) explains how Chronicle dispatches them; returning an event and explicitly appending it are different routing choices.
+
 The optional third argument, `ReactorServices`, gives the owning observation's `eventStore`, its `readModels` (`services.readModels === services.eventStore.readModels`), and a disconnect/shutdown `signal`. It is the consuming store and namespace, including for imported events, not an application-wide default or the upstream event's provenance. Existing one- and two-argument methods work unchanged; rest-parameter handlers now see this additional argument.
 
-To append explicitly, await `services.eventStore.eventLog.append(context.eventSourceId, event)` and check `result.isSuccess`; a rejected append does not throw automatically. Throw if it failed so the observation is not acknowledged. To read state, use `services.readModels.findInstanceById(Model, context.eventSourceId)` and handle `null`. Read models are eventually consistent: a read may lag the triggering event or be absent, including during replay. There is no automatic historical snapshot at the event's sequence number. If a missing model prevents your side effect, throw rather than acknowledging lost work; make retries safe.
+To append explicitly, await `services.eventStore.eventLog.append(context.eventSourceId, event)` and check `result.isSuccess`. Append violations and errors are reported in the result rather than thrown automatically; prevalidation or transport failures can still reject the call. Throw on an unsuccessful result so the observation is not acknowledged. To read state, use `services.readModels.findInstanceById(Model, context.eventSourceId)` and handle `null`. Read models are eventually consistent: a read may lag the triggering event or be absent, including during replay. There is no automatic historical snapshot at the event's sequence number. If a missing model prevents your side effect, throw rather than acknowledging lost work; make retries safe.
 
-A reactor handler method can return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id, stream id, and subject, with source and stream types resolved as described above; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
+A reactor handler method can return a side effect instead of only observing: a single event, an array of events, a single `EventForEventSourceId` (to target an event source other than the one that triggered the reactor), an array of those, or a mix. Whatever is returned is appended in one atomic `appendMany` call once the handler completes — a bare event uses the triggering event's own event source id and stream id, and takes that event source id as its subject (not the triggering event's own subject), with source and stream types resolved as described above; an `EventForEventSourceId` entry keeps its own target. If the side-effect append fails, the reactor's partition is marked Failed, the same as if the handler itself had thrown.
 
 For application-owned return types, pass `reactorResultHandler` to `ChronicleOptions.fromConnectionString(connectionString, { reactorResultHandler })` (or `development({ reactorResultHandler })`). The callback receives the returned value, triggering `EventContext`, reactor class, event store name, and namespace. Return `true` only after handling the entire result; return `false` to let Chronicle append its recognized event returns. Throw on failure so the partition fails instead of acknowledging a lost side effect. The hook is installed before reactor observations begin. It does not provide a transaction across commands and events; handle mixed returns deliberately.
 
@@ -132,7 +126,7 @@ specification for batch reactors.
 
 ## Replay policies
 
-Reactors are replayable by default. Put `@onceOnly()` on a handler to skip that handler for replayed events, or on the reactor class to register the entire reactor as non-replayable so the kernel does not replay it.
+Reactors are replayable by default, so a handler that sends a notification needs an explicit replay policy. Put `@onceOnly()` on a handler to skip that handler for replayed events, or on the reactor class to register the entire reactor as non-replayable so the kernel does not replay it. The [OnceOnly guidance](/chronicle/reactors/once-only/) covers that choice; [Replay](/chronicle/reactors/replay/) explains when previously stored events are processed again. The following example separates live notification work from replay-specific work, not live delivery from every possible duplicate.
 
 ```typescript
 import { eventType, reactor, onceOnly, replay } from '@cratis/chronicle';
@@ -179,3 +173,5 @@ class SendWelcomeEmails {
 ```
 
 The marker only affects the first registration. A reactor that already has a position keeps it, so it never skips events after a restart. Renaming the reactor or moving it changes its default id and makes it a new reactor, which starts at the tail again; give `@reactor()` an explicit id to keep the old position. An explicit replay still replays from the beginning. Both the Chronicle server and this client must support it: a server that predates it ignores the request and the reactor catches up from the beginning. The marker is not inherited by subclasses.
+
+If an accepted append has not produced the expected effect, inspect the [observer's state](./observers.md) and [failed partitions](./failed-partitions.md) before resending the event. Use the [reactors overview](/chronicle/reactors/) for the broader delivery model; neither an append result nor `@onceOnly()` proves that an external effect happened exactly once.

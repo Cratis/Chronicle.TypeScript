@@ -32,7 +32,7 @@ A commit containing both non-empty named tags and any registered `eventSource` e
 
 ### Append metadata in a unit of work
 
-`transactional.append()` and `transactional.appendMany()` accept the same per-event metadata as an ordinary append: registered `eventSource`/`eventStream` routing, `eventStreamType`, `eventStreamId`, `eventSourceType`, `subject`, `occurred`, `tags` and a `concurrencyScope`. The unit of work keeps the values with each event (tags and the occurrence time are copied when you enroll the event) and passes them to the append when you commit, in the order you enrolled the events.
+`transactional.append()` and `transactional.appendMany()` accept the per-event metadata of an ordinary append: registered `eventSource`/`eventStream` routing, the stream type, stream identifier and source type (as `streamType`/`streamId`/`sourceType` or `eventStreamType`/`eventStreamId`/`eventSourceType`), `subject`, `occurred`, `tags`, `namedTags` and a `concurrencyScope`. The unit of work keeps the values with each event (tags and the occurrence time are copied when you enroll the event) and passes them to the append when you commit, in the order you enrolled the events.
 
 ```typescript
 const unitOfWork = store.unitOfWorkManager.begin();
@@ -50,5 +50,7 @@ await unitOfWork.commit();
 ```
 
 - Chronicle validates one concurrency scope per event source identifier in an append, so every event a unit of work holds for the same event source identifier in the same event sequence must carry an equal scope or none. A different scope throws `ConflictingConcurrencyScopesInUnitOfWork` when you enroll the event, and the unit of work keeps the events it already had.
+- Giving both names of a pair with different values throws `ConflictingAppendOptionNamesInUnitOfWork` when you enroll the event.
+- `correlationId`, `concurrencyScopes` and `eventSourceId` throw `AppendOptionNotSupportedInUnitOfWork`. The unit of work uses its own correlation identifier (pass one to `unitOfWorkManager.begin(correlationId)`) and per-event `concurrencyScope`s. In both cases the unit of work keeps the events it already had.
 - A unit of work commits one append per event sequence. Events in the same event sequence are appended as one batch; events in different event sequences are separate appends, so a failure in a later sequence does not undo an earlier one.
 - A rejected append, such as a stale concurrency scope, shows up in `getConcurrencyViolations()` and `isSuccess` after the commit.

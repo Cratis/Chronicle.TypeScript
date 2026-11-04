@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
+import type { Guid } from '../connection/Guid.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import { AppendedEventWithResult } from './AppendedEventWithResult.js';
 import { AppendOptions } from './AppendOptions.js';
@@ -160,6 +161,18 @@ export interface IEventSequence {
      * or other compliance erasure requirements. It is not a field-level mask.
      */
     redactForEventSource(eventSourceId: string, reason: string, eventTypes?: Constructor[]): Promise<void>;
+
+    /**
+     * Copies the events of one event source onto another event source in this sequence, by starting a durable kernel job.
+     * The copies are appended to the target event source with the original event context preserved by the kernel.
+     * @param sourceId - The event source identifier to copy events from.
+     * @param targetId - The event source identifier to copy events onto.
+     * @param eventTypes - Event type constructors to limit the copy to; when none are given, events of every type are copied.
+     * @returns A promise that resolves with the identifier of the started copy job once the kernel has accepted the request.
+     * Resolving does not mean the copy has finished.
+     * @throws ChronicleCallFailed When the kernel rejects the request.
+     */
+    copy(sourceId: string, targetId: string, ...eventTypes: Constructor[]): Promise<Guid>;
 
     /**
      * Completes a stream so that no further events can be appended to it.

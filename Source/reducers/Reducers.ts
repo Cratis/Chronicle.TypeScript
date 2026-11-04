@@ -33,6 +33,7 @@ import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActiv
 import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
 import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
+import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
 import type { BatchContext } from '../observation/batches/BatchContext.js';
 import { BatchOutcomeKind } from '../observation/batches/BatchOutcomeKind.js';
@@ -144,7 +145,8 @@ export class Reducers implements IReducers {
         private readonly _defaultSinkTypeId: string,
         private readonly _eventStore?: IEventStore,
         private readonly _artifactActivator?: ClientArtifactsActivator,
-        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy
+        private readonly _readModelNamingPolicy?: ReadModelNamingPolicy,
+        private readonly _skipKeepAlive: boolean = false
     ) {
         this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
@@ -177,6 +179,7 @@ export class Reducers implements IReducers {
 
     /** @inheritdoc */
     async register(): Promise<void> {
+        if (this._skipKeepAlive) refuseClientHostedObservers({ reactors: [], reducers: this._clientArtifacts.reducers });
         if (this._registered || this._disposed) {
             return;
         }

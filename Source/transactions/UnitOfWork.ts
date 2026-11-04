@@ -16,6 +16,7 @@ import type { ConcurrencyScope } from '../eventSequences/ConcurrencyScope.js';
 import { ConflictingConcurrencyScopesInUnitOfWork } from './ConflictingConcurrencyScopesInUnitOfWork.js';
 import { concurrencyScopesAreEqual } from './concurrencyScopesAreEqual.js';
 import { toEventForEventSourceId } from './toEventForEventSourceId.js';
+import { resolveTransactionalAppendOptions } from './resolveTransactionalAppendOptions.js';
 import { IUnitOfWork } from './IUnitOfWork.js';
 
 interface EventForEventSourceIdWithSequenceNumber {
@@ -56,8 +57,9 @@ export class UnitOfWork implements IUnitOfWork {
     /** @inheritdoc */
     addEvent(eventSequenceId: EventSequenceId, eventSourceId: string, event: object, options?: TransactionalAppendOptions): void {
         this.throwIfCompleted();
-        const eventForEventSourceId = toEventForEventSourceId(eventSourceId, event, options);
-        const scope = options?.concurrencyScope;
+        const resolved = resolveTransactionalAppendOptions(options);
+        const eventForEventSourceId = toEventForEventSourceId(eventSourceId, event, resolved);
+        const scope = resolved?.concurrencyScope;
         const scopesForSequence = this._concurrencyScopes.get(eventSequenceId.value) ?? new Map<string, ConcurrencyScope>();
         if (scope !== undefined) {
             const enrolled = scopesForSequence.get(eventSourceId);

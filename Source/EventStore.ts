@@ -41,6 +41,7 @@ import { observeOperation } from './telemetry/observeOperation.js';
 import { DefaultClientArtifactsProvider } from './artifacts/DefaultClientArtifactsProvider.js';
 import type { IClientArtifactsProvider } from './artifacts/IClientArtifactsProvider.js';
 import { validateArtifactSchemas } from './artifacts/validateArtifactSchemas.js';
+import { refuseClientHostedObservers } from './artifacts/refuseClientHostedObservers.js';
 import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
 import { UnitOfWorkManager } from './transactions/UnitOfWorkManager.js';
 import { IJobs } from './jobs/IJobs.js';
@@ -101,7 +102,8 @@ export class EventStore implements IEventStore {
         reactorResultHandler?: ReactorResultHandler,
         artifactActivator?: ClientArtifactsActivator,
         readModelNamingPolicy?: ReadModelNamingPolicy,
-        private readonly _telemetry?: ChronicleTelemetryOptions
+        private readonly _telemetry?: ChronicleTelemetryOptions,
+        private readonly _skipKeepAlive: boolean = false
     ) {
         this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
@@ -116,8 +118,8 @@ export class EventStore implements IEventStore {
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelNamingPolicy);
-        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator);
-        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy);
+        this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator, _skipKeepAlive);
+        this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy, _skipKeepAlive);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType), readModelNamingPolicy, lifecycle);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.patterns = new Patterns(name.value, namespace.value, _connection);
@@ -137,6 +139,8 @@ export class EventStore implements IEventStore {
      * @returns A promise that resolves when all registrations are complete.
      */
     async registerArtifacts(): Promise<void> {
+        if (this._skipKeepAlive) refuseClientHostedObservers(this._artifacts);
+
         this._logger.debug('Discovering artifacts for registration', {
             eventStore: this.name.value,
             namespace: this.namespace.value
@@ -153,6 +157,7 @@ export class EventStore implements IEventStore {
             this.seeding.discover()
         ]);
 
+        if (this._skipKeepAlive) refuseClientHostedObservers(this._artifacts);
         validateArtifactSchemas(this._artifacts);
         for (const type of this._artifacts.reactors) {
             getReactorEventTypes(type, this._artifacts.eventTypes);

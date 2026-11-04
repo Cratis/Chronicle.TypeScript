@@ -14,10 +14,11 @@ export function concurrencyScopesAreEqual(first: ConcurrencyScope, second: Concu
     const eventTypeKeys = (scope: ConcurrencyScope) =>
         [...new Set((scope.eventTypes ?? []).map(_ => `${_.id.value}+${_.generation.value}`))].sort().join(',');
 
+    // Undefined and empty are the same on the wire, so they are the same here.
     return first.sequenceNumber === second.sequenceNumber
         && (first.eventSourceId ?? false) === (second.eventSourceId ?? false)
-        && first.eventStreamType === second.eventStreamType
-        && first.eventStreamId === second.eventStreamId
-        && first.eventSourceType === second.eventSourceType
+        && (first.eventStreamType ?? '') === (second.eventStreamType ?? '')
+        && (first.eventStreamId ?? '') === (second.eventStreamId ?? '')
+        && (first.eventSourceType ?? '') === (second.eventSourceType ?? '')
         && eventTypeKeys(first) === eventTypeKeys(second);
 }

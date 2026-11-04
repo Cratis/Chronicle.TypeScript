@@ -49,7 +49,7 @@ import { WellKnownTelemetryNames as names } from '../WellKnownTelemetryNames.js'
 import { ChronicleConventionMetrics } from '../Metrics.js';
 import { identityProvider, Identity } from '../identity/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
-import { toContractsGuid } from '../connection/Guid.js';
+import { fromContractsGuid, toContractsGuid, type Guid } from '../connection/Guid.js';
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess, type CallResultLike } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
 import type { IEventSources } from '../eventSources/IEventSources.js';
@@ -538,6 +538,35 @@ export class EventSequence implements IEventSequence {
                 EventTypes: wireEventTypeIds,
                 ...causedBy
             }));
+    }
+
+    /** @inheritdoc */
+    async copy(sourceId: string, targetId: string, ...eventTypes: Constructor[]): Promise<Guid> {
+        const wireEventTypeIds = eventTypes.map(constructor => getEventTypeFor(constructor as unknown as Function).id.value);
+
+        return observeOperation('copyForEventSource', async span => {
+            this.setSequenceAttributes(span);
+            setEventSourceId(span, sourceId, this._telemetry);
+            try {
+                const response = await this._connection.eventSequences.copyEventsForEventSource({
+                    EventStore: this._eventStoreName,
+                    Namespace: this._namespace,
+                    EventSequenceId: this.id.value,
+                    SourceId: sourceId,
+                    TargetId: targetId,
+                    EventTypes: wireEventTypeIds
+                });
+
+                const jobId = fromContractsGuid(ensureCommandResponse('copy events for event source', response));
+                span.setStatus({ code: SpanStatusCode.OK });
+                return jobId;
+            } catch (error) {
+                recordSafeException(span, error);
+                throw error;
+            } finally {
+                span.end();
+            }
+        });
     }
 
     private async sendRedaction(

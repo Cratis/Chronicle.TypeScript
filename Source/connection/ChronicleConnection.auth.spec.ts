@@ -50,6 +50,7 @@ async function listenAuthenticated(onCheck?: () => void): Promise<number> {
         }
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     server.add(ServerDefinition, {
+        ...Object.fromEntries(Object.keys(ServerDefinition.methods).map(name => [name, unsupported])),
         getVersionInfo: async () => ({}), resetKernelState: unsupported
     } as ServiceImplementation<typeof ServerDefinition>);
     server.add(EventStoresDefinition, {

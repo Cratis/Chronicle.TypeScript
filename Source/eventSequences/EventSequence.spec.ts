@@ -3,11 +3,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { ConstraintType, type ConstraintViolation as ContractsConstraintViolation } from '@cratis/chronicle.contracts';
+import { Guid } from '@cratis/fundamentals';
 import type { ChronicleConnection } from '../connection/index.js';
 import { causationManager, CausationType } from '../auditing/index.js';
 import type { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { eventType } from '../events/eventTypeDecorator.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
+import { fromContractsGuid } from '../connection/Guid.js';
 import { EventSequence } from './EventSequence.js';
 import { EventSequenceId } from './EventSequenceId.js';
 import { EventSequenceNumber } from './EventSequenceNumber.js';
@@ -29,6 +31,7 @@ function createEventSequence(
     const eventSequences = {
         redact: vi.fn().mockResolvedValue({}),
         redactForEventSource: vi.fn().mockResolvedValue({}),
+        copyEventsForEventSource: vi.fn().mockResolvedValue({ Response: { lo: 0x0123456789abcdefn, hi: 0x0f1e2d3c4b5a6978n } }),
         forEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ Data: [] }),
         fromSequenceNumber: vi.fn().mockResolvedValue({ Data: [] }),
         tailSequenceNumber: vi.fn().mockResolvedValue({ Data: { SequenceNumber: EventSequenceNumber.unset.value } }),
@@ -57,6 +60,7 @@ function createEventSequence(
         eventSequence,
         redact: eventSequences.redact,
         redactForEventSource: eventSequences.redactForEventSource,
+        copyEventsForEventSource: eventSequences.copyEventsForEventSource,
         forEventSourceIdAndEventTypes: eventSequences.forEventSourceIdAndEventTypes,
         fromSequenceNumber: eventSequences.fromSequenceNumber,
         tailSequenceNumber: eventSequences.tailSequenceNumber,
@@ -151,6 +155,57 @@ describe('EventSequence', () => {
                 'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f',
                 'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g'
             ]);
+        });
+    });
+
+    describe('when copying all events of an event source without event types', () => {
+        const { eventSequence, copyEventsForEventSource } = createEventSequence();
+
+        it('should call the CopyEventsForEventSource RPC with an empty event type filter', async () => {
+            await eventSequence.copy('source-id', 'target-id');
+
+            expect(copyEventsForEventSource).toHaveBeenCalledTimes(1);
+            const request = copyEventsForEventSource.mock.calls[0][0];
+            expect(request.EventStore).toEqual('my-event-store');
+            expect(request.Namespace).toEqual('my-namespace');
+            expect(request.EventSequenceId).toEqual(EventSequenceId.eventLog.value);
+            expect(request.SourceId).toEqual('source-id');
+            expect(request.TargetId).toEqual('target-id');
+            expect(request.EventTypes).toEqual([]);
+        });
+
+        it('should return the id of the started job', async () => {
+            const jobId = await eventSequence.copy('source-id', 'target-id');
+
+            expect(jobId.toString()).toEqual(fromContractsGuid({ lo: 0x0123456789abcdefn, hi: 0x0f1e2d3c4b5a6978n }).toString());
+            expect(jobId.toString()).not.toEqual(Guid.empty.toString());
+        });
+    });
+
+    describe('when copying events of an event source filtered to specific event types', () => {
+        const { eventSequence, copyEventsForEventSource } = createEventSequence();
+
+        it('should call the CopyEventsForEventSource RPC with the resolved event type filter', async () => {
+            await eventSequence.copy('source-id', 'target-id', SomethingHappened, SomethingElseHappened);
+
+            const request = copyEventsForEventSource.mock.calls[0][0];
+            expect(request.EventTypes).toEqual([
+                'a3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3f',
+                'b3f6a2f0-6f2f-4a3c-9d3f-6f2f4a3c9d3g'
+            ]);
+        });
+    });
+
+    describe('when the kernel rejects copying events of an event source', () => {
+        const { eventSequence } = createEventSequence({
+            copyEventsForEventSource: vi.fn().mockResolvedValue({
+                ValidationResults: [{ Message: 'Target already has events', Members: [] }],
+                ExceptionMessages: []
+            })
+        });
+
+        it('should fail with the kernel reasons', async () => {
+            await expect(eventSequence.copy('source-id', 'target-id')).rejects.toThrow('Target already has events');
         });
     });
 

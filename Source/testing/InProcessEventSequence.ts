@@ -395,6 +395,7 @@ export class InProcessEventSequence implements IEventSequence {
 
     async redact(): Promise<void> { throw this.unsupported('redact', this.id.value, 'Redaction requires kernel storage.'); }
     async redactForEventSource(): Promise<void> { throw this.unsupported('redactForEventSource', this.id.value, 'Redaction requires kernel storage.'); }
+    async copy(): Promise<Guid> { throw this.unsupported('copy', this.id.value, 'Copying events requires kernel jobs.'); }
     async completeStream(): Promise<CompleteStreamResult> { throw this.unsupported('completeStream', this.id.value, 'Stream completion requires a kernel.'); }
 
     private filterIds(types?: Constructor[]): string[] {

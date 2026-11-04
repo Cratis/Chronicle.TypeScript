@@ -21,7 +21,8 @@ export function eventSequence(telemetry?: ChronicleTelemetryOptions) {
         forEventSourceIdAndEventTypes: vi.fn().mockResolvedValue({ IsAuthorized: true, Data: [] }),
         fromSequenceNumber: vi.fn().mockResolvedValue({ IsAuthorized: true, Data: [] }),
         redact: vi.fn().mockResolvedValue({}),
-        redactForEventSource: vi.fn().mockResolvedValue({})
+        redactForEventSource: vi.fn().mockResolvedValue({}),
+        copyEventsForEventSource: vi.fn().mockResolvedValue({ Response: { lo: 1n, hi: 2n } })
     };
     const connection = { eventSequences: services } as unknown as ChronicleConnection;
     return { services, sequence: new EventSequence(EventSequenceId.eventLog, 'store', 'namespace', connection,
