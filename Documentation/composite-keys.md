@@ -5,6 +5,12 @@ description: Build TypeScript projection keys from event content, context, event
 
 When an event property alone does not identify a read-model instance, combine it with context or a fixed category. Each part of a TypeScript composite key uses the same set-expression builder as a projection property.
 
+This is projection-key configuration, not a request-context setup step. For the surrounding projection setup, start with the [shared composite keys guide](/chronicle/projections/declarative/composite-keys/).
+
+Parent and join keys have separate [kernel limits](#parent-and-join-keys); read those limits before configuring either.
+
+The in-process `ReadModelScenario` evaluator still rejects composite instance, parent and join keys before replay. Use kernel-backed tests for these projections.
+
 ## Configure the parts
 
 Inside a declarative projection, use `usingCompositeKey<TKey>()` for the instance key. `usingParentCompositeKey<TKey>()` emits a child's parent key, subject to the [kernel limitations below](#parent-and-join-keys). The following excerpt assumes the `CompositeRecordChanged`, `CompositeRecordKey` and read-model types in the [complete expression-parts example](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/projections/declarative/composite-keys/expression-parts.md):
@@ -43,7 +49,7 @@ $composite(orderId=orderId,subject=$eventContext(Subject),sourceId=$eventSourceI
 
 `usingParentCompositeKey` accepts the same expressions as the .NET client, but Chronicle 19.26.2 does not generally resolve composite parents. With a root `From` subscription and a parent key combining content, context and source id **without a constant**, the first child can be deferred even though its parent exists. The kernel searches for a parent event using the composite object's string representation, then falls back to looking for an existing child through `items.id`; neither locates that first child's parent. [Chronicle #551 tracks composite parent resolution](https://github.com/Cratis/Chronicle/issues/551). The client does not reject these definitions, preserving .NET parity.
 
-A `$value(...)` part changes that path in 19.26.2: the kernel's unanchored constant-expression matcher classifies the entire composite parent expression as constant and bypasses parent-event lookup. The constant-bearing parent fixture succeeds through this shortcut, not through general composite-parent support. Do not rely on adding a constant as a supported workaround.
+Do not rely on adding a constant as a supported workaround. A `$value(...)` part changes that path in 19.26.2: the kernel's unanchored constant-expression matcher classifies the entire composite parent expression as constant and bypasses parent-event lookup. The constant-bearing parent fixture succeeds through this shortcut, not through general composite-parent support.
 
 Chronicle 19.26.2 ignores custom **root** join keys: backfill and live updates still match the join event's source id ([Chronicle #4165](https://github.com/Cratis/Chronicle/issues/4165)). **Child** joins do resolve custom composite key expressions. Chronicle 19.26.2 uses the resolved child-join key as both the root document key and the child identifier, so a child join only updates children whose root has the same identifier ([Chronicle #4530](https://github.com/Cratis/Chronicle/issues/4530)). The oracle fixture deliberately uses matching composite root and child identifiers. Children are created through the `$value` parent-key shortcut; this fixture isolates child-join key evaluation, not parent resolution. A join's parent-key methods have no wire effect because `JoinDefinition` has no parent-key field.
 
@@ -51,6 +57,6 @@ The in-memory sink replaces the matched root state with the join changes. This i
 
 ## Testing boundary
 
-The in-process `ReadModelScenario` evaluator still rejects composite instance, parent and join keys before replay. Use kernel-backed tests for these projections. The packaged projection oracle covers root keys, the constant-bearing parent shortcut, constant-free parent deferral, ignored root join keys and resolved child join keys. The deferral fixture captures an attempted `AddFuture` through the oracle's fail-closed futures guard, not a kernel exception or successful future storage. These fixtures do not prove persistent-sink behavior.
+The packaged projection oracle covers root keys, the constant-bearing parent shortcut, constant-free parent deferral, ignored root join keys and resolved child join keys. These fixtures do not prove persistent-sink behavior. The deferral fixture captures an attempted `AddFuture` through the oracle's fail-closed futures guard, not a kernel exception or successful future storage.
 
 For the shared projection concepts and other clients, continue with the [Chronicle composite keys guide](/chronicle/projections/declarative/composite-keys/).
