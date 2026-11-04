@@ -25,6 +25,7 @@ const operations = {
     hasEventsFor: (sequence: IEventSequence) => sequence.hasEventsFor('source'),
     getForEventSourceIdAndEventTypes: (sequence: IEventSequence) => sequence.getForEventSourceIdAndEventTypes('source', [Recorded]),
     getFromSequenceNumber: (sequence: IEventSequence) => sequence.getFromSequenceNumber(sequenceNumber),
+    compensate: (sequence: IEventSequence) => sequence.compensate(sequenceNumber, new Recorded()),
     redact: (sequence: IEventSequence) => sequence.redact(sequenceNumber, 'reason'),
     redactForEventSource: (sequence: IEventSequence) => sequence.redactForEventSource('source', 'reason'),
     copyForEventSource: (sequence: IEventSequence) => sequence.copy('source', 'target'),
@@ -61,7 +62,7 @@ for (const spanNames of [undefined, 'legacy', 'convention'] as const) {
                         'cratis.event_store.name': 'store', 'cratis.event_store.namespace': 'namespace',
                         'cratis.event_sequence.id': sequenceId.value
                     });
-                    const hasSequenceNumber = ['append', 'getTailSequenceNumber', 'getFromSequenceNumber', 'redact'].includes(operation);
+                    const hasSequenceNumber = ['append', 'getTailSequenceNumber', 'getFromSequenceNumber', 'redact', 'compensate'].includes(operation);
                     Object.keys(span.attributes).filter(key => key.startsWith('chronicle.')).should.deep.equal(
                         hasSequenceNumber ? ['chronicle.sequence_number'] : []);
                     if (hasSequenceNumber) span.attributes.should.have.property('chronicle.sequence_number', '42');

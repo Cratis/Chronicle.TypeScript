@@ -36,6 +36,11 @@ export class CausationType {
     static readonly redactForEventSource = new CausationType('TypeScriptClient.RedactForEventSource');
 
     /**
+     * Represents the causation type for compensating an event via the TypeScript client.
+     */
+    static readonly compensate = new CausationType('TypeScriptClient.Compensate');
+
+    /**
      * Initializes a new instance of the {@link CausationType} class.
      * @param name - The name of the causation type.
      */

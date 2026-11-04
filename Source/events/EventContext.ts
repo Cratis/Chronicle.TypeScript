@@ -50,6 +50,12 @@ export interface EventContext {
     /** The observation state carried by the delivery. */
     readonly observationState?: number;
 
+    /**
+     * The sequence number of the event this event compensates for.
+     * Undefined for events that are not compensations.
+     */
+    readonly compensationFor?: bigint;
+
     /** The type of the event. */
     readonly eventType: EventType;
 
