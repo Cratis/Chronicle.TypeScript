@@ -67,7 +67,10 @@ export class ReductionOutcome {
                     LastSuccessfulObservation: this.lastSuccessfullyObservedEvent,
                     ExceptionMessages: this.exceptionMessages,
                     ExceptionStackTrace: this.exceptionStackTrace,
-                    ReadModelState: readModelState ?? ''
+                    ReadModelState: readModelState ?? '',
+                    DeliveryId: 0n,
+                    RetryAfterMilliseconds: 0n,
+                    Partitions: []
                 }
             }
         };
