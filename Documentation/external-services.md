@@ -5,6 +5,10 @@ description: Register HTTP and database external services with the Chronicle ker
 
 See [External Services](/chronicle/external-services/) for what an external service is. External services are usually configured in the Workbench, but the TypeScript client also exposes a programmatic API on `eventStore.externalServices`.
 
+Start with the [TypeScript client setup](./getting-started.md). For programmatic registration, choose the HTTP recipe for an HTTP service or the PostgreSQL excerpt for a database service. These are separate recipes, not a sequential script.
+
+The client uses the name as the service identifier. `register` rejects with the kernel's validation or exception messages when the kernel does not accept the definition.
+
 ## Register an HTTP service with bearer token authentication
 
 The token comes from your own configuration; this example reads it from an environment variable.
@@ -26,14 +30,12 @@ client.dispose();
 
 ## Register a PostgreSQL database service
 
-This excerpt uses the `eventStore` from the example above, before the client is disposed; `password` comes from your configuration.
+For the PostgreSQL alternative, reuse the `eventStore` setup above while its client is still alive, before `client.dispose()`. Supply `password` from your configuration.
 
 ```typescript
 await eventStore.externalServices.register('CustomersDb', builder => builder
     .postgreSql('db.example.com', 'customers', 'postgres', password, 5432));
 ```
-
-The client uses the name as the service identifier. `register` rejects with the kernel's validation or exception messages when the kernel does not accept the definition.
 
 ## API
 
