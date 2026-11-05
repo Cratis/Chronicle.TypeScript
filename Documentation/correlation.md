@@ -3,6 +3,10 @@ title: Correlation
 description: Control the correlation ID the TypeScript client sends with every append.
 ---
 
+Choose one correlation ID at the start of an operation when its events need to be grouped together. This page assumes the Node.js setup in [Get started with the TypeScript client](./getting-started.md).
+
+Correlation IDs group work; they do not authenticate or authorize a caller and are not proof of a server-trusted identity.
+
 See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what a correlation ID is and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. A `CorrelationId` is sent with every event append as the `CorrelationId` field.
 
 ## `CorrelationId`
@@ -26,6 +30,31 @@ console.log(id.toString()); // 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
 
 The module exports a singleton `correlationIdManager` backed by Node.js [`AsyncLocalStorage`](https://nodejs.org/api/async_context.html#class-asynclocalstorage). The ID is scoped automatically to the active async context — no need to pass it through every function call.
 
+For concurrent or nested work, use `correlationIdManager.run(id, callback)` to restore the caller's correlation ID after the callback and its async children complete. The existing `setCurrent()` and `clear()` APIs remain available but do not restore a parent scope.
+
+### Express middleware example
+
+An incoming correlation header is caller-supplied data, not proof of identity or permission to append. Apply your application's acceptance policy before using it.
+
+This excerpt assumes an Express `app`.
+
+```typescript
+import express from 'express';
+import { correlationIdManager, CorrelationId } from '@cratis/chronicle';
+
+app.use((req, res, next) => {
+    const header = req.headers['x-correlation-id'];
+    const id = header
+        ? new CorrelationId(String(header))
+        : CorrelationId.create();
+
+    res.setHeader('x-correlation-id', id.toString());
+    correlationIdManager.run(id, () => next());
+});
+```
+
+The following accessor and setter fragments are reference operations; use the scoped middleware pattern above for concurrent requests.
+
 ### Reading the current ID
 
 ```typescript
@@ -48,27 +77,6 @@ correlationIdManager.setCurrent(new CorrelationId('d4e5f6a7-8b9c-4d0e-9f1a-2b3c4
 ```typescript
 correlationIdManager.clear(); // replaces the stored ID with a fresh GUID
 ```
-
-### Express middleware example
-
-This excerpt assumes an Express `app`.
-
-```typescript
-import express from 'express';
-import { correlationIdManager, CorrelationId } from '@cratis/chronicle';
-
-app.use((req, res, next) => {
-    const header = req.headers['x-correlation-id'];
-    const id = header
-        ? new CorrelationId(String(header))
-        : CorrelationId.create();
-
-    res.setHeader('x-correlation-id', id.toString());
-    correlationIdManager.run(id, () => next());
-});
-```
-
-For concurrent or nested work, use `correlationIdManager.run(id, callback)` to restore the caller's correlation ID after the callback and its async children complete. The existing `setCurrent()` and `clear()` APIs remain available but do not restore a parent scope.
 
 ## Interface segregation
 

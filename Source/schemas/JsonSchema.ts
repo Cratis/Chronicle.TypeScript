@@ -51,4 +51,6 @@ export type JsonSchema = {
     enum?: Array<string | number | boolean | null>;
     compliance?: ComplianceSchemaMetadata[];
     security?: SecuritySchemaMetadata[];
+    /** The identifier of the event type this event type compensates for, when it is a compensation. */
+    compensationFor?: string;
 };

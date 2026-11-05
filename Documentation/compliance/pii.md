@@ -6,18 +6,31 @@ sharedTopicBridge: true
 
 PII classification and release behavior are shared Chronicle compliance topics.
 
+Choose a TypeScript task: [select the subject for event PII](#select-the-subject-for-event-pii) or [release a raw stored document](#release-a-stored-document). Classification and erasure policy remain in the shared guides.
+
 - [PII](/chronicle/compliance/pii/)
 - [Compliance](/chronicle/compliance/)
 - [TypeScript client setup](../getting-started.md)
 
 ## Select the subject for event PII
 
+For an existing application, check stored-event consequences before changing subject annotations or key-deletion procedures.
+
+Upgrade note: this fixes previously ignored event annotations, so newly appended
+events carrying `@subject()` can now use a different encryption key. Events
+appended before this fix with `@subject()` but no explicit subject were encrypted
+under the event source identifier's key. Existing stored events are not
+re-encrypted. To erase that older PII, you must also delete the event source
+identifier's key (or use the existing erase APIs for that identifier), in addition
+to the subject's key. Deleting the event source's key also erases other PII
+protected by that same key. If your erasure process deletes the event source
+identifier's key, events appended after upgrading that carry `@subject()` are no
+longer protected by that key; erase the subject's key instead.
+
 When an event source identifies a registration or transaction rather than a
 person, mark the event's person identifier with `@subject()` (imported from
 `@cratis/chronicle/compliance`). Chronicle uses the resolved subject's encryption
-key to protect the event's PII. Delete that subject's key to erase their PII.
-For events appended before this fix, also check the event source's key as
-explained in the upgrade note below.
+key to protect the event's PII. Before changing key-deletion procedures, follow [Erasing a subject](/chronicle/compliance/erasing-a-subject/) and the upgrade note above; this page is not a complete-erasure checklist.
 
 Single append and both `appendMany` overloads select the subject in this order:
 
@@ -41,18 +54,12 @@ its given-event seeds; it does not emulate PII encryption or erasure.
 Kernel event seeding uses a separate contract that has no subject field in
 Chronicle 19.26.2, so it cannot select an annotated subject.
 
-Upgrade note: this fixes previously ignored event annotations, so newly appended
-events carrying `@subject()` can now use a different encryption key. Events
-appended before this fix with `@subject()` but no explicit subject were encrypted
-under the event source identifier's key. Existing stored events are not
-re-encrypted. To erase that older PII, you must also delete the event source
-identifier's key (or use the existing erase APIs for that identifier), in addition
-to the subject's key. Deleting the event source's key also erases other PII
-protected by that same key. If your erasure process deletes the event source
-identifier's key, events appended after upgrading that carry `@subject()` are no
-longer protected by that key; erase the subject's key instead.
-
 ## Release a stored document
+
+Releasing PII can disclose personal data. Apply your application's authorization rules before calling a release API; classification and stored subject metadata do not establish permission.
+
+For a typed instance with one subject, keep using `readModels.release(type,
+instance)` or `releaseMany(type, instances)`; those APIs are unchanged.
 
 If you read a read model directly from its store, use
 `readModels.releaseDocument(ReadModelType, document)` to release its PII. Supply
@@ -60,13 +67,6 @@ the discovered read model class with its runtime field types and PII metadata,
 and the raw JSON document with its stored `__subject` and `__subjects` fields.
 Do not convert the document to a class instance first: that can discard the
 subject metadata needed for joined data.
-
-For example, given your configured `store`, discovered `AccountSummary` read
-model, and a raw stored `document`:
-
-```typescript
-const released = await store.readModels.releaseDocument(AccountSummary, document);
-```
 
 The result is a new plain `Record<string, unknown>`, not an `AccountSummary`
 instance. Only schema-declared top-level properties are returned; storage-only
@@ -101,5 +101,9 @@ The client cannot detect these unreported failures and does not guess from an
 empty value. Track this limitation in
 [Chronicle issue 4480](https://github.com/Cratis/Chronicle/issues/4480).
 
-For a typed instance with one subject, keep using `readModels.release(type,
-instance)` or `releaseMany(type, instances)`; those APIs are unchanged.
+For example, given your configured `store`, discovered `AccountSummary` read
+model, and a raw stored `document`:
+
+```typescript
+const released = await store.readModels.releaseDocument(AccountSummary, document);
+```

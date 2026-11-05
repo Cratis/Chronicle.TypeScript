@@ -9,6 +9,7 @@ export type { ConstraintViolation } from './ConstraintViolation.js';
 export type { AppendResult } from './AppendResult.js';
 export type { AppendedEventWithResult } from './AppendedEventWithResult.js';
 export type { AppendOptions } from './AppendOptions.js';
+export type { CompensateOptions } from './CompensateOptions.js';
 export { CompleteStreamError } from './CompleteStreamError.js';
 export { NamedTagsWithRegisteredEventSourceNotSupported } from './NamedTagsWithRegisteredEventSourceNotSupported.js';
 export type { CompleteStreamResult } from './CompleteStreamResult.js';
