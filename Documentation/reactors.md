@@ -6,7 +6,7 @@ sharedTopicBridge: true
 
 Use a reactor when an event should trigger work, such as notifying a customer after an order is placed. Appending the event and running that work are separate steps: the append can succeed before the reactor handles it, and a failed delivery can be retried. Choose how to make external effects safe to repeat before deploying the handler.
 
-Start with [TypeScript connection and artifact setup](/chronicle/clients/typescript/getting-started/), then register the event and reactor classes with the store. [Getting started with reactors](/chronicle/reactors/getting-started/) shows that setup in context. The focused handler example below assumes those artifacts are discovered; it is not a complete application. [Reactor event processing](/chronicle/reactors/event-processing/) explains how delivery and acknowledgment fit together.
+Start with [TypeScript connection and artifact setup](/chronicle/clients/typescript/getting-started/), then register the event and reactor classes with the store. [Getting started with reactors](/chronicle/reactors/getting-started/) shows that setup in context. The focused handler example below assumes those artifacts are discovered; it is not a complete application. [Reactor event processing](/chronicle/reactors/event-processing/) explains how delivery and acknowledgment fit together. To handle many events in one call, see [Handling events in batches](/chronicle/reactors/batches/) and [pages and batch methods](#pages-and-batch-methods) below.
 
 ## TypeScript client notes
 
@@ -95,6 +95,34 @@ The context contains `kind`, `artifactId`, `eventStore`, `readModels`, `eventSeq
 `complete()` is awaited once per created lease after processing (even when a handler fails), **before** the observation result is acknowledged. If it rejects, the partition fails with `ArtifactCompletionFailed`; any processing failure is also reported. A completion failure does not advance the batch's checkpoint or publish its tentative reducer state, but already performed external effects are not rolled back and may repeat on retry. Make them idempotent. `dispose()` still runs unconditionally after completion and is awaited once; its errors are logged, not treated as delivery failures. Only the lease is disposed by the SDK, not a container-owned instance separately. Without an activator, no new ambient metadata/execution boundary is installed. Keep batch-local mutable instance state out of cross-batch assumptions, and stop work cooperatively when `signal` aborts; arbitrary application promises cannot be forcibly canceled.
 
 A `@reactor`/`@reducer`-decorated class instance can also optionally implement `ICanBeNotifiedWhenReplay` (`beginReplay`/`endReplay`) and/or `ICanBeNotifiedWhenPartitionReplayed` (`beginReplayPartition`/`endReplayPartition`, both given the partition) to be notified when a replay begins and ends, at the full-observer or per-partition granularity.
+
+### Pages and batch methods
+
+The client opts in to page delivery: the kernel sends events for many partitions in one message, on every path (live,
+catch-up, replay and retry), and the client answers with one result per partition. Per-event handlers keep working
+unchanged; the client calls them for each event, partition by partition, and a failure stops only that partition.
+
+Decorate a method with `@observes(EventType)`, once per event type, to make it a **batch method**. It is called once per
+page with an `EventBatch` of every event of those types, across partitions in sequence order, and a `BatchContext`
+describing the page (`origin`, `partitions`, `eventCount`, first and last sequence numbers, `deadline`, `signal`,
+`canDefer`). Event content is the JSON object per-event handlers receive; narrow it with `entry.is(EventType)` or
+`batch.ofType(EventType)`. Each entry also carries its `ReactorDelivery`.
+
+- Return normally and every partition in the batch succeeded. Throw and every partition in the batch fails at its
+  first event in the batch.
+- `batch.fail(partition | eventContext, error?)` fails one partition, from its first event in the batch or from that
+  event. `batch.defer(partition | eventContext, retryAfterMilliseconds)` delivers it again later without failing it.
+  A kernel that does not deliver pages cannot defer; the partition then fails with `DeferralNotSupportedByKernel`.
+- Batch methods return nothing; a returned value fails the batch with `BatchMethodReturnedAValue`. Append through
+  `services.eventStore.eventLog` or an injected event log instead.
+- A reactor can mix batch and per-event methods, but each event type reaches exactly one method. Registration fails
+  with `EventTypeObservedByMoreThanOneMethod` when a type is observed twice or also has a per-event handler, and with
+  `InvalidBatchMethod` when a batch method also carries `@handles`, `@replay` or `@onceOnly`, or observes an
+  unregistered event type. Order is kept per method, not across methods.
+- `@batchSize({ maxEvents, maxBytes, maxDelayMilliseconds })` on the class declares the page bounds the kernel caps.
+
+`ReactorScenario` rejects a reactor with batch methods using `UnsupportedReactorOperation`; use a kernel-backed
+specification for batch reactors.
 
 ## Replay policies
 

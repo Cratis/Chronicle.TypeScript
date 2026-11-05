@@ -11,6 +11,8 @@ import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getHandledEventType } from '../events/handles.js';
 import { getEventHandlers } from '../observation/getEventHandlers.js';
 import { getInstanceMethods } from '../observation/getInstanceMethods.js';
+import { assertEachEventTypeReachesOneMethod, getBatchMethods, withoutBatchMethods } from '../observation/batches/BatchMethods.js';
+import type { BatchMethod } from '../observation/batches/BatchMethod.js';
 import { isOnceOnly } from './onceOnly.js';
 import { getReplayEventType } from './replay.js';
 import type { ReactorServices } from './ReactorServices.js';
@@ -24,8 +26,27 @@ export interface ReactorEventTypeEntry {
     readonly replayMethodName?: string;
 }
 
+/**
+ * Discovers the batch methods of a reactor, the methods decorated with \`@observes\`.
+ * @param reactorType - The reactor class.
+ * @param registeredTypes - The event types registered with the event store.
+ * @returns The batch methods.
+ */
+export function getReactorBatchMethods(reactorType: Constructor, registeredTypes: readonly Constructor[]): BatchMethod[] {
+    return getBatchMethods(reactorType, registeredTypes);
+}
+
+/**
+ * Discovers the per-event handlers of a reactor and checks that each event type reaches exactly one method,
+ * a batch method or a per-event method.
+ * @param reactorType - The reactor class.
+ * @param registeredTypes - The event types registered with the event store.
+ * @returns The per-event handler entries.
+ */
 export function getReactorEventTypes(reactorType: Constructor, registeredTypes: readonly Constructor[]): ReactorEventTypeEntry[] {
-    const methods = getInstanceMethods(reactorType);
+    const allMethods = getInstanceMethods(reactorType);
+    const batchMethods = getBatchMethods(reactorType, registeredTypes, allMethods);
+    const methods = withoutBatchMethods(allMethods, batchMethods);
     const replayHandlers = new Map<string, string>();
     const eventTypes = new Map<string, { eventTypeClass: Function; id: string; generation: number }>();
 
@@ -67,7 +88,11 @@ export function getReactorEventTypes(reactorType: Constructor, registeredTypes: 
             entries.set(eventType.id, { id: eventType.id, generation: eventType.generation, ...entries.get(eventType.id), replayMethodName });
         }
     }
-    return [...entries.values()];
+    const handlers = [...entries.values()];
+    assertEachEventTypeReachesOneMethod(reactorType, batchMethods, handlers.map(handler => ({
+        id: handler.id, methodNames: [handler.methodName, handler.replayMethodName].filter((name): name is string => !!name)
+    })));
+    return handlers;
 }
 
 export function selectReactorHandler(entries: readonly ReactorEventTypeEntry[], reactorType: Constructor,

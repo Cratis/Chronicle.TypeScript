@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
-import { AppendedEvent, EventGenerationDelivery, ReadModelObserverType, ReduceOperationMessage, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { AppendedEvent, EventGenerationDelivery, ObservationState, ReadModelObserverType, ReduceOperationMessage, ReducerMessage, ReplayState } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -35,6 +35,16 @@ import { ArtifactKind } from '../artifacts/ArtifactKind.js';
 import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
 import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
 import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
+import type { BatchContext } from '../observation/batches/BatchContext.js';
+import { BatchOutcomeKind } from '../observation/batches/BatchOutcomeKind.js';
+import { getMaxConcurrency, toPageDelivery } from '../observation/batches/batchSize.js';
+import { createBatchContext } from '../observation/batches/createBatchContext.js';
+import type { DeliveredPartition } from '../observation/batches/DeliveredPartition.js';
+import { EventAndContext } from '../observation/batches/EventAndContext.js';
+import { EventBatch } from '../observation/batches/EventBatch.js';
+import { isPage, partitionsOfOperation } from '../observation/batches/PageMessages.js';
+import { PartitionFailedInBatch } from '../observation/batches/PartitionFailedInBatch.js';
+import { runConcurrently } from '../observation/batches/runConcurrently.js';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -328,15 +338,14 @@ export class Reducers implements IReducers {
             const session: ReducerObservationSession = { ...observation, signal: controller.signal, reducerInstance };
 
             for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
-                // Delivery steps are awaited here, not inside a wrapper async function, so that
-                // async-context updates made by handlers reach this loop as they did originally.
-                const outcome = this.beginReduction(session, operation);
-                await this.notifyReplayTransition(session, operation, outcome);
-                outcome.currentState = operation.InitialState
-                    ? JSON.parse(operation.InitialState) as unknown
-                    : undefined;
-                await this.reduceEvents(session, operation, outcome);
-                queue.send(outcome.toMessage(operation.Partition));
+                const partitions = partitionsOfOperation(operation);
+                const notification = this.beginReduction(session, operation, partitions);
+                await this.notifyReplayTransition(session, operation, notification);
+                const context = createBatchContext({ observerId: id, eventStore: this._eventStoreName, namespace: this._namespace,
+                    eventSequenceId: session.eventSequenceId, signal: controller.signal }, operation, partitions);
+                const outcomes = await runConcurrently(partitions, getMaxConcurrency(reducerType),
+                    partition => this.reducePartition(session, partition, notification, context));
+                queue.send(toResultMessage(operation, partitions, outcomes));
             }
         } catch (err) {
             if (!this._queues.has(id)) {
@@ -366,7 +375,7 @@ export class Reducers implements IReducers {
                     Reducer: {
                         ReducerId: id,
                         EventSequenceId: eventSequenceId,
-                        EventTypes: dispatcher.handlers.map(et => ({
+                        EventTypes: dispatcher.eventTypes.map(et => ({
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),
@@ -381,22 +390,35 @@ export class Reducers implements IReducers {
                             EventStreamType: getEventStreamTypeFor(reducerType)
                         }
                     },
-                    PageDelivery: undefined
+                    PageDelivery: toPageDelivery(reducerType)
                 },
                 Value1: undefined
             }
         };
     }
 
-    private beginReduction(session: ReducerObservationSession, operation: ReduceOperationMessage): ReductionOutcome {
+    private beginReduction(session: ReducerObservationSession, operation: ReduceOperationMessage,
+        partitions: readonly DeliveredPartition[]): ReductionOutcome {
         this._logger.debug('Received reduce operation', {
             reducerId: session.id,
-            count: operation.Events.length,
-            hasInitialState: operation.InitialState !== '',
+            partitions: partitions.length,
+            count: partitions.reduce((count, partition) => count + partition.events.length, 0),
             replayState: operation.ReplayState
         });
 
         return new ReductionOutcome();
+    }
+
+    private async reducePartition(session: ReducerObservationSession, partition: DeliveredPartition,
+        notification: ReductionOutcome, context: BatchContext): Promise<ReductionOutcome> {
+        const outcome = new ReductionOutcome();
+        if (notification.failed) {
+            outcome.copyFrom(notification);
+            return outcome;
+        }
+        outcome.currentState = partition.initialState ? JSON.parse(partition.initialState) as unknown : undefined;
+        await this.reduceEvents(session, partition, outcome, context);
+        return outcome;
     }
 
     private async notifyReplayTransition(
@@ -442,16 +464,18 @@ export class Reducers implements IReducers {
 
     private async reduceEvents(
         session: ReducerObservationSession,
-        operation: ReduceOperationMessage,
-        outcome: ReductionOutcome
+        partition: DeliveredPartition,
+        outcome: ReductionOutcome,
+        context: BatchContext
     ): Promise<void> {
         const { id, reducerType, eventSequenceId, dispatcher, signal, reducerInstance } = session;
         const firstInvocableEvent = this._artifactActivator && !outcome.failed
-            ? operation.Events.find(event =>
-                !!event.Context?.EventType?.Id && !!dispatcher.handlerFor(event.Context.EventType.Id))
+            ? partition.events.find(event => !!event.Context?.EventType?.Id && (dispatcher.batchMethod
+                ? dispatcher.batchMethod.eventTypes.has(event.Context.EventType.Id)
+                : !!dispatcher.handlerFor(event.Context.EventType.Id)))
             : undefined;
         if (!firstInvocableEvent || !this._artifactActivator) {
-            await this.processEvents(session, operation, outcome, { instance: reducerInstance ?? {} });
+            await this.processEvents(session, partition, outcome, { instance: reducerInstance ?? {} }, context);
             return;
         }
 
@@ -459,12 +483,12 @@ export class Reducers implements IReducers {
             const eventStore = this.requireEventStore();
             await withActivatedArtifact(reducerType as new () => Record<string, Function>, {
                 kind: ArtifactKind.Reducer, artifactId: id, eventStore,
-                readModels: eventStore.readModels, eventSequenceId, partition: operation.Partition,
+                readModels: eventStore.readModels, eventSequenceId, partition: partition.partition,
                 signal, delivery: ArtifactDelivery.Events,
                 eventContext: toClientEventContext(firstInvocableEvent.Context!)
             }, this._artifactActivator, artifact => {
                 dispatcher.validateInstance(artifact.instance);
-                return this.processEvents(session, operation, outcome, artifact);
+                return this.processEvents(session, partition, outcome, artifact, context);
             }, this._connection.logger);
         } catch (err) {
             this._logger.error('Error activating reducer', { reducerId: id, error: err });
@@ -474,11 +498,17 @@ export class Reducers implements IReducers {
 
     private async processEvents(
         session: ReducerObservationSession,
-        operation: ReduceOperationMessage,
+        partition: DeliveredPartition,
         outcome: ReductionOutcome,
-        artifact: ActivatedArtifact<Record<string, Function>>
+        artifact: ActivatedArtifact<Record<string, Function>>,
+        context: BatchContext
     ): Promise<void> {
-        for (const event of outcome.failed ? [] : operation.Events) {
+        if (outcome.failed) return;
+        if (session.dispatcher.batchMethod) {
+            await this.processBatch(session, partition, outcome, artifact, context);
+            return;
+        }
+        for (const event of partition.events) {
             try {
                 // Skipped events stay synchronous; only an actual handler invocation is awaited.
                 const pending = this.processEvent(session, event, outcome, artifact);
@@ -488,6 +518,37 @@ export class Reducers implements IReducers {
                 outcome.recordFailure(err);
                 break;
             }
+        }
+    }
+
+    private async processBatch(
+        { id, dispatcher }: ReducerObservationSession,
+        partition: DeliveredPartition,
+        outcome: ReductionOutcome,
+        artifact: ActivatedArtifact<Record<string, Function>>,
+        context: BatchContext
+    ): Promise<void> {
+        const method = dispatcher.batchMethod!;
+        const events = partition.events.filter(event => method.eventTypes.has(event.Context?.EventType?.Id ?? ''));
+        if (events.length === 0) return;
+        try {
+            const batch = new EventBatch(events.map(event => new EventAndContext(JSON.parse(event.Content) as Record<string, unknown>,
+                toClientEventContext(event.Context!), method.eventTypes.get(event.Context!.EventType!.Id)!.type)), context.canDefer);
+            this._logger.info('Invoking reducer batch method', { reducerId: id, method: method.methodName, count: events.length });
+            const next = await runActivated(artifact, () => dispatcher.invokeBatch(artifact.instance, batch, outcome.currentState, context),
+                { delivery: ArtifactDelivery.Events, eventContext: batch.events[0].context, methodName: method.methodName });
+            const [reported] = batch.outcomes;
+            if (reported?.kind === BatchOutcomeKind.Deferred) {
+                outcome.recordDeferral(reported.retryAfterMilliseconds);
+            } else if (reported) {
+                outcome.recordFailure(reported.error ?? new PartitionFailedInBatch(partition.partition));
+            } else {
+                outcome.currentState = next;
+                outcome.lastSuccessfullyObservedEvent = events.at(-1)!.Context!.SequenceNumber;
+            }
+        } catch (err) {
+            this._logger.error('Error handling events in reducer batch method', { reducerId: id, error: err });
+            outcome.recordFailure(err);
         }
     }
 
@@ -539,4 +600,27 @@ export class Reducers implements IReducers {
         this._observations.clear();
         this._queues.clear();
     }
+}
+
+/**
+ * Creates the result of a reduce operation: one result per event source for a page, or the legacy single-partition fields.
+ * @param operation - The delivered operation.
+ * @param partitions - The partitions of the operation.
+ * @param outcomes - The outcome of each partition, in the same order.
+ * @returns The {@link ReducerMessage}.
+ */
+function toResultMessage(operation: ReduceOperationMessage, partitions: readonly DeliveredPartition[],
+    outcomes: readonly ReductionOutcome[]): ReducerMessage {
+    if (!isPage(operation)) return outcomes[0].toMessage(operation.Partition, operation.DeliveryId ?? 0n);
+    return {
+        Content: {
+            Value0: undefined,
+            Value1: {
+                Partition: '', State: ObservationState.OBSERVATION_STATE_None, LastSuccessfulObservation: 0n,
+                ExceptionMessages: [], ExceptionStackTrace: '', ReadModelState: '',
+                DeliveryId: operation.DeliveryId ?? 0n, RetryAfterMilliseconds: 0n,
+                Partitions: outcomes.map((outcome, index) => outcome.toPartitionResult(partitions[index].partition))
+            }
+        }
+    };
 }

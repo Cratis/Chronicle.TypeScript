@@ -9,6 +9,7 @@ Reducers are shared Chronicle read-model behavior. Use the shared reducer docs f
 - [Reducers](/chronicle/reducers/)
 - [Getting started with reducers](/chronicle/reducers/getting-started/)
 - [Reducer event processing](/chronicle/reducers/event-processing/)
+- [Reducing events in batches](/chronicle/reducers/batches/)
 - [TypeScript client setup](./getting-started.md)
 
 ## TypeScript client notes
@@ -18,6 +19,20 @@ Chronicle calls a reducer method when its name is the camelCase name of the even
 Inherited handlers work, but overriding a method carrying `@handles` requires an explicit `@handles` on the override, even for the same event type. An undecorated override fails registration with `Override '<method>' on '<Derived>' hides @handles(<EventType>) declared on '<Base>'; redecorate the override.` Chronicle also validates methods carrying `@handles` when each reducer instance is created, including instances returned by an activator. Binding the declared method in the constructor is supported; other own properties, including arrow-field overrides, are rejected. Use a method decorated with `@handles` for an override. Conventional handlers retain their existing instance-property behavior. Adding a conventional handler for an event already handled by an inherited method also fails: keep one handler per event type.
 
 Return the new state. Pass the read-model type as the third argument of `@reducer(id, eventSequenceId, ReadModel)` so the client can register its schema.
+
+### Pages and batch methods
+
+The client receives pages of event sources and reduces each event source on its own, with up to
+`@batchSize({ maxConcurrency })` of them at the same time (the number of processors by default). Per-event methods are
+unchanged.
+
+A reducer can instead have exactly **one** batch method: decorate it with `@observes(EventType)` once per event type.
+It is called once per event source with `(events: EventBatch, current, context: BatchContext)` and returns the next state,
+or `undefined` to remove the read model. Its `@observes` list is the reducer's whole set of event types, so a reducer with
+a batch method and per-event methods, or two batch methods, fails registration with
+`ReducerMixesBatchAndPerEventMethods`. `events.fail(...)` fails the event source without writing its state, and
+`events.defer(..., retryAfterMilliseconds)` delivers it again later. `ReadModelScenario` calls the batch method once per
+event source.
 
 ### Filtering by event source and stream type
 

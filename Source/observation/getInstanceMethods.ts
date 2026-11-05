@@ -3,8 +3,9 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import { getHandledEventType } from '../events/handles.js';
+import { getObservedEventTypes } from './batches/observes.js';
 
-/** Finds prototype methods without invoking getters; explicit handlers require explicitly decorated overrides. */
+/** Finds prototype methods without invoking getters; explicit handlers and batch methods require explicitly decorated overrides. */
 export function getInstanceMethods(type: Constructor): Map<string, Function> {
     const methods = new Map<string, Function>();
     const declaringTypes = new Map<string, string>();
@@ -14,10 +15,10 @@ export function getInstanceMethods(type: Constructor): Map<string, Function> {
             const method = Object.getOwnPropertyDescriptor(current, name)?.value;
             const declaringType = declaringTypes.get(name);
             if (declaringType !== undefined) {
-                const eventType = typeof method === 'function' ? getHandledEventType(method) : undefined;
+                const declaration = typeof method === 'function' ? describeExplicitHandler(method) : undefined;
                 const override = methods.get(name);
-                if (eventType && (!override || getHandledEventType(override) === undefined)) {
-                    throw new Error(`Override '${name}' on '${declaringType}' hides @handles(${(eventType as Function).name}) declared on '${current.constructor.name}'; redecorate the override.`);
+                if (declaration && (!override || describeExplicitHandler(override) === undefined)) {
+                    throw new Error(`Override '${name}' on '${declaringType}' hides ${declaration} declared on '${current.constructor.name}'; redecorate the override.`);
                 }
                 continue;
             }
@@ -26,4 +27,12 @@ export function getInstanceMethods(type: Constructor): Map<string, Function> {
         }
     }
     return methods;
+}
+
+/** Describes the explicit handler decorator of a method, or undefined when it has none. */
+export function describeExplicitHandler(method: Function): string | undefined {
+    const eventType = getHandledEventType(method);
+    if (eventType) return `@handles(${(eventType as Function).name})`;
+    const observed = getObservedEventTypes(method);
+    return observed.length > 0 ? observed.map(type => `@observes(${(type as Function).name})`).join(' ') : undefined;
 }

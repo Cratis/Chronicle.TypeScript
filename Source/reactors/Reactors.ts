@@ -5,11 +5,10 @@ import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
-import { EventGenerationDelivery, ObservationState, ReactorMessage, ReplayState } from '@cratis/chronicle.contracts';
+import { EventGenerationDelivery, ReactorMessage } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
-import { toClientEventContext } from '../events/toClientEventContext.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
 import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
@@ -17,31 +16,22 @@ import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
-import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReactors } from './IReactors.js';
-import { dispatchReactorSideEffects } from './ReactorSideEffects.js';
 import { getReactorMetadata } from './reactor.js';
 import { isOnceOnly } from './onceOnly.js';
 import { isStartAtTail } from './startAtTail.js';
-import { getReactorEventTypes, selectReactorHandler, invokeReactorHandler } from './ReactorDispatcher.js';
+import { getReactorBatchMethods, getReactorEventTypes } from './ReactorDispatcher.js';
+import { ReactorPageDispatcher } from './ReactorPageDispatcher.js';
+import { toPageDelivery } from '../observation/batches/batchSize.js';
 import type { ReactorEventTypeEntry } from './ReactorDispatcher.js';
 import type { ReactorResultHandler } from './ReactorResultHandler.js';
 import type { ReactorServices } from './ReactorServices.js';
-import { ReactorDelivery } from './ReactorDelivery.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
-import type { ActivatedArtifact } from '../artifacts/ActivatedArtifact.js';
-import { ArtifactKind } from '../artifacts/ArtifactKind.js';
-import { ArtifactDelivery } from '../artifacts/ArtifactDelivery.js';
-import { withActivatedArtifact, runActivated } from '../artifacts/withActivatedArtifact.js';
-import { ArtifactCompletionFailed } from '../artifacts/ArtifactCompletionFailed.js';
 import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
-
-/** Sentinel sequence number sent back when no event was successfully processed. */
-const SEQUENCE_NUMBER_UNAVAILABLE = 4294967295n;
 
 /**
  * A push-based async queue that implements {@link AsyncIterable} for use with nice-grpc
@@ -181,9 +171,12 @@ export class Reactors implements IReactors {
 
         if (this._disposed) return;
         const registrations = [...this._reactors].map(([id, type]) => ({
-            id, type, eventTypes: getReactorEventTypes(type, this._clientArtifacts.eventTypes)
-        })).map(registration => ({ ...registration, validateInstance: createHandlerInstanceValidator(registration.type,
-            registration.eventTypes.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name))) }));
+            id, type, eventTypes: getReactorEventTypes(type, this._clientArtifacts.eventTypes),
+            batchMethods: getReactorBatchMethods(type, this._clientArtifacts.eventTypes)
+        })).map(registration => ({ ...registration, validateInstance: createHandlerInstanceValidator(registration.type, [
+            ...registration.eventTypes.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)),
+            ...registration.batchMethods.map(method => method.methodName)
+        ]) }));
         this._logger.info('Registering reactors', { count: this._reactors.size });
         for (const { id, type, eventTypes, validateInstance } of registrations) {
             this.startObservation(id, type, eventTypes, validateInstance);
@@ -261,6 +254,7 @@ export class Reactors implements IReactors {
         eventTypes: ReactorEventTypeEntry[],
         validateInstance: (instance: object) => void
     ): Promise<void> {
+        const batchMethods = getReactorBatchMethods(reactorType, this._clientArtifacts.eventTypes);
         const queue = new AsyncQueue<ReactorMessage>();
         const controller = new AbortController();
         this._queues.set(id, queue);
@@ -275,7 +269,7 @@ export class Reactors implements IReactors {
                     Reactor: {
                         ReactorId: id,
                         EventSequenceId: eventSequenceId,
-                        EventTypes: eventTypes.map(et => ({
+                        EventTypes: [...eventTypes, ...batchMethods.flatMap(method => [...method.eventTypes.values()])].map(et => ({
                             EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
                             Key: EVENT_SOURCE_ID_KEY
                         })),
@@ -290,7 +284,7 @@ export class Reactors implements IReactors {
                             EventStreamType: getEventStreamTypeFor(reactorType)
                         }
                     },
-                    PageDelivery: undefined
+                    PageDelivery: toPageDelivery(reactorType)
                 },
                 Value1: undefined
             }
@@ -303,152 +297,16 @@ export class Reactors implements IReactors {
                 eventStore: this._eventStore, readModels: this._eventStore.readModels, signal: controller.signal
             };
 
+            const dispatcher = new ReactorPageDispatcher({
+                id, reactorType, eventSequenceId, eventStoreName: this._eventStoreName, namespace: this._namespace,
+                entries: eventTypes, batchMethods, validateInstance, reactorInstance, services, signal: controller.signal,
+                eventLog: this._eventLog, resultHandler: this._resultHandler, artifactActivator: this._artifactActivator,
+                logger: this._logger, connectionLogger: this._connection.logger
+            });
+
             for await (const eventsToObserve of this._connection.reactors.observe(queue, { signal: controller.signal })) {
-                let lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
-                let state = ObservationState.Success;
-                const exceptionMessages: string[] = [];
-                let exceptionStackTrace = '';
-
-                this._logger.debug('Received events to observe', {
-                    reactorId: id,
-                    count: eventsToObserve.Events.length,
-                    replayState: eventsToObserve.ReplayState
-                });
-
-                try {
-                    if (this._artifactActivator && eventsToObserve.ReplayState !== ReplayState.REPLAY_STATE_None) {
-                        if (!services) throw new Error('Reactor activation requires the owning event store.');
-                        await withActivatedArtifact(reactorType, {
-                            kind: ArtifactKind.Reactor, artifactId: id, eventStore: services.eventStore,
-                            readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
-                            signal: controller.signal, delivery: ArtifactDelivery.ReplayNotification,
-                            replayState: eventsToObserve.ReplayState
-                        }, this._artifactActivator, artifact => {
-                            validateInstance(artifact.instance);
-                            return runActivated(artifact, () =>
-                                notifyReplayLifecycle(artifact.instance, eventsToObserve.ReplayState, eventsToObserve.Partition),
-                                { delivery: ArtifactDelivery.ReplayNotification, replayState: eventsToObserve.ReplayState });
-                        }, this._connection.logger);
-                    } else if (reactorInstance) {
-                        await notifyReplayLifecycle(reactorInstance, eventsToObserve.ReplayState, eventsToObserve.Partition);
-                    }
-                } catch (err) {
-                    this._logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error: err });
-                    if (err instanceof ArtifactCompletionFailed && err.processingError !== undefined) {
-                        exceptionMessages.push(String(err.processingError));
-                    }
-                    exceptionMessages.push(String(err));
-                    exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
-                    state = ObservationState.Failed;
-                }
-
-                const selectHandler = (event: typeof eventsToObserve.Events[number]) => {
-                    return selectReactorHandler(eventTypes, reactorType, reactorInstance,
-                        event.Context?.EventType?.Id, event.Context?.ObservationState ?? 0);
-                };
-
-                const processEvents = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
-                    for (const event of state === ObservationState.Failed ? [] : eventsToObserve.Events) {
-                        try {
-                            const eventTypeId = event.Context?.EventType?.Id;
-                            if (!eventTypeId) {
-                                this._logger.warn('Event missing event type context', { reactorId: id });
-                                continue;
-                            }
-
-                            const selection = selectHandler(event);
-                            if (!selection) {
-                                this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId });
-                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                                continue;
-                            }
-
-                            const { methodName, isReplay, skipReplay } = selection;
-                            if (!methodName || skipReplay) {
-                                if (skipReplay) {
-                                    this._logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: methodName });
-                                } else {
-                                    this._logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay });
-                                }
-                                lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                                continue;
-                            }
-
-                            const content = JSON.parse(event.Content) as Record<string, unknown>;
-                            const context = toClientEventContext(event.Context!);
-
-                            this._logger.info('Invoking reactor handler', {
-                                reactorId: id,
-                                method: methodName,
-                                sequenceNumber: event.Context!.SequenceNumber.toString(),
-                                eventTypeId
-                            });
-
-                            await invokeReactorHandler(artifact, methodName, content, context, services, result =>
-                                dispatchReactorSideEffects(this._eventLog, result, context, reactorType as Function,
-                                    this._eventStoreName, this._namespace, this._resultHandler),
-                                new ReactorDelivery(id, context.eventStore ?? this._eventStoreName,
-                                    context.namespace ?? this._namespace, eventSequenceId,
-                                    context.eventSourceId, context.sequenceNumber));
-
-                            lastSuccessfullyObservedEvent = event.Context!.SequenceNumber;
-                        } catch (err) {
-                            this._logger.error('Error handling event in reactor', { reactorId: id, error: err });
-                            exceptionMessages.push(String(err));
-                            exceptionStackTrace = err instanceof Error ? (err.stack ?? '') : '';
-                            state = ObservationState.Failed;
-                            break;
-                        }
-                    }
-                };
-
-                const firstInvocableEvent = this._artifactActivator && state === ObservationState.Success
-                    ? eventsToObserve.Events.find(event => {
-                        const selection = selectHandler(event);
-                        return !!selection?.methodName && !selection.skipReplay;
-                    }) : undefined;
-                if (firstInvocableEvent && this._artifactActivator) {
-                    try {
-                        if (!services) throw new Error('Reactor activation requires the owning event store.');
-                        await withActivatedArtifact(reactorType as new () => Record<string, Function>, {
-                            kind: ArtifactKind.Reactor, artifactId: id, eventStore: services.eventStore,
-                            readModels: services.readModels, eventSequenceId, partition: eventsToObserve.Partition,
-                            signal: controller.signal, delivery: ArtifactDelivery.Events,
-                            eventContext: toClientEventContext(firstInvocableEvent.Context!)
-                        }, this._artifactActivator, artifact => {
-                            validateInstance(artifact.instance);
-                            return processEvents(artifact);
-                        }, this._connection.logger);
-                    } catch (err) {
-                        this._logger.error('Error activating reactor', { reactorId: id, error: err });
-                        exceptionMessages.push(String(err));
-                        const completionStack = err instanceof Error ? (err.stack ?? '') : '';
-                        exceptionStackTrace = err instanceof ArtifactCompletionFailed && exceptionStackTrace
-                            ? `${exceptionStackTrace}\n${completionStack}` : completionStack;
-                        state = ObservationState.Failed;
-                        if (err instanceof ArtifactCompletionFailed) {
-                            lastSuccessfullyObservedEvent = SEQUENCE_NUMBER_UNAVAILABLE;
-                        }
-                    }
-                } else {
-                    await processEvents({ instance: reactorInstance ?? {} });
-                }
-
-                queue.send({
-                    Content: {
-                        Value0: undefined,
-                        Value1: {
-                            Partition: eventsToObserve.Partition,
-                            State: state,
-                            LastSuccessfulObservation: lastSuccessfullyObservedEvent,
-                            ExceptionMessages: exceptionMessages,
-                            ExceptionStackTrace: exceptionStackTrace,
-                            DeliveryId: 0n,
-                            RetryAfterMilliseconds: 0n,
-                            Partitions: []
-                        }
-                    }
-                });
+                const result = await dispatcher.dispatch(eventsToObserve);
+                queue.send({ Content: { Value0: undefined, Value1: result } });
             }
         } catch (err) {
             if (!this._queues.has(id)) {
