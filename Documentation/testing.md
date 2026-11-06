@@ -1,5 +1,6 @@
 ---
 title: Test events, reactors and read models without a kernel
+description: Test events, reactors and read models in the Chronicle TypeScript client without a kernel, using fixture-backed scenarios and recorded effects.
 ---
 
 # Test events, reactors and read models without a kernel
