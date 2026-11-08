@@ -10,8 +10,8 @@ import { RoundRobinLoadBalancerStrategy } from './RoundRobinLoadBalancerStrategy
 /**
  * Creates the {@link ILoadBalancerStrategy} instance matching a {@link LoadBalancerMode}.
  * @param mode - The load balancer mode to create a strategy for.
- * @param skipTlsValidation - Whether to skip TLS certificate validation for strategies that
- * probe candidates over HTTP (currently only {@link LoadBalancerMode.LeastConnections}).
+ * @param skipTlsValidation - The effective setting: `true` skips TLS certificate validation, `false` requires it
+ * (an explicit `skipTlsValidation=false` always requires it) for strategies that probe candidates over HTTP (currently only {@link LoadBalancerMode.LeastConnections}).
  * @returns The load balancer strategy instance.
  */
 export function createLoadBalancerStrategy(mode: LoadBalancerMode, skipTlsValidation: boolean): ILoadBalancerStrategy {

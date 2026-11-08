@@ -29,7 +29,7 @@ export class LeastConnectionsLoadBalancerStrategy implements ILoadBalancerStrate
 
     /**
      * Initializes a new instance of {@link LeastConnectionsLoadBalancerStrategy}.
-     * @param skipTlsValidation - Whether to skip TLS certificate validation on the
+     * @param skipTlsValidation - The effective setting: `false` requires validation, `true` skips TLS certificate validation on the
      * `/connections/count` and `/connections/reserve` probe requests, matching the toggle
      * used for the gRPC channel itself.
      * @param maxJitterMs - The maximum jitter, in milliseconds, to wait before every probe

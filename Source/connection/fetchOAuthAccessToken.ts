@@ -34,7 +34,7 @@ export interface OAuthTokenResponse {
  * @param tokenEndpoint - The token endpoint URL.
  * @param clientId - The client identifier.
  * @param clientSecret - The client secret.
- * @param skipTlsValidation - Whether to skip TLS certificate chain validation.
+ * @param skipTlsValidation - The effective setting: `true` skips TLS certificate chain validation, `false` requires it.
  * @returns The parsed token response; rejects when the request fails or the response is not a valid token.
  */
 export function fetchOAuthAccessToken(
@@ -61,8 +61,8 @@ export function fetchOAuthAccessToken(
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Content-Length': Buffer.byteLength(body)
             },
-            // Chain validation is skipped only when skipTlsValidation is explicitly set,
-            // matching the gRPC channel's credentials for the same connection string.
+            // Chain validation is skipped only when the effective skipTlsValidation is true
+            // (an explicit false always requires it), matching the gRPC channel's credentials for the same connection string.
             ...(isHttps && skipTlsValidation ? { rejectUnauthorized: false } : {})
         }, response => {
             let data = '';

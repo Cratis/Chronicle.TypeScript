@@ -376,8 +376,8 @@ export class ChronicleConnection implements ChronicleServices {
                 tokenHosts.length > 0 ? `OAuth token requests to ${tokenHosts.join(', ')}` : undefined
             ].filter(part => part).join(' and ');
         createLogger('@cratis/chronicle/ChronicleConnection', this.logger).warn(
-            `TLS certificate validation is disabled for ${scope}. ` +
-            'Set skipTlsValidation=false in the connection string, or skipTlsValidation = false on ChronicleConnectionStringBuilder, to validate the server certificate.',
+            `TLS certificate validation is disabled for ${scope}; any certificate is accepted. ` +
+            'Set skipTlsValidation=false once the server certificate is trusted.',
             { hosts: [...new Set([...channelHosts, ...tokenHosts])] });
     }
 

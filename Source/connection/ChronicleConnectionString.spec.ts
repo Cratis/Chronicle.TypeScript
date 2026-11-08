@@ -129,6 +129,27 @@ describe('ChronicleConnectionStringBuilder', () => {
         it('should include skipTlsValidation in the query string', () => expect(builder.build()).toBe('chronicle://localhost:35000?skipTlsValidation=false'));
     });
 
+    describe('when tracking whether skipTlsValidation was explicit', () => {
+        it('should be omitted by default and still skip', () => {
+            const builder = new ChronicleConnectionStringBuilder('chronicle://localhost:35000');
+            expect(builder.hasExplicitSkipTlsValidation).toBe(false);
+            expect(builder.skipTlsValidation).toBe(true);
+            expect(builder.build()).toBe('chronicle://localhost:35000');
+        });
+        it('should keep an explicit true explicit and round trip it', () => {
+            const builder = new ChronicleConnectionStringBuilder('chronicle://localhost:35000?skipTlsValidation=true');
+            expect(builder.hasExplicitSkipTlsValidation).toBe(true);
+            expect(builder.skipTlsValidation).toBe(true);
+            expect(new ChronicleConnectionString(builder.build()).hasExplicitSkipTlsValidation).toBe(true);
+            expect(builder.build()).toBe('chronicle://localhost:35000?skipTlsValidation=true');
+        });
+        it('should keep an explicit false explicit, requiring validation', () => {
+            const connectionString = new ChronicleConnectionString('chronicle://localhost:35000?skipTlsValidation=false');
+            expect(connectionString.hasExplicitSkipTlsValidation).toBe(true);
+            expect(connectionString.skipTlsValidation).toBe(false);
+        });
+    });
+
     describe('when setting host after hosts were set to multiple servers', () => {
         const builder = new ChronicleConnectionStringBuilder();
         builder.hosts = [{ host: 'host1', port: 35001 }, { host: 'host2', port: 35002 }];

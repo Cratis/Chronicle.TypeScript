@@ -240,8 +240,9 @@ export class ChronicleConnectionStringBuilder {
     /**
      * Whether TLS certificate validation is skipped for the gRPC channel and OAuth token
      * requests. Distinct from {@link disableTls}, which controls whether TLS is used at
-     * all. Defaults to `true` - set to `false` to require full certificate validation
-     * whenever TLS is on.
+     * all. Defaults to `true` in this release when omitted. Set it to `false` explicitly
+     * to require full certificate validation whenever TLS is on; an explicit `false`
+     * always requires validation. A later major release will require validation by default.
      */
     get skipTlsValidation(): boolean {
         const raw = this._properties.get(ChronicleConnectionStringBuilder._skipTlsValidationKey);
@@ -250,6 +251,11 @@ export class ChronicleConnectionStringBuilder {
 
     set skipTlsValidation(value: boolean) {
         this._properties.set(ChronicleConnectionStringBuilder._skipTlsValidationKey, value.toString());
+    }
+
+    /** Whether {@link skipTlsValidation} was set explicitly, rather than left at its default. */
+    get hasExplicitSkipTlsValidation(): boolean {
+        return this._properties.has(ChronicleConnectionStringBuilder._skipTlsValidationKey);
     }
 
     /** Skip the client keep-alive connection for short-lived processes. Defaults to false. */
@@ -357,8 +363,8 @@ export class ChronicleConnectionStringBuilder {
 
         this.appendSkipKeepAlive(queryParameters);
 
-        if (!this.skipTlsValidation) {
-            queryParameters.push('skipTlsValidation=false');
+        if (this.hasExplicitSkipTlsValidation) {
+            queryParameters.push(`skipTlsValidation=${this.skipTlsValidation}`);
         }
 
         if (this.certificatePath) {
@@ -473,8 +479,7 @@ export class ChronicleConnectionString {
     static readonly DEVELOPMENT_CLIENT = 'chronicle-dev-client';
     static readonly DEVELOPMENT_CLIENT_SECRET = 'chronicle-dev-secret';
     static readonly Default = new ChronicleConnectionString('chronicle://localhost:35000');
-    // skipTlsValidation defaults to true, so no explicit query parameter is needed here for
-    // this to connect to the Kernel's self-signed development certificate.
+    // skipTlsValidation is omitted and defaults to true in this release, so this connects to the Kernel's self-signed development certificate.
     static readonly Development = new ChronicleConnectionString(
         `chronicle://${ChronicleConnectionString.DEVELOPMENT_CLIENT}:${ChronicleConnectionString.DEVELOPMENT_CLIENT_SECRET}@localhost:35000`
     );
@@ -549,6 +554,11 @@ export class ChronicleConnectionString {
      */
     get skipTlsValidation(): boolean {
         return this._builder.skipTlsValidation;
+    }
+
+    /** Whether `skipTlsValidation` was set explicitly in the connection string. */
+    get hasExplicitSkipTlsValidation(): boolean {
+        return this._builder.hasExplicitSkipTlsValidation;
     }
 
     get certificatePath(): string | undefined {

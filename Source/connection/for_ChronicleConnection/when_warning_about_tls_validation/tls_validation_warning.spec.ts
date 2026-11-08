@@ -28,7 +28,12 @@ describe('TLS validation warning', () => {
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('chronicle.example.com');
         expect(warnings[0].message).toContain('gRPC channel and OAuth token requests');
-        expect(warnings[0].message).toContain('skipTlsValidation=false');
+        expect(warnings[0].message).toContain('any certificate is accepted');
+        expect(warnings[0].message).toContain('Set skipTlsValidation=false once the server certificate is trusted.');
+    });
+
+    it('warns for an explicit skipTlsValidation=true on a remote host', async () => {
+        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?skipTlsValidation=true')).toHaveLength(1);
     });
 
     it.each(['localhost', '127.0.0.1', '127.1.2.3', '[::1]'])('does not warn for loopback host %s', async host => {

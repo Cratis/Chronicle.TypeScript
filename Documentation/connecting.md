@@ -34,7 +34,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | --- | --- | --- |
 | `apiKey` | Not set | Authenticate with an API key instead of client credentials. |
 | `disableTls` | `false` | `true` connects over plaintext gRPC and requests tokens over `http`. |
-| `skipTlsValidation` | `true` | Accept any server certificate. Set to `false` to validate the certificate. |
+| `skipTlsValidation` | `true` | Accept any server certificate. The default stays `true` in this release. An explicit `false` always requires validation; an explicit `true` skips it. |
 | `loadBalancer` | `least-connections` | How the client picks one server from several: `least-connections`, `round-robin`, or `random`. |
 | `srvNameServer` | System resolver | IP address, with an optional port, of the DNS server used for `chronicle+srv://` lookups, such as `10.0.0.2:53`. A host name is rejected. |
 | `certificatePath`, `certificatePassword` | Not set | Accepted for connection-string compatibility with other clients. The TypeScript client does not use them. |
@@ -75,7 +75,7 @@ The client uses TLS unless the connection string sets `disableTls=true`. Chronic
 Set `skipTlsValidation=false` on every connection string that points at a server other than a local development kernel. `skipTlsValidation` defaults to `true` so that the development image's self-signed certificate works without configuration. With that default, the client accepts any certificate for both gRPC calls and token requests, so anyone who can intercept the connection can read the credentials and the events.
 :::
 
-When TLS is on and `skipTlsValidation` is `true`, the client logs one warning through the configured [logger](./observability.md#application-diagnostics) when the connection starts if any target host is not a loopback host (`localhost`, `127.x.x.x`, or `::1`). The warning names the host, says that certificate validation is disabled for the gRPC channel and OAuth token requests, and says how to enable it: `skipTlsValidation=false` in the connection string, or `skipTlsValidation = false` on `ChronicleConnectionStringBuilder`. It is logged once per connection, not on each call or reconnect. The default is unchanged.
+When TLS is on and `skipTlsValidation` is `true`, the client logs one warning through the configured [logger](./observability.md#application-diagnostics) when the connection starts if any target host is not a loopback host (`localhost`, `127.x.x.x`, or `::1`). The warning names the host, says that certificate validation is disabled for the gRPC channel and OAuth token requests and that any certificate is accepted, and tells you to set `skipTlsValidation=false` once the server certificate is trusted. It is logged once per connection, not on each call or reconnect. The default stays `true` in this release; an explicit `skipTlsValidation=false` requires validation.
 With `skipTlsValidation=false`, the server certificate must be trusted by the default Node.js and gRPC trust store. The TypeScript client has no option to supply a custom certificate authority bundle or a client certificate.
 
 Use `disableTls=true` only when something else protects the traffic, for example a service mesh that terminates TLS. Credentials and events then cross the network unencrypted between the client and that proxy.
