@@ -1,6 +1,6 @@
 ---
 title: PII
-description: Release PII in raw stored read model documents with the TypeScript client.
+description: Release personally identifiable information found in raw stored read model documents by using the TypeScript client, and learn when that is needed.
 sharedTopicBridge: true
 ---
 

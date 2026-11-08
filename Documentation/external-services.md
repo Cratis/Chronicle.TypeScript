@@ -1,6 +1,6 @@
 ---
 title: External services
-description: Register HTTP and database external services with the Chronicle kernel from TypeScript.
+description: Register HTTP and database external services with the Chronicle kernel from TypeScript, so reactors and projections can reach systems outside Chronicle.
 ---
 
 See [External Services](/chronicle/external-services/) for what an external service is. External services are usually configured in the Workbench, but the TypeScript client also exposes a programmatic API on `eventStore.externalServices`.

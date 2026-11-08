@@ -1,6 +1,6 @@
 ---
 title: Webhooks
-description: Register Chronicle webhooks from TypeScript, in code or as decorated classes.
+description: Register Chronicle webhooks from TypeScript, either in code or as decorated classes, so external systems are called when events are appended.
 ---
 
 See [Webhooks](/chronicle/webhooks/) for what a webhook is. Use `eventStore.webhooks` to register webhook observers for event streams.

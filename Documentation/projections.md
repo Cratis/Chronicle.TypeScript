@@ -1,6 +1,6 @@
 ---
 title: Projections
-description: Projections are documented in the shared Chronicle docs; this page lists what the TypeScript client supports.
+description: Learn which projection features the TypeScript client supports, and find the shared Chronicle projection docs for the declarative concepts behind them.
 sharedTopicBridge: true
 ---
 

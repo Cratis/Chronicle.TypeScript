@@ -1,6 +1,6 @@
 ---
 title: Composite keys
-description: Build TypeScript projection keys from event content, context, event source identifiers and constants.
+description: Build TypeScript projection keys from event content, context, event source identifiers and constants so one read model can combine several values.
 ---
 
 When an event property alone does not identify a read-model instance, combine it with context or a fixed category. Each part of a TypeScript composite key uses the same set-expression builder as a projection property.

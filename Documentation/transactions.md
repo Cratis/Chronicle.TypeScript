@@ -1,6 +1,6 @@
 ---
 title: Transactions and unit of work
-description: Where transactions are documented, the TypeScript unit-of-work result accessors, and append metadata in a unit of work.
+description: Find where transactions are documented, use the TypeScript unit-of-work result accessors, and attach append metadata to events inside a unit of work.
 sharedTopicBridge: true
 ---
 

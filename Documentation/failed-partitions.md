@@ -1,6 +1,6 @@
 ---
 title: Failed partitions
-description: Find the observer partitions Chronicle stopped retrying, and wait for observers after an append.
+description: Find the observer partitions Chronicle stopped retrying, inspect why they failed, and wait for observers to catch up after you append an event.
 ---
 
 When an accepted append has not produced the expected state or effect, inspect `eventStore.failedPartitions` before sending the event again. Start with `getAllFailedPartitions()` to find the observer and partition involved, then read the attempts' messages, sequence numbers, and stack traces to diagnose the failure.

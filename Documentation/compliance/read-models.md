@@ -1,6 +1,6 @@
 ---
 title: Compliance in read models
-description: Read-model compliance is documented in the shared Chronicle compliance docs.
+description: Learn how compliance applies to read models, see where the shared Chronicle compliance guidance lives, and what the TypeScript client adds on top.
 sharedTopicBridge: true
 ---
 

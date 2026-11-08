@@ -1,6 +1,6 @@
 ---
 title: Reducers
-description: Reducers are documented in the shared Chronicle docs, with TypeScript examples.
+description: Learn where reducers are documented and see TypeScript examples that fold events into read model state, with notes on how they are registered and run.
 sharedTopicBridge: true
 ---
 

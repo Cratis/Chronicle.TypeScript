@@ -1,6 +1,6 @@
 ---
 title: Preserve existing append routes
-description: Keep writing to existing TypeScript streams when upgrading to kernel-owned append routing.
+description: Keep writing to existing TypeScript streams when upgrading to kernel-owned append routing, and learn which settings and calls need to change.
 ---
 
 The move to kernel-owned append routing is a **major change** for the TypeScript client, introduced in `@cratis/chronicle` 6.0.0. Before 6.0.0, an append with no route options sent source type `Default`, stream type `Default`, and the event source identifier as the stream identifier. From 6.0.0 the client omits unspecified route dimensions. A kernel supporting the new behavior resolves missing or empty dimensions to source type `Default`, stream type `All`, and stream identifier `Default`.

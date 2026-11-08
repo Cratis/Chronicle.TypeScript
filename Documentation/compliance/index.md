@@ -1,6 +1,6 @@
 ---
 title: Compliance
-description: Compliance and PII handling are documented in the shared Chronicle docs, with TypeScript examples.
+description: Find where Chronicle compliance and PII handling are documented, and see the TypeScript client examples for protecting and releasing personal data.
 sharedTopicBridge: true
 ---
 

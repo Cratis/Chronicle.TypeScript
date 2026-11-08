@@ -1,6 +1,6 @@
 ---
 title: Sinks
-description: Choose where the TypeScript client stores the read models it registers, with defaultSinkTypeId and WellKnownSinks.
+description: Choose where the TypeScript client stores the read models it registers, with defaultSinkTypeId and WellKnownSinks, and override the sink per read model.
 ---
 
 See [Sinks](/chronicle/sinks/) for what a sink is and the storage backends Chronicle ships with. By default the client uses **MongoDB**, so most applications never need to think about sinks at all. You only configure a sink type when you want your read models stored somewhere else — for example, a SQL database.

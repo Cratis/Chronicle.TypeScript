@@ -1,6 +1,6 @@
 ---
 title: Event sources and streams
-description: Register named event sources and streams, append through them, and read the event source back from event metadata.
+description: Register named event sources and streams, append events through them, and read the event source back from event metadata in the TypeScript client.
 ---
 
 Use an event source definition when an append needs a named source type, named streams, or default concurrency dimensions. The definition describes a kind of source, not one account or order: in the example below, `Account` is the definition name and `accountId` identifies the particular account. Routing belongs to the append, so the same event type can be appended through different definitions.
