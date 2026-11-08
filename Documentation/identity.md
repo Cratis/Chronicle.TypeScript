@@ -1,6 +1,6 @@
 ---
 title: Identity
-description: Control which identity the TypeScript client records as the cause of each appended event.
+description: Control which identity the TypeScript client records as the cause of each appended event, and how to override it for a single operation or the whole client.
 ---
 
 Select the identity where a request starts, then use a scoped operation for work that appends events.

@@ -1,6 +1,6 @@
 ---
 title: Event type migrations
-description: Event type migrations are documented in the shared Chronicle docs, with TypeScript examples.
+description: Learn where event type migrations are documented and see TypeScript examples for evolving event schemas across generations without breaking old events.
 sharedTopicBridge: true
 ---
 

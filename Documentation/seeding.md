@@ -1,6 +1,6 @@
 ---
 title: Seeding
-description: Seed events from TypeScript with @seeder classes that Chronicle applies once per namespace.
+description: Seed initial events from TypeScript with @seeder classes that Chronicle applies once per namespace, so new environments start with the data they need.
 ---
 
 This page shows how to seed events using the Chronicle TypeScript client. The client sends seed data to the Chronicle kernel when you get the event store, and the kernel applies it once per namespace. See [Event Seeding](/chronicle/event-seeding/) for the concept this page assumes.

@@ -1,6 +1,6 @@
 ---
 title: Correlation
-description: Control the correlation ID the TypeScript client sends with every append.
+description: Control the correlation ID the TypeScript client sends with every append, so related events and the requests that caused them can be traced together.
 ---
 
 Choose one correlation ID at the start of an operation when its events need to be grouped together. This page assumes the Node.js setup in [Get started with the TypeScript client](./getting-started.md).

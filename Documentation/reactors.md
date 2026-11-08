@@ -1,6 +1,6 @@
 ---
 title: Reactors
-description: Where reactors are documented, and how TypeScript reactors return side effects and handle replays.
+description: Find where reactors are documented, and learn how TypeScript reactors return side effects and handle replays so that outside work is not repeated.
 sharedTopicBridge: true
 ---
 

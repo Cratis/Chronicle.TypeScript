@@ -1,6 +1,6 @@
 ---
 title: Read models
-description: Where read models are documented, and how the TypeScript client discovers, identifies, and returns read models.
+description: Find where read models are documented, and learn how the TypeScript client discovers, identifies, queries and returns read models from projections.
 sharedTopicBridge: true
 ---
 

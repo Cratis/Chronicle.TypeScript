@@ -1,6 +1,6 @@
 ---
 title: Event types
-description: Where event types are documented, and how to declare TypeScript event classes so Chronicle can build their schemas.
+description: Find where event types are documented, and learn how to declare TypeScript event classes with decorators so Chronicle can build their schemas.
 sharedTopicBridge: true
 ---
 

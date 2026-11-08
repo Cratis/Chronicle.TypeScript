@@ -1,6 +1,6 @@
 ---
 title: Jobs
-description: Inspect, stop, resume, and delete Chronicle jobs from TypeScript with eventStore.jobs.
+description: Inspect, stop, resume, and delete Chronicle jobs from TypeScript with eventStore.jobs, and read the steps of a job to see what it is doing.
 ---
 
 See [Jobs](/chronicle/jobs/) for what a job is. Use `eventStore.jobs` to inspect and control Chronicle jobs in a namespace.

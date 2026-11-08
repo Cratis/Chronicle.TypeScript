@@ -1,6 +1,6 @@
 ---
 title: Auditing — causation
-description: Add application-specific links to the causation chain the TypeScript client sends with every append.
+description: Add application-specific links to the causation chain the TypeScript client sends with every append, so you can trace why each event was written.
 ---
 
 See [Correlation, identity, and causation](/chronicle/concepts/correlation-identity-causation/) for what causation means and why Chronicle tracks it. This page covers the TypeScript-specific API in depth. The causation chain is stored with every event and enables full audit-trail tracing.

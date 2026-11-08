@@ -1,3 +1,8 @@
+---
+title: Observers
+description: List the observers Chronicle knows about with eventStore.observers.getAll(), see their running state and progress, and link each to its failed partitions.
+---
+
 # Observers
 
 If an order's event was accepted but its notification or read model has not appeared, start

@@ -1,6 +1,6 @@
 ---
 title: Get started with the TypeScript client
-description: Create a Node.js project, connect to a local Chronicle kernel, append events, and read the projected read model back.
+description: Create a Node.js project, connect to a local Chronicle kernel, append your first events, and read the projected read model back using TypeScript.
 ---
 
 You want a Node.js service to record what happened as events and to query state built from them. In this guide you start from an empty folder and end with a program that appends two events, lets a reactor respond, and prints the read model Chronicle built from those events.

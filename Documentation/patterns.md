@@ -1,6 +1,6 @@
 ---
 title: Query behavior patterns
-description: Ask what a scope usually does at a moment, or match an explicit context with the TypeScript client.
+description: Ask what a scope usually does at a given moment, or match an explicit context, by using pattern queries with the TypeScript client.
 ---
 
 Use `eventStore.patterns` to ask what a person usually does at this point in the
