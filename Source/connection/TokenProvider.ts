@@ -73,7 +73,8 @@ export class OAuthTokenProvider implements ITokenProvider {
      * @param tokenEndpoint - The OAuth2 token endpoint to request tokens from.
      * @param clientId - The client identifier.
      * @param clientSecret - The client secret.
-     * @param skipTlsValidation - Whether to skip TLS certificate chain validation.
+     * @param skipTlsValidation - The effective setting: `true` skips TLS certificate chain validation, `false` requires it.
+     * Defaults to `true`, matching the connection string default in this release.
      * @param _fetchToken - Test-only seam replacing the OAuth2 token request.
      */
     constructor(

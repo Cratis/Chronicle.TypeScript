@@ -49,7 +49,7 @@ docker run -d --name chronicle -p 127.0.0.1:35000:35000 cratis/chronicle:latest-
 
 ## Getting Started
 
-[Get started with the TypeScript client](./Documentation/getting-started.md) takes you from an empty folder to a program that appends events and reads the projected read model back. Read [Connect to Chronicle](./Documentation/connecting.md) before you connect to anything other than a local development kernel: the client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false`.
+[Get started with the TypeScript client](./Documentation/getting-started.md) takes you from an empty folder to a program that appends events and reads the projected read model back. Read [Connect to Chronicle](./Documentation/connecting.md) before you connect to anything other than a local development kernel: the client skips TLS certificate validation unless the connection string sets `skipTlsValidation=false` (the default stays `true` in this release; an explicit `false` requires validation).
 
 ## Quick Example
 
