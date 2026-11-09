@@ -78,7 +78,7 @@ Set once is not supported on [graph projections](./graph-projections.md). Graph 
 
 Children are appended by default. Call `.prepend()`, `.orderBy(child => child.position)` or `.orderByDescending(child => child.position)` on a `.children()` builder to place new children differently. For `@childrenFrom`, use the `prepend`, `orderBy` or `orderByDescending` option. All `@childrenFrom` decorators on a property must declare the same ordering, or leave it unset. Otherwise registration fails with `ConflictingChildrenOrdering`. An ascending sort puts children without a value first, and a descending sort puts them last. Updating a child never moves it.
 
-> **Pending contracts upgrade:** the `@cratis/chronicle.contracts` package this client uses cannot carry children ordering yet. Until the client depends on a contracts version that includes `ChildrenOrderingDefinition`, registering a projection with ordered children fails with `ChildrenOrderingNotSupportedByContracts`. Registration stops there so the ordering is never dropped and the children silently appended.
+> **Requires Chronicle 19.150.0 or later:** set once, dictionary entries and children ordering need a Chronicle kernel at version 19.150.0 or later.
 
 `ReadModelScenario` runs projections in memory. It does not support set once, dictionary entries or ordered children. Test projections that use them against a kernel (`ChronicleKernelScenario`).
 

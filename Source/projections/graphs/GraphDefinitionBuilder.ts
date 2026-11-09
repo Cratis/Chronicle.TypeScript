@@ -95,12 +95,13 @@ export class GraphDefinitionBuilder {
             result.From[this.eventTypeOf(from.eventType)] = {
                 Key: from.key ?? eventSourceId,
                 Properties: this.properties(from.eventType, properties.filter(name => name !== node.keyProperty), from.properties),
-                UpdateOnly: from.updateOnly
+                UpdateOnly: from.updateOnly,
+                ForEach: ''
             };
         }
 
         for (const removal of node.removedWith) {
-            result.RemovedWith[this.eventTypeOf(removal.eventType)] = { Key: removal.key ?? eventSourceId, Detach: removal.detach };
+            result.RemovedWith[this.eventTypeOf(removal.eventType)] = { Key: removal.key ?? eventSourceId, Detach: removal.detach, ForEach: '' };
         }
 
         return result;
@@ -114,7 +115,8 @@ export class GraphDefinitionBuilder {
                 SourceKey: from.sourceKey ?? eventSourceId,
                 TargetKey: from.targetKey ?? eventSourceId,
                 Identity: this.identity(edge, from.eventType, from.identity),
-                Properties: this.properties(from.eventType, properties.filter(name => name !== edge.identifyingProperty), from.properties)
+                Properties: this.properties(from.eventType, properties.filter(name => name !== edge.identifyingProperty), from.properties),
+                ForEach: ''
             };
         }
 
@@ -122,7 +124,8 @@ export class GraphDefinitionBuilder {
             result.RemovedWith[this.eventTypeOf(removal.eventType)] = {
                 SourceKey: removal.sourceKey ?? eventSourceId,
                 TargetKey: removal.targetKey ?? eventSourceId,
-                Identity: this.identity(edge, removal.eventType, removal.identity)
+                Identity: this.identity(edge, removal.eventType, removal.identity),
+                ForEach: ''
             };
         }
 

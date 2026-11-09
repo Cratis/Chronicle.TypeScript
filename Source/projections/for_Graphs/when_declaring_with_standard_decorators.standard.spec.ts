@@ -79,14 +79,14 @@ describe('when declaring a graph with standard decorators', () => {
             'x-graph-target': 'Book'
         });
         should(registration.projection.Graph!.Nodes.Author).deep.equal({
-            From: { 'AuthorJoined+1': { Key: 'authorId', Properties: { name: 'name' }, UpdateOnly: false } },
-            RemovedWith: { 'AuthorLeft+1': { Key: 'authorId', Detach: true } }
+            From: { 'AuthorJoined+1': { Key: 'authorId', Properties: { name: 'name' }, UpdateOnly: false, ForEach: '' } },
+            RemovedWith: { 'AuthorLeft+1': { Key: 'authorId', Detach: true, ForEach: '' } }
         });
         should(registration.projection.Graph!.Nodes.Book.From['BookWritten+1']).deep.equal({
-            Key: 'bookId', Properties: { editions: '$count' }, UpdateOnly: false
+            Key: 'bookId', Properties: { editions: '$count' }, UpdateOnly: false, ForEach: ''
         });
         should(registration.projection.Graph!.Edges.WROTE.From['BookWritten+1']).deep.equal({
-            SourceKey: 'authorId', TargetKey: 'bookId', Identity: '', Properties: { writtenAt: '$eventContext(Occurred)' }
+            SourceKey: 'authorId', TargetKey: 'bookId', Identity: '', Properties: { writtenAt: '$eventContext(Occurred)' }, ForEach: ''
         });
     });
 });

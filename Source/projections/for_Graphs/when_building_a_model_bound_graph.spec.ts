@@ -61,8 +61,8 @@ describe('when building a graph from decorated nodes and edges', () => {
     });
     it('should map a node from an event keyed by the event type id and generation', () => {
         result.graphs.registrations[0].projection.Graph!.Nodes.Person.should.deep.equal({
-            From: { 'PersonRegistered+1': { Key: 'personId', Properties: { name: 'name' }, UpdateOnly: false } },
-            RemovedWith: { 'PersonRemoved+1': { Key: 'personId', Detach: true } }
+            From: { 'PersonRegistered+1': { Key: 'personId', Properties: { name: 'name' }, UpdateOnly: false, ForEach: '' } },
+            RemovedWith: { 'PersonRemoved+1': { Key: 'personId', Detach: true, ForEach: '' } }
         });
     });
     it('should map the properties of a node by name and leave out the key', () => {
@@ -75,10 +75,11 @@ describe('when building a graph from decorated nodes and edges', () => {
                     SourceKey: 'personId',
                     TargetKey: 'groupId',
                     Identity: '',
-                    Properties: { since: '$eventContext(Occurred)' }
+                    Properties: { since: '$eventContext(Occurred)' },
+                    ForEach: ''
                 }
             },
-            RemovedWith: { 'MemberRemoved+1': { SourceKey: 'personId', TargetKey: 'groupId', Identity: '' } }
+            RemovedWith: { 'MemberRemoved+1': { SourceKey: 'personId', TargetKey: 'groupId', Identity: '', ForEach: '' } }
         });
     });
 });
