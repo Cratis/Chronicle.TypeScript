@@ -37,13 +37,20 @@ import type { RecordedReactorSideEffect } from './RecordedReactorSideEffect.js';
 import { observeUnsupportedOperations } from './InProcessEventSequence.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { UnsupportedReactorOperation } from './UnsupportedReactorOperation.js';
+import type { BatchMethod } from '../observation/batches/BatchMethod.js';
+import { BatchOutcomeKind } from '../observation/batches/BatchOutcomeKind.js';
+import type { BatchPartitionOutcome } from './BatchPartitionOutcome.js';
+import { deliverToBatchMethods } from './deliverToBatchMethods.js';
 
 /** Live, ordered reactor deliveries over the fixture-proven EventScenario event boundary. */
 export class ReactorScenario {
-    readonly given: { forEventSource(id: string, options?: AppendOptions): { events(...events: object[]): Promise<void> } };
-    readonly when: { forEventSource(id: string, options?: AppendOptions): { events(...events: object[]): Promise<void> } };
+    readonly given: ReactorScenarioPhase;
+    readonly when: ReactorScenarioPhase;
     private readonly _events: EventScenario;
     private readonly _entries: ReturnType<typeof getReactorEventTypes>;
+    private readonly _batchMethods: readonly BatchMethod[];
+    private readonly _batchEventTypeIds: ReadonlySet<string>;
+    private readonly _partitionOutcomes: BatchPartitionOutcome[] = [];
     private readonly _eventTypes: readonly Constructor[];
     private readonly _instance?: Record<string, Function>;
     private readonly _validateInstance: (instance: object) => void;
@@ -89,19 +96,20 @@ export class ReactorScenario {
             eventTypeMigrations: eventTypeMigrations === undefined ? undefined : [...eventTypeMigrations]
         } });
         this._entries = getReactorEventTypes(_reactor, this._eventTypes);
-        if (getReactorBatchMethods(_reactor, this._eventTypes).length > 0) {
-            throw new UnsupportedReactorOperation('reactor.batchMethod', _reactor.name,
-                'Batch methods (@observes) are not fixture-backed yet.');
-        }
-        this._validateInstance = createHandlerInstanceValidator(_reactor,
-            this._entries.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)));
+        this._batchMethods = getReactorBatchMethods(_reactor, this._eventTypes);
+        this._batchEventTypeIds = new Set(this._batchMethods.flatMap(method => [...method.eventTypes.keys()]));
+        this._validateInstance = createHandlerInstanceValidator(_reactor, [
+            ...this._entries.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)),
+            ...this._batchMethods.map(method => method.methodName)]);
         // Every unsupported event-sequence operation is latched at its source, whichever result or stream carries it.
         observeUnsupportedOperations(this._events.eventSequence, error => { this.latch(error); });
         this._instance = _options.artifactActivator ? undefined : new (_reactor as new () => Record<string, Function>)();
         if (this._instance) this._validateInstance(this._instance);
         this._store = _options.servicesEventStore ?? this.scenarioStore();
-        this.given = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, true, options) }) };
-        this.when = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, false, options) }) };
+        this.given = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, true, options) }),
+            page: (...events) => this.deliverPage(events, true) };
+        this.when = { forEventSource: (id, options) => ({ events: (...events) => this.deliver(id, events, false, options) }),
+            page: (...events) => this.deliverPage(events, false) };
     }
 
     private scenarioStore(): IEventStore {
@@ -120,7 +128,7 @@ export class ReactorScenario {
         const rejectSubscribed = (events: readonly object[]) => {
             if (events.some(event => {
                 const id = getEventTypeMetadata(event.constructor)?.eventType.id.value;
-                return this._entries.some(entry => entry.id === id);
+                return id !== undefined && (this._entries.some(entry => entry.id === id) || this._batchEventTypeIds.has(id));
             })) {
                 throw this.violation('services.eventLog.append.subscribed',
                     'Delivery of a reactor\'s own appended events is not supported.');
@@ -161,17 +169,38 @@ export class ReactorScenario {
     get produced(): readonly unknown[] { return Object.freeze(this._effects.map(effect => effect.value)); }
     get sideEffects(): readonly RecordedReactorSideEffect[] { return Object.freeze([...this._effects]); }
     get results(): readonly ReactorDeliveryResult[] { return Object.freeze([...this._results]); }
+    /**
+     * The partitions the reactor's batch methods reported as failed or deferred, in the order they were reported. A batch
+     * method that throws fails every partition in its batch instead, and the scenario rejects the call that delivered it.
+     */
+    get partitionOutcomes(): readonly BatchPartitionOutcome[] { return Object.freeze([...this._partitionOutcomes]); }
     /** Committed input and explicit service appends; recorded returned effects are not part of this history. */
     get appendedEvents(): readonly AppendedEvent[] { return this._events.appendedEvents; }
     /** Assertion view, deliberately not a callable Promise-like `then`. */
     get then(): { readonly produced: readonly unknown[]; readonly sideEffects: readonly RecordedReactorSideEffect[];
-        readonly results: readonly ReactorDeliveryResult[] } {
-        return { produced: this.produced, sideEffects: this.sideEffects, results: this.results };
+        readonly results: readonly ReactorDeliveryResult[]; readonly partitionOutcomes: readonly BatchPartitionOutcome[] } {
+        return { produced: this.produced, sideEffects: this.sideEffects, results: this.results, partitionOutcomes: this.partitionOutcomes };
     }
     shouldHaveProduced<T>(type: new (...args: never[]) => T, predicate: (value: T) => boolean = () => true): void {
         if (!this.produced.some(value => value instanceof type && predicate(value))) {
             throw new Error(`Expected reactor '${this._reactor.name}' to produce a matching '${type.name}'.`);
         }
+    }
+    /**
+     * Asserts that a batch method failed a partition.
+     * @param partition - The event source identifier of the partition.
+     */
+    shouldHaveFailed(partition: string): void { this.assertOutcome(partition, BatchOutcomeKind.Failed); }
+    /**
+     * Asserts that a batch method deferred a partition.
+     * @param partition - The event source identifier of the partition.
+     */
+    shouldHaveDeferred(partition: string): void { this.assertOutcome(partition, BatchOutcomeKind.Deferred); }
+    private assertOutcome(partition: string, kind: BatchOutcomeKind): void {
+        if (this._partitionOutcomes.some(outcome => outcome.partition === partition && outcome.kind === kind)) return;
+        const reported = this._partitionOutcomes.length > 0
+            ? this._partitionOutcomes.map(outcome => `${outcome.kind} '${outcome.partition}'`).join(', ') : 'nothing';
+        throw new Error(`Expected a batch method of reactor '${this._reactor.name}' to report partition '${partition}' as ${kind}, but it reported: ${reported}.`);
     }
     shouldNotHaveProduced(type: Function): void {
         if (this.produced.some(value => value instanceof type)) {
@@ -188,11 +217,7 @@ export class ReactorScenario {
     }
 
     private async deliver(sourceId: string, input: object[], setup: boolean, options?: AppendOptions): Promise<void> {
-        if (this._failed) throw new UnsupportedReactorOperation('delivery.afterFailure', this._reactor.name,
-            'A previous delivery failed; failed-partition retries are not supported.');
-        if (this._busy) throw new UnsupportedReactorOperation('delivery.overlap', this._reactor.name, 'Concurrent deliveries have unproven ordering.');
-        this._busy = true;
-        try {
+        await this.exclusively(async () => {
             if (!setup && !input.length) {
                 throw new UnsupportedReactorOperation('when.events', this._reactor.name, 'Empty action batches are not fixture-backed.');
             }
@@ -200,13 +225,38 @@ export class ReactorScenario {
             if (setup) {
                 await this._events.given.forEventSource(sourceId, options).events(...input);
             } else {
-                const results = await this._events.when.forEventSource(sourceId, options).events(...input);
-                const failures = results.filter(result => !result.isSuccess);
-                if (failures.length) throw new Error(`ReactorScenario action append failed: ${JSON.stringify(failures, (_, value) =>
-                    typeof value === 'bigint' ? value.toString() : value)}`);
+                throwIfAppendFailed(await this._events.when.forEventSource(sourceId, options).events(...input));
             }
             const events = this._events.appendedEvents.slice(before);
-            if (events.length) await this.process(sourceId, events);
+            if (events.length) await this.process(events);
+        });
+    }
+
+    private async deliverPage(entries: EventForEventSourceId[], setup: boolean): Promise<void> {
+        await this.exclusively(async () => {
+            if (!entries.length) {
+                throw new UnsupportedReactorOperation(setup ? 'given.page' : 'when.page', this._reactor.name, 'Empty pages are not fixture-backed.');
+            }
+            const before = this._events.appendedEvents.length;
+            if (setup) {
+                for (const entry of entries) {
+                    await this._events.given.forEventSource(entry.eventSourceId, appendOptionsOf(entry)).events(entry.event);
+                }
+            } else {
+                throwIfAppendFailed(await this._events.appendMany(entries));
+            }
+            const events = this._events.appendedEvents.slice(before);
+            if (events.length) await this.process(events);
+        });
+    }
+
+    private async exclusively(deliver: () => Promise<void>): Promise<void> {
+        if (this._failed) throw new UnsupportedReactorOperation('delivery.afterFailure', this._reactor.name,
+            'A previous delivery failed; failed-partition retries are not supported.');
+        if (this._busy) throw new UnsupportedReactorOperation('delivery.overlap', this._reactor.name, 'Concurrent deliveries have unproven ordering.');
+        this._busy = true;
+        try {
+            await deliver();
         } finally {
             this._busy = false;
         }
@@ -230,35 +280,37 @@ export class ReactorScenario {
         if (delivery.violation) throw delivery.violation;
     }
 
-    private async process(sourceId: string, events: readonly AppendedEvent[]): Promise<void> {
+    private async process(events: readonly AppendedEvent[]): Promise<void> {
         const delivery: { violation?: Error } = {};
         this._delivery = delivery;
         const deliveryIndex = this._deliveryIndex++;
         const handled: EventContext[] = [];
         const skipped: EventContext[] = [];
-        const outcome: { sourceId: string; handled: EventContext[]; skipped: EventContext[]; completed: boolean; error?: unknown } =
-            { sourceId, handled, skipped, completed: false };
+        const sourceId = events[0].context.eventSourceId;
+        const partitions = [...new Set(events.map(event => event.context.eventSourceId))];
+        const outcome: { sourceId: string; partitions: readonly string[]; handled: EventContext[]; skipped: EventContext[];
+            completed: boolean; error?: unknown } = { sourceId, partitions, handled, skipped, completed: false };
         const services: ReactorServices = { eventStore: this._store, readModels: this._store.readModels, signal: this._controller.signal };
-        const first = events.find(event => !!selectReactorHandler(this._entries, this._reactor, this._instance,
-            event.eventType.id.value, event.context.observationState ?? 0)?.methodName);
+        const first = events.find(event => this._batchEventTypeIds.has(event.eventType.id.value) ||
+            !!selectReactorHandler(this._entries, this._reactor, this._instance, event.eventType.id.value, event.context.observationState ?? 0)?.methodName);
         const process = async (artifact: ActivatedArtifact<Record<string, Function>>) => {
+            // EventScenario's serialized history is the committed boundary, not the original input instance.
+            if (events.some(event => event.context.observationState !== 1)) {
+                throw new UnsupportedReactorOperation('delivery.observationState', this._reactor.name,
+                    'Only initial live delivery is fixture-backed.');
+            }
+            if (this._batchMethods.length > 0) await this.processBatches(artifact, events, handled, delivery);
             for (const event of events) {
-                // EventScenario's serialized history is the committed boundary, not the original input instance.
-                if (event.context.observationState !== 1) {
-                    throw new UnsupportedReactorOperation('delivery.observationState', this._reactor.name,
-                        'Only initial live delivery is fixture-backed.');
-                }
+                // The batch methods had these events, as one page.
+                if (this._batchEventTypeIds.has(event.eventType.id.value)) continue;
                 const selection = selectReactorHandler(this._entries, this._reactor, artifact.instance,
-                    event.eventType.id.value, event.context.observationState);
+                    event.eventType.id.value, event.context.observationState ?? 0);
                 if (!selection?.methodName || selection.skipReplay) { skipped.push(event.context); continue; }
                 await invokeReactorHandler(artifact, selection.methodName, event.content, event.context, services, result => {
                     // A swallowed unsupported call fails this event like a throwing handler: nothing is recorded.
                     this.throwIfViolated(delivery);
                     return this.record(result, event.context, selection.methodName!, deliveryIndex);
-                }, new ReactorDelivery(getReactorMetadata(this._reactor)!.id.value,
-                    event.context.eventStore ?? this._options.eventStore ?? 'test-event-store',
-                    event.context.namespace ?? this._options.namespace ?? 'default', 'event-log',
-                    event.context.eventSourceId, event.context.sequenceNumber));
+                }, this.deliveryFor(event.context));
                 this.throwIfViolated(delivery);
                 handled.push(event.context);
             }
@@ -287,8 +339,31 @@ export class ReactorScenario {
             throw error;
         } finally {
             if (this._delivery === delivery) this._delivery = undefined;
-            this._results.push(Object.freeze({ ...outcome, handled: Object.freeze([...handled]), skipped: Object.freeze([...skipped]) }));
+            this._results.push(Object.freeze({ ...outcome, partitions: Object.freeze([...partitions]), handled: Object.freeze([...handled]), skipped: Object.freeze([...skipped]) }));
         }
+    }
+
+    private async processBatches(artifact: ActivatedArtifact<Record<string, Function>>, events: readonly AppendedEvent[],
+        handled: EventContext[], delivery: { violation?: Error }): Promise<void> {
+        const outcomes = await deliverToBatchMethods(artifact, this._batchMethods, {
+            observerId: getReactorMetadata(this._reactor)!.id.value, observerName: this._reactor.name,
+            eventStore: this._options.eventStore ?? 'test-event-store', namespace: this._options.namespace ?? 'default',
+            events, signal: this._controller.signal, deliveryFor: context => this.deliveryFor(context)
+        });
+        this.throwIfViolated(delivery);
+        this._partitionOutcomes.push(...outcomes);
+        // An event is handled unless its partition was failed or deferred at or before it.
+        for (const event of events.filter(event => this._batchEventTypeIds.has(event.eventType.id.value))) {
+            if (!outcomes.some(reported => reported.partition === event.context.eventSourceId && reported.at <= event.context.sequenceNumber)) {
+                handled.push(event.context);
+            }
+        }
+    }
+
+    private deliveryFor(context: EventContext): ReactorDelivery {
+        return new ReactorDelivery(getReactorMetadata(this._reactor)!.id.value,
+            context.eventStore ?? this._options.eventStore ?? 'test-event-store',
+            context.namespace ?? this._options.namespace ?? 'default', 'event-log', context.eventSourceId, context.sequenceNumber);
     }
 
     private async record(result: unknown, context: EventContext, handler: string, deliveryIndex: number): Promise<void> {
@@ -312,4 +387,37 @@ export class ReactorScenario {
                 handler, deliveryIndex }));
         }
     }
+}
+
+/** The reactor scenario phase that delivers events for one event source, or a page of several. */
+export interface ReactorScenarioPhase {
+    /**
+     * Selects the event source to deliver events for.
+     * @param id - The event source identifier.
+     * @param options - Optional append options.
+     * @returns The builder whose `events(...)` delivers its events as one page.
+     */
+    forEventSource(id: string, options?: AppendOptions): { events(...events: object[]): Promise<void> };
+
+    /**
+     * Delivers events of several event sources as one live page, as the kernel delivers a page to batch methods.
+     * @param events - The events and the event sources they are for, in the order they are appended.
+     * @returns A promise that resolves when every method has handled its events.
+     */
+    page(...events: EventForEventSourceId[]): Promise<void>;
+}
+
+function throwIfAppendFailed(results: readonly { isSuccess: boolean }[]): void {
+    const failures = results.filter(result => !result.isSuccess);
+    if (failures.length) throw new Error(`ReactorScenario action append failed: ${JSON.stringify(failures, (_, value) =>
+        typeof value === 'bigint' ? value.toString() : value)}`);
+}
+
+function appendOptionsOf(entry: EventForEventSourceId): AppendOptions | undefined {
+    // Only what the entry sets: the seeding path refuses options it cannot honor rather than dropping them.
+    const options = Object.fromEntries(Object.entries({
+        sourceType: entry.eventSourceType, streamType: entry.eventStreamType, streamId: entry.eventStreamId, subject: entry.subject,
+        occurred: entry.occurred, tags: entry.tags, namedTags: entry.namedTags, eventSource: entry.eventSource, eventStream: entry.eventStream
+    }).filter(([, value]) => value !== undefined)) as AppendOptions;
+    return Object.keys(options).length > 0 ? options : undefined;
 }
