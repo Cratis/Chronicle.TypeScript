@@ -5,6 +5,8 @@ import 'reflect-metadata';
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import type { EventContext } from '../../events/index.js';
 import { TypeIntrospector } from '../../types/index.js';
+import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
+import { setOnceExpression } from '../propertyExpressions.js';
 import { decorateModelBoundProperty } from '../../types/modelBoundProperty.js';
 import { ChroniclePropertyDecorator, getPropertyMetadata } from '../../types/propertyDecoratorMetadata.js';
 
@@ -14,6 +16,20 @@ export interface SetFromContextMetadata {
     readonly eventType: Function;
     /** The event context property name to read the value from. Defaults to the decorated property name. */
     readonly contextPropertyName?: string;
+    /** Whether the property is only assigned while it has no value yet. */
+    readonly setOnce?: boolean;
+}
+
+/** Options for the setFromContext property decorator. */
+export interface SetFromContextOptions {
+    /** The event context property name or accessor to read the value from. Defaults to the decorated property name. */
+    readonly contextProperty?: string | PropertyAccessor<EventContext>;
+    /**
+     * Only assign the property while it has no value yet. Use it to capture a first occurrence - for instance
+     * `@setFromContext(ItemAdded, { contextProperty: 'occurred', setOnce: true })` for when something was created -
+     * without a dedicated creation event.
+     */
+    readonly setOnce?: boolean;
 }
 
 const METADATA_KEY = 'chronicle:projection:setFromContext';
@@ -21,15 +37,23 @@ const METADATA_KEY = 'chronicle:projection:setFromContext';
 /**
  * Property decorator that maps a value from an event context property onto the decorated read model property.
  * @param eventType - The event constructor.
- * @param contextPropertyOrAccessor - Optional event context property name or property accessor. Defaults to the property name.
+ * @param contextPropertyOrAccessorOrOptions - Optional event context property name, property accessor, or options naming the
+ *   context property and whether the property is only set once. Defaults to the property name.
  * @returns A property decorator.
  */
 export function setFromContext(eventType: Function, contextPropertyName?: string): ChroniclePropertyDecorator;
 export function setFromContext(eventType: Function, contextPropertyAccessor?: PropertyAccessor<EventContext>): ChroniclePropertyDecorator;
+export function setFromContext(eventType: Function, options: SetFromContextOptions): ChroniclePropertyDecorator;
 export function setFromContext(
     eventType: Function,
-    contextPropertyOrAccessor?: string | PropertyAccessor<EventContext>
+    contextPropertyOrAccessorOrOptions?: string | PropertyAccessor<EventContext> | SetFromContextOptions
 ): ChroniclePropertyDecorator {
+    const options = typeof contextPropertyOrAccessorOrOptions === 'object' && contextPropertyOrAccessorOrOptions !== null
+        ? contextPropertyOrAccessorOrOptions
+        : undefined;
+    const contextPropertyOrAccessor = options === undefined
+        ? contextPropertyOrAccessorOrOptions as string | PropertyAccessor<EventContext> | undefined
+        : options.contextProperty;
     return decorateModelBoundProperty((target: object, propertyKey: string | symbol) => {
         const key = propertyKey.toString();
         TypeIntrospector.trackProperty((target as { constructor: Function }).constructor, key);
@@ -45,7 +69,7 @@ export function setFromContext(
             contextPropertyName = handler.property;
         }
 
-        const metadata: SetFromContextMetadata = { eventType, contextPropertyName };
+        const metadata: SetFromContextMetadata = { eventType, contextPropertyName, ...(options?.setOnce === true ? { setOnce: true } : {}) };
         Reflect.defineMetadata(METADATA_KEY, [...existing, metadata], target, key);
     });
 }
@@ -58,4 +82,15 @@ export function setFromContext(
  */
 export function getSetFromContextMetadata(target: object, propertyKey: string): SetFromContextMetadata[] {
     return getPropertyMetadata<SetFromContextMetadata[]>(METADATA_KEY, target, propertyKey) ?? [];
+}
+
+/**
+ * Builds the property expression for a setFromContext mapping.
+ * @param mapping - The setFromContext metadata.
+ * @param property - The decorated read model property.
+ * @returns The `$eventContext(...)` expression, wrapped in `$setOnce(...)` when the mapping only sets once.
+ */
+export function setFromContextExpression(mapping: SetFromContextMetadata, property: string): string {
+    const expression = eventContextPropertyExpression(mapping.contextPropertyName ?? property);
+    return mapping.setOnce === true ? setOnceExpression(expression) : expression;
 }

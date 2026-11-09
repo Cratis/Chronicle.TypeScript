@@ -41,6 +41,7 @@ export { NodeMustHaveExactlyOneKey } from './NodeMustHaveExactlyOneKey.js';
 export { EdgeMustHaveOneSourceAndOneTarget } from './EdgeMustHaveOneSourceAndOneTarget.js';
 export { EdgeCanHaveOnlyOneIdentifyingKey } from './EdgeCanHaveOnlyOneIdentifyingKey.js';
 export { NestedObjectInGraph } from './NestedObjectInGraph.js';
+export { SetOnceNotSupportedInGraph } from './SetOnceNotSupportedInGraph.js';
 export { UnknownGraphEventProperty } from './UnknownGraphEventProperty.js';
 export { UnknownGraphNode } from './UnknownGraphNode.js';
 export { GraphNameRequired } from './GraphNameRequired.js';

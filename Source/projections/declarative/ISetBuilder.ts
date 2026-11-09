@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor } from '@cratis/fundamentals';
+import type { CausedByProperty } from '../causedBy.js';
 
 /**
  * Defines a builder for configuring a set operation on a read model property.
@@ -35,4 +36,11 @@ export interface ISetBuilder<TEvent, TParentBuilder> {
      * @returns The parent builder for fluent chaining.
      */
     toEventSourceId(): TParentBuilder;
+
+    /**
+     * Maps the read model property from the identity that caused the event, or one of its members.
+     * @param property - Optional identity member: `subject`, `name` or `userName`. Omit it for the whole identity.
+     * @returns The parent builder for fluent chaining.
+     */
+    toCausedBy(property?: CausedByProperty): TParentBuilder;
 }

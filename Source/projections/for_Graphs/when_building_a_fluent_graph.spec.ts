@@ -106,7 +106,7 @@ describe('when declaring a fluent graph without decorators on its nodes and edge
     });
     it('should take the end node keys from the event and map the properties of the edge', () => {
         projection.Graph!.Edges.MEMBER_OF.From['MemberAdded+1'].should.deep.equal({
-            SourceKey: 'personId', TargetKey: 'groupId', Identity: '', Properties: { times: '$increment' }
+            SourceKey: 'personId', TargetKey: 'groupId', Identity: '', Properties: { times: '$increment' }, ForEach: ''
         });
     });
 });

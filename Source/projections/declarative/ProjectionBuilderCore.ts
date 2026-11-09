@@ -3,6 +3,7 @@
 
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
+import type { ChildrenOrderingDefinitionLike } from '../childrenOrdering.js';
 import { FromBuilder } from './FromBuilder.js';
 import { IFromBuilder } from './IFromBuilder.js';
 import { IFromEveryBuilder } from './IFromEveryBuilder.js';
@@ -59,6 +60,7 @@ export interface ChildrenDefinitionLike {
     RemovedWithJoin: RemovedWithJoinRecord[];
     AutoMap: AutoMap;
     Nested: Record<string, ChildrenDefinitionLike>;
+    Ordering?: ChildrenOrderingDefinitionLike;
 }
 
 /**

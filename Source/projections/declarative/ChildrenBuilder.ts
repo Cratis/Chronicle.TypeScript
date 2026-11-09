@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { ChildrenOrderingDefinitionLike, prependOrdering, SortDirection, sortedOrdering } from '../childrenOrdering.js';
+import { ChildrenOrderingAlreadyDefined } from './ChildrenOrderingAlreadyDefined.js';
 import { ChildrenDefinitionLike, ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 import { IChildrenBuilder } from './IChildrenBuilder.js';
 import { INestedBuilder } from './INestedBuilder.js';
@@ -18,6 +20,7 @@ export class ChildrenBuilder<TParentReadModel, TChildReadModel>
     implements IChildrenBuilder<TParentReadModel, TChildReadModel> {
     private _identifiedBy: string | undefined;
     private _fromEventPropertyPath: string | undefined;
+    private _ordering: ChildrenOrderingDefinitionLike | undefined;
 
     /** @inheritdoc */
     identifiedBy(propertyAccessor: PropertyAccessor<TChildReadModel>): IChildrenBuilder<TParentReadModel, TChildReadModel> {
@@ -68,6 +71,21 @@ export class ChildrenBuilder<TParentReadModel, TChildReadModel>
     }
 
     /** @inheritdoc */
+    prepend(): IChildrenBuilder<TParentReadModel, TChildReadModel> {
+        return this.withOrdering(prependOrdering());
+    }
+
+    /** @inheritdoc */
+    orderBy(propertyAccessor: PropertyAccessor<TChildReadModel>): IChildrenBuilder<TParentReadModel, TChildReadModel> {
+        return this.withOrdering(sortedOrdering(this.childPropertyPath(propertyAccessor), SortDirection.Ascending));
+    }
+
+    /** @inheritdoc */
+    orderByDescending(propertyAccessor: PropertyAccessor<TChildReadModel>): IChildrenBuilder<TParentReadModel, TChildReadModel> {
+        return this.withOrdering(sortedOrdering(this.childPropertyPath(propertyAccessor), SortDirection.Descending));
+    }
+
+    /** @inheritdoc */
     protected defaultJoinOn(): string | undefined {
         return this._identifiedBy;
     }
@@ -90,7 +108,22 @@ export class ChildrenBuilder<TParentReadModel, TChildReadModel>
             RemovedWith: this._removedWith,
             RemovedWithJoin: this._removedWithJoin,
             AutoMap: this._autoMap,
-            Nested: this._nested
+            Nested: this._nested,
+            ...(this._ordering === undefined ? {} : { Ordering: this._ordering })
         };
+    }
+
+    private withOrdering(ordering: ChildrenOrderingDefinitionLike): this {
+        if (this._ordering !== undefined) {
+            throw new ChildrenOrderingAlreadyDefined();
+        }
+        this._ordering = ordering;
+        return this;
+    }
+
+    private childPropertyPath(propertyAccessor: PropertyAccessor<TChildReadModel>): string {
+        const handler = new PropertyPathResolverProxyHandler();
+        propertyAccessor(new Proxy({}, handler) as TChildReadModel);
+        return handler.path;
     }
 }
