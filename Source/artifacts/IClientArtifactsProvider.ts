@@ -39,4 +39,10 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered event source definition constructors. Optional so existing providers keep working. */
     readonly eventSources?: Constructor[];
+
+    /** Gets discovered graph node and edge constructors. Optional so existing providers keep working. */
+    readonly graphElements?: Constructor[];
+
+    /** Gets discovered fluent graph projection constructors. Optional so existing providers keep working. */
+    readonly graphProjections?: Constructor[];
 }

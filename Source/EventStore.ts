@@ -24,6 +24,9 @@ import { Constraints } from './events/constraints/Constraints.js';
 import { IConstraints } from './events/constraints/IConstraints.js';
 import { Projections } from './projections/Projections.js';
 import { IProjections } from './projections/IProjections.js';
+import { Graphs } from './projections/graphs/Graphs.js';
+import type { IGraphs } from './projections/graphs/IGraphs.js';
+import { WellKnownSinks } from './sinks/index.js';
 import { Reactors } from './reactors/Reactors.js';
 import { getReactorEventTypes } from './reactors/ReactorDispatcher.js';
 import { ReducerEventDispatcher } from './reducers/ReducerEventDispatcher.js';
@@ -74,6 +77,7 @@ export class EventStore implements IEventStore {
     readonly eventSources: IEventSources;
     readonly constraints: IConstraints;
     readonly projections: IProjections;
+    readonly graphs: IGraphs;
     readonly reactors: IReactors;
     readonly reducers: IReducers;
     readonly readModels: IReadModels;
@@ -103,7 +107,8 @@ export class EventStore implements IEventStore {
         artifactActivator?: ClientArtifactsActivator,
         readModelNamingPolicy?: ReadModelNamingPolicy,
         private readonly _telemetry?: ChronicleTelemetryOptions,
-        private readonly _skipKeepAlive: boolean = false
+        private readonly _skipKeepAlive: boolean = false,
+        defaultGraphSinkTypeId: string = WellKnownSinks.Neo4j
     ) {
         this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
@@ -118,6 +123,7 @@ export class EventStore implements IEventStore {
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
         this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelNamingPolicy);
+        this.graphs = new Graphs(name.value, _connection, artifacts, defaultGraphSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator, _skipKeepAlive);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy, _skipKeepAlive);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType), readModelNamingPolicy, lifecycle);
@@ -151,6 +157,7 @@ export class EventStore implements IEventStore {
         await Promise.all([
             this.constraints.discover(),
             this.projections.discover(),
+            this.graphs.discover(),
             this.reactors.discover(),
             this.reducers.discover(),
             this.webhooks.discover(),
@@ -176,6 +183,7 @@ export class EventStore implements IEventStore {
         await Promise.all([
             this.constraints.register(),
             this.projections.register(),
+            this.graphs.register(),
             this.reactors.register(),
             this.reducers.register(),
             this.webhooks.registerDiscovered()

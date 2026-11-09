@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createLogger } from '../logging/createLogger.js';
-import { ProjectionOwner, type ProjectionDefinition } from '@cratis/chronicle.contracts';
+import type { ProjectionDefinition } from '@cratis/chronicle.contracts';
 import { Constructor, Guid } from '@cratis/fundamentals';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
@@ -24,6 +24,7 @@ import { ProjectionId } from './ProjectionId.js';
 import { ProjectionQueryResult } from './ProjectionQueryResult.js';
 import { ProjectionState } from './ProjectionState.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
+import { registerProjectionWithRetry } from './registerProjectionWithRetry.js';
 import type { ResolvedModelBoundMetadata } from './ResolvedModelBoundMetadata.js';
 import { UnableToQueryProjection } from './UnableToQueryProjection.js';
 
@@ -275,34 +276,8 @@ export class Projections implements IProjections {
         return EventSequenceId.eventLog.value;
     }
 
-    private async registerWithRetry(projection: ProjectionDefinition, identifier: string, maxAttempts = 5): Promise<void> {
-        let delay = 2000;
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                this._logger.info('Registering projection', { identifier, readModel: projection.ReadModel, attempt });
-                await this._connection.projections.register({
-                    EventStore: this._eventStore,
-                    Owner: ProjectionOwner.PROJECTION_OWNER_Client,
-                    Projections: [projection]
-                });
-                this._logger.info('Projection registered successfully', { identifier });
-                return;
-            } catch (error) {
-                const msg = String(error);
-                const isTransient = msg.includes('UNKNOWN') || msg.includes('UNAVAILABLE') || msg.includes('INTERNAL');
-                if (!isTransient || attempt === maxAttempts) {
-                    throw new Error(`Failed to register projection '${identifier}' after ${attempt} attempt(s): ${msg}`);
-                }
-                this._logger.warn('Projection registration failed with transient error, retrying', {
-                    identifier,
-                    attempt,
-                    nextAttemptInMs: delay,
-                    error
-                });
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay = Math.min(delay * 2, 15000);
-            }
-        }
+    private registerWithRetry(projection: ProjectionDefinition, identifier: string): Promise<void> {
+        return registerProjectionWithRetry(this._connection, this._eventStore, this._logger, projection, identifier);
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {

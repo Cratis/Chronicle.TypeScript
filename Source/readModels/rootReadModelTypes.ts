@@ -13,11 +13,13 @@ import type { IProjectionFor } from '../projections/declarative/IProjectionFor.j
 import { getChildrenFromMetadata } from '../projections/modelBound/childrenFrom.js';
 import { resolveChildElementType, resolveNestedType } from '../projections/modelBound/childrenAndNestedBuilder.js';
 import { isNested } from '../projections/modelBound/nested.js';
+import { isGraphElement } from '../projections/graphs/isGraphElement.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
 import { TypeIntrospector } from '../types/TypeIntrospector.js';
 
 function inspectReadModelTypes(artifacts: IClientArtifactsProvider): { models: Constructor[]; usedAsChildren: Set<Function>; visited: Set<Function> } {
-    const models = artifacts.readModels;
+    // Nodes and edges map properties like a read model does but are projected into a graph, never into a read model.
+    const models = artifacts.readModels.filter(type => !isGraphElement(type));
     const usedAsChildren = new Set<Function>();
     const visited = new Set<Function>();
     const inspect = (type: Function): void => {

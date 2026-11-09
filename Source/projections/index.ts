@@ -12,3 +12,4 @@ export { VariantMustDeclareEntersOnEvent } from './VariantMustDeclareEntersOnEve
 export { GlobalHandlerPropertyNotOnVariant } from './GlobalHandlerPropertyNotOnVariant.js';
 export * from './declarative/index.js';
 export * from './modelBound/index.js';
+export * from './graphs/index.js';

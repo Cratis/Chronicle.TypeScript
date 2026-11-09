@@ -7,6 +7,7 @@ import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
+import { isGraphElement } from '../projections/graphs/isGraphElement.js';
 
 /**
  * Represents the default provider for discovered client artifacts.
@@ -28,10 +29,11 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
 
     /** @inheritdoc */
     get readModels(): Constructor[] {
+        // A node or an edge uses the property mapping decorators but is never a read model of its own.
         const types = new Set([
             ...this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel),
             ...this.discoverer.getPropertyOnlyModels()
-        ]);
+        ].filter(type => !isGraphElement(type)));
         for (const projection of this.projections) {
             const type = getProjectionMetadata(projection)?.readModelType;
             if (type) types.add(type);
@@ -85,5 +87,15 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     /** @inheritdoc */
     get eventSources(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.EventSource);
+    }
+
+    /** @inheritdoc */
+    get graphElements(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.GraphElement);
+    }
+
+    /** @inheritdoc */
+    get graphProjections(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.GraphProjection);
     }
 }
