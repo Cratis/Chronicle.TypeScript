@@ -10,12 +10,14 @@ import { getSetFromMetadata, setFromExpression } from '../modelBound/setFrom.js'
 import { getSetFromContextMetadata, setFromContextExpression } from '../modelBound/setFromContext.js';
 import { getSetValueMetadata } from '../modelBound/setValue.js';
 import { getSubtractFromMetadata } from '../modelBound/subtractFrom.js';
+import { SetOnceNotSupportedInGraph } from './SetOnceNotSupportedInGraph.js';
 
 /**
  * Reads the property mappings the model-bound decorators on the members of a node or an edge declare per event type.
  * @param prototype - The class prototype of the node or edge.
  * @param properties - The names of the members to read.
  * @returns For each event type, the property name to expression.
+ * @throws {SetOnceNotSupportedInGraph} When a member is mapped with setOnce - graph projections cannot honor it.
  */
 export function readGraphMemberMappings(prototype: object, properties: Iterable<string>): Map<Function, Record<string, string>> {
     const result = new Map<Function, Record<string, string>>();
@@ -27,9 +29,11 @@ export function readGraphMemberMappings(prototype: object, properties: Iterable<
 
     for (const property of properties) {
         for (const mapping of getSetFromMetadata(prototype, property)) {
+            if (mapping.setOnce === true) throw new SetOnceNotSupportedInGraph(prototype.constructor, property);
             record(mapping.eventType, property, setFromExpression(mapping, property));
         }
         for (const mapping of getSetFromContextMetadata(prototype, property)) {
+            if (mapping.setOnce === true) throw new SetOnceNotSupportedInGraph(prototype.constructor, property);
             record(mapping.eventType, property, setFromContextExpression(mapping, property));
         }
         for (const mapping of getSetValueMetadata(prototype, property)) {

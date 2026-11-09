@@ -53,7 +53,7 @@ With standard decorators, a model-bound read model whose mappings are all on pro
 
 ### Dictionaries, set once and children ordering
 
-These need a Chronicle kernel with dictionary keys from event content, set once and children ordering. An older kernel rejects the projection when it registers.
+These need a Chronicle kernel with dictionary keys from event content, set once and children ordering. Dictionary keys from event content, `$remove` and `$setOnce` need a kernel that includes [Chronicle#5775](https://github.com/Cratis/Chronicle/issues/5775). An older kernel rejects the projection when it registers.
 
 Map into a dictionary-typed property (`Record<string, T>`) by passing a key as the second argument of `.set()`, `.setOnce()`, `.add()`, `.subtract()`, `.increment()`, `.decrement()` and `.count()` on `IFromBuilder`/`IJoinBuilder`. Remove an entry with `.removeKey(property, key)`. The key is an accessor on the event, such as `e => e.category` or `e => e.slot.name`. You can also use a `DictionaryKey`:
 
@@ -71,6 +71,8 @@ builder.from(ItemSold, _ => _
 ```
 
 `.setOnce(property)` assigns the property only while it has no value yet. The first event that carries a value wins, and later events leave it unchanged. It works on plain properties and dictionary entries, and on `fromEvery`/`fromAll`. Use it to record when something was first seen without adding a creation event. In model-bound projections, use `@setFrom(Event, { setOnce: true })` or `@setFromContext(Event, { contextProperty: 'occurred', setOnce: true })`.
+
+Set once is not supported on [graph projections](./graph-projections.md). Graph projections do not read the current value of a node or an edge, so a set once mapping would overwrite it. Using `setOnce` on a node or edge member fails registration with `SetOnceNotSupportedInGraph`.
 
 `.toCausedBy()` maps a property from the identity that caused the event: `.set(m => m.lastChangedBy).toCausedBy('userName')`. Leave out the member to map the whole identity.
 
