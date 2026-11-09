@@ -14,6 +14,13 @@ export interface IFromAllBuilder<TReadModel> {
     set(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromAllBuilder<TReadModel>>;
 
     /**
+     * Starts an assignment that only sets the read-model property while it has no value yet; later events leave it as it is.
+     * @param readModelPropertyAccessor - Target property accessor.
+     * @returns The assignment builder, continuing with this builder.
+     */
+    setOnce(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromAllBuilder<TReadModel>>;
+
+    /**
      * Counts every event, optionally under a dynamic dictionary key.
      * @param readModelPropertyAccessor - Scalar or dictionary target accessor.
      * @param contextPropertyName - Optional event-context path for the dictionary key, such as `eventType.id`.

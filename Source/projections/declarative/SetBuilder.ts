@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { ISetBuilder } from './ISetBuilder.js';
 import { constantValueExpression } from '../constantValueExpression.js';
+import { CausedByProperty, causedByExpression } from '../causedBy.js';
 import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 
 /**
@@ -43,6 +44,12 @@ export class SetBuilder<TEvent, TParentBuilder> implements ISetBuilder<TEvent, T
     /** @inheritdoc */
     toEventSourceId(): TParentBuilder {
         this._setProperty(this._readModelProperty, '$eventSourceId');
+        return this._parent;
+    }
+
+    /** @inheritdoc */
+    toCausedBy(property?: CausedByProperty): TParentBuilder {
+        this._setProperty(this._readModelProperty, causedByExpression(property));
         return this._parent;
     }
 }

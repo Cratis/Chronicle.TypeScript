@@ -3,6 +3,7 @@
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { IAllSetBuilder } from './IAllSetBuilder.js';
+import { CausedByProperty, causedByExpression } from '../causedBy.js';
 import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 
 /**
@@ -35,6 +36,12 @@ export class AllSetBuilder<TReadModel, TParentBuilder> implements IAllSetBuilder
     /** @inheritdoc */
     toEventSourceId(): TParentBuilder {
         this._setProperty(this._targetProperty, '$eventSourceId');
+        return this._parent;
+    }
+
+    /** @inheritdoc */
+    toCausedBy(property?: CausedByProperty): TParentBuilder {
+        this._setProperty(this._targetProperty, causedByExpression(property));
         return this._parent;
     }
 }

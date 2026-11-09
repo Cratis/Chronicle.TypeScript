@@ -4,6 +4,7 @@
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
 import { IAllSetBuilder } from './IAllSetBuilder.js';
 import { IFromEveryBuilder } from './IFromEveryBuilder.js';
+import { setOnceExpression } from '../propertyExpressions.js';
 import { AllSetBuilder } from './AllSetBuilder.js';
 
 /**
@@ -34,6 +35,17 @@ export class FromEveryBuilder<TReadModel> implements IFromEveryBuilder<TReadMode
         return new AllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>>(
             property,
             (targetProperty, expression) => { this.entry.properties[targetProperty] = expression; },
+            this
+        );
+    }
+
+    /** @inheritdoc */
+    setOnce(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>> {
+        const handler = new PropertyPathResolverProxyHandler();
+        readModelPropertyAccessor(new Proxy({}, handler) as TReadModel);
+        return new AllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>>(
+            handler.property,
+            (targetProperty, expression) => { this.entry.properties[targetProperty] = setOnceExpression(expression); },
             this
         );
     }

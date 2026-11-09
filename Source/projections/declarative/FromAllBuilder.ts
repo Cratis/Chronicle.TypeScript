@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { PropertyAccessor, PropertyPathResolverProxyHandler } from '@cratis/fundamentals';
+import { setOnceExpression } from '../propertyExpressions.js';
 import { AllSetBuilder } from './AllSetBuilder.js';
 import type { IAllSetBuilder } from './IAllSetBuilder.js';
 import type { IFromAllBuilder } from './IFromAllBuilder.js';
@@ -15,6 +16,15 @@ export class FromAllBuilder<TReadModel> implements IFromAllBuilder<TReadModel> {
         return new AllSetBuilder<TReadModel, IFromAllBuilder<TReadModel>>(
             this.targetProperty(readModelPropertyAccessor),
             (property, expression) => { this.properties[property] = expression; },
+            this
+        );
+    }
+
+    /** @inheritdoc */
+    setOnce(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromAllBuilder<TReadModel>> {
+        return new AllSetBuilder<TReadModel, IFromAllBuilder<TReadModel>>(
+            this.targetProperty(readModelPropertyAccessor),
+            (property, expression) => { this.properties[property] = setOnceExpression(expression); },
             this
         );
     }
