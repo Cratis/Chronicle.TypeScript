@@ -10,6 +10,7 @@ import type { IEventSources } from './eventSources/IEventSources.js';
 import { IEventTypes } from './events/IEventTypes.js';
 import { IConstraints } from './events/constraints/IConstraints.js';
 import { IProjections } from './projections/IProjections.js';
+import type { IGraphs } from './projections/graphs/IGraphs.js';
 import { IReactors } from './reactors/IReactors.js';
 import { IReducers } from './reducers/IReducers.js';
 import { IUnitOfWorkManager } from './transactions/IUnitOfWorkManager.js';
@@ -54,6 +55,12 @@ export interface IEventStore {
 
     /** The projections manager for this event store. */
     readonly projections: IProjections;
+
+    /**
+     * The property graphs of this event store: the graph projections an application declares, with the decorators
+     * or with the fluent builder. Optional so event stores written before graph projections keep working.
+     */
+    readonly graphs?: IGraphs;
 
     /** The reactors manager for this event store. */
     readonly reactors: IReactors;

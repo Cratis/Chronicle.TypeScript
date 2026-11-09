@@ -36,5 +36,11 @@ export enum DecoratorType {
     GlobalForHandler = 'globalForHandler',
 
     /** Event source definition artifacts discovered through the eventSource decorator. */
-    EventSource = 'eventSource'
+    EventSource = 'eventSource',
+
+    /** Node and edge artifacts of a property graph discovered through the node and edge decorators. */
+    GraphElement = 'graphElement',
+
+    /** Fluent graph projection artifacts discovered through the graphProjection decorator. */
+    GraphProjection = 'graphProjection'
 }

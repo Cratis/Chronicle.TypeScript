@@ -22,6 +22,7 @@ type ChronicleOptionsConstructorParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
+    defaultGraphSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
     readModelNamingPolicy?: ReadModelNamingPolicy;
@@ -36,6 +37,7 @@ type ChronicleOptionsFactoryParams = {
     clientArtifactsProvider?: IClientArtifactsProvider;
     discoveryPatterns?: string[];
     defaultSinkTypeId?: string;
+    defaultGraphSinkTypeId?: string;
     reactorResultHandler?: ReactorResultHandler;
     artifactActivator?: ClientArtifactsActivator;
     readModelNamingPolicy?: ReadModelNamingPolicy;
@@ -98,6 +100,13 @@ export class ChronicleOptions {
      */
     readonly defaultSinkTypeId: string;
 
+    /**
+     * The sink type identifier used when registering property graphs, which are stored by a graph sink and not by the
+     * sink of document read models. Defaults to {@link WellKnownSinks.Neo4j}. Set to {@link WellKnownSinks.InMemoryGraph}
+     * to keep the graph in the kernel's memory.
+     */
+    readonly defaultGraphSinkTypeId: string;
+
     /** Optional handler for application-owned reactor returns, installed before observations begin. */
     readonly reactorResultHandler?: ReactorResultHandler;
 
@@ -133,6 +142,7 @@ export class ChronicleOptions {
         this.clientArtifactsProvider = options.clientArtifactsProvider ?? DefaultClientArtifactsProvider.default;
         this.discoveryPatterns = options.discoveryPatterns ?? ChronicleOptions.defaultDiscoveryPatterns();
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
+        this.defaultGraphSinkTypeId = options.defaultGraphSinkTypeId ?? WellKnownSinks.Neo4j;
         this.reactorResultHandler = options.reactorResultHandler;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
@@ -202,6 +212,7 @@ export class ChronicleOptions {
             clientArtifactsProvider: options?.clientArtifactsProvider,
             discoveryPatterns: options?.discoveryPatterns,
             defaultSinkTypeId: options?.defaultSinkTypeId,
+            defaultGraphSinkTypeId: options?.defaultGraphSinkTypeId,
             reactorResultHandler: options?.reactorResultHandler,
             artifactActivator: options?.artifactActivator,
             readModelNamingPolicy: options?.readModelNamingPolicy,

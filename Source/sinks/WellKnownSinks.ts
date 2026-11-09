@@ -15,5 +15,11 @@ export const WellKnownSinks = {
     MongoDB: 'MongoDB',
 
     /** SQL sink. */
-    SQL: 'SQL'
+    SQL: 'SQL',
+
+    /** Neo4j graph sink, the default sink of property graphs. */
+    Neo4j: 'Neo4j',
+
+    /** In-memory graph sink, which keeps a property graph in the kernel's memory. */
+    InMemoryGraph: 'InMemoryGraph'
 } as const;

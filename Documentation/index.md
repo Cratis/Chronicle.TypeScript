@@ -35,6 +35,7 @@ The TypeScript examples on those pages are compiled with legacy decorators (`exp
 - [Connect to Chronicle](./connecting.md) — connection strings, credentials, TLS, reconnection, compatibility, and shutdown
 - [Preserve existing append routes](./migrate-append-routing.md) — keep writing to existing streams after the append-routing change
 - [Observers](./observers.md) — listing observers and removing one whose declaring code is gone
+- [Graph projections](./graph-projections.md) — project events onto a property graph of nodes and edges
 - [Sinks](./sinks.md) — choose where read models are stored
 - [Jobs](./jobs.md) — inspect and control Chronicle jobs
 - [Constraints](./constraints.md) — unique event properties and event types
