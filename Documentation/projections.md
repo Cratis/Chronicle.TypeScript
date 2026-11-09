@@ -51,6 +51,39 @@ Every option is optional; an omitted `key` or `parentKey` defaults to the event 
 
 With standard decorators, a model-bound read model whose mappings are all on properties registers only once an instance of it exists. Give it a class-level `@fromEvent(...)` decorator so it registers when its module loads.
 
+### Dictionaries, set once and children ordering
+
+These need a Chronicle kernel with dictionary keys from event content, set once and children ordering. An older kernel rejects the projection when it registers.
+
+Map into a dictionary-typed property (`Record<string, T>`) by passing a key as the second argument of `.set()`, `.setOnce()`, `.add()`, `.subtract()`, `.increment()`, `.decrement()` and `.count()` on `IFromBuilder`/`IJoinBuilder`. Remove an entry with `.removeKey(property, key)`. The key is an accessor on the event, such as `e => e.category` or `e => e.slot.name`. You can also use a `DictionaryKey`:
+
+- `DictionaryKey.fromEventContent(e => e.category)` reads a property of the event. A plain accessor does the same. The property has to exist on the event; the kernel matches the name case-sensitively when the projection registers. If an event has no value for the key, the dictionary stays as it is.
+- `DictionaryKey.fromEventContext('eventSourceId')` or `DictionaryKey.fromEventContext('causedBy.userName')` reads the event context.
+- `DictionaryKey.causedBy('subject' | 'name' | 'userName')` reads the identity that caused the event.
+
+```typescript
+builder.from(ItemSold, _ => _
+    .add(m => m.unitsByCategory, e => e.category).with(e => e.quantity)
+    .count(m => m.salesByUser, DictionaryKey.causedBy('subject'))
+    .setOnce(m => m.firstSaleByCategory, e => e.category).toEventContextProperty('occurred'))
+.from(CategoryRetired, _ => _
+    .removeKey(m => m.unitsByCategory, e => e.category));
+```
+
+`.setOnce(property)` assigns the property only while it has no value yet. The first event that carries a value wins, and later events leave it unchanged. It works on plain properties and dictionary entries, and on `fromEvery`/`fromAll`. Use it to record when something was first seen without adding a creation event. In model-bound projections, use `@setFrom(Event, { setOnce: true })` or `@setFromContext(Event, { contextProperty: 'occurred', setOnce: true })`.
+
+`.toCausedBy()` maps a property from the identity that caused the event: `.set(m => m.lastChangedBy).toCausedBy('userName')`. Leave out the member to map the whole identity.
+
+Children are appended by default. Call `.prepend()`, `.orderBy(child => child.position)` or `.orderByDescending(child => child.position)` on a `.children()` builder to place new children differently. For `@childrenFrom`, use the `prepend`, `orderBy` or `orderByDescending` option. All `@childrenFrom` decorators on a property must declare the same ordering, or leave it unset. Otherwise registration fails with `ConflictingChildrenOrdering`. An ascending sort puts children without a value first, and a descending sort puts them last. Updating a child never moves it.
+
+> **Pending contracts upgrade:** the `@cratis/chronicle.contracts` package this client uses cannot carry children ordering yet. Until the client depends on a contracts version that includes `ChildrenOrderingDefinition`, registering a projection with ordered children fails with `ChildrenOrderingNotSupportedByContracts`. Registration stops there so the ordering is never dropped and the children silently appended.
+
+`ReadModelScenario` runs projections in memory. It does not support set once, dictionary entries or ordered children. Test projections that use them against a kernel (`ChronicleKernelScenario`).
+
+### When to use a projection instead of a reducer
+
+Choose a projection when the read model is a direct mapping of events. That includes values set from events, counters, dictionaries keyed by event data, first-seen values with set once, and child collections in a fixed order. The kernel then handles keys, replays and every sink for you. Choose a [reducer](./reducers.md) when the next state depends on logic that a mapping cannot express, such as conditional rules, calculations across several properties, or validating against the current state.
+
 ## All-event mappings on children and nested objects
 
 `@fromAllEvents` maps a property on the object where you declare it. On a child or nested type, it populates that object's property, including on the event that creates it. Root and child properties with the same name can map from different event properties without overwriting each other's mappings. `@fromEvery` on a child or nested property also stays on that object and applies to its handled events.
