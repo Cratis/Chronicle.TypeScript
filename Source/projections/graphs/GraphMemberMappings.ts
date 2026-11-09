@@ -2,13 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { constantValueExpression } from '../constantValueExpression.js';
-import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { getAddFromMetadata } from '../modelBound/addFrom.js';
 import { getCountMetadata } from '../modelBound/count.js';
 import { getDecrementMetadata } from '../modelBound/decrement.js';
 import { getIncrementMetadata } from '../modelBound/increment.js';
-import { getSetFromMetadata } from '../modelBound/setFrom.js';
-import { getSetFromContextMetadata } from '../modelBound/setFromContext.js';
+import { getSetFromMetadata, setFromExpression } from '../modelBound/setFrom.js';
+import { getSetFromContextMetadata, setFromContextExpression } from '../modelBound/setFromContext.js';
 import { getSetValueMetadata } from '../modelBound/setValue.js';
 import { getSubtractFromMetadata } from '../modelBound/subtractFrom.js';
 
@@ -28,10 +27,10 @@ export function readGraphMemberMappings(prototype: object, properties: Iterable<
 
     for (const property of properties) {
         for (const mapping of getSetFromMetadata(prototype, property)) {
-            record(mapping.eventType, property, mapping.eventPropertyName ?? property);
+            record(mapping.eventType, property, setFromExpression(mapping, property));
         }
         for (const mapping of getSetFromContextMetadata(prototype, property)) {
-            record(mapping.eventType, property, eventContextPropertyExpression(mapping.contextPropertyName ?? property));
+            record(mapping.eventType, property, setFromContextExpression(mapping, property));
         }
         for (const mapping of getSetValueMetadata(prototype, property)) {
             record(mapping.eventType, property, constantValueExpression(mapping.value));
