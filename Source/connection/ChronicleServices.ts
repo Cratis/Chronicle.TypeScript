@@ -11,6 +11,7 @@ import type {
     ExternalServicesClient,
     FailedPartitionsClient,
     IdentitiesClient,
+    ImportsClient,
     JobsClient,
     MaterializedReadModelsClient,
     NamespacesClient,
@@ -56,4 +57,5 @@ export interface ChronicleServices {
     server: ServerClient;
     compliance: ComplianceClient;
     externalServices: ExternalServicesClient;
+    imports: ImportsClient;
 }
