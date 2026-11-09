@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { Constructor } from '@cratis/fundamentals';
+import type { Constructor, Guid } from '@cratis/fundamentals';
+import type { Identity } from '../identity/Identity.js';
 import type { Tag } from '../events/Tag.js';
 import type { NamedTag } from '../events/NamedTag.js';
 
@@ -54,4 +55,27 @@ export interface EventForEventSourceId {
      * When this event names a different `eventSource` than the options, the options' stream is not inherited.
      */
     readonly eventStream?: string;
+
+    /**
+     * Optional correlation identifier the event had in its source. Used when importing; an append takes the
+     * correlation of the call.
+     */
+    readonly correlationId?: string | Guid;
+
+    /**
+     * Optional identity that caused the event in its source. Used when importing; an append records the current identity.
+     */
+    readonly causedBy?: Identity;
+
+    /**
+     * Optional generation of its event type the event was written in. Used when importing; an append writes the
+     * generation the event's type is registered with.
+     */
+    readonly generation?: number;
+
+    /**
+     * Optional sequence number the event had in its source. Used when importing, where the kernel keeps it in the
+     * event's causation; the event gets a new sequence number in the sequence it is imported into.
+     */
+    readonly sourceSequenceNumber?: bigint | number;
 }
