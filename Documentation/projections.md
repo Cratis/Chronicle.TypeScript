@@ -53,7 +53,7 @@ With standard decorators, a model-bound read model whose mappings are all on pro
 
 ### Dictionaries, set once and children ordering
 
-These need a Chronicle kernel with dictionary keys from event content, set once and children ordering. Dictionary keys from event content, `$remove` and `$setOnce` need a kernel that includes [Chronicle#5775](https://github.com/Cratis/Chronicle/issues/5775). An older kernel rejects the projection when it registers.
+These need Chronicle 19.150.0 or later. An older kernel rejects the projection when it registers.
 
 Map into a dictionary-typed property (`Record<string, T>`) by passing a key as the second argument of `.set()`, `.setOnce()`, `.add()`, `.subtract()`, `.increment()`, `.decrement()` and `.count()` on `IFromBuilder`/`IJoinBuilder`. Remove an entry with `.removeKey(property, key)`. The key is an accessor on the event, such as `e => e.category` or `e => e.slot.name`. You can also use a `DictionaryKey`:
 
@@ -77,8 +77,6 @@ Set once is not supported on [graph projections](./graph-projections.md). Graph 
 `.toCausedBy()` maps a property from the identity that caused the event: `.set(m => m.lastChangedBy).toCausedBy('userName')`. Leave out the member to map the whole identity.
 
 Children are appended by default. Call `.prepend()`, `.orderBy(child => child.position)` or `.orderByDescending(child => child.position)` on a `.children()` builder to place new children differently. For `@childrenFrom`, use the `prepend`, `orderBy` or `orderByDescending` option. All `@childrenFrom` decorators on a property must declare the same ordering, or leave it unset. Otherwise registration fails with `ConflictingChildrenOrdering`. An ascending sort puts children without a value first, and a descending sort puts them last. Updating a child never moves it.
-
-> **Requires Chronicle 19.150.0 or later:** set once, dictionary entries and children ordering need a Chronicle kernel at version 19.150.0 or later.
 
 `ReadModelScenario` runs projections in memory. It does not support set once, dictionary entries or ordered children. Test projections that use them against a kernel (`ChronicleKernelScenario`).
 
