@@ -16,6 +16,8 @@ WellKnownSinks.MongoDB;   // 'MongoDB' — the default
 WellKnownSinks.SQL;       // 'SQL'
 WellKnownSinks.InMemory;  // 'InMemory'
 WellKnownSinks.None;      // 'None' — no sink
+WellKnownSinks.Neo4j;     // 'Neo4j' — the default sink of graph projections
+WellKnownSinks.InMemoryGraph; // 'InMemoryGraph' — a graph kept in the kernel's memory
 ```
 
 A sink type identifier is a string, so you can also pass the identifier of a custom sink registered in your Chronicle Kernel.
@@ -53,4 +55,12 @@ The configured value is available on the options as `defaultSinkTypeId`:
 
 ```typescript
 console.log(client.options.defaultSinkTypeId); // 'SQL'
+```
+
+## Graph Projections
+
+A property graph is not stored by the sink of document read models. [Graph projections](./graph-projections.md) use their own sink type, set with `defaultGraphSinkTypeId`. It defaults to `WellKnownSinks.Neo4j`, and `defaultSinkTypeId` does not apply to graphs.
+
+```typescript
+const options = ChronicleOptions.development({ defaultGraphSinkTypeId: WellKnownSinks.InMemoryGraph });
 ```

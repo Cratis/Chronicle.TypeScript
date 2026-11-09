@@ -11,6 +11,7 @@ Projections are shared Chronicle read-model behavior. Use the shared docs for pr
 - [Model-bound projections](/chronicle/projections/model-bound/)
 - [Declarative projections](/chronicle/projections/declarative/)
 - [Composite keys](/chronicle/projections/declarative/composite-keys/)
+- [Graph projections](./graph-projections.md)
 - [TypeScript client setup](./getting-started.md)
 
 ## TypeScript client notes
