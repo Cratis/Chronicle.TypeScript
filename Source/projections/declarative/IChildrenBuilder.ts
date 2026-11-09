@@ -28,4 +28,26 @@ export interface IChildrenBuilder<TParentReadModel, TChildReadModel>
     fromEventProperty<TEvent>(
         propertyAccessor: PropertyAccessor<TEvent>
     ): IChildrenBuilder<TParentReadModel, TChildReadModel>;
+
+    /**
+     * Adds new children at the start of the collection instead of the end. Updating an existing child never moves it.
+     * @returns This builder for fluent chaining.
+     */
+    prepend(): IChildrenBuilder<TParentReadModel, TChildReadModel>;
+
+    /**
+     * Inserts new children at their position when sorted ascending by a child property. Children without a value sort
+     * first and updating an existing child never moves it, even when the property changes.
+     * @param propertyAccessor - Accessor for the child property to sort by.
+     * @returns This builder for fluent chaining.
+     */
+    orderBy(propertyAccessor: PropertyAccessor<TChildReadModel>): IChildrenBuilder<TParentReadModel, TChildReadModel>;
+
+    /**
+     * Inserts new children at their position when sorted descending by a child property. Children without a value sort
+     * last and updating an existing child never moves it, even when the property changes.
+     * @param propertyAccessor - Accessor for the child property to sort by.
+     * @returns This builder for fluent chaining.
+     */
+    orderByDescending(propertyAccessor: PropertyAccessor<TChildReadModel>): IChildrenBuilder<TParentReadModel, TChildReadModel>;
 }

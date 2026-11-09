@@ -24,6 +24,7 @@ import { ProjectionId } from './ProjectionId.js';
 import { ProjectionQueryResult } from './ProjectionQueryResult.js';
 import { ProjectionState } from './ProjectionState.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
+import { ensureChildrenOrderingIsSupported } from './childrenOrderingSupport.js';
 import { registerProjectionWithRetry } from './registerProjectionWithRetry.js';
 import type { ResolvedModelBoundMetadata } from './ResolvedModelBoundMetadata.js';
 import { UnableToQueryProjection } from './UnableToQueryProjection.js';
@@ -112,6 +113,9 @@ export class Projections implements IProjections {
         const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
             .compile(this._declarative.values(), this._modelBound.values());
         const projections = compiled.definitions;
+        for (const projection of projections) {
+            ensureChildrenOrderingIsSupported(projection);
+        }
 
         if (projections.length === 0) {
             this._logger.info('No projections to register');

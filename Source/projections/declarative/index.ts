@@ -6,6 +6,7 @@ export type { ProjectionMetadata } from './projection.js';
 export { ProjectionBuilderFor } from './ProjectionBuilderFor.js';
 export { ProjectionBuilderCore } from './ProjectionBuilderCore.js';
 export { ChildrenBuilder } from './ChildrenBuilder.js';
+export { ChildrenOrderingAlreadyDefined } from './ChildrenOrderingAlreadyDefined.js';
 export { DictionaryKey } from './DictionaryKey.js';
 export type { DictionaryKeySource } from './DictionaryKey.js';
 export { InvalidDictionaryKey } from './InvalidDictionaryKey.js';
