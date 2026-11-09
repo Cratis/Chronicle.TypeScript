@@ -26,6 +26,8 @@ import { EventSequenceNumber } from '../eventSequences/EventSequenceNumber.js';
 import type { IEventSequence } from '../eventSequences/IEventSequence.js';
 import type { ITransactionalEventSequence } from '../eventSequences/ITransactionalEventSequence.js';
 import type { CompleteStreamResult } from '../eventSequences/CompleteStreamResult.js';
+import type { IEventImport } from '../imports/IEventImport.js';
+import type { ImportResult } from '../imports/ImportResult.js';
 import { prepareSingleAppend } from '../eventSequences/prepareSingleAppend.js';
 import { toContractsGuid } from '../connection/Guid.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
@@ -398,6 +400,8 @@ export class InProcessEventSequence implements IEventSequence {
     async redactForEventSource(): Promise<void> { throw this.unsupported('redactForEventSource', this.id.value, 'Redaction requires kernel storage.'); }
     async copy(): Promise<Guid> { throw this.unsupported('copy', this.id.value, 'Copying events requires kernel jobs.'); }
     async completeStream(): Promise<CompleteStreamResult> { throw this.unsupported('completeStream', this.id.value, 'Stream completion requires a kernel.'); }
+    async import(): Promise<ImportResult> { throw this.unsupported('import', this.id.value, 'Importing events requires kernel import sessions.'); }
+    async beginImport(): Promise<IEventImport> { throw this.unsupported('beginImport', this.id.value, 'Importing events requires kernel import sessions.'); }
 
     private filterIds(types?: Constructor[]): string[] {
         return (types ?? []).map(type => {

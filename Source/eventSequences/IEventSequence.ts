@@ -4,6 +4,9 @@
 import type { Constructor } from '@cratis/fundamentals';
 import type { Guid } from '../connection/Guid.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
+import type { IEventImport } from '../imports/IEventImport.js';
+import type { ImportOptions } from '../imports/ImportOptions.js';
+import type { ImportResult } from '../imports/ImportResult.js';
 import { AppendedEventWithResult } from './AppendedEventWithResult.js';
 import { AppendOptions } from './AppendOptions.js';
 import { CompensateOptions } from './CompensateOptions.js';
@@ -61,6 +64,36 @@ export interface IEventSequence {
      * @returns The results of the append operations, one per event.
      */
     appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
+
+    /**
+     * Imports events into the event sequence through a resumable import session.
+     * @param events - The events, in the order they are to be committed. They are read lazily as they are uploaded,
+     * so the whole source is never held in memory.
+     * @param options - Optional {@link ImportOptions}, including an `AbortSignal` that cancels the import and an
+     * `onProgress` callback.
+     * @returns The {@link ImportResult}.
+     * @remarks
+     * Every event is validated before any is committed. With the default `OnInvalidEvent.Reject` an import with an
+     * invalid event commits nothing and reports the event by its index. Each event keeps its occurrence time,
+     * correlation, caused-by identity, subject, tags and generation, and gets a new sequence number.
+     * @throws {@link ImportsNotSupported} when the kernel does not serve imports.
+     */
+    import(events: AsyncIterable<EventForEventSourceId> | Iterable<EventForEventSourceId>, options?: ImportOptions): Promise<ImportResult>;
+
+    /**
+     * Begins an explicit import session, for producers that are not a single stream.
+     * @param options - Optional {@link ImportOptions}.
+     * @returns The {@link IEventImport} to add events to and complete.
+     */
+    beginImport(options?: ImportOptions): Promise<IEventImport>;
+
+    /**
+     * Reattaches to an import session by its identifier, to continue after the chunks the kernel already acknowledged.
+     * @param importId - The identifier of the import.
+     * @param options - Optional {@link ImportOptions}; the import keeps the `onInvalid` it began with.
+     * @returns The {@link IEventImport}; its `eventsAcknowledged` says how many events to skip.
+     */
+    beginImport(importId: string | Guid, options?: ImportOptions): Promise<IEventImport>;
 
     /**
      * Gets the next sequence number that will be assigned to the next appended event.

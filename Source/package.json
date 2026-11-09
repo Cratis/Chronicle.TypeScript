@@ -165,6 +165,11 @@
             "types": "./dist/transactions/index.d.ts",
             "import": "./dist/transactions/index.js",
             "default": "./dist/transactions/index.js"
+        },
+        "./imports": {
+            "types": "./dist/imports/index.d.ts",
+            "import": "./dist/imports/index.js",
+            "default": "./dist/imports/index.js"
         }
     },
     "scripts": {

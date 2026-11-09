@@ -57,6 +57,12 @@ import type { IEventSources } from '../eventSources/IEventSources.js';
 import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
+import { beginEventImport } from '../imports/beginEventImport.js';
+import { importEvents } from '../imports/importEvents.js';
+import type { IEventImport } from '../imports/IEventImport.js';
+import type { ImportOptions } from '../imports/ImportOptions.js';
+import type { ImportResult } from '../imports/ImportResult.js';
+import type { ImportTarget } from '../imports/ImportTarget.js';
 
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
@@ -355,6 +361,28 @@ export class EventSequence implements IEventSequence {
             return createAppendNotification(eventSourceId, event, appendResult, correlationId.toString(),
                 causationEntries, eventsToAppend[index].Tags, occurredAt, namedTags[index]);
         }));
+    }
+
+    /** @inheritdoc */
+    import(events: AsyncIterable<EventForEventSourceId> | Iterable<EventForEventSourceId>, options?: ImportOptions): Promise<ImportResult> {
+        return importEvents(this.importTarget, events, options);
+    }
+
+    /** @inheritdoc */
+    beginImport(options?: ImportOptions): Promise<IEventImport>;
+    beginImport(importId: string | Guid, options?: ImportOptions): Promise<IEventImport>;
+    beginImport(importIdOrOptions?: string | Guid | ImportOptions, options?: ImportOptions): Promise<IEventImport> {
+        return beginEventImport(this.importTarget, importIdOrOptions, options);
+    }
+
+    private get importTarget(): ImportTarget {
+        return {
+            imports: this._connection.imports,
+            eventStore: this._eventStoreName,
+            namespace: this._namespace,
+            eventSequenceId: this.id.value,
+            eventSources: this._eventSources
+        };
     }
 
     /** @inheritdoc */
