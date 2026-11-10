@@ -104,7 +104,7 @@ describe('when declaring how an event projects a node', () => {
     it('should key the node with the constant and only change a node that exists', async () => {
         const result = await discoverGraphs([Counter]);
         result.graphs.registrations[0].projection.Graph!.Nodes.Counter.From['MemberJoined+1'].should.deep.equal({
-            Key: '$value(all)', Properties: { total: '$count' }, UpdateOnly: true
+            Key: '$value(all)', Properties: { total: '$count' }, UpdateOnly: true, ForEach: ''
         });
     });
 });

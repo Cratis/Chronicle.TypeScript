@@ -5,12 +5,13 @@ import 'reflect-metadata';
 import { AutoMap } from '@cratis/chronicle.contracts';
 import { Constructor, Fields } from '@cratis/fundamentals';
 import { TypeIntrospector } from '../../types/index.js';
+import type { ChildrenOrderingDefinitionLike } from '../childrenOrdering.js';
 import { constantValueExpression } from '../constantValueExpression.js';
 import { eventContextPropertyExpression } from '../eventContextPropertyExpression.js';
 import { notSetPropertyPath } from '../notSetPropertyPath.js';
 import { getEventTypeFor } from '../../events/eventTypeDecorator.js';
 import { getAddFromMetadata } from './addFrom.js';
-import { ChildrenFromMetadata, getChildrenFromMetadata } from './childrenFrom.js';
+import { ChildrenFromMetadata, getChildrenFromMetadata, getChildrenOrdering } from './childrenFrom.js';
 import { getClearWithClassMetadata, getClearWithPropertyMetadata } from './clearWith.js';
 import { getCountMetadata } from './count.js';
 import { getDecrementMetadata } from './decrement.js';
@@ -20,8 +21,8 @@ import { isNested } from './nested.js';
 import { isNoAutoMap, isPropertyNoAutoMap } from './noAutoMap.js';
 import { getRemovedWithClassMetadata, getRemovedWithPropertyMetadata } from './removedWith.js';
 import { getRemovedWithJoinClassMetadata, getRemovedWithJoinPropertyMetadata } from './removedWithJoin.js';
-import { getSetFromMetadata } from './setFrom.js';
-import { getSetFromContextMetadata } from './setFromContext.js';
+import { getSetFromMetadata, setFromExpression } from './setFrom.js';
+import { getSetFromContextMetadata, setFromContextExpression } from './setFromContext.js';
 import { getSetValueMetadata } from './setValue.js';
 import { getSubtractFromMetadata } from './subtractFrom.js';
 
@@ -46,6 +47,7 @@ export interface ChildrenDefinitionLike {
     AutoMap: AutoMap;
     Nested: Record<string, ChildrenDefinitionLike>;
     NoAutoMapProperties: string[];
+    Ordering?: ChildrenOrderingDefinitionLike;
 }
 
 const aggregateExpressions = ['$count', '$increment', '$decrement', '$add', '$subtract'];
@@ -107,12 +109,12 @@ export function ensureFromEntry(fromByEventType: Map<string, FromRecord>, eventT
 export function applyPropertyMappings(prototype: object, property: string, fromByEventType: Map<string, FromRecord>): void {
     for (const mapping of getSetFromMetadata(prototype, property)) {
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = mapping.eventPropertyName ?? property;
+        entry.Value.Properties[property] = setFromExpression(mapping, property);
     }
 
     for (const mapping of getSetFromContextMetadata(prototype, property)) {
         const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = eventContextPropertyExpression(mapping.contextPropertyName ?? property);
+        entry.Value.Properties[property] = setFromContextExpression(mapping, property);
     }
 
     for (const mapping of getSetValueMetadata(prototype, property)) {
@@ -342,6 +344,10 @@ export function buildChildrenEntry(
 
     const explicitIdentifiedBy = metadataList.find(metadata => metadata.identifiedBy)?.identifiedBy;
     definition.IdentifiedBy = explicitIdentifiedBy ?? discoverIdentifiedBy(childType, metadataList[0]?.key) ?? '$eventSourceId';
+    const ordering = getChildrenOrdering(property, metadataList);
+    if (ordering !== undefined) {
+        definition.Ordering = ordering;
+    }
 
     for (const metadata of metadataList) {
         const eventType = toContractEventType(metadata.eventType);

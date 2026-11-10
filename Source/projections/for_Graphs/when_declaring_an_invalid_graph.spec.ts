@@ -23,6 +23,9 @@ import { graphProjection } from '../graphs/graphProjection.js';
 import type { IGraphProjection } from '../graphs/IGraphProjection.js';
 import type { IGraphProjectionBuilder } from '../graphs/IGraphProjectionBuilder.js';
 import { NestedObjectInGraph } from '../graphs/NestedObjectInGraph.js';
+import { SetOnceNotSupportedInGraph } from '../graphs/SetOnceNotSupportedInGraph.js';
+import { setFrom } from '../modelBound/setFrom.js';
+import { setFromContext } from '../modelBound/setFromContext.js';
 import { node } from '../graphs/node.js';
 import { nodeFrom } from '../graphs/nodeFrom.js';
 import { NodeMustHaveExactlyOneKey } from '../graphs/NodeMustHaveExactlyOneKey.js';
@@ -130,6 +133,31 @@ describe('when a node has an object property', () => {
         graphKey()(Resident.prototype, 'residentId');
         const { failures } = await failureOf(Resident);
         failures[0].should.be.instanceOf(NestedObjectInGraph).and.have.property('message').that.includes("'address'");
+    });
+});
+
+describe('when a node property is set from an event only once', () => {
+    it('should fail with SetOnceNotSupportedInGraph', async () => {
+        const Thing = aNode('SetOnceNode', 'thingId');
+        setFrom(ThingHappened, { eventPropertyName: 'thingId', setOnce: true })(Thing.prototype, 'otherId');
+        const { failures, registered } = await failureOf(Thing);
+        failures[0].should.be.instanceOf(SetOnceNotSupportedInGraph).and.have.property('message').that.includes("'otherId'");
+        registered.should.equal(0);
+    });
+});
+
+describe('when an edge property is set from the event context only once', () => {
+    it('should fail with SetOnceNotSupportedInGraph', async () => {
+        const Thing = aNode('SetOnceEdge', 'thingId');
+        class Linked { fromId = ''; toId = ''; since = new Date(); }
+        graph('SetOnceEdge')(Linked);
+        edge('LINKED')(Linked);
+        edgeSource(Thing)(Linked.prototype, 'fromId');
+        edgeTarget(Thing)(Linked.prototype, 'toId');
+        setFromContext(ThingHappened, { contextProperty: 'occurred', setOnce: true })(Linked.prototype, 'since');
+        edgeFrom(ThingHappened, { sourceKey: 'thingId', targetKey: 'thingId' })(Linked);
+        const { failures } = await failureOf(Thing, Linked);
+        failures[0].should.be.instanceOf(SetOnceNotSupportedInGraph).and.have.property('message').that.includes("'since'");
     });
 });
 

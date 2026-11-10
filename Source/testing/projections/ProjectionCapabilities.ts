@@ -175,6 +175,7 @@ export class ProjectionCapabilities {
             return;
         }
         if (expression === '$null') return;
+        if (expression.startsWith('$setOnce(')) fail('set once requires a kernel-backed test');
         if (expression.startsWith('$eventContext(')) {
             if (expression === '$eventContext(Occurred)') fail('raw Occurred is converted inconsistently by the kernel; only its Year, Month and Day paths are supported');
             if (/^\$eventContext\(.+\(\)\)$/.test(expression)) fail('derived event-context functions require a kernel-backed test');

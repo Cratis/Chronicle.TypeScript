@@ -3,6 +3,7 @@
 
 import { PropertyAccessor } from '@cratis/fundamentals';
 import { ICompositeKeyBuilder } from './ICompositeKeyBuilder.js';
+import type { DictionaryKeySource } from './DictionaryKey.js';
 import { IAddBuilder } from './IAddBuilder.js';
 import { IAddChildBuilder } from './IAddChildBuilder.js';
 import { ISetBuilder } from './ISetBuilder.js';
@@ -74,37 +75,47 @@ export interface IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder> {
     /**
      * Increments the specified read model property by one when this event occurs.
      * @param readModelPropertyAccessor - Accessor for the read model property to increment.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns This builder for fluent chaining.
      */
-    increment(readModelPropertyAccessor: PropertyAccessor<TReadModel>): TBuilder;
+    increment(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): TBuilder;
 
     /**
      * Decrements the specified read model property by one when this event occurs.
      * @param readModelPropertyAccessor - Accessor for the read model property to decrement.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns This builder for fluent chaining.
      */
-    decrement(readModelPropertyAccessor: PropertyAccessor<TReadModel>): TBuilder;
+    decrement(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): TBuilder;
 
     /**
      * Begins an add operation on the specified read model property.
      * @param readModelPropertyAccessor - Accessor for the read model property to add to.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns An add builder for specifying the event property value.
      */
-    add(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAddBuilder<TEvent, TBuilder>;
+    add(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): IAddBuilder<TEvent, TBuilder>;
 
     /**
      * Begins a subtract operation on the specified read model property.
      * @param readModelPropertyAccessor - Accessor for the read model property to subtract from.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns A subtract builder for specifying the event property value.
      */
-    subtract(readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISubtractBuilder<TEvent, TBuilder>;
+    subtract(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): ISubtractBuilder<TEvent, TBuilder>;
 
     /**
      * Counts the number of matching events into the specified read model property.
      * @param readModelPropertyAccessor - Accessor for the read model property to store the count in.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns This builder for fluent chaining.
      */
-    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>): TBuilder;
+    count(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): TBuilder;
 
     /**
      * Adds a child model configured through a child builder to a collection on the read model.
@@ -137,9 +148,31 @@ export interface IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder> {
     /**
      * Begins a set operation to map an event property to the specified read model property.
      * @param readModelPropertyAccessor - Accessor for the read model property to set.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
      * @returns A set builder for specifying the event property value.
      */
-    set(readModelPropertyAccessor: PropertyAccessor<TReadModel>): ISetBuilder<TEvent, TBuilder>;
+    set(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): ISetBuilder<TEvent, TBuilder>;
+
+    /**
+     * Begins a set operation that only assigns the read model property while it has no value yet. The first event that
+     * carries a value wins; later events leave the property as it is. Use it to capture a first occurrence - for instance
+     * `setOnce(m => m.firstSeen).toEventContextProperty('occurred')` - without a dedicated creation event.
+     * @param readModelPropertyAccessor - Accessor for the read model property to set once.
+     * @param key - Optional dictionary key. When given, the property is a dictionary and the operation targets the entry with this key:
+     * an accessor on the event, or a {@link DictionaryKey} for keys from the event context or the identity that caused the event.
+     * @returns A set builder for specifying the value.
+     */
+    setOnce(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key?: DictionaryKeySource<TEvent>): ISetBuilder<TEvent, TBuilder>;
+
+    /**
+     * Removes an entry from a dictionary-typed read model property when this event occurs. Removing a key that is not
+     * present leaves the dictionary as it is.
+     * @param readModelPropertyAccessor - Accessor for the dictionary-typed read model property.
+     * @param key - The key of the entry to remove: an accessor on the event, or a {@link DictionaryKey}.
+     * @returns This builder for fluent chaining.
+     */
+    removeKey(readModelPropertyAccessor: PropertyAccessor<TReadModel>, key: DictionaryKeySource<TEvent>): TBuilder;
 
     /**
      * Begins a set operation that maps the entire event value to a read model property.

@@ -390,7 +390,8 @@ export class Reducers implements IReducers {
                             EventStreamType: getEventStreamTypeFor(reducerType)
                         }
                     },
-                    PageDelivery: toPageDelivery(reducerType)
+                    PageDelivery: toPageDelivery(reducerType),
+                    StateCaching: undefined
                 },
                 Value1: undefined
             }

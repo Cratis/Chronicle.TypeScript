@@ -17,6 +17,13 @@ export interface IFromEveryBuilder<TReadModel> {
     set(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>>;
 
     /**
+     * Starts an assignment that only sets the read-model property while it has no value yet; later events leave it as it is.
+     * @param readModelPropertyAccessor - Target property accessor.
+     * @returns The assignment builder, continuing with this builder.
+     */
+    setOnce(readModelPropertyAccessor: PropertyAccessor<TReadModel>): IAllSetBuilder<TReadModel, IFromEveryBuilder<TReadModel>>;
+
+    /**
      * Counts every projected event into a dictionary property, using a dynamic key resolved from an event context property.
      * The dictionary value at the resolved key is incremented by one for each matching event.
      * @param readModelPropertyAccessor - Accessor for the read model dictionary property (Record<string, number>).

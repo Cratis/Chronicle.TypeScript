@@ -54,6 +54,7 @@ export class ProjectionChildrenCapabilities {
             if (Object.keys(child.Nested ?? {}).length) reject(`${base}.Nested`, `nested projections inside children ${kernelBacked}`);
             if ((child.RemovedWithJoin ?? []).length) reject(`${base}.RemovedWithJoin`, `removedWithJoin inside children ${kernelBacked}`);
             if (wire.FromEventProperty) reject(`${base}.FromEventProperty`, `value children from an event property ${kernelBacked}`);
+            if (wire.Ordering !== undefined) reject(`${base}.Ordering`, `prepended or sorted children ${kernelBacked}`);
             if (Object.keys(child.All?.Properties ?? {}).length || child.All?.IncludeChildren || (child.All?.AutoMap ?? AutoMap.Inherit) !== AutoMap.Inherit) {
                 reject(`${base}.All`, `fromEvery/all inside children ${kernelBacked}`);
             }
