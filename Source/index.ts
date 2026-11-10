@@ -26,6 +26,7 @@ import * as transactions from './transactions/index.js';
 import * as eventStoreSubscriptions from './eventStoreSubscriptions/index.js';
 import * as compliance from './compliance/index.js';
 import * as confidentiality from './confidentiality/index.js';
+import * as imports from './imports/index.js';
 
 export { ChronicleClient } from './ChronicleClient.js';
 export { IncompatibleChronicleServer } from './connection/IncompatibleChronicleServer.js';
@@ -73,6 +74,7 @@ export * from './transactions/index.js';
 export * from './eventStoreSubscriptions/index.js';
 export * from './compliance/index.js';
 export * from './confidentiality/index.js';
+export * from './imports/index.js';
 
 export {
     events,
@@ -100,4 +102,5 @@ export {
     eventStoreSubscriptions,
     compliance,
     confidentiality,
+    imports,
 };

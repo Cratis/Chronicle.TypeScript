@@ -6,6 +6,8 @@ import type { EventContext } from '../events/EventContext.js';
 /** Observable outcome of one ordered source-partition delivery (not a kernel checkpoint). */
 export interface ReactorDeliveryResult {
     readonly sourceId: string;
+    /** The partitions (event source identifiers) the delivery carried, in the order their first event appears. */
+    readonly partitions: readonly string[];
     readonly handled: readonly EventContext[];
     readonly skipped: readonly EventContext[];
     readonly completed: boolean;

@@ -9,7 +9,7 @@ chai.should();
 
 // The contracts version this expectation was verified against. Bumping the contracts fails the first spec on purpose:
 // re-check children ordering support for the new version, then update both the version and the expectation together.
-const verifiedContractsVersion = '19.150.0';
+const verifiedContractsVersion = '19.153.0';
 const supportedInVerifiedVersion = true;
 
 const pinnedContractsVersion = (JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {

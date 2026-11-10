@@ -17,6 +17,7 @@ import {
     ExternalServicesDefinition,
     FailedPartitionsDefinition,
     IdentitiesDefinition,
+    ImportsDefinition,
     JobsDefinition,
     MaterializedReadModelsDefinition,
     NamespacesDefinition,
@@ -254,6 +255,10 @@ export class ChronicleConnection implements ChronicleServices {
         return this._services.externalServices;
     }
 
+    get imports() {
+        return this._services.imports;
+    }
+
     get connections(): ConnectionServiceClient {
         return this._connections;
     }
@@ -347,7 +352,8 @@ export class ChronicleConnection implements ChronicleServices {
             eventSeeding: factory.create(EventSeedingDefinition, this._channel),
             server: factory.create(ServerDefinition, this._channel),
             compliance: factory.create(ComplianceDefinition as any, this._channel) as any,
-            externalServices: factory.create(ExternalServicesDefinition, this._channel)
+            externalServices: factory.create(ExternalServicesDefinition, this._channel),
+            imports: factory.create(ImportsDefinition, this._channel)
         };
     }
 

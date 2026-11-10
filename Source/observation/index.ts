@@ -25,6 +25,8 @@ export { observes } from './batches/observes.js';
 export { batchSize } from './batches/batchSize.js';
 export type { BatchSizeOptions } from './batches/batchSize.js';
 export { EventBatch } from './batches/EventBatch.js';
+export type { BatchOutcome } from './batches/BatchOutcome.js';
+export { BatchOutcomeKind } from './batches/BatchOutcomeKind.js';
 export { EventAndContext } from './batches/EventAndContext.js';
 export { BatchContext } from './batches/BatchContext.js';
 export { ObservationOrigin } from './batches/ObservationOrigin.js';
