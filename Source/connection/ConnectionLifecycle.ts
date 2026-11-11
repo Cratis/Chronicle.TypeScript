@@ -5,6 +5,7 @@ import { Guid } from '@cratis/fundamentals';
 
 export type ConnectedHandler = () => Promise<void>;
 export type DisconnectedHandler = () => Promise<void>;
+export type ReconnectRequestedHandler = (reason: string, error: unknown) => void;
 
 /**
  * Represents the lifecycle state for a Chronicle connection.
@@ -13,6 +14,7 @@ export class ConnectionLifecycle {
     private readonly _onConnected = new Set<ConnectedHandler>();
     private readonly _onDisconnected = new Set<DisconnectedHandler>();
     private readonly _onFailed = new Set<(error: Error) => Promise<void>>();
+    private readonly _onReconnectRequested = new Set<ReconnectRequestedHandler>();
     private _failure?: Error;
 
     private _isConnected = false;
@@ -55,6 +57,27 @@ export class ConnectionLifecycle {
     onDisconnected(handler: DisconnectedHandler): () => void {
         this._onDisconnected.add(handler);
         return () => this._onDisconnected.delete(handler);
+    }
+
+    /**
+     * Registers a callback for when something asks the whole client to reconnect.
+     * @param handler - Callback to invoke with the reason and the error behind the request.
+     * @returns A function that unsubscribes the callback.
+     */
+    onReconnectRequested(handler: ReconnectRequestedHandler): () => void {
+        this._onReconnectRequested.add(handler);
+        return () => this._onReconnectRequested.delete(handler);
+    }
+
+    /**
+     * Asks the whole client to drop its session and reconnect with a new connection id, for instance because
+     * the kernel no longer knows the current one.
+     * @param reason - Why the reconnect is requested.
+     * @param error - The error behind the request.
+     */
+    requestReconnect(reason: string, error: unknown): void {
+        if (this._failure) return;
+        for (const handler of this._onReconnectRequested) handler(reason, error);
     }
 
     /** Registers a callback for a terminal connection failure. */

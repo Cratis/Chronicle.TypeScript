@@ -139,6 +139,13 @@ export class ChronicleClient implements IChronicleClient {
             });
         });
 
+        // An observation stream the kernel ended because it no longer knows this connection cannot be fixed
+        // by opening it again: reconnect the whole client, which gets a new connection id and re-registers.
+        this._lifecycle.onReconnectRequested((reason, error) => {
+            if (this._isDisposed) return;
+            void this.reconnect(reason, error).catch(failure => this.backgroundConnectionFailed(reason, failure));
+        });
+
         if (!options.skipKeepAlive) this.startConnectionWatchdog();
     }
 
