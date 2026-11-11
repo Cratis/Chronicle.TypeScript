@@ -36,6 +36,10 @@ const mentionsClientIsNotConnected = (error: GrpcLikeError): boolean =>
 
 /**
  * Classifies an error that ended a kernel observation stream, looking through wrapping errors.
+ *
+ * An {@link AggregateError} takes the most serious kind among the errors it wraps, in this order:
+ * {@link StreamErrorKind.Failure}, then {@link StreamErrorKind.SessionLost}, then {@link StreamErrorKind.ConnectionLost},
+ * then {@link StreamErrorKind.Cancelled}. This matches the .NET client.
  * @param error - The error the stream ended with.
  * @returns The {@link StreamErrorKind} for the error.
  */

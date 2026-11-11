@@ -22,6 +22,9 @@ export interface ObservationReconnectBackoffOptions {
     nextJitter?: () => number;
 }
 
+const finiteOr = (value: number | undefined, fallback: number, isAllowed: (value: number) => boolean): number =>
+    value !== undefined && Number.isFinite(value) && isAllowed(value) ? value : fallback;
+
 /**
  * Decides how long one reactor or reducer waits before opening its observation stream again after it ended.
  *
@@ -64,9 +67,11 @@ export class ObservationReconnectBackoff {
      * @param options - The settings; anything left out uses its default.
      */
     constructor(options: ObservationReconnectBackoffOptions = {}) {
-        this._baseDelayMs = options.baseDelayMs ?? ObservationReconnectBackoff.defaultBaseDelayMs;
-        this._maxDelayMs = options.maxDelayMs ?? ObservationReconnectBackoff.defaultMaxDelayMs;
-        this._healthyStreamDurationMs = options.healthyStreamDurationMs ?? ObservationReconnectBackoff.defaultHealthyStreamDurationMs;
+        // A wait that is not a finite number would reach setTimeout as about one millisecond: a hot loop.
+        this._baseDelayMs = finiteOr(options.baseDelayMs, ObservationReconnectBackoff.defaultBaseDelayMs, () => true);
+        this._maxDelayMs = finiteOr(options.maxDelayMs, ObservationReconnectBackoff.defaultMaxDelayMs, value => value > 0);
+        this._healthyStreamDurationMs = finiteOr(options.healthyStreamDurationMs,
+            ObservationReconnectBackoff.defaultHealthyStreamDurationMs, value => value >= 0);
         this._now = options.now ?? (() => performance.now());
         this._nextJitter = options.nextJitter ?? Math.random;
         this._streamOpenedAt = this._now();
