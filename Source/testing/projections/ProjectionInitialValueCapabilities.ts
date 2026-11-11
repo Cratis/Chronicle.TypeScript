@@ -11,7 +11,7 @@ export class ProjectionInitialValueCapabilities {
         let initial: unknown;
         try { initial = JSON.parse(initialState); }
         catch { reject('InitialModelState', 'initial values must be a JSON object'); }
-        if (initial === null || typeof initial !== 'object' || Array.isArray(initial)) {
+        if (!this.object(initial)) {
             reject('InitialModelState', 'initial values must be a JSON object');
         }
         for (const [property, value] of Object.entries(initial as Record<string, unknown>)) {
@@ -20,6 +20,10 @@ export class ProjectionInitialValueCapabilities {
             this.check(value, target, `InitialModelState.${property}`, reject);
         }
         return initial as Record<string, unknown>;
+    }
+
+    private static object(value: unknown): value is Record<string, unknown> {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
     }
 
     private static check(value: unknown, target: JsonSchema, path: string, reject: ProjectionCapabilityReject): void {

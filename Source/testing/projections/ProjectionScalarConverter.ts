@@ -21,9 +21,13 @@ export class ProjectionScalarConverter {
     private static invalidInteger(number: number, schema: JsonSchema): boolean {
         if (schema.type !== 'integer') return false;
         if (!Number.isSafeInteger(number)) return true;
-        if (schema.format === 'int32') return number < -2147483648 || number > 2147483647;
-        if (schema.format === 'uint32') return number < 0 || number > 4294967295;
+        if (schema.format === 'int32') return this.outsideBounds(number, [-2147483648, 2147483647]);
+        if (schema.format === 'uint32') return this.outsideBounds(number, [0, 4294967295]);
         return false;
+    }
+
+    private static outsideBounds(number: number, [minimum, maximum]: readonly [number, number]): boolean {
+        return number < minimum || number > maximum;
     }
 
     private static boolean(value: unknown, eventContent: boolean): boolean {
@@ -63,9 +67,13 @@ export class ProjectionScalarConverter {
 
     private static utcDateTime(value: unknown): boolean {
         // Date.parse accepts years beyond DateTime.MaxValue and normalizes invalid calendar dates.
-        if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return false;
+        if (!this.utcDateTimeText(value)) return false;
         if (+value.slice(0, 4) < 1 || !Number.isFinite(Date.parse(value))) return false;
         return new Date(value).toISOString().slice(0, 19) === value.slice(0, 19);
+    }
+
+    private static utcDateTimeText(value: unknown): value is string {
+        return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value);
     }
 
     private static stringSchema(schema: JsonSchema): boolean {

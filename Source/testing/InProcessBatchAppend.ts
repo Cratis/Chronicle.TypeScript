@@ -38,11 +38,15 @@ export class InProcessBatchAppend {
     private validateEntries(entries: object[], shared: AppendOptions | undefined, sameSource: boolean): void {
         this.array(entries);
         this.metadata.batch(shared);
-        if (shared?.occurred !== undefined) this.metadata.checkedDate(shared.occurred, 'appendMany.occurred');
+        this.sharedOccurrence(shared);
         for (const entry of entries) {
             if (sameSource) break;
             this.metadata.entry(entry as EventForEventSourceId);
         }
+    }
+
+    private sharedOccurrence(shared?: AppendOptions): void {
+        if (shared?.occurred !== undefined) this.metadata.checkedDate(shared.occurred, 'appendMany.occurred');
     }
 
     private array(entries: object[]): void {
