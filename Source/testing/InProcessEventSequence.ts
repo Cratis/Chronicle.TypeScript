@@ -1,23 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createHash } from 'node:crypto';
-import { EventObservationState } from '@cratis/chronicle.contracts';
 import { AppendOperationsBroadcaster } from '../eventSequences/AppendOperationsBroadcaster.js';
-import { prepareBatchAppend } from '../eventSequences/prepareBatchAppend.js';
 import { createAppendNotification, mapAppendNotificationCausation } from '../eventSequences/createAppendNotification.js';
 import { createAppendResult } from '../eventSequences/createAppendResult.js';
-import { conceptAsTypeKey, Guid, JsonSerializer, typeKeyOf, type Constructor } from '@cratis/fundamentals';
-import { getEventTypeMetadata, getEventTypeFor } from '../events/eventTypeDecorator.js';
+import { Guid, type Constructor } from '@cratis/fundamentals';
+import { getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { getTagsFor } from '../events/tagDecorator.js';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
-import { Tag } from '../events/Tag.js';
-import { EventType } from '../events/EventType.js';
-import { EventTypeId } from '../events/EventTypeId.js';
-import { EventTypeGeneration } from '../events/EventTypeGeneration.js';
-import { Identity } from '../identity/Identity.js';
+
 import type { AppendOptions } from '../eventSequences/AppendOptions.js';
-import { hasNamedTags, singleAppendRoute } from './singleAppendRoute.js';
 import type { AppendResult } from '../eventSequences/AppendResult.js';
 import type { AppendedEventWithResult } from '../eventSequences/AppendedEventWithResult.js';
 import type { EventForEventSourceId } from '../eventSequences/EventForEventSourceId.js';
@@ -28,30 +20,19 @@ import type { ITransactionalEventSequence } from '../eventSequences/ITransaction
 import type { CompleteStreamResult } from '../eventSequences/CompleteStreamResult.js';
 import type { IEventImport } from '../imports/IEventImport.js';
 import type { ImportResult } from '../imports/ImportResult.js';
-import { prepareSingleAppend } from '../eventSequences/prepareSingleAppend.js';
-import { toContractsGuid } from '../connection/Guid.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import { InProcessConstraints, type WireConstraintViolation } from './InProcessConstraints.js';
-import { matchesEventField, supportsEventField } from './EventFieldSchema.js';
+import { supportsEventField } from './EventFieldSchema.js';
+import { InProcessBatchAppend } from './InProcessBatchAppend.js';
+import { InProcessEventPayload } from './InProcessEventPayload.js';
+import { InProcessEventReadFilter } from './InProcessEventReadFilter.js';
+import { InProcessSingleAppend } from './InProcessSingleAppend.js';
+import type { InProcessEventSequenceEnvironment } from './InProcessEventSequenceEnvironment.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
 // JS trim() omits U+0085, which the kernel trims. Reject unproven non-ASCII whitespace and controls.
 const unprovenFilterCharacters = /[\u007f-\u009f]|(?=[^\x00-\x7f])\p{White_Space}/u;
-
-function resolveStoredSubject(subject: string | undefined, eventSourceId: string): string {
-    // Match the kernel's string.IsNullOrWhiteSpace, including U+0085 but not U+FEFF.
-    return subject && !/^\p{White_Space}*$/u.test(subject) ? subject : eventSourceId;
-}
-
-function matchesConstrainedValue(value: unknown, content: unknown): boolean {
-    // Use production serialization for concepts, not their wrapper object's runtime type.
-    // Keep rejecting other unproven conversions, such as a Date assigned to a string field.
-    if (value && typeof value === 'object' && [conceptAsTypeKey, 'Guid'].includes(typeKeyOf(value.constructor as Constructor) ?? '')) {
-        return JsonSerializer.serialize(value) === JSON.stringify(content);
-    }
-    return value === content;
-}
 
 // Observers ReactorScenario registers to latch unsupported operations, keyed by sequence.
 const unsupportedObservers = new WeakMap<object, (error: UnsupportedEventSequenceOperation) => void>();
@@ -75,6 +56,9 @@ export class InProcessEventSequence implements IEventSequence {
     private readonly _namespace: string;
     private readonly _clock: () => Date;
     private readonly _correlationId?: () => string;
+    private readonly _payload: InProcessEventPayload;
+    private readonly _singleAppend: InProcessSingleAppend;
+    private readonly _batchAppend: InProcessBatchAppend;
     private _setup = false;
     private _allowSeedAppend = false;
     private _stagedSeeds?: AppendedEvent[];
@@ -132,6 +116,14 @@ export class InProcessEventSequence implements IEventSequence {
             }
             this._catalog.set(type, metadata);
         }
+        const environment: InProcessEventSequenceEnvironment = {
+            catalog: this._catalog, store: this._store, namespace: this._namespace, sequenceId: this.id.value,
+            clock: () => this._clock(), correlationId: this._correlationId ? () => this._correlationId!() : undefined,
+            unsupported: (operation, artifact, reason) => this.unsupported(operation, artifact, reason)
+        };
+        this._payload = new InProcessEventPayload(environment, this._constraints);
+        this._singleAppend = new InProcessSingleAppend(environment, this._payload);
+        this._batchAppend = new InProcessBatchAppend(environment, this._payload, (sequence, artifact) => this.success(sequence, artifact));
     }
 
     get results(): readonly AppendResult[] { return Object.freeze([...this._results]); }
@@ -169,77 +161,43 @@ export class InProcessEventSequence implements IEventSequence {
     get transactional(): ITransactionalEventSequence { throw this.unsupported('transactional', this.id.value, 'Transactions require a kernel.'); }
 
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
-        if (this._busy || (this._setup && !this._allowSeedAppend)) {
+        if (this.appendBusy()) {
             throw this.unsupported('append', this.id.value, 'Overlapping calls do not have proven ordering.');
         }
         this._busy = true;
         try {
-            if (!event || typeof event !== 'object') throw this.unsupported('append.event', this.id.value, 'Only registered event instances are supported.');
-            if (!/^[A-Za-z0-9_-]+$/.test(eventSourceId)) throw this.unsupported('append.source', eventSourceId, 'Only simple source identifiers are fixture-backed.');
-            const route = singleAppendRoute(options, event.constructor.name, (operation, artifact, reason) => this.unsupported(operation, artifact, reason), true);
-            const metadata = this._catalog.get(event.constructor);
-            if (!metadata) throw this.unsupported('append.event', event.constructor.name, 'Event is not in the selected, validated catalog.');
-            let prepared: ReturnType<typeof prepareSingleAppend>;
-            let content: Record<string, unknown>;
-            try {
-                prepared = prepareSingleAppend(event, { subject: options?.subject, correlationId: this._correlationId?.() });
-                content = this.checkedContent(event, prepared.content, 'append.content',
-                    'Content differs from the event schema; null, missing and extra values are not proven.');
-            } catch (error) {
-                if (error instanceof UnsupportedEventSequenceOperation) throw error;
-                throw this.unsupported('append.serialization', event.constructor.name, `Payload or metadata could not be serialized: ${String(error)}.`);
-            }
-            try {
-                toContractsGuid(prepared.correlationId);
-                if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(prepared.correlationId.toString())) throw new Error('Invalid correlation ID.');
-            } catch {
-                throw this.unsupported('append.correlationId', event.constructor.name, 'Correlation ID must be a valid GUID.');
-            }
-            if (prepared.identity !== Identity.system || prepared.causationChain.length !== 2 ||
-                Object.keys(prepared.causationChain[0].properties).length !== 0) {
-                throw this.unsupported('append.context', event.constructor.name, 'Ambient identity or causation metadata is not fixture-backed.');
-            }
-            const occurred = this._clock();
-            // Date has millisecond precision; only the UTC year range representable by DateTimeOffset is supported.
-            if (!(occurred instanceof Date) || Number.isNaN(occurred.getTime()) ||
-                occurred.getUTCFullYear() < 1 || occurred.getUTCFullYear() > 9999) {
-                throw this.unsupported('append.clock', event.constructor.name, 'Clock must return a valid Date within UTC years 1–9999 (millisecond precision).');
-            }
-            const canonical = Object.fromEntries(Object.entries(content).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
-            const hash = createHash('sha256').update(`${prepared.eventType.id.value}|${eventSourceId}|${JSON.stringify(canonical)}`).digest('base64');
-            const sequenceNumber = new EventSequenceNumber(BigInt(this._history.length + (this._stagedSeeds?.length ?? 0)));
-            const stored: AppendedEvent = {
-                eventType: prepared.eventType,
-                content,
-                context: {
-                    eventStore: this._store, namespace: this._namespace,
-                    sequenceNumber: sequenceNumber.value, eventSourceId,
-                    eventSourceType: route.sourceType, eventStreamType: route.streamType, eventStreamId: route.streamId,
-                    subject: resolveStoredSubject(prepared.subject, eventSourceId), hash, causedBy: prepared.identity, observationState: EventObservationState.Initial,
-                    eventType: prepared.eventType, occurred, correlationId: prepared.correlationId.toString(),
-                    causation: prepared.causationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
-                    tags: prepared.tags.map(tag => new Tag(tag)),
-                    namedTags: []
-                }
-            };
+            const { prepared, stored, sequenceNumber } = this._singleAppend.prepare(eventSourceId, event, options,
+                this._history.length + (this._stagedSeeds?.length ?? 0));
             const violations = this.validateConstraints([...this._history, ...(this._stagedSeeds ?? [])], [stored]);
             const result = violations.length ? this.rejected(violations) : this.success(sequenceNumber, event.constructor.name);
-            if (result.isSuccess) {
-                if (this._stagedSeeds) this._stagedSeeds.push(this.snapshot(stored));
-                else this._history.push(this.snapshot(stored));
-            }
-            if (!this._setup) this._results.push(result);
-            if (this._stagedNotifications || this.appendOperations.hasSubscribers) {
-                const notification = [createAppendNotification(eventSourceId, event, result,
-                    prepared.correlationId.toString(), mapAppendNotificationCausation(prepared.causationChain), prepared.tags)];
-                if (this._stagedNotifications) this._stagedNotifications.push(notification);
-                else this.appendOperations.publish(notification);
-            }
+            this.commitSingle(stored, result);
+            this.notifySingle(eventSourceId, event, result, prepared);
             return result;
         } finally {
             // Keep the append in flight until its promise crosses an async boundary.
             await Promise.resolve();
             this._busy = false;
+        }
+    }
+
+    private appendBusy(): boolean {
+        return this._busy || (this._setup && !this._allowSeedAppend);
+    }
+
+    private commitSingle(stored: AppendedEvent, result: AppendResult): void {
+        if (result.isSuccess) {
+            if (this._stagedSeeds) this._stagedSeeds.push(this.snapshot(stored));
+            else this._history.push(this.snapshot(stored));
+        }
+        if (!this._setup) this._results.push(result);
+    }
+
+    private notifySingle(eventSourceId: string, event: object, result: AppendResult, prepared: ReturnType<InProcessSingleAppend['prepare']>['prepared']): void {
+        if (this._stagedNotifications || this.appendOperations.hasSubscribers) {
+            const notification = [createAppendNotification(eventSourceId, event, result,
+                prepared.correlationId.toString(), mapAppendNotificationCausation(prepared.causationChain), prepared.tags)];
+            if (this._stagedNotifications) this._stagedNotifications.push(notification);
+            else this.appendOperations.publish(notification);
         }
     }
 
@@ -249,88 +207,8 @@ export class InProcessEventSequence implements IEventSequence {
         if (this._busy || this._setup) throw this.unsupported('appendMany', this.id.value, 'Overlapping calls do not have proven ordering.');
         this._busy = true;
         try {
-            const entries = typeof sourceOrEvents === 'string' ? eventsOrOptions as object[] : sourceOrEvents;
-            const shared = typeof sourceOrEvents === 'string' ? options : eventsOrOptions as AppendOptions | undefined;
-            if (!Array.isArray(entries)) throw this.unsupported('appendMany.arguments', this.id.value, 'Events must be an array.');
-            if (!entries.length) throw this.unsupported('appendMany.empty', this.id.value, 'The kernel rejects an empty batch.');
-            this.validateBatchOptions(shared);
-            if (shared?.occurred !== undefined) this.checkedDate(shared.occurred, 'appendMany.occurred');
-            for (const entry of entries) {
-                if (typeof sourceOrEvents === 'string') break;
-                if (!entry || typeof entry !== 'object' || Reflect.ownKeys(entry).some(key =>
-                    !['eventSourceId', 'event', 'eventSourceType', 'eventStreamType', 'eventStreamId', 'subject', 'occurred', 'tags', 'namedTags'].includes(String(key)))) {
-                    throw this.unsupported('appendMany.entry', this.id.value, 'Unrecognized per-entry metadata.');
-                }
-                const individual = entry as EventForEventSourceId;
-                if (hasNamedTags(individual.namedTags)) {
-                    throw this.unsupported('appendMany.namedTags', this.id.value, 'Named tags are not fixture-backed.');
-                }
-                if (individual.occurred !== undefined) this.checkedDate(individual.occurred, 'appendMany.occurred');
-                if (individual.subject !== undefined && individual.subject !== null && typeof individual.subject !== 'string') {
-                    throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
-                }
-                const tags = individual.tags;
-                if (tags && (!Array.isArray(tags) || tags.some(tag => typeof tag !== 'string'))) {
-                    throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
-                }
-            }
-            let prepared: ReturnType<typeof prepareBatchAppend>;
-            try {
-                const batchOptions: AppendOptions | undefined = shared?.correlationId === undefined && this._correlationId
-                    ? { correlationId: this._correlationId(), sourceType: shared?.sourceType, streamType: shared?.streamType,
-                        streamId: shared?.streamId, subject: shared?.subject, occurred: shared?.occurred, tags: shared?.tags,
-                        namedTags: shared?.namedTags }
-                    : shared;
-                if (batchOptions?.correlationId !== undefined) this.validateGuid(batchOptions.correlationId, 'appendMany.correlationId');
-                prepared = typeof sourceOrEvents === 'string'
-                    ? prepareBatchAppend(sourceOrEvents, entries as object[], batchOptions)
-                    : prepareBatchAppend(sourceOrEvents, batchOptions);
-            } catch (error) {
-                if (error instanceof UnsupportedEventSequenceOperation) throw error;
-                throw this.unsupported('appendMany.serialization', this.id.value, `Batch preparation failed: ${String(error)}.`);
-            }
-            const { eventsForEventSourceIds, eventsToAppend, correlationId, batchCausationChain, identity } = prepared;
-            this.validateGuid(correlationId, 'appendMany.correlationId');
-            if (identity !== Identity.system || batchCausationChain.length !== 2 ||
-                Object.keys(batchCausationChain[0].properties).length !== 0 ||
-                batchCausationChain[1].type.name !== 'TypeScriptClient.AppendMany' ||
-                batchCausationChain[1].properties.count !== String(entries.length)) {
-                throw this.unsupported('appendMany.context', this.id.value, 'Ambient identity or causation metadata is not fixture-backed.');
-            }
-            const staged = eventsForEventSourceIds.map(({ eventSourceId, event }, index) => {
-                if (!event || typeof event !== 'object' || !this._catalog.has(event.constructor)) {
-                    throw this.unsupported('appendMany.event', event?.constructor?.name ?? this.id.value, 'Event is not in the selected catalog.');
-                }
-                this.validateSource(eventSourceId, 'appendMany.source');
-                const wire = eventsToAppend[index];
-                for (const [name, value] of Object.entries({ sourceType: wire.EventSourceType, streamType: wire.EventStreamType,
-                    streamId: wire.EventStreamId })) {
-                    const identifiers = /^[A-Za-z0-9_-]*$/;
-                    if (value !== undefined && (typeof value !== 'string' || !identifiers.test(value))) {
-                        throw this.unsupported(`appendMany.${name}`, String(value), 'Only simple metadata identifiers are fixture-backed.');
-                    }
-                }
-                if (wire.Tags.some(tag => !/^[A-Za-z0-9_-]+$/.test(tag))) {
-                    throw this.unsupported('appendMany.tags', event.constructor.name, 'Only simple string tags are fixture-backed.');
-                }
-                const occurred = wire.Occurred ? this.checkedDate(new Date(wire.Occurred.Value), 'appendMany.occurred')
-                    : this.checkedDate(this._clock(), 'appendMany.clock');
-                const content = this.checkedContent(event, wire.Content, 'appendMany.content');
-                const canonical = Object.fromEntries(Object.entries(content).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
-                const hash = createHash('sha256').update(`${wire.EventType.Id}|${eventSourceId}|${JSON.stringify(canonical)}`).digest('base64');
-                const sequenceNumber = new EventSequenceNumber(BigInt(this._history.length + index));
-                const eventType = getEventTypeFor(event.constructor);
-                const stored: AppendedEvent = { eventType, content, context: {
-                    eventStore: this._store, namespace: this._namespace, sequenceNumber: sequenceNumber.value, eventSourceId,
-                    eventSourceType: wire.EventSourceType || 'Default', eventStreamType: wire.EventStreamType || 'All',
-                    eventStreamId: wire.EventStreamId || 'Default', subject: resolveStoredSubject(wire.Subject, eventSourceId), hash, causedBy: identity,
-                    observationState: EventObservationState.Initial, eventType, occurred, correlationId: correlationId.toString(),
-                    causation: batchCausationChain.map(item => ({ type: item.type.name, occurred: item.occurred, properties: { ...item.properties } })),
-                    tags: wire.Tags.map(tag => new Tag(tag)),
-                    namedTags: []
-                } };
-                return { stored, result: this.success(sequenceNumber, event.constructor.name) };
-            });
+            const { prepared, staged } = this._batchAppend.prepare(sourceOrEvents, eventsOrOptions, options, this._history.length);
+            const { eventsForEventSourceIds, eventsToAppend, correlationId, batchCausationChain } = prepared;
             // The kernel validates the entire batch before persisting any events or allocating sequences.
             const violations = this.validateConstraints(this._history, staged.map(item => item.stored));
             const results = violations.length ? staged.map(() => this.rejected(violations)) : staged.map(item => item.result);
@@ -355,12 +233,8 @@ export class InProcessEventSequence implements IEventSequence {
     async getTailSequenceNumber(source?: string, sourceType?: string, streamType?: string, streamId?: string, types?: Constructor[]): Promise<EventSequenceNumber> {
         if (source !== undefined) this.validateReadSource('getTailSequenceNumber.source', source);
         this.validateRouteFilters('getTailSequenceNumber.filters', sourceType, streamType, streamId);
-        const ids = this.filterIds(types);
-        const last = [...this._history].reverse().find(event => (source === undefined || event.context.eventSourceId === source) &&
-            (sourceType === undefined || sourceType === 'Default' || event.context.eventSourceType === sourceType) &&
-            (streamType === undefined || streamType === 'All' || event.context.eventStreamType === streamType) &&
-            (streamId === undefined || streamId === 'Default' || event.context.eventStreamId === streamId) &&
-            (!ids.length || ids.includes(event.eventType.id.value)));
+        const filter = new InProcessEventReadFilter({ source, sourceType, streamType, streamId, ids: this.filterIds(types) });
+        const last = [...this._history].reverse().find(event => filter.matches(event));
         return last ? new EventSequenceNumber(last.context.sequenceNumber) : EventSequenceNumber.unset;
     }
 
@@ -377,11 +251,8 @@ export class InProcessEventSequence implements IEventSequence {
         if (!types.length) throw this.unsupported('getForEventSourceIdAndEventTypes.filters', source, 'Explicit event types are required.');
         this.validateReadSource('getForEventSourceIdAndEventTypes.source', source);
         this.validateRouteFilters('getForEventSourceIdAndEventTypes.filters', sourceType, streamType, streamId);
-        const ids = this.filterIds(types);
-        return this._history.filter(event => event.context.eventSourceId === source && ids.includes(event.eventType.id.value) &&
-            (sourceType === undefined || sourceType === 'Default' || event.context.eventSourceType === sourceType) &&
-            (streamType === undefined || streamType === 'All' || event.context.eventStreamType === streamType) &&
-            (streamId === undefined || streamId === 'Default' || event.context.eventStreamId === streamId)).map(event => this.snapshot(event));
+        const filter = new InProcessEventReadFilter({ source, sourceType, streamType, streamId, ids: this.filterIds(types) });
+        return this._history.filter(event => filter.matches(event)).map(event => this.snapshot(event));
     }
 
     async getFromSequenceNumber(sequence: EventSequenceNumber, source?: string, types?: Constructor[]): Promise<AppendedEvent[]> {
@@ -389,10 +260,8 @@ export class InProcessEventSequence implements IEventSequence {
             throw this.unsupported('getFromSequenceNumber.sequenceNumber', sequence.value.toString(), 'Sequence numbers must fit unsigned 64-bit wire values.');
         }
         if (source !== undefined) this.validateReadSource('getFromSequenceNumber.source', source);
-        const ids = this.filterIds(types);
-        return this._history.filter(event => event.context.sequenceNumber >= sequence.value &&
-            (source === undefined || event.context.eventSourceId === source) &&
-            (!ids.length || ids.includes(event.eventType.id.value))).map(event => this.snapshot(event));
+        const filter = new InProcessEventReadFilter({ source, ids: this.filterIds(types) });
+        return this._history.filter(event => event.context.sequenceNumber >= sequence.value && filter.matches(event)).map(event => this.snapshot(event));
     }
 
     async compensate(): Promise<AppendResult> { throw this.unsupported('compensate', this.id.value, 'Compensation requires kernel storage.'); }
@@ -413,70 +282,14 @@ export class InProcessEventSequence implements IEventSequence {
 
     private validateRouteFilters(operation: string, ...filters: (string | undefined)[]): void {
         for (const filter of filters) {
-            if (filter !== undefined && (typeof filter !== 'string' || !/^[A-Za-z0-9_-]+$/.test(filter))) {
+            if (filter !== undefined && !this.simpleRouteFilter(filter)) {
                 throw this.unsupported(operation, String(filter), 'Only simple, nonblank route filters are fixture-backed.');
             }
         }
     }
 
-    private validateBatchOptions(options?: AppendOptions): void {
-        if (options === undefined) return;
-        if (!options || typeof options !== 'object' || Array.isArray(options)) {
-            throw this.unsupported('appendMany.options', this.id.value, 'Append options must be an object.');
-        }
-        if (hasNamedTags(options.namedTags)) {
-            throw this.unsupported('appendMany.namedTags', this.id.value, 'Named tags are not fixture-backed.');
-        }
-        const allowed = ['correlationId', 'sourceType', 'streamType', 'streamId', 'subject', 'occurred', 'tags', 'namedTags'];
-        if (Reflect.ownKeys(options).some(key => !allowed.includes(String(key))) ||
-            options.concurrencyScope !== undefined || options.concurrencyScopes !== undefined || options.eventSourceId !== undefined) {
-            throw this.unsupported('appendMany.options', this.id.value, 'Concurrency and unrecognized metadata are not fixture-backed.');
-        }
-        if (options.subject !== undefined && options.subject !== null && typeof options.subject !== 'string') {
-            throw this.unsupported('appendMany.subject', this.id.value, 'Subject must be a string.');
-        }
-        if (options.tags && (!Array.isArray(options.tags) || options.tags.some(tag => typeof tag !== 'string'))) {
-            throw this.unsupported('appendMany.tags', this.id.value, 'Only plain string tags are fixture-backed.');
-        }
-    }
-
-    private validateGuid(value: string | Guid, operation: string): void {
-        try {
-            toContractsGuid(Guid.as(value));
-            if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value.toString())) throw new Error('Invalid GUID.');
-        } catch { throw this.unsupported(operation, this.id.value, 'Correlation ID must be a valid GUID.'); }
-    }
-
-    private checkedDate(value: Date, operation: string): Date {
-        if (!(value instanceof Date) || Number.isNaN(value.getTime()) || value.getUTCFullYear() < 1 || value.getUTCFullYear() > 9999) {
-            throw this.unsupported(operation, this.id.value, 'Occurrence must be within UTC years 1–9999 at millisecond precision.');
-        }
-        return new Date(value);
-    }
-
-    private validateSource(source: string, operation: string): void {
-        if (typeof source !== 'string' || !/^[A-Za-z0-9_-]+$/.test(source)) {
-            throw this.unsupported(operation, String(source), 'Only simple source identifiers are fixture-backed.');
-        }
-    }
-
-    private checkedContent(event: object, serialized: string, operation: string,
-        mismatchReason = 'Content differs from the event schema.'): Record<string, unknown> {
-        let content: Record<string, unknown>;
-        try { content = JSON.parse(serialized) as Record<string, unknown>; }
-        catch { throw this.unsupported(operation, event.constructor.name, 'Content must be valid JSON.'); }
-        const metadata = this._catalog.get(event.constructor)!;
-        const properties = metadata.schema.properties!;
-        if (!content || typeof content !== 'object' || Array.isArray(content) ||
-            Object.keys(content).length !== Object.keys(properties).length ||
-            Object.entries(properties).some(([key, property]) => !Object.hasOwn(content, key) || !matchesEventField(content[key], property) ||
-                (this._constraints?.isConstrainedProperty(metadata.eventType.id.value, key) &&
-                    !matchesConstrainedValue(Reflect.get(event, key), content[key])) ||
-                (property.type === 'string' && property.format === undefined &&
-                    !/^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(content[key] as string)))) {
-            throw this.unsupported(operation, event.constructor.name, mismatchReason);
-        }
-        return content;
+    private simpleRouteFilter(filter: string): boolean {
+        return typeof filter === 'string' && /^[A-Za-z0-9_-]+$/.test(filter);
     }
 
     private validateConstraints(history: readonly AppendedEvent[], incoming: readonly AppendedEvent[]): WireConstraintViolation[] {
@@ -499,24 +312,17 @@ export class InProcessEventSequence implements IEventSequence {
     }
 
     private snapshot(event: AppendedEvent): AppendedEvent {
-        const eventType = new EventType(new EventTypeId(event.eventType.id.value),
-            new EventTypeGeneration(event.eventType.generation.value), event.eventType.tombstone);
-        const causedBy = event.context.causedBy;
-        return {
-            eventType,
-            content: JSON.parse(JSON.stringify(event.content)) as Record<string, unknown>,
-            context: { ...event.context, eventType, occurred: new Date(event.context.occurred),
-                causedBy: causedBy && new Identity(causedBy.subject, causedBy.name, causedBy.userName, causedBy.onBehalfOf),
-                causation: event.context.causation.map(item => ({ ...item, occurred: item.occurred && new Date(item.occurred), properties: { ...item.properties } })),
-                tags: event.context.tags.map(item => new Tag(item.value)),
-                namedTags: [...(event.context.namedTags ?? [])] }
-        };
+        return this._payload.snapshot(event);
     }
 
     private validateReadSource(operation: string, source: string): void {
-        if (!source.trim() || source !== source.trim() || unprovenFilterCharacters.test(source)) {
+        if (!this.simpleReadSource(source)) {
             throw this.unsupported(operation, source, 'Blank and padded source filters have unproven kernel normalization.');
         }
+    }
+
+    private simpleReadSource(source: string): boolean {
+        return !!source.trim() && source === source.trim() && !unprovenFilterCharacters.test(source);
     }
 
     private unsupported(operation: string, artifact: string, reason: string): UnsupportedEventSequenceOperation {
