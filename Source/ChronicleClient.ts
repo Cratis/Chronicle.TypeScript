@@ -49,6 +49,20 @@ const isTerminalServerError = (error: unknown): error is IncompatibleChronicleSe
 const hasReconnectableStatusCode = (error: unknown): boolean => [4, 13, 14].includes(Number(errorCodeOf(error) ?? -1));
 
 /**
+ * Where a {@link ChronicleClient} reads the time and the jitter of its reconnect waits from.
+ * @internal Lets specifications make the waits deterministic.
+ */
+export interface ChronicleClientTiming {
+    /** Returns the current time in milliseconds. */
+    now: () => number;
+
+    /** Returns a value in [0, 1) choosing where in the upper half of a wait this one lands. */
+    nextJitter: () => number;
+}
+
+const defaultTiming: ChronicleClientTiming = { now: () => Date.now(), nextJitter: () => Math.random() };
+
+/**
  * Implements {@link IChronicleClient} by managing a gRPC connection to the
  * Chronicle Kernel via {@link ChronicleConnection}.
  *
@@ -65,6 +79,9 @@ export class ChronicleClient implements IChronicleClient {
     private static readonly _healthCheckIntervalMs = 5000;
     private static readonly _maxBackoffMs = 30_000;
 
+    /** How long a session must stay up before losing it starts the wait between session reconnects over. */
+    private static readonly _healthySessionMs = 30_000;
+
     private readonly _connection: ChronicleConnection;
     private readonly _stores: Map<string, EventStore> = new Map();
     private readonly _lifecycle = new ConnectionLifecycle();
@@ -80,12 +97,17 @@ export class ChronicleClient implements IChronicleClient {
     private _healthCheckInFlight = false;
     private _connectionFailure?: Error;
     private _consecutiveCredentialRejections = 0;
+    private readonly _disposeController = new AbortController();
+    private _recoveringFrom?: string;
+    private _sessionLostCount = 0;
+    private _sessionEstablishedAt?: number;
 
     /**
      * Creates a new {@link ChronicleClient} using the provided options.
      * @param options - The options to configure the client, including the connection string.
+     * @param _timing - Internal: where the client reads the time and the jitter of its reconnect waits from.
      */
-    constructor(readonly options: ChronicleOptions) {
+    constructor(readonly options: ChronicleOptions, private readonly _timing: ChronicleClientTiming = defaultTiming) {
         this._logger = createLogger('@cratis/chronicle/ChronicleClient', options.logger);
         // When TLS is disabled, pass pre-built insecure credentials directly.
         // @cratis/chronicle.contracts ≤15.24.3 always composes call credentials with
@@ -137,6 +159,19 @@ export class ChronicleClient implements IChronicleClient {
             this._logger.warn('Connection lifecycle disconnected', {
                 connectionId: this._lifecycle.connectionId
             });
+        });
+
+        // An observation stream the kernel ended because it no longer knows this connection cannot be fixed
+        // by opening it again: reconnect the whole client, which gets a new connection id and re-registers.
+        // The lifecycle has already dropped reports about a replaced session. A report about the session a running
+        // reconnect is replacing joins it; one about the session that reconnect just opened needs a reconnect of its own.
+        this._lifecycle.onReconnectRequested((reason, error) => {
+            if (this._isDisposed) return;
+            const running = this._reconnectOperation;
+            const next = running && this._recoveringFrom !== this._lifecycle.connectionId
+                ? running.catch(() => undefined).then(() => this._isDisposed ? undefined : this.reconnect(reason, error))
+                : this.reconnect(reason, error);
+            void next.catch(failure => this.backgroundConnectionFailed(reason, failure));
         });
 
         if (!options.skipKeepAlive) this.startConnectionWatchdog();
@@ -238,6 +273,7 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     dispose(): void {
         this._isDisposed = true;
+        this._disposeController.abort();
         for (const store of this._stores.values()) store.disposeObservations();
 
         if (this._watchdogHandle) {
@@ -280,6 +316,7 @@ export class ChronicleClient implements IChronicleClient {
                 this._consecutiveCredentialRejections = 0;
                 this._logger.info('Connected to Chronicle kernel');
                 await this.startKernelKeepAlive();
+                this._sessionEstablishedAt = this._timing.now();
                 await this._lifecycle.connected(error => {
                     this._logger.error('Connected lifecycle callback failed', {
                         error
@@ -352,6 +389,8 @@ export class ChronicleClient implements IChronicleClient {
             error
         });
 
+        const recoveringFrom = this._lifecycle.connectionId;
+        this._recoveringFrom = recoveringFrom;
         if (this._lifecycle.isConnected) {
             await this._lifecycle.disconnected(disconnectError => {
                 this._logger.error('Disconnected lifecycle callback failed', {
@@ -360,7 +399,35 @@ export class ChronicleClient implements IChronicleClient {
             });
         }
 
+        // The kernel has forgotten the session being replaced, so the next one must never reuse its id.
+        if (this._lifecycle.connectionId === recoveringFrom) this._lifecycle.renewConnectionId();
+
+        if (ChronicleClient.isSessionLost(reason)) {
+            await this.waitBeforeSessionReconnect(error);
+            if (this._isDisposed) return;
+        }
+
         await this.reconnectWithRetry();
+    }
+
+    private static isSessionLost(reason: string): boolean {
+        return reason.endsWith('-session-lost');
+    }
+
+    /**
+     * Keeps a kernel that accepts connections but keeps losing the session right after from causing a hot loop
+     * across the whole fleet: every session lost soon after the last one was established waits longer, with jitter,
+     * and the wait starts over once a session has stayed up long enough to count as healthy.
+     */
+    private async waitBeforeSessionReconnect(error: unknown): Promise<void> {
+        const establishedAt = this._sessionEstablishedAt;
+        if (establishedAt !== undefined && this._timing.now() - establishedAt >= ChronicleClient._healthySessionMs) {
+            this._sessionLostCount = 0;
+            return;
+        }
+
+        this._sessionLostCount++;
+        await this.backOff(this._sessionLostCount, 'Session lost soon after connecting, waiting before reconnecting', error);
     }
 
     private async reconnectWithRetry(): Promise<void> {
@@ -373,6 +440,7 @@ export class ChronicleClient implements IChronicleClient {
                 this._consecutiveCredentialRejections = 0;
                 this._logger.info('Reconnected to Chronicle kernel', { attempt: attempt + 1 });
                 await this.startKernelKeepAlive();
+                this._sessionEstablishedAt = this._timing.now();
                 await this._lifecycle.connected(connectedError => {
                     this._logger.error('Connected lifecycle callback failed after reconnect', {
                         error: connectedError
@@ -398,7 +466,7 @@ export class ChronicleClient implements IChronicleClient {
      */
     private async backOff(attempt: number, message: string, error: unknown): Promise<number> {
         const ceiling = Math.min(1000 * Math.pow(2, attempt - 1), ChronicleClient._maxBackoffMs);
-        const delayMs = Math.round(ceiling / 2 + Math.random() * (ceiling / 2));
+        const delayMs = Math.round(ceiling / 2 + this._timing.nextJitter() * (ceiling / 2));
 
         this._logger.warn(message, {
             attempt,
@@ -406,8 +474,23 @@ export class ChronicleClient implements IChronicleClient {
             error
         });
 
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await this.delay(delayMs);
         return delayMs;
+    }
+
+    /** Waits for the given time, or until the client is disposed, so a pending wait never outlives the client. */
+    private delay(delayMs: number): Promise<void> {
+        const signal = this._disposeController.signal;
+        if (signal.aborted) return Promise.resolve();
+        return new Promise(resolve => {
+            const done = () => {
+                clearTimeout(timer);
+                signal.removeEventListener('abort', done);
+                resolve();
+            };
+            const timer = setTimeout(done, delayMs);
+            signal.addEventListener('abort', done, { once: true });
+        });
     }
 
     private async withReconnect<T>(operation: string, action: () => Promise<T>): Promise<T> {

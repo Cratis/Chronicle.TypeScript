@@ -5,6 +5,7 @@ import { Guid } from '@cratis/fundamentals';
 
 export type ConnectedHandler = () => Promise<void>;
 export type DisconnectedHandler = () => Promise<void>;
+export type ReconnectRequestedHandler = (reason: string, error: unknown) => void;
 
 /**
  * Represents the lifecycle state for a Chronicle connection.
@@ -13,6 +14,7 @@ export class ConnectionLifecycle {
     private readonly _onConnected = new Set<ConnectedHandler>();
     private readonly _onDisconnected = new Set<DisconnectedHandler>();
     private readonly _onFailed = new Set<(error: Error) => Promise<void>>();
+    private readonly _onReconnectRequested = new Set<ReconnectRequestedHandler>();
     private _failure?: Error;
 
     private _isConnected = false;
@@ -57,6 +59,45 @@ export class ConnectionLifecycle {
         return () => this._onDisconnected.delete(handler);
     }
 
+    /**
+     * Registers a callback for when something asks the whole client to reconnect.
+     * @param handler - Callback to invoke with the reason and the error behind the request.
+     * @returns A function that unsubscribes the callback.
+     */
+    onReconnectRequested(handler: ReconnectRequestedHandler): () => void {
+        this._onReconnectRequested.add(handler);
+        return () => this._onReconnectRequested.delete(handler);
+    }
+
+    /**
+     * Asks the whole client to drop its session and reconnect with a new connection id, for instance because
+     * the kernel no longer knows the current one.
+     *
+     * A request about a connection id that has already been replaced is ignored: the session it reports on is
+     * gone, and the observer that reported it is opened again by the reconnect that replaced it.
+     * @param connectionId - The connection id of the session the request is about.
+     * @param reason - Why the reconnect is requested.
+     * @param error - The error behind the request.
+     * @param onError - Called with the error when a handler throws.
+     */
+    requestReconnect(connectionId: string, reason: string, error: unknown, onError: (error: unknown) => void): void {
+        if (this._failure || connectionId !== this._connectionId) return;
+        for (const handler of this._onReconnectRequested) {
+            try {
+                handler(reason, error);
+            } catch (handlerError) {
+                onError(handlerError);
+            }
+        }
+    }
+
+    /**
+     * Replaces the connection id, so the next session is registered with one the kernel has not seen.
+     */
+    renewConnectionId(): void {
+        this._connectionId = Guid.create().toString();
+    }
+
     /** Registers a callback for a terminal connection failure. */
     onFailed(handler: (error: Error) => Promise<void>): () => void {
         this._onFailed.add(handler);
@@ -86,7 +127,7 @@ export class ConnectionLifecycle {
     async disconnected(onError: (error: unknown) => void): Promise<void> {
         this._isConnected = false;
         await Promise.all([...this._onDisconnected].map(handler => this.invokeHandler(handler, onError)));
-        this._connectionId = Guid.create().toString();
+        this.renewConnectionId();
     }
 
     private async invokeHandler(handler: () => Promise<void>, onError: (error: unknown) => void): Promise<void> {

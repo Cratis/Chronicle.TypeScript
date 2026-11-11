@@ -107,6 +107,18 @@ After connecting, the client checks the connection every five seconds and watche
 
 When the kernel rejects a cached token as unauthenticated, for example after a key rotation, the client requests a new token and retries the call once. Observation streams are not retried within the call; they are observed again after a reconnect.
 
+### Reactor and reducer streams
+
+Each reactor and reducer keeps its own observation stream open to the kernel. A stream can end while the connection itself stays up: the kernel closes a cross-store stream instead of tailing it, or a busy or restarting kernel fails it. The client then opens that stream again, after a wait that depends on how the stream fared:
+
+- After a stream that worked, it waits about two seconds. A stream has worked when it delivered events or stayed open for three minutes.
+- While streams keep ending without working, the wait doubles each time, up to one minute.
+- Every wait lands at random in the upper half of its current value, so many reactors and reducers whose streams ended together, for example during a kernel rollout, come back spread out instead of as one herd.
+
+When a stream ends because the kernel no longer knows the client's connection, for example after the kernel restarted, opening the stream again cannot work. The client instead reconnects as a whole, as described above: it drops the session, connects with a new connection id, and registers every reactor and reducer again. If sessions keep being lost right after connecting, the client waits longer between these whole-client reconnects, growing with jitter, until a session stays up for 30 seconds.
+
+These waits match the .NET client and are not configurable.
+
 ## Short-lived processes
 
 For a CLI, script, or short-lived job, set `skipKeepAlive: true`:

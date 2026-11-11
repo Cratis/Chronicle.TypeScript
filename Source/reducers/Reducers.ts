@@ -45,6 +45,9 @@ import { EventBatch } from '../observation/batches/EventBatch.js';
 import { isPage, partitionsOfOperation } from '../observation/batches/PageMessages.js';
 import { PartitionFailedInBatch } from '../observation/batches/PartitionFailedInBatch.js';
 import { runConcurrently } from '../observation/batches/runConcurrently.js';
+import { ObservationReconnectBackoff, type ObservationReconnectBackoffOptions } from '../observation/ObservationReconnectBackoff.js';
+import { classifyStreamError, StreamErrorKind } from '../observation/classifyStreamError.js';
+import type { ObservationStreamOutcome } from '../observation/ObservationStreamOutcome.js';
 
 /** Expression used to partition reducer observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -112,15 +115,14 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reducers implements IReducers {
-    /** How long to wait before re-establishing an observation whose stream ended. */
-    private static readonly _reobserveDelayMs = 2000;
-
     private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _unsubscribeDisconnected: () => void;
     private readonly _reducers = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReducerMessage>>();
     private readonly _observations = new Map<string, AbortController>();
+    private readonly _reconnectBackoffs = new Map<string, ObservationReconnectBackoff>();
+    private readonly _reobserveTimers = new Map<string, ReturnType<typeof setTimeout>>();
     private _registered = false;
     private _disposed = false;
 
@@ -135,6 +137,8 @@ export class Reducers implements IReducers {
      * @param _eventStore - The event store handed to reducers that request it.
      * @param _artifactActivator - Optional per-delivery activator.
      * @param _readModelNamingPolicy - Optional policy naming the container of each read model.
+     * @param _skipKeepAlive - Whether the client runs without a keep-alive, which refuses client-hosted reducers.
+     * @param _reconnectBackoff - How a reducer waits before opening its observation stream again after it ended.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
@@ -146,7 +150,8 @@ export class Reducers implements IReducers {
         private readonly _eventStore?: IEventStore,
         private readonly _artifactActivator?: ClientArtifactsActivator,
         private readonly _readModelNamingPolicy?: ReadModelNamingPolicy,
-        private readonly _skipKeepAlive: boolean = false
+        private readonly _skipKeepAlive: boolean = false,
+        private readonly _reconnectBackoff: ObservationReconnectBackoffOptions = {}
     ) {
         this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
@@ -163,6 +168,7 @@ export class Reducers implements IReducers {
         this._disposed = true;
         this._registered = false;
         this.disconnectAll();
+        this._reconnectBackoffs.clear();
     }
 
     /** @inheritdoc */
@@ -276,13 +282,23 @@ export class Reducers implements IReducers {
     }
 
     private async runObservation(observation: ReducerObservation): Promise<void> {
+        let outcome: ObservationStreamOutcome = 'ended';
         try {
-            await this.observeReducer(observation);
+            outcome = await this.observeReducer(observation);
         } catch (error) {
             this._logger.error('Reducer observation loop exited with error', { reducerId: observation.id, error });
         }
 
-        this.scheduleReobserve(observation.id, observation.reducerType, observation.dispatcher);
+        if (outcome === 'ended') this.scheduleReobserve(observation.id, observation.reducerType, observation.dispatcher);
+    }
+
+    private reconnectBackoffFor(id: string): ObservationReconnectBackoff {
+        let backoff = this._reconnectBackoffs.get(id);
+        if (!backoff) {
+            backoff = new ObservationReconnectBackoff(this._reconnectBackoff);
+            this._reconnectBackoffs.set(id, backoff);
+        }
+        return backoff;
     }
 
     /**
@@ -292,8 +308,8 @@ export class Reducers implements IReducers {
      * closes a cross-store (inbox) observation's stream rather than tailing it
      * forever, so a reducer that does not re-subscribe there silently stops
      * observing until the whole client reconnects. Both endings are therefore
-     * retried, and the delay keeps a stream that keeps ending from becoming a hot
-     * loop.
+     * retried. The delay keeps a stream that keeps ending from becoming a hot loop,
+     * and grows with jitter while it does (see {@link ObservationReconnectBackoff}).
      */
     private scheduleReobserve(id: string, reducerType: Constructor, dispatcher: ReducerEventDispatcher): void {
         // A disconnect clears the registration; the reconnect re-registers every
@@ -302,16 +318,22 @@ export class Reducers implements IReducers {
             return;
         }
 
+        clearTimeout(this._reobserveTimers.get(id));
+        const delayMs = this.reconnectBackoffFor(id).nextDelayMs();
+        this._logger.debug('Waiting before re-establishing reducer observation', { reducerId: id, delayMs });
         const handle = runInBackgroundContext(() => setTimeout(() => {
-            if (!this._registered || this._disposed) {
+            this._reobserveTimers.delete(id);
+            // A reconnect in the meantime has already opened a new stream; opening another would leave one untracked.
+            if (!this._registered || this._disposed || this._observations.has(id)) {
                 return;
             }
 
             this._logger.info('Re-establishing reducer observation', { reducerId: id });
             this.startObservation(id, reducerType, dispatcher);
-        }, Reducers._reobserveDelayMs));
+        }, delayMs));
 
         handle.unref?.();
+        this._reobserveTimers.set(id, handle);
     }
 
     private getReducerReadModelIdentifier(reducerType: Constructor): string {
@@ -323,21 +345,44 @@ export class Reducers implements IReducers {
         return (reducerType as Function).name;
     }
 
-    private async observeReducer(observation: ReducerObservation): Promise<void> {
+    private async observeReducer(observation: ReducerObservation): Promise<ObservationStreamOutcome> {
         const { id, reducerType } = observation;
         const queue = new AsyncQueue<ReducerMessage>();
         const controller = new AbortController();
         this._queues.set(id, queue);
         this._observations.set(id, controller);
+        const connectionId = this._lifecycle.connectionId;
+        const backoff = this.reconnectBackoffFor(id);
+        backoff.streamOpened();
 
-        queue.send(this.createRegistrationMessage(observation));
+        queue.send(this.createRegistrationMessage(observation, connectionId));
 
+        let iterator: AsyncIterator<ReduceOperationMessage> | undefined;
+        let streamFinished = false;
         try {
             const reducerInstance = this._artifactActivator ? undefined : new (reducerType as new () => Record<string, Function>)();
             if (reducerInstance) observation.dispatcher.validateInstance(reducerInstance);
             const session: ReducerObservationSession = { ...observation, signal: controller.signal, reducerInstance };
 
-            for await (const operation of this._connection.reducers.observe(queue, { signal: controller.signal })) {
+            // Pull each message by hand so only a failure of the stream itself is classified: an error from a
+            // reducer is the reducer's failure, and must never make the whole client reconnect.
+            iterator = this._connection.reducers.observe(queue, { signal: controller.signal })[Symbol.asyncIterator]();
+            for (;;) {
+                let next: IteratorResult<ReduceOperationMessage>;
+                try {
+                    next = await iterator.next();
+                } catch (streamError) {
+                    streamFinished = true;
+                    return this.streamFailed(id, queue, controller.signal, connectionId, streamError);
+                }
+
+                if (next.done) {
+                    streamFinished = true;
+                    break;
+                }
+
+                const operation = next.value;
+                backoff.streamDelivered();
                 const partitions = partitionsOfOperation(operation);
                 const notification = this.beginReduction(session, operation, partitions);
                 await this.notifyReplayTransition(session, operation, notification);
@@ -347,13 +392,23 @@ export class Reducers implements IReducers {
                     partition => this.reducePartition(session, partition, notification, context));
                 queue.send(toResultMessage(operation, partitions, outcomes));
             }
-        } catch (err) {
-            if (!this._queues.has(id)) {
+
+            if (this._queues.get(id) !== queue) {
                 this._logger.debug('Reducer observation stream closed cleanly', { reducerId: id });
-            } else {
-                this._logger.error('Reducer observation stream ended unexpectedly', { reducerId: id, error: err });
+                return 'superseded';
             }
+
+            return 'ended';
+        } catch (handlerError) {
+            if (this._queues.get(id) !== queue) return 'superseded';
+            this._logger.error('Reducer observation failed while handling a delivery', { reducerId: id, error: handlerError });
+            return 'ended';
         } finally {
+            if (!streamFinished) {
+                controller.abort();
+                void iterator?.return?.()?.catch(() => undefined);
+            }
+
             // Only retire our own queue: a reconnect can already have replaced it,
             // and deleting the new one would leave that observation untracked and
             // leak a duplicate stream on every reconnect.
@@ -365,11 +420,34 @@ export class Reducers implements IReducers {
         }
     }
 
-    private createRegistrationMessage({ id, reducerType, eventSequenceId, readModelName, dispatcher }: ReducerObservation): ReducerMessage {
+    private streamFailed(id: string, queue: AsyncQueue<ReducerMessage>, signal: AbortSignal, connectionId: string, error: unknown): ObservationStreamOutcome {
+        // A late error from a stream that a disconnect, a dispose or a newer stream replaced says nothing about now.
+        if (this._queues.get(id) !== queue) {
+            this._logger.debug('Reducer observation stream closed cleanly', { reducerId: id });
+            return 'superseded';
+        }
+
+        const kind = classifyStreamError(error);
+        if (kind === StreamErrorKind.Cancelled && signal.aborted) return 'stopped';
+        if (kind === StreamErrorKind.SessionLost) {
+            // The kernel lost this client's registration. Opening the same stream with the same connection id
+            // can never work, so reconnect the whole client, which re-registers every reducer.
+            this._logger.warn('Reducer observation stream lost its session; reconnecting the client', { reducerId: id, error });
+            this._lifecycle.requestReconnect(connectionId, 'reducer-session-lost', error,
+                handlerError => this._logger.error('Reconnect request handler failed', { reducerId: id, error: handlerError }));
+            return 'sessionLost';
+        }
+
+        this._logger.error('Reducer observation stream ended unexpectedly', { reducerId: id, error });
+        return 'ended';
+    }
+
+    private createRegistrationMessage({ id, reducerType, eventSequenceId, readModelName, dispatcher }: ReducerObservation,
+        connectionId: string): ReducerMessage {
         return {
             Content: {
                 Value0: {
-                    ConnectionId: this._lifecycle.connectionId,
+                    ConnectionId: connectionId,
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     Reducer: {
@@ -596,6 +674,8 @@ export class Reducers implements IReducers {
     }
 
     private disconnectAll(): void {
+        for (const timer of this._reobserveTimers.values()) clearTimeout(timer);
+        this._reobserveTimers.clear();
         for (const controller of this._observations.values()) controller.abort();
         for (const queue of this._queues.values()) queue.complete();
         this._observations.clear();

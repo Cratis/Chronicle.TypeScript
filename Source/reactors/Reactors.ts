@@ -6,6 +6,7 @@ import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import { Constructor } from '@cratis/fundamentals';
 import { EventGenerationDelivery, ReactorMessage } from '@cratis/chronicle.contracts';
+import type { EventsToObserve } from '@cratis/chronicle.contracts';
 import { IClientArtifactsProvider } from '../artifacts/index.js';
 import { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
@@ -29,6 +30,9 @@ import type { ReactorServices } from './ReactorServices.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
 import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
+import { ObservationReconnectBackoff, type ObservationReconnectBackoffOptions } from '../observation/ObservationReconnectBackoff.js';
+import { classifyStreamError, StreamErrorKind } from '../observation/classifyStreamError.js';
+import type { ObservationStreamOutcome } from '../observation/ObservationStreamOutcome.js';
 
 /** Expression used to partition reactor observations by event source ID. */
 const EVENT_SOURCE_ID_KEY = '$eventSourceId';
@@ -96,15 +100,14 @@ class AsyncQueue<T> {
  * with the Chronicle Kernel via bidirectional gRPC streaming.
  */
 export class Reactors implements IReactors {
-    /** How long to wait before re-establishing an observation whose stream ended. */
-    private static readonly _reobserveDelayMs = 2000;
-
     private readonly _logger: ReturnType<typeof createLogger>;
     private readonly _lifecycle: ConnectionLifecycle;
     private readonly _unsubscribeDisconnected: () => void;
     private readonly _reactors = new Map<string, Constructor>();
     private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();
     private readonly _observations = new Map<string, AbortController>();
+    private readonly _reconnectBackoffs = new Map<string, ObservationReconnectBackoff>();
+    private readonly _reobserveTimers = new Map<string, ReturnType<typeof setTimeout>>();
     private _registered = false;
     private _disposed = false;
 
@@ -116,6 +119,11 @@ export class Reactors implements IReactors {
      * @param _namespace - The namespace within the event store.
      * @param lifecycle - The connection lifecycle used to react to disconnect events.
      * @param _eventLog - The event log used to append side-effect events a reactor handler returns.
+     * @param _resultHandler - Optional handler for values a reactor handler returns.
+     * @param _eventStore - Optional event store handed to reactor handlers.
+     * @param _artifactActivator - Optional activator creating reactor instances.
+     * @param _skipKeepAlive - Whether the client runs without a keep-alive, which refuses client-hosted reactors.
+     * @param _reconnectBackoff - How a reactor waits before opening its observation stream again after it ended.
      */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
@@ -127,7 +135,8 @@ export class Reactors implements IReactors {
         private readonly _resultHandler?: ReactorResultHandler,
         private readonly _eventStore?: IEventStore,
         private readonly _artifactActivator?: ClientArtifactsActivator,
-        private readonly _skipKeepAlive: boolean = false
+        private readonly _skipKeepAlive: boolean = false,
+        private readonly _reconnectBackoff: ObservationReconnectBackoffOptions = {}
     ) {
         this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
         this._lifecycle = lifecycle;
@@ -144,6 +153,7 @@ export class Reactors implements IReactors {
         this._disposed = true;
         this._registered = false;
         this.disconnectAll();
+        this._reconnectBackoffs.clear();
     }
 
     /** @inheritdoc */
@@ -210,13 +220,23 @@ export class Reactors implements IReactors {
         eventTypes: ReactorEventTypeEntry[],
         validateInstance: (instance: object) => void
     ): Promise<void> {
+        let outcome: ObservationStreamOutcome = 'ended';
         try {
-            await this.observeReactor(id, reactorType, eventSequenceId, eventTypes, validateInstance);
+            outcome = await this.observeReactor(id, reactorType, eventSequenceId, eventTypes, validateInstance);
         } catch (error) {
             this._logger.error('Reactor observation loop exited with error', { reactorId: id, error });
         }
 
-        this.scheduleReobserve(id, reactorType, eventTypes, validateInstance);
+        if (outcome === 'ended') this.scheduleReobserve(id, reactorType, eventTypes, validateInstance);
+    }
+
+    private reconnectBackoffFor(id: string): ObservationReconnectBackoff {
+        let backoff = this._reconnectBackoffs.get(id);
+        if (!backoff) {
+            backoff = new ObservationReconnectBackoff(this._reconnectBackoff);
+            this._reconnectBackoffs.set(id, backoff);
+        }
+        return backoff;
     }
 
     /**
@@ -225,8 +245,9 @@ export class Reactors implements IReactors {
      * The stream ending without an error is not proof that all is well — the kernel
      * closes a cross-store (inbox) reactor's stream rather than tailing it forever,
      * so a reactor that does not re-subscribe there silently stops observing until
-     * the whole client reconnects. Both endings are therefore retried, and the delay
-     * keeps a stream that keeps ending from becoming a hot loop.
+     * the whole client reconnects. Both endings are therefore retried. The delay keeps
+     * a stream that keeps ending from becoming a hot loop, and grows with jitter while
+     * it does (see {@link ObservationReconnectBackoff}).
      */
     private scheduleReobserve(id: string, reactorType: Constructor, eventTypes: ReactorEventTypeEntry[], validateInstance: (instance: object) => void): void {
         // A disconnect clears the registration; the reconnect re-registers every
@@ -235,16 +256,22 @@ export class Reactors implements IReactors {
             return;
         }
 
+        clearTimeout(this._reobserveTimers.get(id));
+        const delayMs = this.reconnectBackoffFor(id).nextDelayMs();
+        this._logger.debug('Waiting before re-establishing reactor observation', { reactorId: id, delayMs });
         const handle = runInBackgroundContext(() => setTimeout(() => {
-            if (!this._registered || this._disposed) {
+            this._reobserveTimers.delete(id);
+            // A reconnect in the meantime has already opened a new stream; opening another would leave one untracked.
+            if (!this._registered || this._disposed || this._observations.has(id)) {
                 return;
             }
 
             this._logger.info('Re-establishing reactor observation', { reactorId: id });
             this.startObservation(id, reactorType, eventTypes, validateInstance);
-        }, Reactors._reobserveDelayMs));
+        }, delayMs));
 
         handle.unref?.();
+        this._reobserveTimers.set(id, handle);
     }
 
     private async observeReactor(
@@ -253,17 +280,20 @@ export class Reactors implements IReactors {
         eventSequenceId: string,
         eventTypes: ReactorEventTypeEntry[],
         validateInstance: (instance: object) => void
-    ): Promise<void> {
+    ): Promise<ObservationStreamOutcome> {
         const batchMethods = getReactorBatchMethods(reactorType, this._clientArtifacts.eventTypes);
         const queue = new AsyncQueue<ReactorMessage>();
         const controller = new AbortController();
         this._queues.set(id, queue);
         this._observations.set(id, controller);
+        const connectionId = this._lifecycle.connectionId;
+        const backoff = this.reconnectBackoffFor(id);
+        backoff.streamOpened();
 
         queue.send({
             Content: {
                 Value0: {
-                    ConnectionId: this._lifecycle.connectionId,
+                    ConnectionId: connectionId,
                     EventStore: this._eventStoreName,
                     Namespace: this._namespace,
                     Reactor: {
@@ -290,6 +320,8 @@ export class Reactors implements IReactors {
             }
         });
 
+        let iterator: AsyncIterator<EventsToObserve> | undefined;
+        let streamFinished = false;
         try {
             const reactorInstance = this._artifactActivator ? undefined : new (reactorType as new () => Record<string, Function>)();
             if (reactorInstance) validateInstance(reactorInstance);
@@ -304,17 +336,44 @@ export class Reactors implements IReactors {
                 logger: this._logger, connectionLogger: this._connection.logger
             });
 
-            for await (const eventsToObserve of this._connection.reactors.observe(queue, { signal: controller.signal })) {
-                const result = await dispatcher.dispatch(eventsToObserve);
+            // Pull each message by hand so only a failure of the stream itself is classified: an error from a
+            // handler is the handler's failure, and must never make the whole client reconnect.
+            iterator = this._connection.reactors.observe(queue, { signal: controller.signal })[Symbol.asyncIterator]();
+            for (;;) {
+                let next: IteratorResult<EventsToObserve>;
+                try {
+                    next = await iterator.next();
+                } catch (streamError) {
+                    streamFinished = true;
+                    return this.streamFailed(id, queue, controller.signal, connectionId, streamError);
+                }
+
+                if (next.done) {
+                    streamFinished = true;
+                    break;
+                }
+
+                backoff.streamDelivered();
+                const result = await dispatcher.dispatch(next.value);
                 queue.send({ Content: { Value0: undefined, Value1: result } });
             }
-        } catch (err) {
-            if (!this._queues.has(id)) {
+
+            if (this._queues.get(id) !== queue) {
                 this._logger.debug('Reactor observation stream closed cleanly', { reactorId: id });
-            } else {
-                this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error: err });
+                return 'superseded';
             }
+
+            return 'ended';
+        } catch (handlerError) {
+            if (this._queues.get(id) !== queue) return 'superseded';
+            this._logger.error('Reactor observation failed while handling a delivery', { reactorId: id, error: handlerError });
+            return 'ended';
         } finally {
+            if (!streamFinished) {
+                controller.abort();
+                void iterator?.return?.()?.catch(() => undefined);
+            }
+
             // Only retire our own queue: a reconnect can already have replaced it,
             // and deleting the new one would leave that observation untracked and
             // leak a duplicate stream on every reconnect.
@@ -326,7 +385,31 @@ export class Reactors implements IReactors {
         }
     }
 
+    private streamFailed(id: string, queue: AsyncQueue<ReactorMessage>, signal: AbortSignal, connectionId: string, error: unknown): ObservationStreamOutcome {
+        // A late error from a stream that a disconnect, a dispose or a newer stream replaced says nothing about now.
+        if (this._queues.get(id) !== queue) {
+            this._logger.debug('Reactor observation stream closed cleanly', { reactorId: id });
+            return 'superseded';
+        }
+
+        const kind = classifyStreamError(error);
+        if (kind === StreamErrorKind.Cancelled && signal.aborted) return 'stopped';
+        if (kind === StreamErrorKind.SessionLost) {
+            // The kernel lost this client's registration. Opening the same stream with the same connection id
+            // can never work, so reconnect the whole client, which re-registers every reactor.
+            this._logger.warn('Reactor observation stream lost its session; reconnecting the client', { reactorId: id, error });
+            this._lifecycle.requestReconnect(connectionId, 'reactor-session-lost', error,
+                handlerError => this._logger.error('Reconnect request handler failed', { reactorId: id, error: handlerError }));
+            return 'sessionLost';
+        }
+
+        this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error });
+        return 'ended';
+    }
+
     private disconnectAll(): void {
+        for (const timer of this._reobserveTimers.values()) clearTimeout(timer);
+        this._reobserveTimers.clear();
         for (const controller of this._observations.values()) controller.abort();
         for (const queue of this._queues.values()) queue.complete();
         this._observations.clear();
