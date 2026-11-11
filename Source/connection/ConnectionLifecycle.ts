@@ -72,12 +72,30 @@ export class ConnectionLifecycle {
     /**
      * Asks the whole client to drop its session and reconnect with a new connection id, for instance because
      * the kernel no longer knows the current one.
+     *
+     * A request about a connection id that has already been replaced is ignored: the session it reports on is
+     * gone, and the observer that reported it is opened again by the reconnect that replaced it.
+     * @param connectionId - The connection id of the session the request is about.
      * @param reason - Why the reconnect is requested.
      * @param error - The error behind the request.
+     * @param onError - Called with the error when a handler throws.
      */
-    requestReconnect(reason: string, error: unknown): void {
-        if (this._failure) return;
-        for (const handler of this._onReconnectRequested) handler(reason, error);
+    requestReconnect(connectionId: string, reason: string, error: unknown, onError: (error: unknown) => void): void {
+        if (this._failure || connectionId !== this._connectionId) return;
+        for (const handler of this._onReconnectRequested) {
+            try {
+                handler(reason, error);
+            } catch (handlerError) {
+                onError(handlerError);
+            }
+        }
+    }
+
+    /**
+     * Replaces the connection id, so the next session is registered with one the kernel has not seen.
+     */
+    renewConnectionId(): void {
+        this._connectionId = Guid.create().toString();
     }
 
     /** Registers a callback for a terminal connection failure. */
@@ -109,7 +127,7 @@ export class ConnectionLifecycle {
     async disconnected(onError: (error: unknown) => void): Promise<void> {
         this._isConnected = false;
         await Promise.all([...this._onDisconnected].map(handler => this.invokeHandler(handler, onError)));
-        this._connectionId = Guid.create().toString();
+        this.renewConnectionId();
     }
 
     private async invokeHandler(handler: () => Promise<void>, onError: (error: unknown) => void): Promise<void> {

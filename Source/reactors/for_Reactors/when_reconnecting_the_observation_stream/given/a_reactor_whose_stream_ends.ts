@@ -11,6 +11,7 @@ import type { ChronicleConnection } from '../../../../connection/ChronicleConnec
 import type { IClientArtifactsProvider } from '../../../../artifacts/IClientArtifactsProvider.js';
 import type { IEventLog } from '../../../../eventSequences/IEventLog.js';
 import type { IEventStore } from '../../../../IEventStore.js';
+import { a_scripted_stream, type StreamScript } from '../../../../observation/for_ObservationReconnectBackoff/given/a_scripted_stream.js';
 
 @eventType('reconnecting-reactor-item')
 class Item {}
@@ -18,11 +19,7 @@ class Item {}
 @reactor('reconnecting-reactor')
 class Observer { item() {} }
 
-/** How one observation stream behaves: what it delivers before it ends, and the error it ends with, if any. */
-export interface StreamScript {
-    deliver?: EventsToObserve[];
-    error?: unknown;
-}
+export type { StreamScript };
 
 /**
  * A reactor whose observation streams follow a script, on fake timers and a jitter of zero, so every wait is
@@ -30,32 +27,39 @@ export interface StreamScript {
  */
 export class a_reactor_whose_stream_ends {
     readonly lifecycle = new ConnectionLifecycle();
-    readonly openedAt: number[] = [];
     readonly reconnectRequests: string[] = [];
-    readonly scripts: StreamScript[] = [];
+    readonly stream = new a_scripted_stream<EventsToObserve>();
     readonly reactors: Reactors;
 
     constructor() {
         vi.useFakeTimers();
-        const self = this;
-        async function* observe(): AsyncGenerator<EventsToObserve> {
-            self.openedAt.push(Date.now());
-            const script = self.scripts.shift() ?? {};
-            for (const delivery of script.deliver ?? []) yield delivery;
-            if (script.error) throw script.error;
-        }
-
         this.lifecycle.onReconnectRequested(reason => this.reconnectRequests.push(reason));
         const artifacts = { eventTypes: [Item], reactors: [Observer], reducers: [], readModels: [], seeders: [], constraints: [],
             projections: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: [] } as IClientArtifactsProvider;
-        this.reactors = new Reactors(artifacts, { reactors: { observe } } as unknown as ChronicleConnection, 'store', 'Default',
-            this.lifecycle, {} as IEventLog, undefined, { readModels: {} } as IEventStore, undefined, false,
+        this.reactors = new Reactors(artifacts, { reactors: { observe: this.stream.observe } } as unknown as ChronicleConnection,
+            'store', 'Default', this.lifecycle, {} as IEventLog, undefined, { readModels: {} } as IEventStore, undefined, false,
             { now: () => Date.now(), nextJitter: () => 0 });
+    }
+
+    /** Gets the scripts the next streams follow. */
+    get scripts(): StreamScript<EventsToObserve>[] {
+        return this.stream.scripts;
+    }
+
+    /** Gets when each stream was opened. */
+    get openedAt(): number[] {
+        return this.stream.openedAt;
     }
 
     /** Gets the wait before each stream after the first was opened. */
     get waits(): number[] {
-        return this.openedAt.slice(1).map((at, index) => at - this.openedAt[index]);
+        return this.stream.waits;
+    }
+
+    /** Drops the session and registers again, as a client reconnect does. */
+    async reconnect(): Promise<void> {
+        await this.lifecycle.disconnected(() => undefined);
+        await this.reactors.register();
     }
 
     dispose(): void {

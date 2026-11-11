@@ -12,7 +12,7 @@ describe('when reconnecting a reducer observation stream and the kernel lost the
 
     beforeEach(async () => {
         context = new a_reducer_whose_stream_ends();
-        context.endings.push(new ClientError('/Reducers/Observe', Status.UNKNOWN, 'ClientIsNotConnected: connection is not connected'));
+        context.scripts.push({ error: new ClientError('/Reducers/Observe', Status.UNKNOWN, 'ClientIsNotConnected: connection is not connected') });
         await context.reducers.register();
         await vi.advanceTimersByTimeAsync(120_000);
     });

@@ -12,7 +12,7 @@ describe('when reconnecting a reducer observation stream and streams keep ending
 
     beforeEach(async () => {
         context = new a_reducer_whose_stream_ends();
-        context.endings.push(undefined, new ClientError('/Reducers/Observe', Status.UNAVAILABLE, 'kernel stopping'));
+        context.scripts.push({}, { error: new ClientError('/Reducers/Observe', Status.UNAVAILABLE, 'kernel stopping') });
         await context.reducers.register();
         await vi.advanceTimersByTimeAsync(60_000);
     });
