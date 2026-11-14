@@ -86,11 +86,12 @@ edgeRemovedWith(MemberRemoved, { sourceKey: 'personId', targetKey: 'groupId' })(
  * Creates a provider that finds only the given graph artifacts.
  * @param graphElements - The nodes and edges.
  * @param graphProjections - The fluent graph projections.
+ * @param graphViews - The views over graphs.
  * @returns The provider.
  */
-export function artifactsWith(graphElements: Constructor[], graphProjections: Constructor[] = []): IClientArtifactsProvider {
+export function artifactsWith(graphElements: Constructor[], graphProjections: Constructor[] = [], graphViews: Constructor[] = []): IClientArtifactsProvider {
     return {
         eventTypes: [], readModels: [], reactors: [], reducers: [], seeders: [], constraints: [], projections: [],
-        webhooks: [], eventTypeMigrations: [], globalForHandlers: [], graphElements, graphProjections
+        webhooks: [], eventTypeMigrations: [], globalForHandlers: [], graphElements, graphProjections, graphViews
     };
 }
