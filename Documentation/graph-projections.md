@@ -127,6 +127,70 @@ export class Visited {
 }
 ```
 
+## Read a graph with views
+
+A view is a read model over a graph, anchored at one node label. Declare it with decorators next to the nodes and edges it reads, and name the graph with `@graph`. Views only read: a view is never a node or an edge, and it does not change how the graph is projected.
+
+```typescript
+@graph('Organization')
+@viewOf(() => Group)
+export class GroupSummary {
+    @viewKey() id = '';
+    @viewProperty() name = '';
+}
+
+@graph('Organization')
+@viewOf(() => Group)
+export class GroupMembership {
+    @viewKey() id = '';
+    @viewProperty() name = '';
+    @fromEdge() since = new Date();
+}
+
+@graph('Organization')
+@viewOf(() => Person)
+export class PersonWithGroups {
+    @viewKey() id = '';
+    @viewProperty() name = '';
+    @follows(() => MemberOf, () => GroupMembership) groups: GroupMembership[] = [];
+}
+```
+
+Every member of a view carries one of these decorators, and members are read in the order they are declared. A field without one is not a member.
+
+- `@viewOf(() => Node, { name })` anchors the view at a node. The classes are given as functions, so they can be declared in any order. The name of the view defaults to the name of the class and is unique in a graph.
+- `@viewKey()` reads the key of the node, whatever the node calls it. `@viewProperty(source?)` reads another property of the node, matched without regard to case by the name of the member, or by `source`.
+- `@follows(edge, view, options)` follows an edge to a nested view. `edge` is the edge class as a function, or the edge type string such as `'MEMBER_OF'`. `view` is the nested view class as a function. The direction is derived from the labels of the edge. An edge that starts and ends at the same label needs `{ direction: GraphEdgeDirection.Outgoing }` or `Incoming`.
+- TypeScript erases the element type of a list, so the cardinality is declared. A relation yields a list by default, and `{ cardinality: GraphViewCardinality.One }` yields a single item, which is null when nothing is related.
+- `@fromEdge(source?)` reads a property of the edge that was followed. It is valid only in a view that is the target of relations of exactly one edge type.
+
+Views are found like every other artifact, and validated when the client discovers its graphs. The definition of the views of each graph is in `eventStore.graphs.viewDefinitions`. The definitions are the shared form every Cratis client emits for the same views, and `GraphViewDefinitionSerializer` writes them as canonical JSON:
+
+```typescript
+const definition = eventStore.graphs.viewDefinitions?.find(candidate => candidate.graph === 'Organization');
+const json = new GraphViewDefinitionSerializer().serialize(definition!);
+```
+
+A view that breaks a rule is reported in `eventStore.graphs.failures` with an error that carries its `reason`, and the other graphs are still registered. The definition of a graph with an invalid view is withheld as a whole, because a view is read together with the views it nests. Graphs and models that do not use views behave exactly as before.
+
+| Reason | Raised when |
+| --- | --- |
+| `ViewRootNotANode` | the view is anchored at a type that is not a node of its graph |
+| `ViewIsAlsoSchema` | the view class is also a node or an edge |
+| `DuplicateViewName` | two views of a graph have the same name |
+| `UnknownNodeProperty` | a property member names a property the node does not declare |
+| `UnknownEdge` | a relation follows an edge the graph does not declare |
+| `UnknownEdgeProperty` | an edge property member names a property the edge does not declare |
+| `EdgeNotIncidentOnRoot` | the edge does not start or end at the root of the view, or the stated direction is not one it can be followed in |
+| `AmbiguousDirection` | a self edge is followed without a direction |
+| `TargetLabelMismatch` | the nested view is not anchored at the label at the far end of the edge |
+| `RelationTargetNotAView` | a relation yields a class that is not a view of the graph |
+| `RecursiveView` | a view contains itself, directly or through other views |
+| `EdgePropertyViewNotUsedAsTarget` | a view reads edge properties and no relation yields it |
+| `EdgePropertyViewSharedAcrossEdges` | a view reads edge properties and relations of more than one edge type yield it |
+
+The TypeScript client declares, validates and describes views. It does not execute reads yet: reading a view needs a host stack that is not provided for TypeScript, so the definitions are not registered with the kernel and nothing queries the graph for you.
+
 ## What the client checks
 
 A graph that cannot work is not registered. The client reports the error, with the node or edge it concerns, in `eventStore.graphs.failures` and in its log, and registers the other graphs. A graph with a failing node or edge is left out as a whole, because a replay would otherwise sweep away what the missing node or edge left behind. The errors are exported from `@cratis/chronicle`:
@@ -168,6 +232,6 @@ const client = new ChronicleClient(options);
 ## What the TypeScript client does not do yet
 
 - Naming a sink configuration for a graph. The client registers the sink type only, and the kernel uses its default configuration for it.
-- Reading the graph. Applications read it with the engine driver, as the shared page describes.
+- Reading the graph, including reading a view. Applications read it with the engine driver, as the shared page describes; the client only declares, validates and describes views.
 - A test harness. `GraphScenario` is not available, so test a graph by asserting the definition it registers, for example from `eventStore.graphs.registrations`.
 - Numbers in the graph schema are written as `number`, as in every other schema of this client. The .NET client writes the format of its CLR type, such as `integer` with `int32`.
