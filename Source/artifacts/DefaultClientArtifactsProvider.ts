@@ -98,4 +98,9 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     get graphProjections(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.GraphProjection);
     }
+
+    /** @inheritdoc */
+    get graphViews(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.GraphView);
+    }
 }

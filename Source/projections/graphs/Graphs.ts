@@ -22,6 +22,10 @@ import { getEdgeMetadata } from './edge.js';
 import { getGraphProjectionMetadata } from './graphProjection.js';
 import { getNodeMetadata } from './node.js';
 import { ModelBoundGraphReader } from './ModelBoundGraphReader.js';
+import type { GraphViewDefinition } from './views/GraphViewDefinition.js';
+import { GraphViewDefinitionBuilder } from './views/GraphViewDefinitionBuilder.js';
+import { getViewOfMetadata } from './views/viewOf.js';
+import { ViewRootNotANode } from './views/ViewRootNotANode.js';
 
 interface DeclaredGraph {
     readonly source: Constructor;
@@ -37,6 +41,7 @@ export class Graphs implements IGraphs {
     private readonly _failures = new Map<Constructor, Error>();
     private readonly _logger: ReturnType<typeof createLogger>;
     private _registrations: readonly GraphRegistration[] = [];
+    private _viewDefinitions: readonly GraphViewDefinition[] = [];
 
     /**
      * Creates a new {@link Graphs} instance.
@@ -60,6 +65,11 @@ export class Graphs implements IGraphs {
     }
 
     /** @inheritdoc */
+    get viewDefinitions(): readonly GraphViewDefinition[] {
+        return this._viewDefinitions;
+    }
+
+    /** @inheritdoc */
     get failures(): ReadonlyMap<Constructor, Error> {
         return this._failures;
     }
@@ -70,17 +80,20 @@ export class Graphs implements IGraphs {
         const builder = new GraphDefinitionBuilder();
         const registrations: GraphRegistration[] = [];
         const names = new Set<string>();
+        const models = new Map<string, GraphModel>();
         for (const declared of [...this.modelBoundGraphs(), ...this.fluentGraphs()]) {
             try {
                 if (names.has(declared.model.name)) throw new GraphDeclaredMoreThanOnce(declared.model.name);
                 registrations.push(builder.build(declared.model, declared.projectionId, this._graphSinkTypeId));
                 names.add(declared.model.name);
+                models.set(declared.model.name, declared.model);
             } catch (error) {
                 this.fail(declared.source, error);
             }
         }
 
         this._registrations = registrations;
+        this._viewDefinitions = this.discoverViews(models);
         this._logger.debug('Graph discovery complete', { graphCount: registrations.length, failureCount: this._failures.size });
     }
 
@@ -147,6 +160,37 @@ export class Graphs implements IGraphs {
         }
 
         return result;
+    }
+
+    private discoverViews(models: ReadonlyMap<string, GraphModel>): GraphViewDefinition[] {
+        const byGraph = new Map<string, Constructor[]>();
+        for (const type of this._clientArtifacts.graphViews ?? []) {
+            this.tryRead(type, () => {
+                const graph = ModelBoundGraphReader.graphNameOf(type);
+                byGraph.set(graph, [...(byGraph.get(graph) ?? []), type]);
+            });
+        }
+
+        const builder = new GraphViewDefinitionBuilder();
+        const definitions: GraphViewDefinition[] = [];
+        for (const [graph, views] of byGraph) {
+            const model = models.get(graph);
+            if (model === undefined) {
+                // The graph is not registered, so a view has nothing to read. Why is reported for the graph itself.
+                for (const view of views) this.tryRead(view, () => { throw new ViewRootNotANode(view, graph, getViewOfMetadata(view)!.root()); });
+                continue;
+            }
+
+            try {
+                const result = builder.build(model, views);
+                for (const [view, failure] of result.failures) this.fail(view, failure);
+                if (result.definition !== undefined) definitions.push(result.definition);
+            } catch (error) {
+                for (const view of views) this.fail(view, error);
+            }
+        }
+
+        return definitions;
     }
 
     private tryRead(type: Constructor, read: () => void): void {

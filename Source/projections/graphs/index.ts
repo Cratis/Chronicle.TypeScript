@@ -49,3 +49,4 @@ export { GraphKeyPropertyNotFound } from './GraphKeyPropertyNotFound.js';
 export { GraphElementCannotBeReadModel } from './GraphElementCannotBeReadModel.js';
 export { GraphHasDuplicateElement } from './GraphHasDuplicateElement.js';
 export { GraphDeclaredMoreThanOnce } from './GraphDeclaredMoreThanOnce.js';
+export * from './views/index.js';
