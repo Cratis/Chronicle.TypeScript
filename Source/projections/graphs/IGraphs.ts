@@ -3,6 +3,7 @@
 
 import type { Constructor } from '@cratis/fundamentals';
 import type { GraphRegistration } from './GraphRegistration.js';
+import type { GraphViewDefinition } from './views/GraphViewDefinition.js';
 
 /**
  * Defines a system for the property graphs an application declares, with the decorators and with the fluent builder,
@@ -13,8 +14,15 @@ export interface IGraphs {
     readonly registrations: readonly GraphRegistration[];
 
     /**
-     * Gets the declarations that could not be turned into a registration, and why. One invalid graph does not
-     * take the rest of the graphs down with it.
+     * Gets the definitions of the views declared over the graphs, one per graph that has views, as found by the last
+     * call to {@link IGraphs.discover}. The definitions are not registered with the kernel. Optional so
+     * implementations written before graph views keep working.
+     */
+    readonly viewDefinitions?: readonly GraphViewDefinition[];
+
+    /**
+     * Gets the declarations that could not be turned into a registration, and why, including views that break
+     * the rules of a view. One invalid graph or view does not take the rest of the graphs down with it.
      */
     readonly failures: ReadonlyMap<Constructor, Error>;
 

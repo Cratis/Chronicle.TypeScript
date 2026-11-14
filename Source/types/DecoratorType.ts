@@ -42,5 +42,8 @@ export enum DecoratorType {
     GraphElement = 'graphElement',
 
     /** Fluent graph projection artifacts discovered through the graphProjection decorator. */
-    GraphProjection = 'graphProjection'
+    GraphProjection = 'graphProjection',
+
+    /** View artifacts over a property graph discovered through the viewOf decorator. */
+    GraphView = 'graphView'
 }

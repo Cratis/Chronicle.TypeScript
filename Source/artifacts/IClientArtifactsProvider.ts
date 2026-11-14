@@ -45,4 +45,7 @@ export interface IClientArtifactsProvider {
 
     /** Gets discovered fluent graph projection constructors. Optional so existing providers keep working. */
     readonly graphProjections?: Constructor[];
+
+    /** Gets discovered graph view constructors. Optional so existing providers keep working. */
+    readonly graphViews?: Constructor[];
 }

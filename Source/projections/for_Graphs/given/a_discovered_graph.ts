@@ -11,11 +11,12 @@ import { artifactsWith } from './organization.js';
  * @param graphElements - The nodes and edges.
  * @param graphProjections - The fluent graph projections.
  * @param sinkTypeId - The sink type of the graphs.
+ * @param graphViews - The views over graphs.
  * @returns The graphs, once discovered, and what is needed to look at what they registered.
  */
-export async function discoverGraphs(graphElements: Constructor[], graphProjections: Constructor[] = [], sinkTypeId = 'Neo4j') {
+export async function discoverGraphs(graphElements: Constructor[], graphProjections: Constructor[] = [], sinkTypeId = 'Neo4j', graphViews: Constructor[] = []) {
     const fake = aFakeConnection();
-    const graphs = new Graphs('the-store', fake.connection, artifactsWith(graphElements, graphProjections), sinkTypeId);
+    const graphs = new Graphs('the-store', fake.connection, artifactsWith(graphElements, graphProjections, graphViews), sinkTypeId);
     await graphs.discover();
     return { graphs, ...fake };
 }
