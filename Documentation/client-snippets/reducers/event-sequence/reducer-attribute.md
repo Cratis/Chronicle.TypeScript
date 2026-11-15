@@ -15,7 +15,7 @@ class ReducersEventSequenceReducerAttributeShipmentSummary {
 
 @reducer('shipment-summary', 'fulfillment-events', ReducersEventSequenceReducerAttributeShipmentSummary)
 class ReducersEventSequenceReducerAttributeShipmentSummaryReducer {
-    // Method name must be the exact camelCase of the event's class name
+    // Without @handles(EventType), the method name must be the exact camelCase of the event's class name
     reducersEventSequenceReducerAttributeShipmentDispatched(
         event: ReducersEventSequenceReducerAttributeShipmentDispatched,
         _current: ReducersEventSequenceReducerAttributeShipmentSummary | undefined
