@@ -13,8 +13,8 @@ class ReactorAccountClosed {
 
 @reactor()
 class AuditReactor {
-    // Method name must be the exact camelCase of the event's class name -
-    // Chronicle discovers handlers by name, not by parameter type.
+    // Without @handles(EventType), the method name must be the exact camelCase of the
+    // event's class name - Chronicle discovers undecorated handlers by name, not by parameter type.
     @onceOnly()
     async reactorAccountClosed(event: ReactorAccountClosed, context: EventContext): Promise<void> {
         this.writeAudit(event.accountId, context.occurred, context.eventSourceId);

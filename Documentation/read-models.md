@@ -49,7 +49,7 @@ function createChronicleOptionsReadModelNamingPolicy(): ChronicleOptions {
 }
 ```
 
-The policy changes only the container name. The identifier and display name registered with the kernel stay as they are, and `.containerName(...)` on a declarative projection still sets the read model's identifier, as it does in the .NET client; the policy then names the container from that identifier. Nothing is applied unless you set the option.
+The policy changes only the container name. The identifier and display name registered with the kernel stay as they are, and `.containerName(...)` on a declarative projection still sets the read model's identifier; the policy then names the container from that identifier. The .NET client differs: its `ContainerName(...)` keeps the read model's identifier and overrides only the container name, bypassing the naming policy. Nothing is applied unless you set the option.
 
 Chronicle and the code that reads the collection must agree on the name. Arc's MongoDB integration reads collections through its own naming policy, which pluralizes the class name by default (`User` is read from `users`), so a projected read model needs a `readModelNamingPolicy` that returns the same name. Arc's policy is configured on Arc's side and is not shared with the Chronicle client; set both so they produce the same name.
 

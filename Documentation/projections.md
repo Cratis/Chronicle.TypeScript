@@ -94,10 +94,10 @@ Earlier TypeScript clients sent child and nested `@fromAllEvents` mappings as ba
 
 ## Projection tags
 
-The client sends the tags with the projection definition. Chronicle does not store projection tags yet: its registration converter drops them (through at least 19.29.1), so they are not stored or returned; see [Chronicle issue #4512](https://github.com/Cratis/Chronicle/issues/4512). Tags do not filter received events or change in-process `ReadModelScenario` evaluation. See [Tagging projections](/chronicle/projections/tagging-projections/) for client examples.
+The client sends the tags with the projection definition. Chronicle maps them in both directions when it registers a projection and stores them with the definition. Tags do not filter received events or change in-process `ReadModelScenario` evaluation. See [Tagging projections](/chronicle/projections/tagging-projections/) for client examples.
 
 Projection registration computes `LastUpdated` from the full definition, including tags and nested mappings. After upgrading, this value changes once for every projection. The Chronicle kernel's `ProjectionDefinitionComparer` excludes `LastUpdated`, `ReadModel`, and `InitialModelState` before comparing definitions (and normalizes optional collections). A changed `LastUpdated` alone therefore does not trigger a replay; changed child mappings or `IdentifiedBy` are part of the comparison.
 
-Once the kernel preserves tags, they are part of its definition comparison: reordering tags changes nothing, but adding, removing, or changing a tag is a definition change that can replay the projection or create a replay recommendation, depending on the kernel's definition-evolution policy. For projections that already carried `@tag`/`@tags`, this also applies to the first registration after upgrading to a kernel that preserves tags.
+Tags are not part of the kernel's definition comparison: Chronicle removes them before comparing definitions, so adding, removing, reordering, or changing a tag does not replay the projection or create a replay recommendation.
 
 Apply `@tag('Analytics')` or `@tags('Analytics', 'Reporting')` to a declarative projection class, or to the read model class for a model-bound projection. Import either decorator from `@cratis/chronicle`. Both decorator modes support repeated declarations; duplicate values are emitted once, sorted for deterministic definition hashing. For declarative projections, only tags on the projection class are sent, not tags on its read model.

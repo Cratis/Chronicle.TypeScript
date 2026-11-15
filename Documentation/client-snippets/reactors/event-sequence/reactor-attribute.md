@@ -13,8 +13,8 @@ class EventSequenceReactorAttributeShipmentDispatched {
 
 @reactor('shipment-reactor', 'fulfillment-events')
 class EventSequenceReactorAttributeShipmentReactor {
-    // Method name must be the exact camelCase of the event's class name -
-    // Chronicle discovers handlers by name, not by parameter type.
+    // Without @handles(EventType), the method name must be the exact camelCase of the
+    // event's class name - Chronicle discovers undecorated handlers by name, not by parameter type.
     @onceOnly()
     async eventSequenceReactorAttributeShipmentDispatched(event: EventSequenceReactorAttributeShipmentDispatched, context: EventContext): Promise<void> {
         await this.notifyCarrier(event.trackingNumber);

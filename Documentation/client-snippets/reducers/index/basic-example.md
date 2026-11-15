@@ -16,8 +16,8 @@ class ReducersIndexAccountBalance {
     lastUpdated: Date = new Date(0);
 }
 
-// Handler method names must be the exact camelCase of the event's class name -
-// Chronicle discovers handlers by name, not by parameter type.
+// Without @handles(EventType), handler method names must be the exact camelCase of the
+// event's class name - Chronicle discovers undecorated handlers by name, not by parameter type.
 @reducer('', undefined, ReducersIndexAccountBalance)
 class ReducersIndexAccountBalanceReducer {
     reducersIndexDepositMade(

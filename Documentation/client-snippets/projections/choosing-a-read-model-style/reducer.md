@@ -12,8 +12,8 @@ class ChoosingStyleBookStatusReducerModel {
 
 // Handler methods receive the event, the current state, and EventContext
 // as a third argument; the context supplies the event source id.
-// The method name must be the exact camelCase of the event's class name -
-// Chronicle discovers handlers by name, not by parameter type.
+// Without @handles(EventType), the method name must be the exact camelCase of the
+// event's class name - Chronicle discovers undecorated handlers by name, not by parameter type.
 @reducer('', undefined, ChoosingStyleBookStatusReducerModel)
 class ChoosingStyleBookStatusReducer {
     choosingStyleBookRegistered(
