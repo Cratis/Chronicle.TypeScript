@@ -131,7 +131,7 @@ export class LoanNotifications {
 }
 ```
 
-Chronicle matches a handler to an event by name: `bookBorrowed` handles `BookBorrowed`. A method whose name is not the camelCase event class name is never called.
+By default, Chronicle matches a handler to an event by name: `bookBorrowed` handles `BookBorrowed`. To give a method another name, decorate it with `@handles(BookBorrowed)`; an undecorated method whose name is not the camelCase event class name is never called.
 
 ## Append and query
 

@@ -67,7 +67,7 @@ Shared `AppendOptions` accept `sourceType`, `streamType`, `streamId`, `subject`,
 
 For each dimension, an entry's value wins over the shared option. Otherwise the client omits the route or occurrence time and the kernel resolves it. Explicit empty route strings are sent unchanged; they ask the kernel to resolve that dimension, not to use the shared option. Explicit `Default` strings and source-based stream identifiers remain exact values.
 
-Subject policy is unchanged: entry subject, then shared subject, then the event source identifier. Tags remain additive across the event type, entry, and shared options. Reactor bare-event returns retain the triggering stream type and identifier; rich returns retain their explicit metadata.
+Subject policy is unchanged: entry subject, then shared subject, then the event's `@subject()` property value, then the event source identifier. Tags remain additive across the event type, entry, and shared options. Reactor bare-event returns retain the triggering stream type and identifier; rich returns retain their explicit metadata.
 
 ## Keep concurrency scopes separate
 

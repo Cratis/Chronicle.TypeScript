@@ -61,7 +61,7 @@ The client supports two authentication methods. Use one per connection string.
 - **Client credentials.** Put the client id and secret in the user-info part: `chronicle://my-service:<secret>@chronicle.example.com`. The client requests an OAuth access token from `/connect/token` on the server it connects to, using TLS unless `disableTls=true`, and sends it as a bearer token on every call.
 - **API key.** Add `apiKey=<key>`. The client sends it as `api-key` metadata on every call.
 
-A connection string with a client id and secret and an API key fails. A client id without a secret fails too, unless an API key is present, in which case the client id is ignored.
+When a connection string has both an API key and a client id and secret, the API key wins: the client sends the API key and ignores the client credentials. A client id without a secret fails, unless an API key is present, in which case the client id is ignored.
 
 :::caution[No credentials means development credentials]
 A connection string without credentials does not fail. The client falls back to the public development client id and secret, which work only against a development kernel. A server that rejects them fails the connection with `RejectedChronicleCredentials`; see [How the client connects and recovers](#how-the-client-connects-and-recovers).
@@ -177,7 +177,7 @@ The TypeScript client and the Chronicle kernel have separate version numbers, an
 
 Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
 
-There is no published compatibility matrix. The kernel-backed specifications use the `cratis/chronicle:19.26.2-development` image. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
+There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.30.0-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
 
 ## Shut down
 
