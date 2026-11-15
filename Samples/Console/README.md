@@ -7,7 +7,7 @@ A runnable sample demonstrating the Chronicle TypeScript client.
 1. Appends domain events (`EmployeeHired`, `EmployeeEmailSet`, `EmployeePromoted`, `EmployeeAddressSet`, `EmployeeMoved`) to a Chronicle event store
 2. Reacts to those events via `HrNotificationReactor` (logs notifications), including a reactor side effect: promoting an employee appends a `PromotionRecorded` event to a separate shared `hr-audit-log` event source, by returning an `EventForEventSourceId` from the handler instead of just logging
 3. Demonstrates reducer and projection artifact discovery (`EmployeeStateReducer`, `EmployeeListProjection`, `EmployeeDetails`), including the model-bound `@count` arithmetic decorator on `EmployeeDetails.promotionCount`
-4. Reads event log state back (`getTailSequenceNumber`, `hasEventsFor`, `getForEventSourceIdAndEventTypes`) and logs available namespaces
+4. Reads event log state back (`hasEventsFor` for the seeder status, `getForEventSourceIdAndEventTypes` for the audit log and redaction) and logs the event store's name and namespace
 5. Demonstrates Unit of Work transactions with `eventLog.transactional` and `unitOfWorkManager.begin()`
 6. Queries a reducer-backed read model through `eventStore.readModels.findInstanceById(...)`
 7. Registers a discoverable `@seeder` artifact (`EmployeeSeeder`) and seeds initial employee events
@@ -33,8 +33,10 @@ Select an employee with `1`–`3`, then:
 | `D` | Redact the selected employee's last email change (single-event, **destructive**) |
 | `G` | Erase the selected employee entirely (GDPR erasure via `redactForEventSource`, **destructive**) |
 | `L` | View the HR audit log (`PromotionRecorded` events appended as a reactor side effect) |
-| `C` | Show compliance (PII) information |
+| `C` | Register a customer with PII (appends `CustomerRegistered` and `CustomerAddressUpdated`) |
+| `V` | View the customer PII read model |
 | `X` | Register an external HTTP service (bearer token) |
+| `I` | Switch the acting user (Alice Smith, Bob Jones, System) |
 | `H` or `?` | Show the keyboard menu |
 | `Q` | Quit |
 
@@ -79,11 +81,10 @@ The sample reads keyboard input, so run it in an interactive terminal. You shoul
 - Read-model lookups for the selected employee (`R` keyboard command)
 - Transactional staged appends committed as one unit (`T` keyboard command)
 - Seeder status output for initial employees
-- Event log tail/has-events information
 - Reactor logs for observed events, plus an `hr-audit-log` side-effect entry for every promotion (`L` keyboard command)
 - A read model confirmed consistent right after append via `waitForCompletion` (`W` keyboard command)
 - Confirmation of a permanent, destructive redaction (`D`/`G` keyboard commands)
-- Compliance feature information (`C` keyboard command)
+- A customer registered with PII (`C` keyboard command) and its read model (`V` keyboard command)
 - External service registration confirmation (`X` keyboard command)
 
 ## Configuration

@@ -26,8 +26,8 @@ class EventProcessingOrderSummary {
     lastUpdated = new Date();
 }
 
-// Method names must be the exact camelCase of the event's class name -
-// Chronicle discovers handlers by name, not by parameter type.
+// Without @handles(EventType), method names must be the exact camelCase of the
+// event's class name - Chronicle discovers undecorated handlers by name, not by parameter type.
 @reducer('', undefined, EventProcessingOrderSummary)
 class EventProcessingOrderSummaryReducer {
     eventProcessingOrderCreated(

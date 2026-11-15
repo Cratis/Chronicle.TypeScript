@@ -121,8 +121,10 @@ describing the page (`origin`, `partitions`, `eventCount`, first and last sequen
   unregistered event type. Order is kept per method, not across methods.
 - `@batchSize({ maxEvents, maxBytes, maxDelayMilliseconds })` on the class declares the page bounds the kernel caps.
 
-`ReactorScenario` rejects a reactor with batch methods using `UnsupportedReactorOperation`; use a kernel-backed
-specification for batch reactors.
+`ReactorScenario` delivers events to batch methods: the events of one `events(...)` call, or a page from `given.page`/`when.page`,
+reach each batch method as one batch, alongside any per-event methods. Assert reported partitions with
+`partitionOutcomes`, `shouldHaveFailed` and `shouldHaveDeferred`. Operations the scenario does not support, such as
+`replay` and `redeliver`, still throw `UnsupportedReactorOperation`; use a kernel-backed specification for those.
 
 ## Replay policies
 
