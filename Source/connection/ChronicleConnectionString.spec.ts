@@ -177,6 +177,91 @@ describe('ChronicleConnectionStringBuilder', () => {
     });
 });
 
+describe('ChronicleConnectionStringBuilder options', () => {
+    describe('when parsing caCertificatePath', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?caCertificatePath=%2Fetc%2Fca.pem');
+        it('should have the decoded path', () => expect(builder.caCertificatePath).toBe('/etc/ca.pem'));
+    });
+
+    describe('when caCertificatePath holds an at sign', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?caCertificatePath=%2Fhome%2Fme@corp%2Fca.pem');
+        it('should keep it', () => expect(builder.caCertificatePath).toBe('/home/me@corp/ca.pem'));
+    });
+
+    describe('when parsing auth=none together with credentials', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://user:pass@host:35000?auth=none');
+        it('should be flagged as no authentication', () => expect(builder.noAuthentication).toBe(true));
+        it('should beat the credentials', () => expect(builder.authenticationMode).toBe(AuthenticationMode.None));
+    });
+
+    describe('when auth=none is spelled in another case', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?AUTH=None');
+        it('should still be no authentication', () => expect(builder.noAuthentication).toBe(true));
+    });
+
+    describe('when there are no credentials', () => {
+        it('should use the development client credentials', () =>
+            expect(new ChronicleConnectionStringBuilder('chronicle://host:35000').authenticationMode).toBe(AuthenticationMode.ClientCredentials));
+    });
+
+    describe('when only a username is given', () => {
+        it('should throw', () =>
+            expect(() => new ChronicleConnectionStringBuilder('chronicle://user@host:35000').authenticationMode).toThrow());
+    });
+
+    describe('when parsing skipCompatibilityCheck and skipKeepAlive', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?skipCompatibilityCheck=true&skipKeepAlive=true');
+        it('should skip the compatibility check', () => expect(builder.skipCompatibilityCheck).toBe(true));
+        it('should skip the keep-alive', () => expect(builder.skipKeepAlive).toBe(true));
+    });
+
+    describe('when the new flags are absent', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000');
+        it('should not skip the compatibility check', () => expect(builder.skipCompatibilityCheck).toBe(false));
+        it('should not be no authentication', () => expect(builder.noAuthentication).toBe(false));
+        it('should have no CA certificate path', () => expect(builder.caCertificatePath).toBeUndefined());
+    });
+
+    describe('when a boolean option is neither true nor false', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?skipTlsValidation=maybe');
+        it('should throw naming the option', () => expect(() => builder.skipTlsValidation).toThrow(/skipTlsValidation/));
+    });
+
+    describe('when option names are spelled in another case', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?APIKEY=abc&SkipTlsValidation=false&DISABLETLS=TRUE');
+        it('should read the api key', () => expect(builder.apiKey).toBe('abc'));
+        it('should read skipTlsValidation', () => expect(builder.skipTlsValidation).toBe(false));
+        it('should read disableTls', () => expect(builder.disableTls).toBe(true));
+    });
+
+    describe('when percent-decoding option values', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000?apiKey=a%2Bb+c%3D');
+        it('should decode once and keep a literal plus', () => expect(builder.apiKey).toBe('a+b+c='));
+    });
+
+    describe('when user information spilled an unencoded separator into the query', () => {
+        it('should throw', () =>
+            expect(() => new ChronicleConnectionStringBuilder('chronicle://user:pa?ss@host:35000')).toThrow(/percent-encoded/));
+        it('should throw for an at sign in an option that cannot hold one', () =>
+            expect(() => new ChronicleConnectionStringBuilder('chronicle://host:35000?disableTls=x@y')).toThrow(/percent-encoded/));
+    });
+
+    describe('when building credentials containing reserved characters', () => {
+        const builder = new ChronicleConnectionStringBuilder('chronicle://host:35000');
+        builder.username = 'al@ice';
+        builder.password = 'p:ss/w?rd';
+        const roundTripped = new ChronicleConnectionStringBuilder(builder.build());
+        it('should round trip the username', () => expect(roundTripped.username).toBe('al@ice'));
+        it('should round trip the password', () => expect(roundTripped.password).toBe('p:ss/w?rd'));
+    });
+
+    describe('when round tripping every option', () => {
+        const original = 'chronicle://host:35000?auth=none&disableTls=true&skipCompatibilityCheck=true&skipKeepAlive=true' +
+            '&certificatePath=%2Fc.p12&certificatePassword=pw&caCertificatePath=%2Fca.pem&custom=value';
+        it('should reproduce it', () => expect(new ChronicleConnectionStringBuilder(original).build()).toBe(original));
+    });
+});
+
 describe('ChronicleConnectionString', () => {
     describe('when parsing a connection string with multiple hosts', () => {
         const connectionString = new ChronicleConnectionString('chronicle://host1:35001,host2:35002');

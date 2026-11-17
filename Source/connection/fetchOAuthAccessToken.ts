@@ -3,6 +3,7 @@
 
 import * as http from 'http';
 import * as https from 'https';
+import { ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 
 /**
  * The shape of a successful OAuth2 token response.
@@ -41,7 +42,8 @@ export function fetchOAuthAccessToken(
     tokenEndpoint: string,
     clientId: string,
     clientSecret: string,
-    skipTlsValidation: boolean
+    skipTlsValidation: boolean,
+    tlsMaterial: ChronicleTlsMaterial = ChronicleTlsMaterial.None
 ): Promise<OAuthTokenResponse> {
     const params = new URLSearchParams();
     params.append('grant_type', 'client_credentials');
@@ -63,7 +65,7 @@ export function fetchOAuthAccessToken(
             },
             // Chain validation is skipped only when the effective skipTlsValidation is true
             // (an explicit false always requires it), matching the gRPC channel's credentials for the same connection string.
-            ...(isHttps && skipTlsValidation ? { rejectUnauthorized: false } : {})
+            ...(isHttps && (skipTlsValidation || !tlsMaterial.isEmpty) ? tlsMaterial.connectOptions(skipTlsValidation) : {})
         }, response => {
             let data = '';
 

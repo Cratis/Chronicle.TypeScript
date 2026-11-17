@@ -11,7 +11,7 @@ describe('when configuring keep alive', () => {
     it('should preserve the default', () => ChronicleOptions.development().skipKeepAlive.should.be.false);
     it('should accept the factory option', () => ChronicleOptions.development({ skipKeepAlive: true }).skipKeepAlive.should.be.true);
     for (const [query, option, expected] of [
-        ['true', undefined, true], ['true', false, true], ['false', false, false], ['false', true, true], ['TRUE', false, false]
+        ['true', undefined, true], ['true', false, true], ['false', false, false], ['false', true, true], ['TRUE', false, true]
     ] as const) {
         it(`should combine string ${query} and option ${option} with OR precedence`, () => {
             ChronicleOptions.fromConnectionString(`chronicle://localhost:35000?skipKeepAlive=${query}`, {

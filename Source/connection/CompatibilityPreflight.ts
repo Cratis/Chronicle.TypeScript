@@ -15,10 +15,18 @@ const protocolVersion = (require('@cratis/chronicle.contracts/package.json') as 
 export class CompatibilityPreflight {
     private _verification?: Promise<void>;
 
-    constructor(private readonly _connections: ConnectionServiceClient, private readonly _timeout: number) {}
+    constructor(
+        private readonly _connections: ConnectionServiceClient,
+        private readonly _timeout: number,
+        private readonly _skip: boolean = false
+    ) {}
 
     /** Shares in-flight checks and caches verdicts for this channel; transient failures can be retried. */
     verify(): Promise<void> {
+        if (this._skip) {
+            return Promise.resolve();
+        }
+
         if (!this._verification) {
             const verification = runInBackgroundContext(() => this.check()).catch(error => {
                 if (!(error instanceof IncompatibleChronicleServer) && this._verification === verification) {
