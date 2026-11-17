@@ -42,6 +42,7 @@ import { ChronicleConnectionString, type ChronicleServerAddress } from './Chroni
 import { ChronicleServerAddressResolver } from './ChronicleServerAddressResolver.js';
 import { ChronicleServices } from './ChronicleServices.js';
 import './encodeExplicitFalse.js';
+import { ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 import { CompatibilityPreflight } from './CompatibilityPreflight.js';
 import { formatServerAddress } from './formatServerAddress.js';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
@@ -114,6 +115,7 @@ export class ChronicleConnection implements ChronicleServices {
     private readonly _tokenProviders = new Map<string, ITokenProvider>();
     private readonly _addressResolver: ChronicleServerAddressResolver;
     private readonly _loadBalancerStrategy: ILoadBalancerStrategy;
+    private readonly _tlsMaterial: ChronicleTlsMaterial;
     private _isConnected = false;
     private _warnedAboutSkippedTlsValidation = false;
     private _clientsReady?: Promise<void>;
@@ -129,12 +131,15 @@ export class ChronicleConnection implements ChronicleServices {
             this._connectionString = ChronicleConnectionString.Default;
         }
 
-        if (!this._connectionString.apiKey && (!!this._connectionString.username !== !!this._connectionString.password)) {
+        if (!this._connectionString.noAuthentication && !this._connectionString.apiKey && (!!this._connectionString.username !== !!this._connectionString.password)) {
             throw new Error('Connection string must contain both username and password, or neither');
         }
 
         this._addressResolver = new ChronicleServerAddressResolver();
-        this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation);
+        // Loaded once, up front: a missing or unreadable certificate file fails the connection setup here rather
+        // than on every reconnect - or not at all until validation is switched on.
+        this._tlsMaterial = this._connectionString.loadTlsMaterial();
+        this._loadBalancerStrategy = createLoadBalancerStrategy(this._connectionString.loadBalancer, this._connectionString.skipTlsValidation, this._tlsMaterial);
 
         if (!_options.deferClientCreation) {
             this._clientsReady = this.startClientCreation();
@@ -319,14 +324,14 @@ export class ChronicleConnection implements ChronicleServices {
         const selected = await this._loadBalancerStrategy.select(candidates);
         const serverAddress = formatServerAddress(selected);
         const tokenProvider = this.createTokenProvider(selected);
-        const credentials = this._options.credentials ?? this._connectionString.createCredentials();
+        const credentials = this._options.credentials ?? this._connectionString.createCredentials(this._tlsMaterial);
 
         this._channel = createChannel(serverAddress, credentials, channelOptions);
 
         // nice-grpc invokes the last middleware first: auth retries re-enter propagation.
         const factory = createClientFactory().use(traceContextMiddleware).use(this.createAuthMiddleware(tokenProvider));
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
-        this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000);
+        this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000, this._connectionString.skipCompatibilityCheck);
         const eventSequenceFactory = factory.use(this._compatibility.middleware());
         this._services = {
             eventStores: factory.create(EventStoresDefinition, this._channel),
@@ -368,7 +373,7 @@ export class ChronicleConnection implements ChronicleServices {
         const channelHosts = this._options.credentials ? [] : remoteOnly(candidateHosts);
         // OAuth token requests (every mode except an API key) always skip validation, against
         // the explicit authority when set, otherwise the selected server.
-        const tokenHosts = this._connectionString.apiKey
+        const tokenHosts = this._connectionString.apiKey || this._connectionString.noAuthentication
             ? []
             : remoteOnly(this._options.authority ? [new URL(this._options.authority).hostname] : candidateHosts);
         if (channelHosts.length === 0 && tokenHosts.length === 0) return;
@@ -390,6 +395,11 @@ export class ChronicleConnection implements ChronicleServices {
     private createTokenProvider(selected: ChronicleServerAddress): ITokenProvider {
         const hasUsername = !!this._connectionString.username;
         const hasApiKey = !!this._connectionString.apiKey;
+
+        // Asking for no authentication is deliberate and beats anything else the connection string carries.
+        if (this._connectionString.noAuthentication) {
+            return new NoOpTokenProvider();
+        }
 
         if (hasApiKey) {
             return new NoOpTokenProvider();
@@ -426,7 +436,7 @@ export class ChronicleConnection implements ChronicleServices {
         const endpoint = `${scheme}://${authorityHost.includes(':') && !authorityHost.startsWith('[') ? `[${authorityHost}]` : authorityHost}:${authorityPort}/connect/token`;
         let provider = this._tokenProviders.get(endpoint);
         if (!provider) {
-            provider = new OAuthTokenProvider(endpoint, username, password, this._connectionString.skipTlsValidation);
+            provider = new OAuthTokenProvider(endpoint, username, password, this._connectionString.skipTlsValidation, undefined, this._tlsMaterial);
             this._tokenProviders.set(endpoint, provider);
         }
         return provider;
@@ -456,7 +466,7 @@ export class ChronicleConnection implements ChronicleServices {
                 const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
                 metadata.set('authorization', `Bearer ${token}`);
                 options.metadata = metadata;
-            } else if (connectionString.apiKey) {
+            } else if (connectionString.apiKey && !connectionString.noAuthentication) {
                 const metadata = options.metadata ? Metadata(options.metadata) : Metadata();
                 metadata.set('api-key', connectionString.apiKey);
                 options.metadata = metadata;

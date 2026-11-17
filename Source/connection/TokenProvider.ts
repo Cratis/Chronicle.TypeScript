@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 import { fetchOAuthAccessToken, OAuthTokenHttpError, type OAuthTokenResponse } from './fetchOAuthAccessToken.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 
@@ -76,6 +77,7 @@ export class OAuthTokenProvider implements ITokenProvider {
      * @param skipTlsValidation - The effective setting: `true` skips TLS certificate chain validation, `false` requires it.
      * Defaults to `true`, matching the connection string default in this release.
      * @param _fetchToken - Test-only seam replacing the OAuth2 token request.
+     * @param _tlsMaterial - The client certificate and certificate authorities the token request uses.
      */
     constructor(
         private readonly _tokenEndpoint: string,
@@ -83,7 +85,8 @@ export class OAuthTokenProvider implements ITokenProvider {
         clientSecret: string,
         skipTlsValidation: boolean = true,
         private readonly _fetchToken: () => Promise<OAuthTokenResponse> = () =>
-            fetchOAuthAccessToken(this._tokenEndpoint, clientId, clientSecret, skipTlsValidation)
+            fetchOAuthAccessToken(this._tokenEndpoint, clientId, clientSecret, skipTlsValidation, this._tlsMaterial),
+        private readonly _tlsMaterial: ChronicleTlsMaterial = ChronicleTlsMaterial.None
     ) {}
 
     async getAccessToken(): Promise<string | undefined> {

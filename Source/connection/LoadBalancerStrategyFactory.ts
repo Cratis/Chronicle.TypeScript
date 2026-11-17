@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
 import { LeastConnectionsLoadBalancerStrategy } from './LeastConnectionsLoadBalancerStrategy.js';
 import { LoadBalancerMode } from './LoadBalancerMode.js';
@@ -14,14 +15,18 @@ import { RoundRobinLoadBalancerStrategy } from './RoundRobinLoadBalancerStrategy
  * (an explicit `skipTlsValidation=false` always requires it) for strategies that probe candidates over HTTP (currently only {@link LoadBalancerMode.LeastConnections}).
  * @returns The load balancer strategy instance.
  */
-export function createLoadBalancerStrategy(mode: LoadBalancerMode, skipTlsValidation: boolean): ILoadBalancerStrategy {
+export function createLoadBalancerStrategy(
+    mode: LoadBalancerMode,
+    skipTlsValidation: boolean,
+    tlsMaterial: ChronicleTlsMaterial = ChronicleTlsMaterial.None
+): ILoadBalancerStrategy {
     switch (mode) {
         case LoadBalancerMode.RoundRobin:
             return new RoundRobinLoadBalancerStrategy();
         case LoadBalancerMode.Random:
             return new RandomLoadBalancerStrategy();
         case LoadBalancerMode.LeastConnections:
-            return new LeastConnectionsLoadBalancerStrategy(skipTlsValidation);
+            return new LeastConnectionsLoadBalancerStrategy(skipTlsValidation, undefined, tlsMaterial);
         default:
             throw new Error(`Unknown load balancer mode: ${mode}`);
     }

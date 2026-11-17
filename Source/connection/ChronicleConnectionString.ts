@@ -2,8 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import * as grpc from '@grpc/grpc-js';
+import * as tls from 'node:tls';
 import { formatServerAddress } from './formatServerAddress.js';
 import { LoadBalancerMode } from './LoadBalancerMode.js';
+import { loadTlsMaterial, type ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 
 const DEFAULT_PORT = 35000;
 const SRV_SCHEME = 'chronicle+srv';
@@ -12,6 +14,8 @@ const SRV_SCHEME = 'chronicle+srv';
  * Authentication mode for Chronicle connection.
  */
 export enum AuthenticationMode {
+    /** No authentication at all (`auth=none`, or a cleartext connection without credentials). */
+    None = 'None',
     ClientCredentials = 'ClientCredentials',
     ApiKey = 'ApiKey'
 }
@@ -105,6 +109,21 @@ export class ChronicleConnectionStringBuilder {
     private static readonly _apiKeyKey = 'apiKey';
     private static readonly _disableTlsKey = 'disableTls';
     private static readonly _skipKeepAliveKey = 'skipKeepAlive';
+    private static readonly _authKey = 'auth';
+    private static readonly _skipCompatibilityCheckKey = 'skipCompatibilityCheck';
+    private static readonly _caCertificatePathKey = 'caCertificatePath';
+    private static readonly _noAuthenticationValue = 'none';
+
+    /** Every option the builder knows, so a differently cased spelling folds to its canonical one. */
+    private static readonly _knownKeys = new Map<string, string>([
+        'apiKey', 'auth', 'skipTlsValidation', 'disableTls', 'skipCompatibilityCheck', 'skipKeepAlive',
+        'loadBalancer', 'srvNameServer', 'certificatePath', 'certificatePassword', 'caCertificatePath'
+    ].map(key => [key.toLowerCase(), key]));
+
+    /** Options whose value may legitimately hold an at sign, such as a path or a name server. */
+    private static readonly _keysThatMayHoldAtSign = new Set([
+        'apikey', 'certificatepath', 'certificatepassword', 'cacertificatepath', 'loadbalancer', 'srvnameserver'
+    ]);
     private static readonly _skipTlsValidationKey = 'skipTlsValidation';
     private static readonly _certificatePathKey = 'certificatePath';
     private static readonly _certificatePasswordKey = 'certificatePassword';
@@ -198,14 +217,24 @@ export class ChronicleConnectionStringBuilder {
     }
 
     get authenticationMode(): AuthenticationMode {
-        const hasClientCredentials = !!this.username && !!this.password;
+        const hasUsername = !!this.username;
+        const hasPassword = !!this.password;
+        const hasClientCredentials = hasUsername && hasPassword;
         const hasApiKey = !!this.apiKey;
+        const hasNoCredentials = !hasUsername && !hasPassword && !hasApiKey;
+
+        // Asking for no authentication is deliberate and beats anything else the connection string carries -
+        // credentials left in place by a shared configuration must not quietly turn the exchange back on.
+        if (this.noAuthentication) {
+            return AuthenticationMode.None;
+        }
 
         if (hasClientCredentials && hasApiKey) {
             throw new Error('Cannot specify both username/password and apiKey in the connection string');
         }
 
-        if (hasClientCredentials) {
+        // No credentials at all means the development client credentials.
+        if (hasClientCredentials || hasNoCredentials) {
             return AuthenticationMode.ClientCredentials;
         }
 
@@ -213,7 +242,24 @@ export class ChronicleConnectionStringBuilder {
             return AuthenticationMode.ApiKey;
         }
 
-        throw new Error('No authentication method specified. Provide either username/password or apiKey in the connection string');
+        throw new Error('Incomplete authentication. Provide both username and password, or an apiKey, in the connection string');
+    }
+
+    /**
+     * Whether `auth=none` is set: no authentication at all. It wins over any credentials or API key the
+     * connection string also carries.
+     */
+    get noAuthentication(): boolean {
+        return this._properties.get(ChronicleConnectionStringBuilder._authKey)?.toLowerCase() === ChronicleConnectionStringBuilder._noAuthenticationValue;
+    }
+
+    set noAuthentication(value: boolean) {
+        if (value) {
+            this._properties.set(ChronicleConnectionStringBuilder._authKey, ChronicleConnectionStringBuilder._noAuthenticationValue);
+            return;
+        }
+
+        this._properties.delete(ChronicleConnectionStringBuilder._authKey);
     }
 
     get apiKey(): string | undefined {
@@ -230,7 +276,7 @@ export class ChronicleConnectionStringBuilder {
     }
 
     get disableTls(): boolean {
-        return this._properties.get(ChronicleConnectionStringBuilder._disableTlsKey) === 'true';
+        return this.booleanOption(ChronicleConnectionStringBuilder._disableTlsKey, false);
     }
 
     set disableTls(value: boolean) {
@@ -245,8 +291,7 @@ export class ChronicleConnectionStringBuilder {
      * always requires validation. A later major release will require validation by default.
      */
     get skipTlsValidation(): boolean {
-        const raw = this._properties.get(ChronicleConnectionStringBuilder._skipTlsValidationKey);
-        return raw === undefined || raw === 'true';
+        return this.booleanOption(ChronicleConnectionStringBuilder._skipTlsValidationKey, true);
     }
 
     set skipTlsValidation(value: boolean) {
@@ -260,7 +305,7 @@ export class ChronicleConnectionStringBuilder {
 
     /** Skip the client keep-alive connection for short-lived processes. Defaults to false. */
     get skipKeepAlive(): boolean {
-        return this._properties.get(ChronicleConnectionStringBuilder._skipKeepAliveKey) === 'true';
+        return this.booleanOption(ChronicleConnectionStringBuilder._skipKeepAliveKey, false);
     }
 
     set skipKeepAlive(value: boolean) {
@@ -291,6 +336,37 @@ export class ChronicleConnectionStringBuilder {
         }
 
         this._properties.delete(ChronicleConnectionStringBuilder._certificatePasswordKey);
+    }
+
+    /**
+     * Whether to skip the server compatibility check on connect (`skipCompatibilityCheck=true`). An escape hatch
+     * for a known-safe client and kernel skew; it hides every other incompatibility too.
+     */
+    get skipCompatibilityCheck(): boolean {
+        return this.booleanOption(ChronicleConnectionStringBuilder._skipCompatibilityCheckKey, false);
+    }
+
+    set skipCompatibilityCheck(value: boolean) {
+        this._properties.set(ChronicleConnectionStringBuilder._skipCompatibilityCheckKey, value.toString());
+    }
+
+    /**
+     * The path to a PEM file with the certificate authorities the server certificate must chain to, in place of
+     * the system trust store (`caCertificatePath=`). Used only when `skipTlsValidation=false`; the file is
+     * nevertheless read when the connection is created, so a missing or unreadable file, or one without
+     * certificates, fails the connection setup.
+     */
+    get caCertificatePath(): string | undefined {
+        return this._properties.get(ChronicleConnectionStringBuilder._caCertificatePathKey);
+    }
+
+    set caCertificatePath(value: string | undefined) {
+        if (value) {
+            this._properties.set(ChronicleConnectionStringBuilder._caCertificatePathKey, value);
+            return;
+        }
+
+        this._properties.delete(ChronicleConnectionStringBuilder._caCertificatePathKey);
     }
 
     /**
@@ -342,9 +418,9 @@ export class ChronicleConnectionStringBuilder {
         let result = `${this.scheme}://`;
 
         if (this.username) {
-            result += this.username;
+            result += encodeURIComponent(this.username);
             if (this.password) {
-                result += `:${this.password}`;
+                result += `:${encodeURIComponent(this.password)}`;
             }
             result += '@';
         }
@@ -357,8 +433,16 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push(`apiKey=${encodeURIComponent(this.apiKey)}`);
         }
 
+        if (this.noAuthentication) {
+            queryParameters.push(`auth=${ChronicleConnectionStringBuilder._noAuthenticationValue}`);
+        }
+
         if (this.disableTls) {
             queryParameters.push('disableTls=true');
+        }
+
+        if (this.skipCompatibilityCheck) {
+            queryParameters.push('skipCompatibilityCheck=true');
         }
 
         this.appendSkipKeepAlive(queryParameters);
@@ -375,6 +459,10 @@ export class ChronicleConnectionStringBuilder {
             queryParameters.push(`certificatePassword=${encodeURIComponent(this.certificatePassword)}`);
         }
 
+        if (this.caCertificatePath) {
+            queryParameters.push(`caCertificatePath=${encodeURIComponent(this.caCertificatePath)}`);
+        }
+
         if (this._properties.has(ChronicleConnectionStringBuilder._loadBalancerKey)) {
             queryParameters.push(`loadBalancer=${encodeURIComponent(this.loadBalancer)}`);
         }
@@ -389,6 +477,9 @@ export class ChronicleConnectionStringBuilder {
                 key !== ChronicleConnectionStringBuilder._passwordKey &&
                 key !== ChronicleConnectionStringBuilder._schemeKey &&
                 key !== ChronicleConnectionStringBuilder._apiKeyKey &&
+                key !== ChronicleConnectionStringBuilder._authKey &&
+                key !== ChronicleConnectionStringBuilder._skipCompatibilityCheckKey &&
+                key !== ChronicleConnectionStringBuilder._caCertificatePathKey &&
                 key !== ChronicleConnectionStringBuilder._disableTlsKey &&
                 key !== ChronicleConnectionStringBuilder._skipTlsValidationKey &&
                 key !== ChronicleConnectionStringBuilder._certificatePathKey &&
@@ -405,6 +496,37 @@ export class ChronicleConnectionStringBuilder {
         }
 
         return result;
+    }
+
+    private booleanOption(key: string, defaultValue: boolean): boolean {
+        const raw = this._properties.get(key);
+        if (raw === undefined) {
+            return defaultValue;
+        }
+
+        const normalized = raw.toLowerCase();
+        if (normalized === 'true') {
+            return true;
+        }
+
+        if (normalized === 'false') {
+            return false;
+        }
+
+        throw new Error(`The value of the '${key}' option is invalid.`);
+    }
+
+    private static hasMisplacedAtSign(pair: string): boolean {
+        if (!pair.includes('@')) {
+            return false;
+        }
+
+        const equalsIndex = pair.indexOf('=');
+        if (equalsIndex === -1 || pair.indexOf('@') < equalsIndex) {
+            return true;
+        }
+
+        return !ChronicleConnectionStringBuilder._keysThatMayHoldAtSign.has(decodeURIComponent(pair.slice(0, equalsIndex)).toLowerCase());
     }
 
     private appendSkipKeepAlive(queryParameters: string[]): void {
@@ -442,6 +564,13 @@ export class ChronicleConnectionStringBuilder {
                 query = queryIndex === -1 ? '' : rest.slice(queryIndex + 1);
             }
 
+            // An at sign in the query means the user information held a separator that was not percent-encoded
+            // and spilled into it - unless the option is one that may hold one.
+            const pairs = query.length === 0 ? [] : query.split('&');
+            if (pairs.some(pair => ChronicleConnectionStringBuilder.hasMisplacedAtSign(pair))) {
+                throw new Error('The user information must be percent-encoded: it contains a separator');
+            }
+
             // The userinfo separator is the LAST '@' in the authority, so a host portion never
             // legitimately containing '@' can't be confused for one.
             const authoritySeparatorIndex = authority.lastIndexOf('@');
@@ -463,8 +592,17 @@ export class ChronicleConnectionStringBuilder {
             }
             this.hosts = hosts;
 
-            for (const [key, queryValue] of new URLSearchParams(query)) {
-                this._properties.set(key, decodeURIComponent(queryValue));
+            // Percent-decoding only: a literal '+' stays a plus, like the .NET client, and the value is decoded once.
+            for (const pair of pairs) {
+                const equalsIndex = pair.indexOf('=');
+                if (equalsIndex <= 0) {
+                    continue;
+                }
+
+                const key = decodeURIComponent(pair.slice(0, equalsIndex));
+                this._properties.set(
+                    ChronicleConnectionStringBuilder._knownKeys.get(key.toLowerCase()) ?? key,
+                    decodeURIComponent(pair.slice(equalsIndex + 1)));
             }
         } catch (error) {
             throw new Error(`Invalid Chronicle connection string: ${error}`);
@@ -548,6 +686,21 @@ export class ChronicleConnectionString {
         return this._builder.skipKeepAlive;
     }
 
+    /** Whether `auth=none` is set: no authentication at all. */
+    get noAuthentication(): boolean {
+        return this._builder.noAuthentication;
+    }
+
+    /** Whether to skip the server compatibility check on connect. */
+    get skipCompatibilityCheck(): boolean {
+        return this._builder.skipCompatibilityCheck;
+    }
+
+    /** The path to a PEM file with the certificate authorities the server certificate must chain to. */
+    get caCertificatePath(): string | undefined {
+        return this._builder.caCertificatePath;
+    }
+
     /**
      * Whether TLS certificate validation is skipped. See
      * {@link ChronicleConnectionStringBuilder.skipTlsValidation}.
@@ -587,18 +740,39 @@ export class ChronicleConnectionString {
         const builder = new ChronicleConnectionStringBuilder(this.toString());
         builder.username = username;
         builder.password = password;
+        builder.noAuthentication = false;
         return new ChronicleConnectionString(builder.build());
     }
 
     withApiKey(apiKey: string): ChronicleConnectionString {
         const builder = new ChronicleConnectionStringBuilder(this.toString());
         builder.apiKey = apiKey;
+        builder.noAuthentication = false;
         return new ChronicleConnectionString(builder.build());
     }
 
-    createCredentials(): grpc.ChannelCredentials {
+    /**
+     * Loads the TLS material the connection string names: the client certificate from `certificatePath` and the
+     * certificate authorities from `caCertificatePath`.
+     * @throws When a file is missing, unreadable or holds no usable material.
+     */
+    loadTlsMaterial(): ChronicleTlsMaterial {
+        return loadTlsMaterial(this);
+    }
+
+    /**
+     * Creates the gRPC channel credentials for this connection string.
+     * @param tlsMaterial - The TLS material to use. Defaults to loading what the connection string names.
+     */
+    createCredentials(tlsMaterial: ChronicleTlsMaterial = loadTlsMaterial(this)): grpc.ChannelCredentials {
         if (this.disableTls) {
             return grpc.credentials.createInsecure();
+        }
+
+        if (!tlsMaterial.isEmpty) {
+            return grpc.credentials.createFromSecureContext(
+                tls.createSecureContext(tlsMaterial.connectOptions(this.skipTlsValidation)),
+                { rejectUnauthorized: !this.skipTlsValidation });
         }
 
         if (this.skipTlsValidation) {

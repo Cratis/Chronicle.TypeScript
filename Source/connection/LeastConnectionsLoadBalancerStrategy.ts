@@ -3,6 +3,7 @@
 
 import { Agent } from 'undici';
 import type { ChronicleServerAddress } from './ChronicleConnectionString.js';
+import { ChronicleTlsMaterial } from './ChronicleTlsMaterial.js';
 import { formatServerAddress } from './formatServerAddress.js';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
 
@@ -37,9 +38,10 @@ export class LeastConnectionsLoadBalancerStrategy implements ILoadBalancerStrate
      */
     constructor(
         private readonly _skipTlsValidation: boolean,
-        private readonly _maxJitterMs: number = DEFAULT_MAX_JITTER_MS
+        private readonly _maxJitterMs: number = DEFAULT_MAX_JITTER_MS,
+        tlsMaterial: ChronicleTlsMaterial = ChronicleTlsMaterial.None
     ) {
-        this._dispatcher = new Agent({ connect: { rejectUnauthorized: !this._skipTlsValidation } });
+        this._dispatcher = new Agent({ connect: tlsMaterial.connectOptions(this._skipTlsValidation) });
     }
 
     async select(candidates: ChronicleServerAddress[]): Promise<ChronicleServerAddress> {
