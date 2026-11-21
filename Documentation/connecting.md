@@ -185,7 +185,7 @@ The TypeScript client and the Chronicle kernel have separate version numbers, an
 
 Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
 
-There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.30.0-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
+There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.30.0-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing. Batch appends and transaction commits that combine named tags with registered event sources need kernel 19.37.4 or later; the contract check does not detect older kernels, which drop the registered event source in such a batch.
 
 ## Shut down
 

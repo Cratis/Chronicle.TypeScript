@@ -6,7 +6,6 @@ import { beforeEach, chai, describe, it } from 'vitest';
 import { eventType } from '../../../events/eventTypeDecorator.js';
 import { InvalidNamedTag } from '../../../events/InvalidNamedTag.js';
 import { NamedTag } from '../../../events/NamedTag.js';
-import { NamedTagsWithRegisteredEventSourceNotSupported } from '../../../eventSequences/index.js';
 import type { EventContext } from '../../../events/EventContext.js';
 import { reactor } from '../../../reactors/reactor.js';
 import { ReactorScenario } from '../../ReactorScenario.js';
@@ -86,24 +85,23 @@ describe('when recording a side effect with an invalid named tag', () => {
         (error as Error).should.be.instanceOf(InvalidNamedTag));
 });
 
-for (const [description, reactorType] of [
-    ['the same entry', NamedTagRegisteredSourceReactor],
-    ['a tagged entry before a registered entry', NamedTagCrossEntryReactor],
-    ['a registered entry before a tagged entry', NamedTagCrossEntryReversedReactor]
+for (const [description, reactorType, effectCount] of [
+    ['the same entry', NamedTagRegisteredSourceReactor, 1],
+    ['a tagged entry before a registered entry', NamedTagCrossEntryReactor, 2],
+    ['a registered entry before a tagged entry', NamedTagCrossEntryReversedReactor, 2]
 ] as const) {
     describe(`when recording named tags and a registered source in ${description}`, () => {
         let scenario: ReactorScenario;
-        let error: unknown;
         beforeEach(async () => {
             scenario = new ReactorScenario(reactorType, { artifacts, constraints: 'disabled' });
-            error = await scenario.when.forEventSource('trigger').events(new NamedTagInput()).catch(caught => caught);
+            await scenario.when.forEventSource('trigger').events(new NamedTagInput());
         });
-        it('should reject with the production unsupported combination error', () =>
-            (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
-        it('should record an unsuccessful delivery', () => scenario.results[0].completed.should.be.false);
-        it('should retain the rejection on the delivery result', () => scenario.results[0].error!.should.equal(error));
-        it('should not record any returned side effect', () => scenario.sideEffects.should.have.lengthOf(0));
-        it('should not report any produced event', () => scenario.produced.should.have.lengthOf(0));
+        it('should complete the delivery', () => scenario.results[0].completed.should.be.true);
+        it('should record every returned side effect', () => scenario.sideEffects.should.have.lengthOf(effectCount));
+        it('should keep the registered source on the registered effect', () =>
+            scenario.sideEffects.some(effect => effect.target.eventSource === 'Account').should.be.true);
+        it('should keep the named tags on the tagged effect', () =>
+            scenario.sideEffects.flatMap(effect => effect.target.namedTags ?? []).map(tag => `${tag.name}=${tag.value}`).should.deep.equal(['origin=trigger']));
     });
 }
 
