@@ -39,6 +39,7 @@ RUNTIME_INVALID_ERRORS = {
 
 BODY_SNIPPETS = {
     "get-started/client-flow": "",
+    "concepts/observers/remove": "",
     "patterns/querying/now": "",
     "patterns/querying/at-a-moment": "",
     "patterns/querying/context": "",
