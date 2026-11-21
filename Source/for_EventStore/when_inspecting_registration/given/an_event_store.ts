@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
+import type { IEventStore } from '../../../IEventStore.js';
 import { EventStore } from '../../../EventStore.js';
 import { EventStoreName } from '../../../EventStoreName.js';
 import { EventStoreNamespaceName } from '../../../EventStoreNamespaceName.js';
@@ -26,8 +27,16 @@ class ObserverReactor {}
 @reducer('observer-reducer', undefined, State)
 class ObserverReducer {}
 
+/** A real event store and the kernel operations recorded during registration. */
+export interface RegistrationContext {
+    readonly store: EventStore;
+    readonly publicStore: IEventStore;
+    readonly registerProjection: Mock;
+    readonly observe: Mock;
+}
+
 /** A real event store using in-memory kernel acknowledgments, with three declared projections. */
-export function an_event_store(withObservers = false) {
+export function an_event_store(withObservers = false): RegistrationContext {
     const observe = vi.fn((_requests: unknown, options: { signal: AbortSignal }) => (async function* () {
         await new Promise<void>(resolve => options.signal.addEventListener('abort', () => resolve(), { once: true }));
     })());
@@ -46,5 +55,5 @@ export function an_event_store(withObservers = false) {
         reactors: withObservers ? [ObserverReactor] : [], reducers: withObservers ? [ObserverReducer] : [],
         seeders: [], constraints: [], webhooks: [], eventTypeMigrations: [], globalForHandlers: []
     });
-    return { store, publicStore: store as import('../../../IEventStore.js').IEventStore, registerProjection, observe };
+    return { store, publicStore: store, registerProjection, observe };
 }

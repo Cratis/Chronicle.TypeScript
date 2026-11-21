@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { afterEach, beforeEach, chai, describe, it } from 'vitest';
+import { afterEach, beforeEach, chai, describe, it, vi } from 'vitest';
 import { ChronicleClient, ChronicleOptions } from '../../index.js';
 import { an_event_store } from './given/an_event_store.js';
 
@@ -51,6 +51,35 @@ describe('when artifact registration runs again', () => {
         await registration;
         snapshot.state.should.equal('in-progress');
         context.publicStore.registrationResult!.state.should.equal('successful');
+    });
+
+    it('should become partially-failed when a pending projection succeeds after a parallel registration fails', async () => {
+        let finish!: (response: {}) => void;
+        let started!: () => void;
+        const pending = new Promise<void>(resolve => { started = resolve; });
+        context.registerProjection.mockImplementationOnce(() => {
+            started();
+            return new Promise(resolve => { finish = resolve; });
+        });
+        const failure = new Error('Graph registration failed');
+        vi.spyOn(context.store.graphs, 'register').mockRejectedValue(failure);
+        const projections = vi.spyOn(context.store.projections, 'register');
+        const registration = context.store.registerArtifacts().catch(error => error);
+        await pending;
+        (await registration).should.equal(failure);
+        const snapshot = context.publicStore.registrationResult!;
+        snapshot.state.should.equal('failed');
+        snapshot.projections.map(outcome => outcome.state).should.deep.equal(['not-run', 'not-run', 'not-run']);
+
+        finish({});
+        await projections.mock.results[0].value;
+        const current = context.publicStore.registrationResult!;
+        current.state.should.equal('partially-failed');
+        current.attemptId.should.equal(snapshot.attemptId);
+        current.error!.should.equal(failure);
+        current.projections.map(outcome => outcome.state).should.deep.equal(['successful', 'successful', 'successful']);
+        snapshot.state.should.equal('failed');
+        snapshot.projections.map(outcome => outcome.state).should.deep.equal(['not-run', 'not-run', 'not-run']);
     });
 
     it('should not let a late failure from a previous attempt overwrite the current attempt', async () => {
