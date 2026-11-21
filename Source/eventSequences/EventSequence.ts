@@ -56,7 +56,6 @@ import type { ConcurrencyScope } from './ConcurrencyScope.js';
 import type { IEventSources } from '../eventSources/IEventSources.js';
 import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
-import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
 import { beginEventImport } from '../imports/beginEventImport.js';
 import { importEvents } from '../imports/importEvents.js';
 import type { IEventImport } from '../imports/IEventImport.js';
@@ -219,11 +218,10 @@ export class EventSequence implements IEventSequence {
         options?: AppendOptions
     ): Promise<AppendResult[]> {
         const prepared = prepareBatchAppend(eventSourceIdOrEvents, eventsOrOptions, options);
-        const { eventsForEventSourceIds, appendOptions, correlationId, concurrencyScopes, eventsToAppend, namedTags } = prepared;
+        const { eventsForEventSourceIds, appendOptions, correlationId, concurrencyScopes, eventsToAppend } = prepared;
 
         const wireEvents: WireBatchEvent[] = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
-        ensureNamedTagBatchIsSupported(namedTags.some(tagsForEvent => tagsForEvent.length > 0), routings.some(routing => routing !== undefined));
         const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
         const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];

@@ -25,12 +25,12 @@ describe('when verifying with concurrent calls', () => {
     it('should share the same flight and issue exactly one RPC', async () => {
         first.should.equal(second);
         check.mock.calls.should.have.lengthOf(1);
-        complete(CompatibilityResponse.create({ IsCompatible: true }));
+        complete(CompatibilityResponse.create({ IsCompatible: true, ServerVersion: '19.37.4' }));
         await Promise.all([first, second]);
     });
 
     it('should retain the successful verdict for later calls', async () => {
-        complete(CompatibilityResponse.create({ IsCompatible: true }));
+        complete(CompatibilityResponse.create({ IsCompatible: true, ServerVersion: '19.37.4' }));
         await Promise.all([first, second]);
         await preflight.verify();
         check.mock.calls.should.have.lengthOf(1);

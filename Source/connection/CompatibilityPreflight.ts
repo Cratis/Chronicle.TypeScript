@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createRequire } from 'node:module';
-import { chronicleDescriptorSet, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
+import { chronicleDescriptorSet, type CompatibilityResponse, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
 import { ClientError, Status, type ClientMiddleware } from 'nice-grpc-common';
 import { IncompatibleChronicleServer } from './IncompatibleChronicleServer.js';
 import { clientVersion } from './clientVersion.js';
@@ -63,9 +63,31 @@ export class CompatibilityPreflight {
             }
             throw error;
         });
-        if (response?.IsCompatible !== true || !Array.isArray(response.Incompatibilities) || response.Incompatibilities.length !== 0) {
-            const reasons = response?.Incompatibilities?.join('; ') || 'missing, negative, or inconsistent compatibility verdict';
-            throw new IncompatibleChronicleServer(`Chronicle server ${response?.ServerVersion ?? 'unknown'} is incompatible with contracts ${protocolVersion}: ${reasons}`);
+        this.verifyContract(response);
+        this.verifyKernelVersion(response.ServerVersion);
+    }
+
+    private verifyContract(response: CompatibilityResponse): void {
+        const compatible = response?.IsCompatible === true;
+        const noIncompatibilities = Array.isArray(response?.Incompatibilities) && response.Incompatibilities.length === 0;
+        if (compatible && noIncompatibilities) {
+            return;
+        }
+        throw this.incompatibleContract(response);
+    }
+
+    private incompatibleContract(response: CompatibilityResponse): IncompatibleChronicleServer {
+        const reasons = response?.Incompatibilities?.join('; ') || 'missing, negative, or inconsistent compatibility verdict';
+        return new IncompatibleChronicleServer(`Chronicle server ${response?.ServerVersion ?? 'unknown'} is incompatible with contracts ${protocolVersion}: ${reasons}`);
+    }
+
+    private verifyKernelVersion(serverVersion: string): void {
+        // Development images and release builds share the same numeric release version.
+        const version = /^(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.+-]+)?$/.exec(serverVersion);
+        const minimum = [19, 37, 4];
+        const difference = version?.slice(1).map((part, index) => Number(part) - minimum[index]).find(part => part !== 0) ?? 0;
+        if (!version || difference < 0) {
+            throw new IncompatibleChronicleServer(`Chronicle server ${serverVersion || 'unknown'} is incompatible: kernel 19.37.4 or later is required to preserve registered event sources in batches with named tags.`);
         }
     }
 }

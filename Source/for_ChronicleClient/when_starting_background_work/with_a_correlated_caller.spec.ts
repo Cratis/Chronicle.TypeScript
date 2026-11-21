@@ -60,7 +60,7 @@ beforeEach(async () => {
     let connections = 0;
     server.add(ConnectionServiceDefinition, {
         ...Object.fromEntries(Object.keys(ConnectionServiceDefinition.methods).map(name => [name, unused])),
-        checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' }),
+        checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: '19.37.4' }),
         connectionKeepAlive: async () => ({}),
         connect: async function* (request, callContext) {
             const first = ++connections === 1;

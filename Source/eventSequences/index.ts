@@ -11,7 +11,6 @@ export type { AppendedEventWithResult } from './AppendedEventWithResult.js';
 export type { AppendOptions } from './AppendOptions.js';
 export type { CompensateOptions } from './CompensateOptions.js';
 export { CompleteStreamError } from './CompleteStreamError.js';
-export { NamedTagsWithRegisteredEventSourceNotSupported } from './NamedTagsWithRegisteredEventSourceNotSupported.js';
 export type { CompleteStreamResult } from './CompleteStreamResult.js';
 export type { ConcurrencyScope } from './ConcurrencyScope.js';
 export type { EventForEventSourceId } from './EventForEventSourceId.js';

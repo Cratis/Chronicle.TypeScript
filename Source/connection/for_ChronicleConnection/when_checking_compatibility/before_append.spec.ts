@@ -17,15 +17,17 @@ describe('when checking server compatibility before append', () => {
     let server: ReturnType<typeof createServer>;
     let connection: ChronicleConnection;
     let compatible: boolean;
+    let serverVersion: string;
     let address: string;
     let check: ReturnType<typeof vi.fn>;
     let append: ReturnType<typeof vi.fn>;
     let appendMany: ReturnType<typeof vi.fn>;
     beforeEach(async () => {
         compatible = true;
+        serverVersion = '19.37.4';
         server = createServer();
         check = vi.fn(async (_request: CompatibilityRequest, _context: CallContext) => ({
-            IsCompatible: compatible, Incompatibilities: compatible ? [] : ['missing field'], ServerVersion: 'server'
+            IsCompatible: compatible, Incompatibilities: compatible ? [] : ['missing field'], ServerVersion: serverVersion
         }));
         append = vi.fn(async () => ({ Response: { SequenceNumber: 0n } }));
         appendMany = vi.fn(async () => ({ Response: { SequenceNumbers: [0n] } }));
@@ -58,6 +60,15 @@ describe('when checking server compatibility before append', () => {
         results.map(result => result.status).should.deep.equal(['rejected', 'rejected']);
         check.mock.calls.should.have.lengthOf(1);
         append.mock.calls.should.have.lengthOf(0);
+        appendMany.mock.calls.should.have.lengthOf(0);
+        connection.isConnected.should.equal(false);
+    });
+    it('should refuse an older kernel before sending any batch despite a compatible contract', async () => {
+        serverVersion = '19.37.3';
+        await connection.resetChannel();
+        const results = await Promise.allSettled([connection.eventSequences.appendManyForEventSources({})]);
+        results[0].status.should.equal('rejected');
+        if (results[0].status === 'rejected') results[0].reason.should.be.instanceOf(IncompatibleChronicleServer);
         appendMany.mock.calls.should.have.lengthOf(0);
         connection.isConnected.should.equal(false);
     });

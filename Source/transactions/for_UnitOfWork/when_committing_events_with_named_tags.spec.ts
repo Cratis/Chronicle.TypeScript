@@ -4,7 +4,7 @@
 import { Guid } from '@cratis/fundamentals';
 import { beforeEach, chai, describe, it, vi } from 'vitest';
 import { InvalidNamedTag, NamedTag } from '../../events/index.js';
-import { EventSequenceId, NamedTagsWithRegisteredEventSourceNotSupported, type EventForEventSourceId } from '../../eventSequences/index.js';
+import { EventSequenceId, type EventForEventSourceId } from '../../eventSequences/index.js';
 import { ConcurrencyDimensions, type IEventSources } from '../../eventSources/index.js';
 import type { IEventStore } from '../../IEventStore.js';
 import { UnitOfWork } from '../UnitOfWork.js';
@@ -57,47 +57,37 @@ describe('when adding an event with an invalid named tag to a unit of work', () 
 for (const separateSequences of [false, true]) {
     describe(`when committing named tags and a registered source in ${separateSequences ? 'different event sequences' : 'one batch'}`, () => {
         let calls: ReturnType<typeof a_unit_of_work>;
-        let error: unknown;
+        let appended: EventForEventSourceId[];
         beforeEach(async () => {
             calls = a_unit_of_work();
-            // An otherwise valid group must not be written before a later unsupported combination is found.
             calls.unitOfWork.addEvent(EventSequenceId.eventLog, 'plain', { first: 1 });
             const sequenceId = separateSequences ? new EventSequenceId('other') : EventSequenceId.eventLog;
             calls.unitOfWork.addEvent(sequenceId, 'tagged', { second: 2 }, { namedTags: [new NamedTag('batch', 'b-1')] });
             calls.unitOfWork.addEvent(sequenceId, 'registered', { third: 3 }, { eventSource: Account });
-            error = await calls.unitOfWork.commit().catch(caught => caught);
+            await calls.unitOfWork.commit();
+            appended = calls.appendMany.mock.calls.flatMap(call => call[0] as EventForEventSourceId[]);
         });
-        it('should reject with the typed unsupported combination error', () =>
-            (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
-        it('should not write any group', () => calls.appendMany.mock.calls.should.have.lengthOf(0));
-        it('should leave the unit of work uncompleted', () => calls.unitOfWork.isCompleted.should.be.false);
-        it('should not invoke completion callbacks', () => calls.completed.mock.calls.should.have.lengthOf(0));
-        it('should retain the buffered events for rollback', () => calls.unitOfWork.getEvents().should.have.lengthOf(3));
+        it('should write every group', () => calls.appendMany.mock.calls.should.have.lengthOf(separateSequences ? 2 : 1));
+        it('should append every event', () => appended.map(event => event.eventSourceId).should.deep.equal(['plain', 'tagged', 'registered']));
+        it('should keep the named tags on the tagged event', () =>
+            appended[1].namedTags!.map(tag => `${tag.name}=${tag.value}`).should.deep.equal(['batch=b-1']));
+        it('should keep the registered source on the registered event', () => appended[2].eventSource!.should.equal(Account));
+        it('should complete the unit of work', () => calls.unitOfWork.isCompleted.should.be.true);
+        it('should invoke completion callbacks', () => calls.completed.mock.calls.should.have.lengthOf(1));
     });
 }
 
-describe('when committing tags and registered sources on different event sequences', () => {
+describe('when committing a registered source and named tags on one event', () => {
     let calls: ReturnType<typeof a_unit_of_work>;
-    let error: unknown;
     beforeEach(async () => {
         calls = a_unit_of_work();
-        calls.unitOfWork.addEvent(EventSequenceId.eventLog, 'tagged', {}, { namedTags: [new NamedTag('batch', 'b-1')] });
-        calls.unitOfWork.addEvent(new EventSequenceId('other'), 'registered', {}, { eventSource: 'Account' });
-        error = await calls.unitOfWork.commit().catch(caught => caught);
+        calls.unitOfWork.addEvent(EventSequenceId.eventLog, 'registered', {}, { eventSource: 'Account', namedTags: [new NamedTag('batch', 'b-1')] });
+        await calls.unitOfWork.commit();
     });
-    it('should reject the entire commit', () => (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
-    it('should not append the first event sequence', () => calls.appendMany.mock.calls.should.have.lengthOf(0));
-});
-
-describe('when committing a registered source and named tags on one event', () => {
-    let error: unknown;
-    beforeEach(async () => {
-        const { unitOfWork } = a_unit_of_work();
-        unitOfWork.addEvent(EventSequenceId.eventLog, 'registered', {}, { eventSource: 'Account', namedTags: [new NamedTag('batch', 'b-1')] });
-        error = await unitOfWork.commit().catch(caught => caught);
-    });
-    it('should reject with the typed unsupported combination error', () =>
-        (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
+    it('should append the registered source', () => calls.appendMany.mock.calls[0][0][0].eventSource.should.equal('Account'));
+    it('should append the named tags', () =>
+        calls.appendMany.mock.calls[0][0][0].namedTags.map((tag: NamedTag) => `${tag.name}=${tag.value}`).should.deep.equal(['batch=b-1']));
+    it('should complete the unit of work', () => calls.unitOfWork.isCompleted.should.be.true);
 });
 
 describe('when committing a registered source with an empty named tag array', () => {

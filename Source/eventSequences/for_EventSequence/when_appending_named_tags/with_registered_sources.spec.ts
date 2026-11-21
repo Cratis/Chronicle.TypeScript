@@ -4,50 +4,56 @@
 import { beforeEach, chai, describe, it } from 'vitest';
 import { ConcurrencyDimensions } from '../../../eventSources/index.js';
 import { NamedTag } from '../../../events/index.js';
-import { NamedTagsWithRegisteredEventSourceNotSupported, type AppendOptions, type EventForEventSourceId } from '../../index.js';
+import type { AppendOptions, EventForEventSourceId } from '../../index.js';
 import { Account, a_sequence, NamedTagRecorded, registered_sources } from './given.fixture.js';
 
 chai.should();
 const namedTags = [new NamedTag('batch', 'b-1')];
+const tagged = [{ Name: 'batch', Value: 'b-1' }];
 const entry = (options: Partial<EventForEventSourceId> = {}): EventForEventSourceId =>
     ({ eventSourceId: 'source', event: new NamedTagRecorded(), ...options });
 
-const batches: Array<{ description: string; events: EventForEventSourceId[]; options?: AppendOptions }> = [
-    { description: 'tags and a registered source on the same entry', events: [entry({ eventSource: Account, namedTags })] },
-    { description: 'a tagged entry before an untagged registered entry', events: [entry({ namedTags }), entry({ eventSource: 'Account' })] },
-    { description: 'an untagged registered entry before a tagged entry', events: [entry({ eventSource: 'Account' }), entry({ namedTags })] },
-    { description: 'shared tags and a registered entry', events: [entry({ eventSource: 'Account' })], options: { namedTags } },
-    { description: 'per-entry tags and a shared registered source', events: [entry({ namedTags })], options: { eventSource: Account } }
+type WireEvent = { EventSource: string; EventSourceType: string; NamedTags: Array<{ Name: string; Value: string }> };
+type Batch = { description: string; events: EventForEventSourceId[]; options?: AppendOptions; registered: boolean[]; tags: Array<typeof tagged> };
+
+const batches: Batch[] = [
+    { description: 'tags and a registered source on the same entry', events: [entry({ eventSource: Account, namedTags })], registered: [true], tags: [tagged] },
+    { description: 'a tagged entry before an untagged registered entry', events: [entry({ namedTags }), entry({ eventSource: 'Account' })], registered: [false, true], tags: [tagged, []] },
+    { description: 'an untagged registered entry before a tagged entry', events: [entry({ eventSource: 'Account' }), entry({ namedTags })], registered: [true, false], tags: [[], tagged] },
+    { description: 'shared tags and a registered entry', events: [entry({ eventSource: 'Account' })], options: { namedTags }, registered: [true], tags: [tagged] },
+    { description: 'per-entry tags and a shared registered source', events: [entry({ namedTags })], options: { eventSource: Account }, registered: [true], tags: [tagged] }
 ];
 
 for (const batch of batches) {
     describe(`when appending a batch with ${batch.description}`, () => {
         let calls: ReturnType<typeof a_sequence>;
-        let error: unknown;
+        let wireEvents: WireEvent[];
         beforeEach(async () => {
             calls = a_sequence(registered_sources(ConcurrencyDimensions.eventSourceId));
-            error = await calls.sequence.appendMany(batch.events, batch.options).catch(caught => caught);
+            await calls.sequence.appendMany(batch.events, batch.options);
+            wireEvents = calls.appendManyForEventSourcesWithNamedTags.mock.calls[0][0].Events;
         });
-        it('should reject with the typed unsupported combination error', () =>
-            (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
-        it('should explain the kernel limitation', () => (error as Error).message.should.contain('drops registered event source routing'));
-        it('should link to the kernel issue', () => (error as Error).message.should.contain('https://github.com/Cratis/Chronicle/issues/4603'));
+        it('should send one named-tag batch', () => calls.appendManyForEventSourcesWithNamedTags.mock.calls.should.have.lengthOf(1));
         it('should not send a plain batch', () => calls.appendManyForEventSources.mock.calls.should.have.lengthOf(0));
-        it('should not send a named-tag batch', () => calls.appendManyForEventSourcesWithNamedTags.mock.calls.should.have.lengthOf(0));
-        it('should not read a tail to derive a guard', () => calls.tailSequenceNumber.mock.calls.should.have.lengthOf(0));
-        it('should not fall back to single appends', () =>
-            [...calls.append.mock.calls, ...calls.appendWithNamedTags.mock.calls].should.have.lengthOf(0));
+        it('should keep the registered event source on every registered event', () =>
+            wireEvents.map(wireEvent => wireEvent.EventSource === 'Account').should.deep.equal(batch.registered));
+        it('should keep the registered event source type on every registered event', () =>
+            wireEvents.filter((_, index) => batch.registered[index]).every(wireEvent => wireEvent.EventSourceType === 'Account').should.be.true);
+        it('should carry the named tags of each event', () => wireEvents.map(wireEvent => wireEvent.NamedTags).should.deep.equal(batch.tags));
     });
 }
 
 describe('when appending a same-source batch with shared named tags and registered routing', () => {
-    let error: unknown;
+    let calls: ReturnType<typeof a_sequence>;
+    let wireEvents: WireEvent[];
     beforeEach(async () => {
-        const calls = a_sequence(registered_sources());
-        error = await calls.sequence.appendMany('source', [new NamedTagRecorded()], { eventSource: Account, namedTags }).catch(caught => caught);
+        calls = a_sequence(registered_sources());
+        await calls.sequence.appendMany('source', [new NamedTagRecorded(), new NamedTagRecorded()], { eventSource: Account, namedTags });
+        wireEvents = calls.appendManyForEventSourcesWithNamedTags.mock.calls[0][0].Events;
     });
-    it('should reject with the typed unsupported combination error', () =>
-        (error as Error).should.be.instanceOf(NamedTagsWithRegisteredEventSourceNotSupported));
+    it('should keep the registered event source on every event', () =>
+        wireEvents.map(wireEvent => wireEvent.EventSource).should.deep.equal(['Account', 'Account']));
+    it('should carry the shared named tags on every event', () => wireEvents.map(wireEvent => wireEvent.NamedTags).should.deep.equal([tagged, tagged]));
 });
 
 describe('when appending a registered-source batch with empty named tags', () => {
