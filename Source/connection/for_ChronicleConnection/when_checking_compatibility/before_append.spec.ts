@@ -17,15 +17,17 @@ describe('when checking server compatibility before append', () => {
     let server: ReturnType<typeof createServer>;
     let connection: ChronicleConnection;
     let compatible: boolean;
+    let serverVersion: string;
     let address: string;
     let check: ReturnType<typeof vi.fn>;
     let append: ReturnType<typeof vi.fn>;
     let appendMany: ReturnType<typeof vi.fn>;
     beforeEach(async () => {
         compatible = true;
+        serverVersion = '19.37.4';
         server = createServer();
         check = vi.fn(async (_request: CompatibilityRequest, _context: CallContext) => ({
-            IsCompatible: compatible, Incompatibilities: compatible ? [] : ['missing field'], ServerVersion: 'server'
+            IsCompatible: compatible, Incompatibilities: compatible ? [] : ['missing field'], ServerVersion: serverVersion
         }));
         append = vi.fn(async () => ({ Response: { SequenceNumber: 0n } }));
         appendMany = vi.fn(async () => ({ Response: { SequenceNumbers: [0n] } }));
@@ -60,6 +62,15 @@ describe('when checking server compatibility before append', () => {
         append.mock.calls.should.have.lengthOf(0);
         appendMany.mock.calls.should.have.lengthOf(0);
         connection.isConnected.should.equal(false);
+    });
+    it('should connect to an older compatible kernel and send a plain batch', async () => {
+        serverVersion = '19.37.3';
+        await connection.resetChannel();
+        await connection.connect();
+        await connection.eventSequences.appendManyForEventSources({});
+        (await connection.getKernelVersion())!.should.equal('19.37.3');
+        appendMany.mock.calls.should.have.lengthOf(1);
+        connection.isConnected.should.equal(true);
     });
     it('should reject an unavailable compatibility endpoint without trying the append', async () => {
         check.mockRejectedValue(new ServerError(Status.UNAVAILABLE, 'compatibility endpoint unavailable'));

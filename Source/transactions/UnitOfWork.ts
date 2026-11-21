@@ -108,11 +108,6 @@ export class UnitOfWork implements IUnitOfWork {
         this.throwIfCompleted();
 
         if (this._events.length > 0) {
-            // Validate the entire commit before writing any sequence, including combinations in different groups.
-            ensureNamedTagBatchIsSupported(
-                this._events.some(entry => (entry.eventForEventSourceId.namedTags?.length ?? 0) > 0),
-                this._events.some(entry => entry.eventForEventSourceId.eventSource !== undefined)
-            );
             const resultsBySequenceNumber = new Map<number, AppendResult>();
             const eventsByEventSequence = new Map<string, EventForEventSourceIdWithSequenceNumber[]>();
 
@@ -123,15 +118,7 @@ export class UnitOfWork implements IUnitOfWork {
                 eventsByEventSequence.set(key, events);
             }
 
-            // Resolve routing and required guards for every group first: a rejection must not follow a written group.
-            const eventSources = this._eventStore.eventSources;
-            if (eventSources) {
-                for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {
-                    const events = eventsForSequence.map(_ => _.eventForEventSourceId);
-                    const explicitIds = new Set(this._concurrencyScopes.get(eventSequenceId)?.keys() ?? []);
-                    planDerivedGuards(events.map(_ => resolveBatchRouting(eventSources, _)), events, undefined, explicitIds);
-                }
-            }
+            await this.validateBatches(eventsByEventSequence);
 
             for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {
                 const sequence = this._eventStore.getEventSequence(new EventSequenceId(eventSequenceId));
@@ -177,6 +164,23 @@ export class UnitOfWork implements IUnitOfWork {
             previous(unitOfWork);
             callback(unitOfWork);
         };
+    }
+
+    private async validateBatches(eventsByEventSequence: Map<string, EventForEventSourceIdWithSequenceNumber[]>): Promise<void> {
+        const hasNamedTags = this._events.some(entry => (entry.eventForEventSourceId.namedTags?.length ?? 0) > 0);
+        const hasRegisteredEventSource = this._events.some(entry => entry.eventForEventSourceId.eventSource !== undefined);
+        if (hasNamedTags && hasRegisteredEventSource) {
+            ensureNamedTagBatchIsSupported(true, true, await this._eventStore.eventLog.getKernelVersion?.());
+        }
+
+        // Resolve routing and required guards for every group first: a rejection must not follow a written group.
+        const eventSources = this._eventStore.eventSources;
+        if (!eventSources) return;
+        for (const [eventSequenceId, eventsForSequence] of eventsByEventSequence) {
+            const events = eventsForSequence.map(_ => _.eventForEventSourceId);
+            const explicitIds = new Set(this._concurrencyScopes.get(eventSequenceId)?.keys() ?? []);
+            planDerivedGuards(events.map(_ => resolveBatchRouting(eventSources, _)), events, undefined, explicitIds);
+        }
     }
 
     private throwIfCompleted(): void {

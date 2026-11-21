@@ -30,9 +30,10 @@ export function a_sequence(eventSources?: IEventSources) {
     const appendManyForEventSources = vi.fn().mockImplementation(batch);
     const appendManyForEventSourcesWithNamedTags = vi.fn().mockImplementation(batch);
     const tailSequenceNumber = vi.fn().mockResolvedValue({ Data: { SequenceNumber: 0n } });
-    const connection = { eventSequences: { append, appendWithNamedTags, appendManyForEventSources, appendManyForEventSourcesWithNamedTags, tailSequenceNumber } } as unknown as ChronicleConnection;
+    const getKernelVersion = vi.fn().mockResolvedValue('19.37.4');
+    const connection = { getKernelVersion, eventSequences: { append, appendWithNamedTags, appendManyForEventSources, appendManyForEventSourcesWithNamedTags, tailSequenceNumber } } as unknown as ChronicleConnection;
     return {
         sequence: new EventSequence(EventSequenceId.eventLog, 'store', 'tenant', connection, {} as IUnitOfWorkManager, undefined, undefined, eventSources),
-        append, appendWithNamedTags, appendManyForEventSources, appendManyForEventSourcesWithNamedTags, tailSequenceNumber
+        append, appendWithNamedTags, appendManyForEventSources, appendManyForEventSourcesWithNamedTags, tailSequenceNumber, getKernelVersion
     };
 }

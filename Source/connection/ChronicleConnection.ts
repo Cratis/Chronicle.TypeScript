@@ -268,6 +268,13 @@ export class ChronicleConnection implements ChronicleServices {
         return this._connections;
     }
 
+    /** Gets the server version after verifying this channel's contract, or undefined when skipped. */
+    async getKernelVersion(): Promise<string | undefined> {
+        await (this._clientsReady ??= this.startClientCreation());
+        await this._compatibility.verify();
+        return this._compatibility.kernelVersion;
+    }
+
     private startClientCreation(): Promise<void> {
         return runInBackgroundContext(() => this.createClients());
     }

@@ -40,7 +40,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `auth` | Not set | `none` skips authentication altogether. It beats any credentials or API key in the connection string. |
 | `certificatePath`, `certificatePassword` | Not set | A PKCS#12 (`.p12`/`.pfx`) file, or a PEM file with the certificate chain and private key, presented to the server for mutual TLS. `certificatePassword` unlocks either. |
 | `caCertificatePath` | Not set | A PEM file with the certificate authorities the server certificate must chain to, in place of the Node.js trust store. Used only with `skipTlsValidation=false`. |
-| `skipCompatibilityCheck` | `false` | Skip the server compatibility check on connect. A known-safe client and kernel skew only; it hides every other incompatibility too. |
+| `skipCompatibilityCheck` | `false` | Skip the server compatibility check on connect. A known-safe client and kernel skew only; it hides contract incompatibilities. The kernel version stays unknown, so batches and commits combining named tags with registered event sources throw `NamedTagsWithRegisteredEventSourceNotSupported`. |
 | `skipKeepAlive` | `false` | Skip the keep-alive connection, for short-lived processes. The client cannot host reactors or reducers. |
 
 `ChronicleOptions.fromConnectionString(connectionString, options)` also accepts these options in its second argument:
@@ -53,8 +53,11 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
 | `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
+| `connectTimeout` | `10000` | Milliseconds the client waits for the kernel to answer the [compatibility check](#client-and-kernel-compatibility) on each new connection. Must be a whole number from 1 to 4294967295. A timeout fails that connection attempt, which is retried; it never skips the check. |
+| `maxReceiveMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client accepts from the kernel. `null` leaves gRPC's own 4 MB default, which can refuse large read models. |
+| `maxSendMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client sends to the kernel. `null` leaves gRPC's own default. |
 
-`ChronicleOptions.development(options)` takes the same second argument.
+`ChronicleOptions.development(options)` takes the same second argument. `ChronicleConnectionString` is exported from `@cratis/chronicle`, so you can build or inspect a connection string in code and pass it to `fromConnectionString`.
 
 Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Telemetry naming cutoff](./observability.md#telemetry-naming-cutoff).
 
@@ -183,9 +186,9 @@ try {
 
 The TypeScript client and the Chronicle kernel have separate version numbers, and the client also depends on a `@cratis/chronicle.contracts` version. None of these numbers promises which kernel versions work.
 
-Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
+Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. The check fails closed: there is no programmatic option to skip it, and a timeout (see `connectTimeout`) retries the connection instead of skipping the check. The only bypass is the connection-string option `skipCompatibilityCheck=true`, meant for a known-safe client and kernel skew. With the check skipped, the kernel version is unknown: batches and commits combining non-empty named tags with registered event sources throw `NamedTagsWithRegisteredEventSourceNotSupported`, even on a newer kernel.
 
-There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.30.0-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
+There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.37.4-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing. The compatibility check does not reject an older or unrecognized kernel version when the contract is compatible. Only batch appends and transaction commits combining non-empty named tags with registered event sources require kernel 19.37.4 or later. Those operations throw `NamedTagsWithRegisteredEventSourceNotSupported` before sending when the reported version is older, unknown, or unparseable, preventing older kernels from silently losing registered routing. Other batches and single appends are unaffected. Development suffixes such as `19.37.4-development` count as that release version. A locally built kernel must report its release version (for example `19.37.4`) to allow this combination; an unstamped build reporting `1.0.0` cannot use it.
 
 ## Shut down
 

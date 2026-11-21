@@ -34,6 +34,7 @@ export { RejectedChronicleCredentials } from './connection/RejectedChronicleCred
 export { ClientObserversRequireKeepAlive } from './connection/ClientObserversRequireKeepAlive.js';
 export type { IChronicleClient } from './IChronicleClient.js';
 export { ChronicleOptions } from './ChronicleOptions.js';
+export { ChronicleConnectionString } from './connection/ChronicleConnectionString.js';
 export { EventStore } from './EventStore.js';
 export type { IEventStore } from './IEventStore.js';
 export { EventStoreName } from './EventStoreName.js';

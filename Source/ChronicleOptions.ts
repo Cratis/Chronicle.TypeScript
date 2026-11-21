@@ -28,6 +28,7 @@ type ChronicleOptionsConstructorParams = {
     readModelNamingPolicy?: ReadModelNamingPolicy;
     maxReceiveMessageSize?: number | null;
     maxSendMessageSize?: number | null;
+    connectTimeout?: number;
 };
 
 type ChronicleOptionsFactoryParams = {
@@ -43,6 +44,7 @@ type ChronicleOptionsFactoryParams = {
     readModelNamingPolicy?: ReadModelNamingPolicy;
     maxReceiveMessageSize?: number | null;
     maxSendMessageSize?: number | null;
+    connectTimeout?: number;
 };
 
 /**
@@ -133,6 +135,13 @@ export class ChronicleOptions {
      */
     readonly maxSendMessageSize: number | null;
 
+    /**
+     * How long, in milliseconds, the client waits for the kernel to answer the compatibility check on each new
+     * connection. Defaults to 10 seconds. A kernel that does not answer in time fails the connection attempt,
+     * which is retried; the check itself is never skipped by a timeout.
+     */
+    readonly connectTimeout: number;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.connectionString = options.connectionString;
         this.skipKeepAlive = options.skipKeepAlive === true;
@@ -148,25 +157,56 @@ export class ChronicleOptions {
         this.readModelNamingPolicy = options.readModelNamingPolicy;
         this.maxReceiveMessageSize = options.maxReceiveMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxReceiveMessageSize;
         this.maxSendMessageSize = options.maxSendMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxSendMessageSize;
-        const spanNames = options.telemetry?.spanNames;
-        if (spanNames !== undefined && spanNames !== 'legacy' && spanNames !== 'convention') {
-            throw new TypeError('telemetry.spanNames must be legacy or convention.');
-        }
-        const policy = options.telemetry?.eventSourceId;
-        if (policy !== undefined) {
-            if (policy?.mode !== 'raw' && policy?.mode !== 'hmac') {
-                throw new TypeError('telemetry.eventSourceId.mode must be raw or hmac.');
-            }
-            if (policy.mode === 'hmac' && (!types.isUint8Array(policy.key) || policy.key.byteLength === 0)) {
-                throw new TypeError('telemetry.eventSourceId.key must be a non-empty Uint8Array for hmac mode.');
-            }
-        }
+        this.connectTimeout = ChronicleOptions.validConnectTimeout(options.connectTimeout ?? ChronicleOptions.defaultConnectTimeout);
+        ChronicleOptions.validateTelemetry(options.telemetry);
         this.telemetry = options.telemetry;
         this.logger = options.logger;
     }
 
+    private static validConnectTimeout(connectTimeout: number): number {
+        // AbortSignal.timeout accepts only whole milliseconds that fit an unsigned 32-bit integer.
+        if (!Number.isInteger(connectTimeout) || connectTimeout <= 0 || connectTimeout > ChronicleOptions.maxConnectTimeout) {
+            throw new TypeError(`connectTimeout must be a whole number of milliseconds between 1 and ${ChronicleOptions.maxConnectTimeout}.`);
+        }
+        return connectTimeout;
+    }
+
+    private static validateTelemetry(telemetry?: ChronicleTelemetryOptions): void {
+        ChronicleOptions.validateSpanNames(telemetry?.spanNames);
+        ChronicleOptions.validateEventSourceIdPolicy(telemetry?.eventSourceId);
+    }
+
+    private static validateSpanNames(spanNames?: string): void {
+        if (spanNames !== undefined && !ChronicleOptions._spanNames.has(spanNames)) {
+            throw new TypeError('telemetry.spanNames must be legacy or convention.');
+        }
+    }
+
+    private static validateEventSourceIdPolicy(policy: ChronicleTelemetryOptions['eventSourceId']): void {
+        if (policy === undefined) return;
+        if (!ChronicleOptions._eventSourceIdModes.has(policy?.mode)) {
+            throw new TypeError('telemetry.eventSourceId.mode must be raw or hmac.');
+        }
+        if (policy.mode === 'hmac' && !ChronicleOptions.isNonEmptyKey(policy.key)) {
+            throw new TypeError('telemetry.eventSourceId.key must be a non-empty Uint8Array for hmac mode.');
+        }
+    }
+
+    private static readonly _spanNames: ReadonlySet<unknown> = new Set(['legacy', 'convention']);
+    private static readonly _eventSourceIdModes: ReadonlySet<unknown> = new Set(['raw', 'hmac']);
+
+    private static isNonEmptyKey(key: unknown): boolean {
+        return types.isUint8Array(key) && key.byteLength > 0;
+    }
+
     /** The default maximum gRPC message size in bytes: 100 MB. */
     static readonly defaultMaxMessageSize = 100 * 1024 * 1024;
+
+    /** The default time, in milliseconds, the client waits for the kernel's compatibility check: 10 seconds. */
+    static readonly defaultConnectTimeout = 10_000;
+
+    /** The longest connect timeout, in milliseconds, the client accepts: the largest unsigned 32-bit integer. */
+    static readonly maxConnectTimeout = 4_294_967_295;
 
     private static defaultDiscoveryPatterns(): string[] {
         const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');
@@ -206,20 +246,22 @@ export class ChronicleOptions {
         const parsed = typeof connectionString === 'string'
             ? new ChronicleConnectionString(connectionString)
             : connectionString;
+        const factoryOptions: ChronicleOptionsFactoryParams = options ?? {};
         return new ChronicleOptions({
             connectionString: parsed,
             skipKeepAlive: ChronicleOptions.shouldSkipKeepAlive(parsed, options),
-            clientArtifactsProvider: options?.clientArtifactsProvider,
-            discoveryPatterns: options?.discoveryPatterns,
-            defaultSinkTypeId: options?.defaultSinkTypeId,
-            defaultGraphSinkTypeId: options?.defaultGraphSinkTypeId,
-            reactorResultHandler: options?.reactorResultHandler,
-            artifactActivator: options?.artifactActivator,
-            readModelNamingPolicy: options?.readModelNamingPolicy,
-            maxReceiveMessageSize: options?.maxReceiveMessageSize,
-            maxSendMessageSize: options?.maxSendMessageSize,
-            telemetry: options?.telemetry,
-            logger: options?.logger
+            clientArtifactsProvider: factoryOptions.clientArtifactsProvider,
+            discoveryPatterns: factoryOptions.discoveryPatterns,
+            defaultSinkTypeId: factoryOptions.defaultSinkTypeId,
+            defaultGraphSinkTypeId: factoryOptions.defaultGraphSinkTypeId,
+            reactorResultHandler: factoryOptions.reactorResultHandler,
+            artifactActivator: factoryOptions.artifactActivator,
+            readModelNamingPolicy: factoryOptions.readModelNamingPolicy,
+            maxReceiveMessageSize: factoryOptions.maxReceiveMessageSize,
+            maxSendMessageSize: factoryOptions.maxSendMessageSize,
+            connectTimeout: factoryOptions.connectTimeout,
+            telemetry: factoryOptions.telemetry,
+            logger: factoryOptions.logger
         });
     }
 

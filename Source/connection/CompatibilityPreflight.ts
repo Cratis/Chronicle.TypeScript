@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createRequire } from 'node:module';
-import { chronicleDescriptorSet, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
+import { chronicleDescriptorSet, type CompatibilityResponse, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
 import { ClientError, Status, type ClientMiddleware } from 'nice-grpc-common';
 import { IncompatibleChronicleServer } from './IncompatibleChronicleServer.js';
 import { clientVersion } from './clientVersion.js';
@@ -14,6 +14,12 @@ const protocolVersion = (require('@cratis/chronicle.contracts/package.json') as 
 /** Verifies the installed wire contract before a channel can perform event-sequence operations. */
 export class CompatibilityPreflight {
     private _verification?: Promise<void>;
+    private _kernelVersion?: string;
+
+    /** The server version reported by a successful contract check, or undefined when skipped. */
+    get kernelVersion(): string | undefined {
+        return this._kernelVersion;
+    }
 
     constructor(
         private readonly _connections: ConnectionServiceClient,
@@ -63,9 +69,21 @@ export class CompatibilityPreflight {
             }
             throw error;
         });
-        if (response?.IsCompatible !== true || !Array.isArray(response.Incompatibilities) || response.Incompatibilities.length !== 0) {
-            const reasons = response?.Incompatibilities?.join('; ') || 'missing, negative, or inconsistent compatibility verdict';
-            throw new IncompatibleChronicleServer(`Chronicle server ${response?.ServerVersion ?? 'unknown'} is incompatible with contracts ${protocolVersion}: ${reasons}`);
+        this.verifyContract(response);
+        this._kernelVersion = response.ServerVersion;
+    }
+
+    private verifyContract(response: CompatibilityResponse): void {
+        const compatible = response?.IsCompatible === true;
+        const noIncompatibilities = Array.isArray(response?.Incompatibilities) && response.Incompatibilities.length === 0;
+        if (compatible && noIncompatibilities) {
+            return;
         }
+        throw this.incompatibleContract(response);
+    }
+
+    private incompatibleContract(response: CompatibilityResponse): IncompatibleChronicleServer {
+        const reasons = response?.Incompatibilities?.join('; ') || 'missing, negative, or inconsistent compatibility verdict';
+        return new IncompatibleChronicleServer(`Chronicle server ${response?.ServerVersion ?? 'unknown'} is incompatible with contracts ${protocolVersion}: ${reasons}`);
     }
 }
