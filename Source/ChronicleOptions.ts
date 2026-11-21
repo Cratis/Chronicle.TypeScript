@@ -164,8 +164,9 @@ export class ChronicleOptions {
     }
 
     private static validConnectTimeout(connectTimeout: number): number {
-        if (!Number.isFinite(connectTimeout) || connectTimeout <= 0) {
-            throw new TypeError('connectTimeout must be a positive number of milliseconds.');
+        // AbortSignal.timeout accepts only whole milliseconds that fit an unsigned 32-bit integer.
+        if (!Number.isInteger(connectTimeout) || connectTimeout <= 0 || connectTimeout > ChronicleOptions.maxConnectTimeout) {
+            throw new TypeError(`connectTimeout must be a whole number of milliseconds between 1 and ${ChronicleOptions.maxConnectTimeout}.`);
         }
         return connectTimeout;
     }
@@ -203,6 +204,9 @@ export class ChronicleOptions {
 
     /** The default time, in milliseconds, the client waits for the kernel's compatibility check: 10 seconds. */
     static readonly defaultConnectTimeout = 10_000;
+
+    /** The longest connect timeout, in milliseconds, the client accepts: the largest unsigned 32-bit integer. */
+    static readonly maxConnectTimeout = 4_294_967_295;
 
     private static defaultDiscoveryPatterns(): string[] {
         const typescriptEntry = /\.(?:ts|tsx|mts|cts)$/i.test(process.argv[1] ?? '');

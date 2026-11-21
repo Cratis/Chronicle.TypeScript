@@ -53,7 +53,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
 | `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
-| `connectTimeout` | `10000` | Milliseconds the client waits for the kernel to answer the [compatibility check](#client-and-kernel-compatibility) on each new connection. Must be a positive number. A timeout fails that connection attempt, which is retried; it never skips the check. |
+| `connectTimeout` | `10000` | Milliseconds the client waits for the kernel to answer the [compatibility check](#client-and-kernel-compatibility) on each new connection. Must be a whole number from 1 to 4294967295. A timeout fails that connection attempt, which is retried; it never skips the check. |
 | `maxReceiveMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client accepts from the kernel. `null` leaves gRPC's own 4 MB default, which can refuse large read models. |
 | `maxSendMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client sends to the kernel. `null` leaves gRPC's own default. |
 

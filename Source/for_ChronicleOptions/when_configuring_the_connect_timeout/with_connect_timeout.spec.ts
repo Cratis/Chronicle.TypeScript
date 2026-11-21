@@ -13,7 +13,10 @@ describe('when configuring the connect timeout', () => {
     it('should use the configured timeout', () =>
         ChronicleOptions.development({ connectTimeout: 2_500 }).connectTimeout.should.equal(2_500));
 
-    for (const connectTimeout of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    it('should accept the largest supported timeout', () =>
+        ChronicleOptions.development({ connectTimeout: 4_294_967_295 }).connectTimeout.should.equal(4_294_967_295));
+
+    for (const connectTimeout of [0, -1, 0.5, 4_294_967_296, Number.NaN, Number.POSITIVE_INFINITY]) {
         it(`should reject ${connectTimeout}`, () =>
             (() => ChronicleOptions.development({ connectTimeout })).should.throw(TypeError, 'connectTimeout'));
     }
