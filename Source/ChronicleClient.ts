@@ -671,7 +671,7 @@ export class ChronicleClient implements IChronicleClient {
             );
         }
 
-        await store.registerArtifacts();
+        await store.registerArtifacts(reason);
 
         this._logger.info('Registered artifacts for event store', {
             eventStore: store.name.value,

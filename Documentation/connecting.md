@@ -19,6 +19,38 @@ Keep the connection string, which carries credentials, in configuration or a sec
 
 Creating a `ChronicleClient` does not connect. The first `getEventStore(...)` or `getEventStores()` call connects, and later calls reuse the connection.
 
+## Inspect artifact registration
+
+Read `store.registrationResult` for a snapshot of the latest artifact registration attempt. The SDK's `EventStore` always provides it; the member is optional on `IEventStore` so existing third-party and in-process stores remain compatible. An absent result means the implementation does not report registration, not that registration succeeded.
+
+| State | Meaning |
+| --- | --- |
+| `not-run` | This store has not started artifact registration (`attemptId` is zero). |
+| `in-progress` | Registration is running; pending projection declarations remain `not-run`. |
+| `successful` | Artifact registration completed without throwing. Projection declarations received kernel acknowledgments. An empty projection list is valid. |
+| `partially-failed` | Registration threw, but at least one projection declaration was accepted. |
+| `failed` | Registration threw before any projection declaration was accepted. |
+
+Each `projections` entry identifies a declared projection and is `not-run`, `successful` (with the actual kernel `response`), or `failed` (with the underlying `error`). The current contract returns an empty acknowledgment for a successful declaration; the SDK does not invent a richer response. `failures` lists the failed projection entries. The top-level `error` is the error thrown by artifact orchestration, including discovery or validation failures that happen before any declaration is sent.
+
+```typescript
+const store = await client.getEventStore('Library');
+const report = store.registrationResult;
+if (report) {
+    console.log(report.attemptId, report.reason, report.state);
+    for (const failure of report.failures) {
+        console.log('Projection declaration failed:', failure.identifier);
+        // Inspect failure.error in a controlled diagnostic context.
+    }
+}
+```
+
+Registration still throws the same errors, with the same retry delays and fail-fast projection ordering: projections after the first failure remain `not-run`. A first `getEventStore(...)` failure still rejects without returning a store. Retain an already acquired store to inspect later reconnect attempts. Other work already started in parallel can finish after a rejection; read the property again to see those updates. Returned snapshots do not change underneath the caller.
+
+`attemptId` increases for every registration on that store, including reconnects; `reason` identifies why the client registered again. A new attempt replaces the previous outcomes and errors. Retain a snapshot yourself if you need history. Responses and errors are retained for explicit inspection, not sanitized for logging: do not indiscriminately serialize them to application logs.
+
+This report describes **declaration acceptance, not observer liveness**. `observerLiveness` stays `unknown`: opening reactor or reducer streams does not acknowledge that the kernel accepted or started those observers. Use the observer-state APIs when you need running-state evidence.
+
 ## Connection string reference
 
 ```text

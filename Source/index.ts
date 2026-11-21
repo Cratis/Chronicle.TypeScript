@@ -36,6 +36,7 @@ export type { IChronicleClient } from './IChronicleClient.js';
 export { ChronicleOptions } from './ChronicleOptions.js';
 export { ChronicleConnectionString } from './connection/ChronicleConnectionString.js';
 export { EventStore } from './EventStore.js';
+export type { ArtifactRegistrationResult, ArtifactRegistrationState, ProjectionRegistrationOutcome, ProjectionRegistrationResponse } from './ArtifactRegistrationResult.js';
 export type { IEventStore } from './IEventStore.js';
 export { EventStoreName } from './EventStoreName.js';
 export { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
