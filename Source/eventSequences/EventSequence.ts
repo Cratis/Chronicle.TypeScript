@@ -11,6 +11,7 @@ import type {
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
 import type { PreparedBatchAppend } from './PreparedBatchAppend.js';
 import type { PreparedSingleAppend } from './PreparedSingleAppend.js';
 import type { WireBatchEvent } from './WireBatchEvent.js';
@@ -210,6 +211,11 @@ export class EventSequence implements IEventSequence {
     }
 
     /** @inheritdoc */
+    getKernelVersion(): Promise<string | undefined> {
+        return this._connection.getKernelVersion();
+    }
+
+    /** @inheritdoc */
     async appendMany(eventSourceId: string, events: object[], options?: AppendOptions): Promise<AppendResult[]>;
     async appendMany(events: EventForEventSourceId[], options?: AppendOptions): Promise<AppendResult[]>;
     async appendMany(
@@ -222,6 +228,7 @@ export class EventSequence implements IEventSequence {
 
         const wireEvents: WireBatchEvent[] = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        await this.verifyNamedTagBatch(prepared, routings);
         const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
         const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
@@ -259,6 +266,12 @@ export class EventSequence implements IEventSequence {
                 span.end();
             }
         }, correlationId);
+    }
+
+    private async verifyNamedTagBatch(prepared: PreparedBatchAppend, routings: ReturnType<typeof resolveBatchRouting>[]): Promise<void> {
+        if (prepared.namedTags.some(tags => tags.length > 0) && routings.some(routing => routing?.eventSource !== undefined)) {
+            ensureNamedTagBatchIsSupported(true, true, await this.getKernelVersion());
+        }
     }
 
     private applyBatchRouting(wireEvents: WireBatchEvent[], routings: ReturnType<typeof resolveBatchRouting>[]): void {

@@ -63,14 +63,14 @@ describe('when checking server compatibility before append', () => {
         appendMany.mock.calls.should.have.lengthOf(0);
         connection.isConnected.should.equal(false);
     });
-    it('should refuse an older kernel before sending any batch despite a compatible contract', async () => {
+    it('should connect to an older compatible kernel and send a plain batch', async () => {
         serverVersion = '19.37.3';
         await connection.resetChannel();
-        const results = await Promise.allSettled([connection.eventSequences.appendManyForEventSources({})]);
-        results[0].status.should.equal('rejected');
-        if (results[0].status === 'rejected') results[0].reason.should.be.instanceOf(IncompatibleChronicleServer);
-        appendMany.mock.calls.should.have.lengthOf(0);
-        connection.isConnected.should.equal(false);
+        await connection.connect();
+        await connection.eventSequences.appendManyForEventSources({});
+        (await connection.getKernelVersion())!.should.equal('19.37.3');
+        appendMany.mock.calls.should.have.lengthOf(1);
+        connection.isConnected.should.equal(true);
     });
     it('should reject an unavailable compatibility endpoint without trying the append', async () => {
         check.mockRejectedValue(new ServerError(Status.UNAVAILABLE, 'compatibility endpoint unavailable'));

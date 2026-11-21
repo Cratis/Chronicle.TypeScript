@@ -24,6 +24,9 @@ export interface IEventSequence {
     /** The unique identifier of this event sequence. */
     readonly id: EventSequenceId;
 
+    /** Gets the connected kernel version, when available, after checking contract compatibility. */
+    getKernelVersion?(): Promise<string | undefined>;
+
     /** Transactional append operations for this event sequence. */
     readonly transactional: ITransactionalEventSequence;
 

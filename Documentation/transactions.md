@@ -28,7 +28,7 @@ const appendErrors = unitOfWork.getAppendErrors();
 
 `transactional.append`, `transactional.appendMany` and `unitOfWork.addEvent` accept `namedTags` beside the event source routing options. Tags are validated when the event is added, so an invalid tag throws `InvalidNamedTag` before anything is committed.
 
-A commit can combine named tags and registered `eventSource` entries, on the same or on different entries and sequences, and every event keeps its event source. This needs Chronicle kernel 19.37.4 or later; older kernels drop the registered event source in such a batch ([kernel issue](https://github.com/Cratis/Chronicle/issues/4603)).
+A commit can combine non-empty named tags and registered `eventSource` entries, on the same or on different entries and sequences, and every event keeps its event source. This needs Chronicle kernel 19.37.4 or later; older kernels drop the registered event source in such a batch ([kernel issue](https://github.com/Cratis/Chronicle/issues/4603)). The client throws `NamedTagsWithRegisteredEventSourceNotSupported` before writing any group when the kernel version is older, unknown, or unparseable. With `skipCompatibilityCheck=true` the version is unknown, so this combination also throws. Commits without this combination are unaffected.
 
 ### Append metadata in a unit of work
 

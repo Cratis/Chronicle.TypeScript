@@ -1,48 +1,38 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { describe, expect, it, vi } from 'vitest';
-import { CompatibilityResponse, type ConnectionServiceClient } from '@cratis/chronicle.contracts';
+import { describe, it, beforeEach, vi } from 'vitest';
+import { should } from 'chai';
 import { CompatibilityPreflight } from '../../CompatibilityPreflight.js';
-import { IncompatibleChronicleServer } from '../../IncompatibleChronicleServer.js';
 
-function verifyVersion(serverVersion: string): Promise<void> {
-    const checkCompatibility = vi.fn(async () => CompatibilityResponse.create({ IsCompatible: true, ServerVersion: serverVersion }));
-    return new CompatibilityPreflight({ checkCompatibility } as unknown as ConnectionServiceClient, 100).verify();
+should();
+
+for (const version of ['19.37.4', '19.37.4-development', '19.38.0', '20.0.0', '19.37.3', '19.36.99', '1.0.0', 'unknown', '']) {
+    describe(`when verifying a compatible contract on kernel ${version || 'without a version'}`, () => {
+        let check: ReturnType<typeof vi.fn>;
+        let preflight: CompatibilityPreflight;
+
+        beforeEach(async () => {
+            check = vi.fn().mockResolvedValue({ IsCompatible: true, Incompatibilities: [], ServerVersion: version });
+            preflight = new CompatibilityPreflight({ checkCompatibility: check } as never, 1000, false);
+            await preflight.verify();
+        });
+
+        it('should check compatibility once', () => check.mock.calls.should.have.lengthOf(1));
+        it('should retain the reported version without refusing the connection', () => preflight.kernelVersion!.should.equal(version));
+    });
 }
 
-describe('when verifying the kernel version despite a compatible contract', () => {
-    it('should reject the release immediately before the registered event source fix', async () => {
-        await expect(verifyVersion('19.37.3')).rejects.toThrow(IncompatibleChronicleServer);
+describe('when skipping the contract check', () => {
+    let check: ReturnType<typeof vi.fn>;
+    let preflight: CompatibilityPreflight;
+
+    beforeEach(async () => {
+        check = vi.fn();
+        preflight = new CompatibilityPreflight({ checkCompatibility: check } as never, 1000, true);
+        await preflight.verify();
     });
-    it('should reject an older minor release even with a higher patch', async () => {
-        await expect(verifyVersion('19.36.99')).rejects.toThrow(IncompatibleChronicleServer);
-    });
-    it('should reject an older major release even with higher minor and patch versions', async () => {
-        await expect(verifyVersion('18.99.99')).rejects.toThrow(IncompatibleChronicleServer);
-    });
-    it('should reject a missing version instead of assuming the batch behavior is safe', async () => {
-        await expect(verifyVersion('')).rejects.toThrow(IncompatibleChronicleServer);
-    });
-    it('should reject an unrecognized version', async () => {
-        await expect(verifyVersion('unknown')).rejects.toThrow(IncompatibleChronicleServer);
-    });
-    it('should accept the first release that preserves registered event sources', async () => {
-        await expect(verifyVersion('19.37.4')).resolves.toBeUndefined();
-    });
-    it('should compare patch versions numerically', async () => {
-        await expect(verifyVersion('19.37.10')).resolves.toBeUndefined();
-    });
-    it('should accept a newer minor release with a lower patch', async () => {
-        await expect(verifyVersion('19.38.0')).resolves.toBeUndefined();
-    });
-    it('should accept a newer major release with lower minor and patch versions', async () => {
-        await expect(verifyVersion('20.0.0')).resolves.toBeUndefined();
-    });
-    it('should accept the development image of the fixed release', async () => {
-        await expect(verifyVersion('19.37.4-development')).resolves.toBeUndefined();
-    });
-    it('should reject a development image older than the fixed release', async () => {
-        await expect(verifyVersion('19.37.3-development')).rejects.toThrow(IncompatibleChronicleServer);
-    });
+
+    it('should not request a server version', () => check.mock.calls.should.have.lengthOf(0));
+    it('should leave the kernel version unknown', () => (preflight.kernelVersion === undefined).should.equal(true));
 });
