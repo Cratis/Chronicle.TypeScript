@@ -11,6 +11,8 @@ import type {
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { enrichEventContent } from './enrichEventContent.js';
+import type { EventEnrichmentProvider } from './EventEnrichmentProvider.js';
 import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
 import type { PreparedBatchAppend } from './PreparedBatchAppend.js';
 import type { PreparedSingleAppend } from './PreparedSingleAppend.js';
@@ -80,7 +82,8 @@ export class EventSequence implements IEventSequence {
         private readonly _unitOfWorkManager: IUnitOfWorkManager,
         private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
         private readonly _telemetry?: ChronicleTelemetryOptions,
-        private readonly _eventSources?: IEventSources
+        private readonly _eventSources?: IEventSources,
+        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = []
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -89,6 +92,9 @@ export class EventSequence implements IEventSequence {
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const routing = resolveSingleRouting(this._eventSources, options);
         const prepared = prepareSingleAppend(event, options);
+        if (this._eventEnrichmentProviders.length > 0) {
+            prepared.content = await this.enrichContent(eventSourceId, event, prepared.content, prepared.correlationId);
+        }
         const { eventType, correlationId, tags, namedTags, causationChain } = prepared;
 
         const sequenceMetricAttributes = this.sequenceMetricAttributes;
@@ -228,6 +234,11 @@ export class EventSequence implements IEventSequence {
 
         const wireEvents: WireBatchEvent[] = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        if (this._eventEnrichmentProviders.length > 0) {
+            for (const [index, { eventSourceId, event }] of eventsForEventSourceIds.entries()) {
+                wireEvents[index].Content = await this.enrichContent(eventSourceId, event, wireEvents[index].Content, correlationId);
+            }
+        }
         await this.verifyNamedTagBatch(prepared, routings);
         const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
         const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
@@ -284,6 +295,14 @@ export class EventSequence implements IEventSequence {
                 EventSource: routing.eventSource
             };
         });
+    }
+
+    private enrichContent(eventSourceId: string, event: object, content: string, correlationId: Guid): Promise<string> {
+        return enrichEventContent(content, {
+            event, eventType: getEventTypeFor(event.constructor as Function),
+            eventStore: this._eventStoreName, namespace: this._namespace,
+            eventSequenceId: this.id, eventSourceId, correlationId
+        }, this._eventEnrichmentProviders);
     }
 
     private async sendAppendMany(
