@@ -53,8 +53,11 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
 | `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
+| `connectTimeout` | `10000` | Milliseconds the client waits for the kernel to answer the [compatibility check](#client-and-kernel-compatibility) on each new connection. Must be a positive number. A timeout fails that connection attempt, which is retried; it never skips the check. |
+| `maxReceiveMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client accepts from the kernel. `null` leaves gRPC's own 4 MB default, which can refuse large read models. |
+| `maxSendMessageSize` | `104857600` (100 MB) | Largest gRPC message, in bytes, the client sends to the kernel. `null` leaves gRPC's own default. |
 
-`ChronicleOptions.development(options)` takes the same second argument.
+`ChronicleOptions.development(options)` takes the same second argument. `ChronicleConnectionString` is exported from `@cratis/chronicle`, so you can build or inspect a connection string in code and pass it to `fromConnectionString`.
 
 Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Telemetry naming cutoff](./observability.md#telemetry-naming-cutoff).
 
@@ -183,7 +186,7 @@ try {
 
 The TypeScript client and the Chronicle kernel have separate version numbers, and the client also depends on a `@cratis/chronicle.contracts` version. None of these numbers promises which kernel versions work.
 
-Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. Unlike the .NET client, the TypeScript client has no option to skip this check.
+Instead, the client sends its contract descriptor to the kernel on every new connection, and the kernel reports whether it can serve it. When the kernel reports an incompatibility, or does not implement the check, the client throws `IncompatibleChronicleServer`, does not retry, and rejects every later call. Deploy a compatible kernel and create a new client. The check fails closed: there is no programmatic option to skip it, and a timeout (see `connectTimeout`) retries the connection instead of skipping the check. The only bypass is the connection-string option `skipCompatibilityCheck=true`, meant for a known-safe client and kernel skew.
 
 There is no published compatibility matrix. The kernel-backed specifications run against the `cratis/chronicle:19.30.0-development` image, with `19.70.0-development` and `19.78.1-development` images for the specifications that need a newer kernel. Before you upgrade in production, test the client against the kernel version you run. [Preserve existing append routes](./migrate-append-routing.md) describes the upgrade that needs a kernel supporting kernel-owned append routing.
 

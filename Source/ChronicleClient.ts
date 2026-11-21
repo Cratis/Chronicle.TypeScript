@@ -122,7 +122,8 @@ export class ChronicleClient implements IChronicleClient {
             deferClientCreation: options.skipKeepAlive,
             logger: options.logger,
             maxReceiveMessageSize: options.maxReceiveMessageSize ?? undefined,
-            maxSendMessageSize: options.maxSendMessageSize ?? undefined
+            maxSendMessageSize: options.maxSendMessageSize ?? undefined,
+            connectTimeout: options.connectTimeout
         });
 
         this._logger.info('Created Chronicle client', {
