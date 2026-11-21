@@ -32,7 +32,7 @@ beforeEach(async () => {
     const unused = async () => { throw new Error('Unexpected RPC'); };
     server.add(ConnectionServiceDefinition, {
         ...Object.fromEntries(Object.keys(ConnectionServiceDefinition.methods).map(name => [name, unused])),
-        checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' }),
+        checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: '19.37.4' }),
         connectionKeepAlive: async () => ({})
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     server.add(EventStoresDefinition, {

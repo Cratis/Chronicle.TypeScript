@@ -27,7 +27,7 @@ async function listen(rejectAnonymous = false): Promise<number> {
     server.add(ConnectionServiceDefinition, {
         ...methods, checkCompatibility: async () => {
             if (rejectAnonymous) throw new ServerError(status.UNAUTHENTICATED, 'Unauthenticated');
-            return { IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' };
+            return { IsCompatible: true, Incompatibilities: [], ServerVersion: '19.37.4' };
         }
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     servers.push(server);
@@ -46,7 +46,7 @@ async function listenAuthenticated(onCheck?: () => void): Promise<number> {
         checkCompatibility: async (request, context) => {
             onCheck?.();
             await authenticate(request, context);
-            return { IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' };
+            return { IsCompatible: true, Incompatibilities: [], ServerVersion: '19.37.4' };
         }
     } as ServiceImplementation<typeof ConnectionServiceDefinition>);
     server.add(ServerDefinition, {
@@ -195,7 +195,7 @@ describe('ChronicleConnection authentication', () => {
         const unsupported = async () => { throw new Error('Unexpected RPC'); };
         server.add(ConnectionServiceDefinition, {
             ...Object.fromEntries(Object.keys(ConnectionServiceDefinition.methods).map(name => [name, unsupported])),
-            checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: 'test' }),
+            checkCompatibility: async () => ({ IsCompatible: true, Incompatibilities: [], ServerVersion: '19.37.4' }),
             observeConnectedClients: async function* () {
                 attempts();
                 throw new ServerError(status.UNAUTHENTICATED, 'Token expired');
