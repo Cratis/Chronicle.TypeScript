@@ -28,6 +28,34 @@ function hasPlainScalarSchemas(schemas: ReadonlyArray<{ type?: string; format?: 
     return schemas.every(schema => ['string', 'boolean'].includes(schema?.type ?? '') && schema?.format === undefined);
 }
 
+function hasCombinedKeySchemas(schemas: ReadonlyArray<{ type?: string; format?: string } | undefined>): boolean {
+    return schemas.every(schema => schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
+        schema?.type === 'number' && schema.format === undefined);
+}
+
+function validateKeySchemas(name: string, schemas: ReadonlyArray<{ type?: string; format?: string } | undefined>,
+    options: { scoped: boolean; isolated: boolean; definitions: number; ignoreCasing: boolean }): void {
+    const fail = (reason: string) => { throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, reason); };
+    const plainStrings = schemas.every(schema => schema?.type === 'string' && schema.format === undefined);
+    if (options.scoped && !hasPlainScalarSchemas(schemas) && !hasCombinedKeySchemas(schemas)) {
+        fail('Scoped property keys must be schema-backed strings, booleans, Guids or unformatted numbers.');
+    }
+    for (const schema of schemas) {
+        const supported = schema?.type === 'boolean' && schema.format === undefined ||
+            schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
+            schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
+        if (!supported) fail(`Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
+    }
+    if (schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid') &&
+        (options.definitions !== 1 || !options.isolated && !hasCombinedKeySchemas(schemas))) {
+        fail('Guid and numeric keys require one definition; combined keys require unformatted numbers or Guids.');
+    }
+    if (options.ignoreCasing && !plainStrings) fail('Case-insensitive keys must be schema-backed strings.');
+    if (schemas.length > 1 && !hasCombinedKeySchemas(schemas)) {
+        fail('Every property of a composite key must be a schema-backed string, Guid or unformatted number.');
+    }
+}
+
 function hasConstraintDecorators(type: Function): boolean {
     return getUniqueEventMetadata(type) !== undefined || getRemovedConstraintNames(type).length > 0 ||
         TypeIntrospector.getTrackedProperties(type).some(property => getUniquePropertyMetadata(type, property) !== undefined);
@@ -118,34 +146,10 @@ export class EventScenario {
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
                         const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);
-                        const plainStrings = schemas.every(schema => schema?.type === 'string' && schema.format === undefined);
-                        if (scoped && !hasPlainScalarSchemas(schemas)) {
-                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Scoped property keys must be schema-backed strings or booleans.');
-                        }
-                        for (const schema of schemas) {
-                            const supported = schema?.type === 'boolean' && schema.format === undefined ||
-                                schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
-                                schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
-                            if (!supported) throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                `Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
-                        }
-                        const extendedKey = schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid');
-                        if (extendedKey && (applicable.size !== 1 || capture.uniqueConstraint!.eventDefinitions.length !== 1 ||
-                            removedWith.some(id => id !== undefined))) {
-                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Guid and numeric keys require one isolated definition covering one event type without removers; shared definitions and removal combinations are not fixture-backed.');
-                        }
-                        // constraints-ignore-casing.json captures folded string keys only.
-                        if (capture.uniqueConstraint!.ignoreCasing && !plainStrings) {
-                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Case-insensitive keys must be schema-backed strings.');
-                        }
-                        // constraints-composite.json captures string components only.
-                        if (entry.properties.length > 1 && !plainStrings) {
-                            throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Every property of a composite key must be a schema-backed string.');
-                        }
+                        validateKeySchemas(name, schemas, { scoped, definitions: applicable.size,
+                            isolated: !scoped && capture.uniqueConstraint!.eventDefinitions.length === 1 &&
+                                !removedWith.some(id => id !== undefined),
+                            ignoreCasing: capture.uniqueConstraint!.ignoreCasing });
                     }
                 }
             } catch (error) {

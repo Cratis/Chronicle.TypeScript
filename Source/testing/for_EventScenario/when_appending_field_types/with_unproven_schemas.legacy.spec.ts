@@ -33,17 +33,15 @@ for (const schema of [
     });
 }
 
-for (const mode of ['composite', 'scoped', 'ignoreCasing']) {
+for (const mode of ['ignoreCasing']) {
     describe(`when registering a ${mode} Guid key without fixture evidence`, () => {
         it('should reject instead of inheriting plain-string constraint support', () => {
             class Recorded { @field(Guid) key = Guid.empty; @field(String) label = ''; }
             eventType(`UnprovenGuid${mode}`)(Recorded);
             class Definition {
                 define(builder: IConstraintBuilder) {
-                    if (mode === 'scoped') builder.perEventSourceType();
                     builder.unique(key => {
-                        if (mode === 'composite') key.on(Recorded, event => event.key, event => event.label);
-                        else key.on(Recorded, event => event.key);
+                        key.on(Recorded, event => event.key);
                         if (mode === 'ignoreCasing') key.ignoreCasing();
                     });
                 }

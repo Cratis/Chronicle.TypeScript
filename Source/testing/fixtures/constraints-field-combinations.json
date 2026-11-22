@@ -1,0 +1,4938 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
+  },
+  "constraintDescriptorSha256": "9aa6a0fb78fe79f136dda3da99d3dedf7f0d30a74024b38709b0c7037a08a813",
+  "definitionSource": "Each template runs independently under every scope mask 0..7. Raw JSON requests and scopes use the pinned TypeScript protobuf encoder; no CLR content normalization before append.",
+  "fieldCombinationCases": [
+    {
+      "name": "single",
+      "eventSchemas": {
+        "number": {
+          "eventTypeId": "OracleCombinedNumber",
+          "properties": {
+            "key": "number",
+            "suffix": "string",
+            "identifier": "guid"
+          }
+        },
+        "guid": {
+          "eventTypeId": "OracleCombinedGuid",
+          "properties": {
+            "key": "guid",
+            "suffix": "string",
+            "amount": "number"
+          }
+        },
+        "string": {
+          "eventTypeId": "OracleCombinedText",
+          "properties": {
+            "key": "string"
+          }
+        },
+        "removed": {
+          "eventTypeId": "OracleCombinedRemoved",
+          "properties": {
+            "label": "string"
+          }
+        }
+      },
+      "constraintDefinitions": [
+        {
+          "name": "OracleCombinedKey",
+          "events": [
+            {
+              "type": "number",
+              "properties": [
+                "key"
+              ]
+            },
+            {
+              "type": "guid",
+              "properties": [
+                "key"
+              ]
+            },
+            {
+              "type": "string",
+              "properties": [
+                "key"
+              ]
+            }
+          ],
+          "ignoreCasing": false,
+          "removedWithEventTypeIds": [
+            "removed"
+          ],
+          "message": "Taken: {PropertyName}={PropertyValue}"
+        }
+      ],
+      "isolatedConstraintOperations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "-7"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "values": {
+                "key": 9007199254740991,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "type": "guid",
+              "values": {
+                "key": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West"
+          },
+          "events": [
+            {
+              "source": "Z",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "C",
+              "type": "removed",
+              "value": "release"
+            },
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "type": "removed",
+              "value": "release"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "source",
+          "events": [
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            },
+            {
+              "source": "D",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            },
+            {
+              "source": "R",
+              "type": "string",
+              "value": "-7"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pair",
+      "eventSchemas": {
+        "number": {
+          "eventTypeId": "OracleCombinedNumber",
+          "properties": {
+            "key": "number",
+            "suffix": "string",
+            "identifier": "guid"
+          }
+        },
+        "guid": {
+          "eventTypeId": "OracleCombinedGuid",
+          "properties": {
+            "key": "guid",
+            "suffix": "string",
+            "amount": "number"
+          }
+        },
+        "string": {
+          "eventTypeId": "OracleCombinedText",
+          "properties": {
+            "key": "string"
+          }
+        },
+        "removed": {
+          "eventTypeId": "OracleCombinedRemoved",
+          "properties": {
+            "label": "string"
+          }
+        }
+      },
+      "constraintDefinitions": [
+        {
+          "name": "OracleCombinedKey",
+          "events": [
+            {
+              "type": "number",
+              "properties": [
+                "key",
+                "suffix"
+              ]
+            },
+            {
+              "type": "guid",
+              "properties": [
+                "key",
+                "suffix"
+              ]
+            },
+            {
+              "type": "string",
+              "properties": [
+                "key"
+              ]
+            }
+          ],
+          "ignoreCasing": false,
+          "removedWithEventTypeIds": [
+            "removed"
+          ],
+          "message": "Taken: {PropertyName}={PropertyValue}"
+        }
+      ],
+      "isolatedConstraintOperations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "-7-Alpha"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "values": {
+                "key": 9007199254740991,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "type": "guid",
+              "values": {
+                "key": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West"
+          },
+          "events": [
+            {
+              "source": "Z",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "C",
+              "type": "removed",
+              "value": "release"
+            },
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "type": "removed",
+              "value": "release"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "source",
+          "events": [
+            {
+              "source": "D",
+              "type": "guid",
+              "values": {
+                "key": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            },
+            {
+              "source": "D",
+              "type": "string",
+              "value": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            },
+            {
+              "source": "R",
+              "type": "string",
+              "value": "-7-Alpha"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "triple",
+      "eventSchemas": {
+        "number": {
+          "eventTypeId": "OracleCombinedNumber",
+          "properties": {
+            "key": "number",
+            "suffix": "string",
+            "identifier": "guid"
+          }
+        },
+        "guid": {
+          "eventTypeId": "OracleCombinedGuid",
+          "properties": {
+            "key": "guid",
+            "suffix": "string",
+            "amount": "number"
+          }
+        },
+        "string": {
+          "eventTypeId": "OracleCombinedText",
+          "properties": {
+            "key": "string"
+          }
+        },
+        "removed": {
+          "eventTypeId": "OracleCombinedRemoved",
+          "properties": {
+            "label": "string"
+          }
+        }
+      },
+      "constraintDefinitions": [
+        {
+          "name": "OracleCombinedKey",
+          "events": [
+            {
+              "type": "number",
+              "properties": [
+                "key",
+                "suffix",
+                "identifier"
+              ]
+            },
+            {
+              "type": "guid",
+              "properties": [
+                "amount",
+                "suffix",
+                "key"
+              ]
+            },
+            {
+              "type": "string",
+              "properties": [
+                "key"
+              ]
+            }
+          ],
+          "ignoreCasing": false,
+          "removedWithEventTypeIds": [
+            "removed"
+          ],
+          "message": "Taken: {PropertyName}={PropertyValue}"
+        }
+      ],
+      "isolatedConstraintOperations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "options": {
+            "sourceType": "People",
+            "streamType": "Accounts",
+            "streamId": "West"
+          },
+          "events": [
+            {
+              "source": "Z",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "A",
+              "type": "removed",
+              "value": "release"
+            },
+            {
+              "source": "B",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "removed",
+              "value": "release"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "guid",
+              "values": {
+                "key": "abcdef01-abcd-abcd-abcd-abcdef012345",
+                "suffix": "Alpha",
+                "amount": -7
+              }
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "source",
+          "events": [
+            {
+              "source": "B",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "ABCDEF01-ABCD-ABCD-ABCD-ABCDEF012345"
+              }
+            },
+            {
+              "source": "B",
+              "type": "string",
+              "value": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "overload": "entries",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            },
+            {
+              "source": "R",
+              "type": "number",
+              "values": {
+                "key": -7,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "Q",
+              "type": "number",
+              "values": {
+                "key": 0,
+                "suffix": "Alpha",
+                "identifier": "abcdef01-abcd-abcd-abcd-abcdef012345"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "cases": [
+      {
+        "name": "single-0",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6",
+              "7"
+            ],
+            "wireViolations": [],
+            "next": "8"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "8"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          }
+        ]
+      },
+      {
+        "name": "single-1",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-2",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-3",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-4",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-5",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-6",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "single-7",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-0",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6",
+              "7"
+            ],
+            "wireViolations": [],
+            "next": "8"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "8"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          }
+        ]
+      },
+      {
+        "name": "pair-1",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-2",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-3",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-4",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-5",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-6",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "pair-7",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345-Alpha"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "7",
+              "8"
+            ],
+            "wireViolations": [],
+            "next": "9"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "2",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 2",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha"
+                }
+              }
+            ],
+            "next": "9"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "9"
+            ],
+            "wireViolations": [],
+            "next": "10"
+          }
+        ]
+      },
+      {
+        "name": "triple-0",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3",
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "triple-1",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-2",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-3",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-4",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-5",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-6",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      },
+      {
+        "name": "triple-7",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7-Alpha-abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'amount' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "amount",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'suffix' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedGuid",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedGuid' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4",
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-7"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'suffix' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "suffix",
+                  "PropertyValue": "Alpha"
+                }
+              },
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleCombinedKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'identifier' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "identifier",
+                  "PropertyValue": "abcdef01-abcd-abcd-abcd-abcdef012345"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "6"
+            ],
+            "wireViolations": [],
+            "next": "7"
+          }
+        ]
+      }
+    ]
+  }
+}
