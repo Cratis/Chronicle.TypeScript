@@ -156,17 +156,21 @@ export function fieldScenarioBehaviors(fixtures: {
         });
     }
 
-    for (const value of [1.5, 1e-7, Number.MAX_SAFE_INTEGER + 1, -Number.MAX_SAFE_INTEGER - 1, NaN, Infinity]) {
-        describe(`when a constrained number contains ${value}`, () => {
-            it('should reject the entire batch before recording results or history', async () => {
-                const scenario = new EventScenario({ artifacts: { eventTypes: [fixtures.number], constraints: [fixtures.numberConstraint] } });
-                const event = new fixtures.number(); event.key = value;
-                const error = await scenario.appendMany('A', [new fixtures.number(), event]).then(() => undefined, error => error);
-                should(error).instanceOf(UnsupportedEventSequenceOperation);
-                should(scenario.results).have.lengthOf(0);
-                should(scenario.appendedEvents).have.lengthOf(0);
+    for (const [type, constraint] of [[fixtures.number, fixtures.numberConstraint], [fixtures.double, fixtures.doubleConstraint]] as const) {
+        for (const value of [0.00001, -0.00001, 1e-7, 1000000000000000.2, 4503599627370495.5,
+            -1000000000000000.2, -4503599627370495.5, 1e21, Number.MAX_SAFE_INTEGER + 1, -Number.MAX_SAFE_INTEGER - 1, NaN, Infinity]) {
+            describe(`when a constrained ${type.name} contains ${value}`, () => {
+                it('should reject the entire batch before recording results or history', async () => {
+                    const scenario = new EventScenario({ artifacts: { eventTypes: [type], constraints: [constraint] } });
+                    const event = new type(); event.key = value;
+                    const error = await scenario.appendMany('A', [new type(), event]).then(() => undefined, error => error);
+                    should(error).instanceOf(UnsupportedEventSequenceOperation);
+                    should(scenario.results).have.lengthOf(0);
+                    should(scenario.appendedEvents).have.lengthOf(0);
+                    should((await scenario.eventSequence.getNextSequenceNumber()).value).equal(0n);
+                });
             });
-        });
+        }
     }
 
     it('should normalize negative zero using production serialization before comparing numeric keys', async () => {
@@ -177,11 +181,13 @@ export function fieldScenarioBehaviors(fixtures: {
         should((await scenario.append('B', negative)).isSuccess).equal(false);
     });
 
-    const fixture = JSON.parse(readFileSync(new URL('../../fixtures/constraints-field-types.json', import.meta.url), 'utf8')) as {
+    const kernelFixtures = ['constraints-field-types', 'constraints-fractional-field-types'].map(name =>
+        JSON.parse(readFileSync(new URL(`../../fixtures/${name}.json`, import.meta.url), 'utf8')) as {
         fieldConstraintCases: Array<{ kind: string; eventType: string; operations: Array<{ mode: string; events: Array<{ source: string; content: string }> }> }>;
         expected: Array<{ fieldSchema: unknown; steps: Array<{ success: boolean; sequences: string[]; wireViolations: unknown[]; history: unknown[]; next: string }> }>;
-    };
-    for (const [caseIndex, test] of fixture.fieldConstraintCases.entries()) {
+    });
+    for (const { fixture, caseIndex, test } of kernelFixtures.flatMap(fixture =>
+        fixture.fieldConstraintCases.map((test, caseIndex) => ({ fixture, test, caseIndex })))) {
         if (test.kind !== 'kernelSemantics') continue;
         describe(`when replaying the packaged ${test.eventType} constraint fixture`, () => {
             it('should match every raw violation, hash, history, sequence and atomic rejection', async () => {

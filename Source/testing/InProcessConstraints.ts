@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createHash } from 'node:crypto';
 import type { ConstraintViolation as ContractsConstraintViolation } from '@cratis/chronicle.contracts';
 import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.js';
@@ -11,58 +10,11 @@ import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { eventTypeScopeKey, propertyScopeKey, scopeIndex } from './ConstraintScope.js';
 import { supportsPropertyOverlap } from './PropertyDefinitionSupport.js';
+import { claimOf } from './ConstraintKey.js';
 
 export type WireConstraintViolation = ContractsConstraintViolation;
 
 const unavailable = '18446744073709551615';
-// Only the key characters captured by the packaged oracle, not every valid event-content character.
-const provenString = /^[A-Za-z0-9 .@_:\-|{}$\u00e9]*$/;
-
-function kernelKeyString(value: unknown, name: string, schema?: JsonSchema): string {
-    // constraints-field-types.json: the kernel converts Guid keys before comparing or reporting them.
-    if (schema?.format === 'guid') {
-        if (typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) return value.toLowerCase();
-        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, 'Only dashed Guid keys are fixture-backed.');
-    }
-    // Avoid .NET floating-point formatting, exponent spelling and JavaScript precision loss.
-    if (schema?.type === 'number') {
-        if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
-        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-            'Only safe-integer numeric keys are fixture-backed; fractional, exponential and unsafe-integer comparisons require a kernel-backed test.');
-    }
-    if (typeof value === 'string' && provenString.test(value)) return value;
-    if (typeof value === 'boolean') return value ? 'True' : 'False';
-    throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-        'Only fixture-backed scalar string and boolean keys are supported.');
-}
-
-function keyHash(value: string): string {
-    return createHash('sha256').update(value).digest('hex');
-}
-
-type UniqueCapture = NonNullable<ConstraintCapture['uniqueConstraint']>;
-type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
-
-/**
- * The kernel key: each declared property's string in declared order, joined with a literal '-'
- * (UniqueConstraintDefinitionExtensions.GetPropertiesAndValues/GetValue at Chronicle 8fe5d30). Not a tuple:
- * ['a-b', 'c'] and ['a', 'b-c'] claim the same key, as constraints-composite.json captures.
- */
-function claimOf(name: string, unique: UniqueCapture, eventTypeId: string, content: Record<string, unknown>, schema?: JsonSchema): Claim | undefined {
-    const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === eventTypeId)?.properties;
-    if (properties === undefined) return undefined;
-    const parts = properties.map(property => ({ property, raw: kernelKeyString(content[property], name, schema?.properties?.[property]) }));
-    const joined = parts.map(part => part.raw).join('-');
-    if (!unique.ignoreCasing) return { key: keyHash(joined), parts };
-    // The kernel applies .NET ToLowerInvariant to the joined value. constraints-ignore-casing.json proves
-    // only the ASCII key domain, where that is exactly A-Z to a-z; host Unicode case tables are not used.
-    if (!/^[\x20-\x7e]*$/.test(joined)) {
-        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-            'Case-insensitive keys outside the ASCII key domain are not fixture-backed.');
-    }
-    return { key: keyHash(joined.replace(/[A-Z]/g, letter => String.fromCharCode(letter.charCodeAt(0) + 32))), parts };
-}
-
 /** Narrow, fixture-backed constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
     private readonly _constrainedProperties = new Map<string, Set<string>>();
@@ -190,7 +142,7 @@ export class InProcessConstraints {
                 }
                 const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties;
                 if (properties === undefined) continue;
-                claims.set(source, { key: claimOf(name, unique, type, prior.content, this._schemas.get(type))!.key,
+                claims.set(source, { key: claimOf(name, definition, prior, { schema: this._schemas.get(type), isolated: this._definitions.size === 1 })!.key,
                     sequence: prior.context.sequenceNumber.toString() });
             }
         }
@@ -201,7 +153,7 @@ export class InProcessConstraints {
             const source = event.context.eventSourceId;
             const violationCount = violations.length;
             for (const [name, definition] of this._definitions) {
-                const claim = definition.uniqueConstraint && claimOf(name, definition.uniqueConstraint, type, event.content, this._schemas.get(type));
+                const claim = definition.uniqueConstraint && claimOf(name, definition, event, { schema: this._schemas.get(type), isolated: this._definitions.size === 1 });
                 if (claim) {
                     const key = claim.key;
                     const scope = propertyScopeKey(definition.scope, event.context);

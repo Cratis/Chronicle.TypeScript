@@ -1,0 +1,1726 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "oracle": "eventScenario",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
+  },
+  "constraintDescriptorSha256": "9aa6a0fb78fe79f136dda3da99d3dedf7f0d30a74024b38709b0c7037a08a813",
+  "definitionSource": "FieldCombinationOracle measures string/number collisions through pinned TypeScript protobuf requests. Only the unscoped single-property domain is supported; scoped outcomes are measurements only.",
+  "fieldCombinationCases": [
+    {
+      "name": "fractional",
+      "eventSchemas": {
+        "number": {
+          "eventTypeId": "OracleCombinedNumber",
+          "properties": {
+            "key": "number"
+          }
+        },
+        "string": {
+          "eventTypeId": "OracleCombinedText",
+          "properties": {
+            "key": "string"
+          }
+        }
+      },
+      "constraintDefinitions": [
+        {
+          "name": "OracleFractionalKey",
+          "events": [
+            {
+              "type": "number",
+              "properties": [
+                "key"
+              ]
+            },
+            {
+              "type": "string",
+              "properties": [
+                "key"
+              ]
+            }
+          ],
+          "ignoreCasing": false,
+          "removedWithEventTypeIds": [],
+          "message": "Taken: {PropertyName}={PropertyValue}"
+        }
+      ],
+      "isolatedConstraintOperations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "value": 1.5
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "1.5"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "number",
+              "value": -2.75
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "1.5"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "type": "string",
+              "value": "-2.75"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "type": "string",
+              "value": "0.1"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "E",
+              "type": "number",
+              "value": 0.1
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "F",
+              "type": "number",
+              "value": 3.125
+            },
+            {
+              "source": "G",
+              "type": "string",
+              "value": "3.125"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "G",
+              "type": "string",
+              "value": "3.125"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "H",
+              "type": "number",
+              "value": 3.125
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "I",
+              "type": "number",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "J",
+              "type": "number",
+              "value": -0
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "K",
+              "type": "string",
+              "value": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "cases": [
+      {
+        "name": "fractional-0",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-1",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-2",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-3",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-4",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-5",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-6",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      },
+      {
+        "name": "fractional-7",
+        "outcomes": [
+          {
+            "success": true,
+            "sequences": [
+              "0"
+            ],
+            "wireViolations": [],
+            "next": "1"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "0",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 0",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "1.5"
+                }
+              }
+            ],
+            "next": "1"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "1"
+            ],
+            "wireViolations": [],
+            "next": "2"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "2"
+            ],
+            "wireViolations": [],
+            "next": "3"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "1",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 1",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "-2.75"
+                }
+              }
+            ],
+            "next": "3"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "3"
+            ],
+            "wireViolations": [],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "3",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 3",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0.1"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": false,
+            "sequences": [],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "18446744073709551615",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "4"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "4"
+            ],
+            "wireViolations": [],
+            "next": "5"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "4",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 4",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "3.125"
+                }
+              }
+            ],
+            "next": "5"
+          },
+          {
+            "success": true,
+            "sequences": [
+              "5"
+            ],
+            "wireViolations": [],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedNumber",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedNumber' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          },
+          {
+            "success": false,
+            "sequences": [
+              "18446744073709551615"
+            ],
+            "wireViolations": [
+              {
+                "EventTypeId": "OracleCombinedText",
+                "SequenceNumber": "5",
+                "ConstraintType": 1,
+                "ConstraintName": "OracleFractionalKey",
+                "Message": "Event 'OracleCombinedText' on member 'key' violated a unique constraint on sequence number 5",
+                "Details": {
+                  "PropertyName": "key",
+                  "PropertyValue": "0"
+                }
+              }
+            ],
+            "next": "6"
+          }
+        ]
+      }
+    ]
+  }
+}
