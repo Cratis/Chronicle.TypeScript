@@ -33,7 +33,8 @@ internal static class RequiredFixtures
         "arithmetic-remove-recreate.json", "arithmetic-zero-operand.json", "arithmetic-assignment.json",
         "from-all-only.json", "from-all-mixed.json", "from-all-exclude-children.json", "from-all-empty.json", "from-every-restricted.json",
         "composite-key-expression-parts.json", "composite-parent-key-expression-parts.json", "composite-join-key-expression-parts.json",
-        "composite-parent-key-without-constant.json", "composite-child-join-key-expression-parts.json"
+        "composite-parent-key-without-constant.json", "composite-child-join-key-expression-parts.json",
+        "composite-child-creation-fluent.json", "composite-child-creation-legacy.json", "composite-child-creation-standard.json"
     ];
 
     internal static void Validate(string[] eventFiles, string[] projectionFiles, bool eventsOnly)
