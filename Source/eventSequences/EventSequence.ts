@@ -11,6 +11,8 @@ import type {
 import { Constructor } from '@cratis/fundamentals';
 import { prepareSingleAppend } from './prepareSingleAppend.js';
 import { prepareBatchAppend } from './prepareBatchAppend.js';
+import { enrichEventContent } from './enrichEventContent.js';
+import type { EventEnrichmentProvider } from './EventEnrichmentProvider.js';
 import { ensureNamedTagBatchIsSupported } from './ensureNamedTagBatchIsSupported.js';
 import type { PreparedBatchAppend } from './PreparedBatchAppend.js';
 import type { PreparedSingleAppend } from './PreparedSingleAppend.js';
@@ -64,6 +66,8 @@ import type { ImportOptions } from '../imports/ImportOptions.js';
 import type { ImportResult } from '../imports/ImportResult.js';
 import type { ImportTarget } from '../imports/ImportTarget.js';
 
+type PreparedSourceAppend = PreparedSingleAppend & Pick<EventForEventSourceId, 'eventSourceId' | 'event'>;
+
 /**
  * Implements {@link IEventSequence} by communicating with the Chronicle Kernel
  * via gRPC using the {@link ChronicleConnection}.
@@ -80,7 +84,8 @@ export class EventSequence implements IEventSequence {
         private readonly _unitOfWorkManager: IUnitOfWorkManager,
         private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
         private readonly _telemetry?: ChronicleTelemetryOptions,
-        private readonly _eventSources?: IEventSources
+        private readonly _eventSources?: IEventSources,
+        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = []
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -88,7 +93,10 @@ export class EventSequence implements IEventSequence {
     /** @inheritdoc */
     async append(eventSourceId: string, event: object, options?: AppendOptions): Promise<AppendResult> {
         const routing = resolveSingleRouting(this._eventSources, options);
-        const prepared = prepareSingleAppend(event, options);
+        const prepared: PreparedSourceAppend = { ...prepareSingleAppend(event, options), eventSourceId, event };
+        if (this._eventEnrichmentProviders.length > 0) {
+            prepared.content = await this.enrichContent(prepared);
+        }
         const { eventType, correlationId, tags, namedTags, causationChain } = prepared;
 
         const sequenceMetricAttributes = this.sequenceMetricAttributes;
@@ -102,7 +110,7 @@ export class EventSequence implements IEventSequence {
             if (options?.sourceType) span.setAttribute(names.attributes.eventSourceType, options.sourceType);
             const startTime = performance.now();
             try {
-                const response = await this.sendAppend(eventSourceId, prepared, routing, options);
+                const response = await this.sendAppend(prepared, routing, options);
 
                 const appendResponse = ensureCommandResponse('append event', response);
                 const durationInSeconds = (performance.now() - startTime) / 1000;
@@ -142,15 +150,15 @@ export class EventSequence implements IEventSequence {
     }
 
     private async sendAppend(
-        eventSourceId: string,
-        prepared: PreparedSingleAppend,
+        prepared: PreparedSourceAppend,
         routing: ReturnType<typeof resolveSingleRouting>,
         options?: AppendOptions
     ) {
+        const { eventSourceId } = prepared;
         const concurrencyScope = options?.concurrencyScope ?? (routing
             ? await deriveConcurrencyScope(routing, eventSourceId, options?.streamId, this.tailReader)
             : undefined);
-        const request = this.createAppendRequest(eventSourceId, prepared, concurrencyScope, this.toAppendRouteFields(routing, options));
+        const request = this.createAppendRequest(prepared, concurrencyScope, this.toAppendRouteFields(routing, options));
         // Named tags travel on the dedicated call so a kernel without support rejects them instead of dropping them.
         return prepared.namedTags.length === 0
             ? await this._connection.eventSequences.append(request)
@@ -168,8 +176,7 @@ export class EventSequence implements IEventSequence {
     }
 
     private createAppendRequest(
-        eventSourceId: string,
-        { eventType, correlationId, content, tags, causationChain, identity, subject }: PreparedSingleAppend,
+        { eventSourceId, eventType, correlationId, content, tags, causationChain, identity, subject }: PreparedSourceAppend,
         concurrencyScope: ConcurrencyScope | undefined,
         routeFields: ReturnType<EventSequence['toAppendRouteFields']>
     ) {
@@ -228,6 +235,11 @@ export class EventSequence implements IEventSequence {
 
         const wireEvents: WireBatchEvent[] = eventsToAppend;
         const routings = eventsForEventSourceIds.map(event => resolveBatchRouting(this._eventSources, event, appendOptions));
+        if (this._eventEnrichmentProviders.length > 0) {
+            for (const [index, { eventSourceId, event }] of eventsForEventSourceIds.entries()) {
+                wireEvents[index].Content = await this.enrichContent({ eventSourceId, event, content: wireEvents[index].Content, correlationId });
+            }
+        }
         await this.verifyNamedTagBatch(prepared, routings);
         const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
         const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
@@ -251,7 +263,7 @@ export class EventSequence implements IEventSequence {
 
                 const appendManyResponse = ensureCommandResponse('append many events', response);
                 const durationInSeconds = (performance.now() - startTime) / 1000;
-                const result = this.toAppendManyResults(appendManyResponse, eventsForEventSourceIds.length);
+                const result = this.toAppendManyResults(appendManyResponse, prepared);
                 span.setStatus({ code: SpanStatusCode.OK });
 
                 this.recordAppendManyMetrics(result, eventsForEventSourceIds.length, durationInSeconds, batchMetricAttributes);
@@ -286,6 +298,16 @@ export class EventSequence implements IEventSequence {
         });
     }
 
+    private enrichContent(
+        { eventSourceId, event, content, correlationId }: Pick<PreparedSourceAppend, 'eventSourceId' | 'event' | 'content' | 'correlationId'>
+    ): Promise<string> {
+        return enrichEventContent(content, {
+            event, eventType: getEventTypeFor(event.constructor as Function),
+            eventStore: this._eventStoreName, namespace: this._namespace,
+            eventSequenceId: this.id, eventSourceId, correlationId
+        }, this._eventEnrichmentProviders);
+    }
+
     private async sendAppendMany(
         { correlationId, batchCausationChain, identity, concurrencyScopes, namedTags }: PreparedBatchAppend,
         wireEvents: WireBatchEvent[]
@@ -311,7 +333,8 @@ export class EventSequence implements IEventSequence {
             });
     }
 
-    private toAppendManyResults(appendManyResponse: ContractsAppendManyResponse, eventCount: number): AppendResult[] {
+    private toAppendManyResults(appendManyResponse: ContractsAppendManyResponse, { eventsForEventSourceIds }: PreparedBatchAppend): AppendResult[] {
+        const eventCount = eventsForEventSourceIds.length;
         // Mirrors the C# client: every per-event AppendResult in a batch carries all
         // constraint violations and the first concurrency violation of the whole batch —
         // the wire response doesn't correlate either back to a specific event index.

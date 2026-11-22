@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createLogger } from './logging/createLogger.js';
+import type { ArtifactRegistrationResult } from './ArtifactRegistrationResult.js';
+import { ArtifactRegistrationAttempt } from './artifacts/ArtifactRegistrationAttempt.js';
 import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
 import { setTelemetryAttribute, recordSafeException } from './telemetry/spanAttributes.js';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -13,6 +15,7 @@ import { ensureQuerySuccess } from './connection/callResults.js';
 import { EventLog } from './eventSequences/EventLog.js';
 import { EventSequence } from './eventSequences/EventSequence.js';
 import { EventSequenceId } from './eventSequences/EventSequenceId.js';
+import type { EventEnrichmentProvider } from './eventSequences/EventEnrichmentProvider.js';
 import { IEventLog } from './eventSequences/IEventLog.js';
 import { IEventSequence } from './eventSequences/IEventSequence.js';
 import { EventStoreName } from './EventStoreName.js';
@@ -95,6 +98,13 @@ export class EventStore implements IEventStore {
 
     private readonly _sequences: Map<string, IEventSequence> = new Map();
     private readonly _constraints: Constraints;
+    private readonly _projections: Projections;
+    private _registrationAttempt = new ArtifactRegistrationAttempt();
+
+    /** Gets a snapshot of the latest registration attempt, not observer readiness. */
+    get registrationResult(): ArtifactRegistrationResult {
+        return this._registrationAttempt.result;
+    }
 
     constructor(
         readonly name: EventStoreName,
@@ -108,7 +118,8 @@ export class EventStore implements IEventStore {
         readModelNamingPolicy?: ReadModelNamingPolicy,
         private readonly _telemetry?: ChronicleTelemetryOptions,
         private readonly _skipKeepAlive: boolean = false,
-        defaultGraphSinkTypeId: string = WellKnownSinks.Neo4j
+        defaultGraphSinkTypeId: string = WellKnownSinks.Neo4j,
+        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = []
     ) {
         this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
@@ -118,11 +129,12 @@ export class EventStore implements IEventStore {
         this.constraints = this._constraints;
         this.eventSources = new EventSources(name.value, _connection, artifacts);
         const resolveConstraintMessage = this._constraints.resolveMessageFor.bind(this._constraints);
-        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources);
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources, _eventEnrichmentProviders);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
-        this.projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelNamingPolicy);
+        this._projections = new Projections(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelNamingPolicy);
+        this.projections = this._projections;
         this.graphs = new Graphs(name.value, _connection, artifacts, defaultGraphSinkTypeId);
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator, _skipKeepAlive);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy, _skipKeepAlive);
@@ -142,9 +154,22 @@ export class EventStore implements IEventStore {
     /**
      * Registers all discovered artifacts with the Chronicle Kernel.
      * Called on initial connect and on reconnect.
+     * @param reason - Why this registration attempt started.
      * @returns A promise that resolves when all registrations are complete.
      */
-    async registerArtifacts(): Promise<void> {
+    async registerArtifacts(reason = 'explicit'): Promise<void> {
+        const attempt = new ArtifactRegistrationAttempt(this._registrationAttempt.attemptId + 1, reason);
+        this._registrationAttempt = attempt;
+        try {
+            await this.performRegistration(attempt);
+            attempt.complete();
+        } catch (error) {
+            attempt.fail(error);
+            throw error;
+        }
+    }
+
+    private async performRegistration(attempt: ArtifactRegistrationAttempt): Promise<void> {
         if (this._skipKeepAlive) refuseClientHostedObservers(this._artifacts);
 
         this._logger.debug('Discovering artifacts for registration', {
@@ -182,7 +207,7 @@ export class EventStore implements IEventStore {
         await this.eventSources.register();
         await Promise.all([
             this.constraints.register(),
-            this.projections.register(),
+            this._projections.register(outcome => attempt.record(outcome)),
             this.graphs.register(),
             this.reactors.register(),
             this.reducers.register(),
@@ -213,7 +238,7 @@ export class EventStore implements IEventStore {
 
         const sequence = new EventSequence(
             id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager,
-            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry, this.eventSources
+            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry, this.eventSources, this._eventEnrichmentProviders
         );
         this._sequences.set(id.value, sequence);
         return sequence;
