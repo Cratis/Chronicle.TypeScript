@@ -29,6 +29,9 @@ import { registerProjectionWithRetry } from './registerProjectionWithRetry.js';
 import type { ProjectionRegistrationOutcome } from '../ArtifactRegistrationResult.js';
 import type { ResolvedModelBoundMetadata } from './ResolvedModelBoundMetadata.js';
 import { UnableToQueryProjection } from './UnableToQueryProjection.js';
+import type { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
+import type { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
+import { RuntimeProjectionDefinitions } from './RuntimeProjectionDefinitions.js';
 
 /**
  * Implements {@link IProjections}, managing discovery and registration of projections
@@ -38,6 +41,7 @@ export class Projections implements IProjections {
     private readonly _declarative = new Map<string, Constructor>();
     private readonly _modelBound = new Map<string, Constructor>();
     private readonly _failedPartitions: FailedPartitions;
+    private readonly _runtime = new RuntimeProjectionDefinitions();
 
     private readonly _logger: ReturnType<typeof createLogger>;
 
@@ -75,6 +79,7 @@ export class Projections implements IProjections {
             const metadata = getProjectionMetadata(type);
             if (metadata) {
                 this._logger.debug('Discovered declarative projection', { projectionId: metadata.id.value, type: type.name });
+                this._runtime.assertAvailable(metadata.id.value);
                 this._declarative.set(metadata.id.value, type);
             }
         }
@@ -90,6 +95,7 @@ export class Projections implements IProjections {
                 continue;
             }
 
+            this._runtime.assertAvailable(metadata.id.value);
             this._logger.debug('Discovered model-bound projection', { projectionId: metadata.id.value, type: type.name });
             if (!this._modelBound.has(metadata.id.value)) {
                 this._modelBound.set(metadata.id.value, type);
@@ -113,6 +119,47 @@ export class Projections implements IProjections {
         assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred]);
         const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
             .compile(this._declarative.values(), this._modelBound.values());
+        const retained = this._runtime.registrations;
+        await this.registerDefinitions({
+            ...compiled,
+            definitions: [...compiled.definitions, ...retained.flatMap(entry => entry.definitions)],
+            readModels: [...compiled.readModels, ...retained.flatMap(entry => entry.readModels)]
+        }, record);
+    }
+
+    /** @inheritdoc */
+    registerFor<TReadModel>(readModelType: Constructor<TReadModel>, define: (builder: IProjectionBuilderFor<TReadModel>) => void,
+        id?: ProjectionId | string): Promise<void> {
+        return this.registerRuntime(readModelType, define, id);
+    }
+
+    /** @inheritdoc */
+    registerModelBound(readModelType: Constructor): Promise<void> {
+        return this.registerRuntime(readModelType);
+    }
+
+    private async registerRuntime<TReadModel>(readModelType: Constructor<TReadModel>, define?: (builder: IProjectionBuilderFor<TReadModel>) => void,
+        id?: ProjectionId | string): Promise<void> {
+        await this.discover();
+        const identifier = id === undefined ? getReadModelId(readModelType) : this.toProjectionIdValue(id);
+        if (this._declarative.has(identifier) || this._modelBound.has(identifier)) {
+            throw new Error(`Projection id '${identifier}' is already discovered.`);
+        }
+        this._runtime.assertAvailable(identifier);
+        if (this.hasForModel(readModelType)) {
+            throw new Error(`Read model '${readModelType.name}' already has a projection.`);
+        }
+        const inferred = this._clientArtifacts.projections
+            .map(type => getProjectionMetadata(type)?.readModelType)
+            .filter((type): type is Constructor => type !== undefined);
+        assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred, ...this._runtime.readModelTypes, readModelType]);
+        const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
+            .compileFor(readModelType, define, identifier);
+        await this._runtime.register(readModelType, compiled, definition => this.registerDefinitions(definition));
+    }
+
+    private async registerDefinitions(compiled: CompiledProjectionDefinitions,
+        record: (outcome: ProjectionRegistrationOutcome) => void = () => {}): Promise<void> {
         const projections = compiled.definitions;
         for (const projection of projections) {
             ensureChildrenOrderingIsSupported(projection);
@@ -146,7 +193,7 @@ export class Projections implements IProjections {
     /** @inheritdoc */
     hasFor(projectionId: ProjectionId | string): boolean {
         const id = this.toProjectionIdValue(projectionId);
-        return this._declarative.has(id) || this._modelBound.has(id);
+        return this._declarative.has(id) || this._modelBound.has(id) || this._runtime.has(id);
     }
 
     /** @inheritdoc */
@@ -247,17 +294,11 @@ export class Projections implements IProjections {
      * @returns The resolved {@link ProjectionId}.
      */
     private resolveProjectionIdForModel(readModelType: Constructor): ProjectionId {
-        for (const [id, type] of this._modelBound) {
-            if (type === readModelType) {
-                return new ProjectionId(id);
-            }
-        }
-
-        for (const [id, type] of this._declarative) {
-            const metadata = getProjectionMetadata(type);
-            if (metadata?.readModelType === readModelType) {
-                return new ProjectionId(id);
-            }
+        const id = this._runtime.findForModel(readModelType)
+            ?? Array.from(this._modelBound).find(([, type]) => type === readModelType)?.[0]
+            ?? Array.from(this._declarative).find(([, type]) => getProjectionMetadata(type)?.readModelType === readModelType)?.[0];
+        if (id !== undefined) {
+            return new ProjectionId(id);
         }
 
         throw new Error(
@@ -272,6 +313,10 @@ export class Projections implements IProjections {
      * @returns The resolved event sequence identifier.
      */
     private resolveEventSequenceIdFor(projectionId: string): string {
+        const runtimeEventSequenceId = this._runtime.eventSequenceIdFor(projectionId);
+        if (runtimeEventSequenceId !== undefined) {
+            return runtimeEventSequenceId;
+        }
         const modelBoundType = this._modelBound.get(projectionId);
         if (modelBoundType) {
             return getEventSequenceMetadata(modelBoundType) ?? EventSequenceId.eventLog.value;

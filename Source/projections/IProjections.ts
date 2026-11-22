@@ -7,6 +7,7 @@ import { JobId } from '../jobs/JobId.js';
 import { ProjectionId } from './ProjectionId.js';
 import { ProjectionQueryResult } from './ProjectionQueryResult.js';
 import { ProjectionState } from './ProjectionState.js';
+import type { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
 
 /**
  * Defines a system to work with projections, including discovery, registration and operating
@@ -20,10 +21,33 @@ export interface IProjections {
     discover(): Promise<void>;
 
     /**
-     * Registers all discovered projections with the Chronicle Kernel.
+     * Registers all discovered and retained runtime projections with the Chronicle Kernel.
      * @returns A promise that resolves when registration is complete.
      */
     register(): Promise<void>;
+
+    /**
+     * Registers a projection explicitly, without discovering its read model or a projection class.
+     * @param readModelType - Constructor of the read model maintained by this projection.
+     * @param define - Callback using the same fluent builder as a declarative projection.
+     * @param id - Projection identifier. Defaults to the read model identifier.
+     * @returns A promise resolving after the kernel acknowledges registration.
+     * @remarks The definition is compiled immediately and retained only after successful registration.
+     * Later discovery does not remove it; register() sends it again, including on reconnect.
+     * An identifier already discovered, retained or being registered is rejected rather than replaced.
+     * A read model cannot have another projection, and variants must be registered together through discovery.
+     */
+    registerFor<TReadModel>(readModelType: Constructor<TReadModel>, define: (builder: IProjectionBuilderFor<TReadModel>) => void,
+        id?: ProjectionId | string): Promise<void>;
+
+    /**
+     * Registers the decorator-based projection on a read model without requiring its discovery.
+     * @param readModelType - Constructor carrying model-bound projection decorators.
+     * @returns A promise resolving after the kernel acknowledges registration.
+     * @remarks Uses the read model identifier as the projection identifier, with the same collision,
+     * validation and retention rules as registerFor(). A type without model-bound decorators is rejected.
+     */
+    registerModelBound(readModelType: Constructor): Promise<void>;
 
     /**
      * Check if there is a definition for a specific projection identifier.
@@ -47,6 +71,7 @@ export interface IProjections {
      * only handle it has. A declarative projection is only resolvable here when it declares its
      * read model type explicitly (the second argument to the `projection()` decorator); one whose read
      * model is inferred at registration time cannot be resolved before `register()` has run.
+     * Explicit runtime projections are resolvable after their registration succeeds.
      */
     getProjectionIdFor(readModelType: Constructor): ProjectionId;
 

@@ -14,6 +14,47 @@ Projections are shared Chronicle read-model behavior. Use the shared docs for pr
 - [Graph projections](./graph-projections.md)
 - [TypeScript client setup](./getting-started.md)
 
+## Register projections at runtime
+
+Use `store.projections.registerFor(ReadModel, define, id?)` to define a fluent projection without a discovered projection class, or `store.projections.registerModelBound(ReadModel)` to register an undiscovered decorator-based model. These correspond to the two explicit `Register<TReadModel>` forms in the .NET client. The existing parameterless `register()` still registers discovered projections, and now also sends retained runtime definitions.
+
+For example, with a connected `client`:
+
+```typescript
+import { field } from '@cratis/fundamentals';
+import { eventType, fromEvent, setFrom } from '@cratis/chronicle';
+
+@eventType('runtime-name-changed')
+class NameChanged {
+    @field(String) name = '';
+}
+
+class NameSummary {
+    static readonly readModelId = 'name-summary';
+    @field(String) name = '';
+}
+
+const store = await client.getEventStore('Library');
+await store.projections.registerFor(NameSummary, builder => {
+    builder.from(NameChanged, from => from.set(model => model.name).to(event => event.name));
+});
+
+@fromEvent(NameChanged)
+class NameDetails {
+    @setFrom(NameChanged)
+    @field(String) name = '';
+}
+
+await store.projections.registerModelBound(NameDetails);
+const state = await store.projections.getStateForModel(NameSummary);
+```
+
+The fluent identifier defaults to the read model identifier (`static readModelId`, the legacy `@readModel` identifier, or the class name); pass the optional third argument to use another projection identifier. The model-bound form uses the read model identifier. Read-model schemas, naming policies, validation and builder options use the same paths as discovered projections. Calling `.passive()` in the fluent callback registers an on-demand projection rather than a materialized sink.
+
+Both methods return `Promise<void>` and resolve only after the kernel acknowledges the read model and projection. Validation and kernel failures reject the promise and leave no runtime definition retained locally; a later retry can use the same identifier. A runtime identifier already discovered, retained or in flight is rejected, never replaced. Each read model can have only one projection. Explicit variant registration is not supported; register variants together through discovery.
+
+Acknowledged definitions survive `discover()` and are sent again when a cached event store reconnects. `hasForModel()`, `getProjectionIdFor()`, `getStateForModel()`, failed-partition lookup and replay work with their read model constructors. Keep event types discoverable for event-log operations; explicitly registering a projection does not register its event types.
+
 ## TypeScript client notes
 
 Choose a projection style in the shared guides, then use its TypeScript example. Check the feature-specific limits below before adapting a C# recipe.
