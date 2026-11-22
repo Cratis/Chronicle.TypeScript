@@ -14,11 +14,13 @@ import { scopeScenarioBehaviors } from './scope_scenario_behaviors.fixture.js';
 @eventType('OracleDomainText')
 class Text { @field(String) key: string; constructor(key: string) { this.key = key; } }
 @eventType('OracleCompositeName')
-class Name { @field(String) first: string; @field(String) last = ''; constructor(first: string) { this.first = first; } }
+class Name { @field(String) first = ''; @field(String) last = ''; }
 @eventType('OracleCompositeAlias')
-class Alias { @field(String) given: string; @field(String) family = ''; constructor(given: string) { this.given = given; } }
+class Alias { @field(String) given = ''; @field(String) family = ''; }
 @eventType('OracleCompositeTriple')
-class Triple { @field(String) first: string; @field(String) middle = ''; @field(String) last = ''; constructor(first: string) { this.first = first; } }
+class Triple { @field(String) first = ''; @field(String) middle = ''; @field(String) last = ''; }
+@eventType('OracleDomainFlag')
+class Flag { @field(Boolean) key = false; }
 @eventType('OracleDomainShared')
 class Shared { @field(String) key: string; constructor(key: string) { this.key = key; } }
 @eventType('OracleDomainRemoved')
@@ -50,6 +52,13 @@ function constraints(scope: ConstraintScopeCapture, kind: string): Constructor[]
                 .removedWith(Removed).removedWith(Expired).withMessage('Taken: {PropertyValue}'));
         }
     }
+    @constraint('OracleScopedFlag')
+    class BooleanKey {
+        define(builder: IConstraintBuilder) {
+            apply(builder).unique(key => key.on(Text, event => event.key).on(Flag, event => event.key)
+                .removedWith(Removed).withMessage('Taken: {PropertyName}={PropertyValue}'));
+        }
+    }
     @constraint('OracleScopedName')
     class Composite {
         define(builder: IConstraintBuilder) {
@@ -72,12 +81,13 @@ function constraints(scope: ConstraintScopeCapture, kind: string): Constructor[]
     class FirstCycle { define(builder: IConstraintBuilder) { apply(builder).uniqueFor(First, 'Cycle occupied', 'OracleScopedCycle'); } }
     @constraint('OracleScopedSibling')
     class SiblingCycle { define(builder: IConstraintBuilder) { apply(builder).uniqueFor(Sibling, 'Cycle occupied', 'OracleScopedCycle'); } }
+    if (kind === 'boolean') return [BooleanKey];
     if (kind === 'composite') return [Composite];
     if (kind === 'folded') return [Folded];
     return kind === 'property' ? [Key] : kind === 'once' ? [FirstCycle] : [FirstCycle, SiblingCycle];
 }
 
 describe('when appending scoped constraints with legacy decorators', () => {
-    scopeScenarioBehaviors({ string: Text, name: Name, alias: Alias, triple: Triple, shared: Shared, removed: Removed, expired: Expired,
+    scopeScenarioBehaviors({ string: Text, boolean: Flag, name: Name, alias: Alias, triple: Triple, shared: Shared, removed: Removed, expired: Expired,
         first: First, sibling: Sibling, cycleRemoved: CycleRemoved, cycleExpired: CycleExpired }, constraints);
 });

@@ -115,9 +115,11 @@ export class EventScenario {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
                         const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);
                         const plainStrings = schemas.every(schema => schema?.type === 'string' && schema.format === undefined);
-                        if (scoped && !plainStrings) {
+                        const plainScalars = schemas.every(schema =>
+                            ['string', 'boolean'].includes(schema?.type ?? '') && schema?.format === undefined);
+                        if (scoped && !plainScalars) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Scoped property keys must be schema-backed strings.');
+                                'Scoped property keys must be schema-backed strings or booleans.');
                         }
                         for (const schema of schemas) {
                             const supported = schema?.type === 'boolean' && schema.format === undefined ||

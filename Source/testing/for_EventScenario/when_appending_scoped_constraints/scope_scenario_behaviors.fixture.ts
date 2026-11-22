@@ -15,7 +15,7 @@ import { InProcessConstraints } from '../../InProcessConstraints.js';
 chai.should();
 function should(value: unknown): Assertion { return (value as { should: Assertion }).should; }
 
-type Entry = { source: string; type: string; value?: string; values?: Record<string, string>; sourceType?: string; streamType?: string; streamId?: string };
+type Entry = { source: string; type: string; value?: string | boolean; values?: Record<string, string>; sourceType?: string; streamType?: string; streamId?: string };
 type ScopeEvents = Record<string, new (value: string) => object>;
 type Definition = { kind: string; name: string; scope: ConstraintScopeCapture; events?: Array<{ type: string; properties: string[] }>;
     eventTypes?: string[]; ignoreCasing?: boolean; removedWithEventTypeIds: string[]; message: string };
@@ -49,7 +49,8 @@ function assertArtifacts(types: ScopeEvents, constraints: Constructor[], test: S
 }
 
 function eventOf(types: ScopeEvents, entry: Entry): object {
-    return Object.assign(new types[entry.type](entry.value ?? ''), entry.values);
+    const event = new types[entry.type](typeof entry.value === 'string' ? entry.value : '');
+    return Object.assign(event, typeof entry.value === 'boolean' ? { key: entry.value } : entry.values);
 }
 
 export function scopeScenarioBehaviors(
@@ -64,6 +65,7 @@ export function scopeScenarioBehaviors(
     }));
     it('should retain all seven scope combinations for property shapes, both constraint kinds and the alias guards', () => {
         should(fixture.scopeCases.map(test => test.name)).deep.equal([
+            ...Array.from({ length: 7 }, (_, index) => `boolean-${index + 1}`),
             ...Array.from({ length: 7 }, (_, index) => `composite-${index + 1}`),
             ...Array.from({ length: 7 }, (_, index) => `folded-${index + 1}`),
             ...Array.from({ length: 7 }, (_, index) => ['property', 'cycle', 'once'].map(kind => `${kind}-${index + 1}`)).flat(),
