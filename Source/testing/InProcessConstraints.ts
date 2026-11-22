@@ -83,9 +83,6 @@ export class InProcessConstraints {
             }
             if (capture.uniqueConstraint) {
                 const unique = capture.uniqueConstraint;
-                if (scoped && (unique.ignoreCasing || unique.eventDefinitions.some(entry => entry.properties.length !== 1))) {
-                    throw this.unsupported(name, 'Scoped composite or case-insensitive property keys are not fixture-backed.');
-                }
                 // constraints-composite.json installs one, two and three flat properties per event type.
                 // The kernel keys properties by path with ToDictionary, so duplicate paths are not a key shape.
                 if (unique.eventDefinitions.length === 0 || unique.eventDefinitions.some(entry =>
