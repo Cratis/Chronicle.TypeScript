@@ -6,6 +6,7 @@ import { chai, describe, it, vi, type Assertion } from 'vitest';
 import { constraint } from '../../../events/constraints/constraint.js';
 import type { IConstraintBuilder } from '../../../events/constraints/IConstraintBuilder.js';
 import { getEventTypeMetadata } from '../../../events/eventTypeDecorator.js';
+import type { JsonSchema } from '../../../schemas/JsonSchema.js';
 import { EventScenario } from '../../EventScenario.js';
 import { InProcessConstraints } from '../../InProcessConstraints.js';
 import { UnsupportedEventSequenceOperation } from '../../UnsupportedEventSequenceOperation.js';
@@ -82,15 +83,20 @@ function replay(fixture: Fixture, template: Template, mask: number, types: Types
     });
 }
 
+function overlapDeclarations(template: Template, variation: string): Declaration[] {
+    const declarations = structuredClone(template.constraintDefinitions);
+    if (variation === 'same-property') declarations[1].events = structuredClone(declarations[0].events);
+    if (variation === 'ignore-casing') declarations[1].ignoreCasing = true;
+    if (variation === 'composite') declarations[1].events.forEach(entry => entry.properties.push('key'));
+    if (variation === 'removal') declarations[1].removedWithEventTypeIds = ['removed'];
+    if (variation === 'third-definition') declarations.push({ ...declarations[1], name: 'OracleThird' });
+    return declarations;
+}
+
 function overlapRejections(template: Template, types: Types): void {
     for (const variation of ['same-property', 'different-scope', 'ignore-casing', 'composite', 'removal', 'third-definition', 'mixed-kind']) {
         it(`should reject unmeasured overlap: ${variation}`, () => {
-            const declarations = structuredClone(template.constraintDefinitions);
-            if (variation === 'same-property') declarations[1].events = structuredClone(declarations[0].events);
-            if (variation === 'ignore-casing') declarations[1].ignoreCasing = true;
-            if (variation === 'composite') declarations[1].events.forEach(entry => entry.properties.push('key'));
-            if (variation === 'removal') declarations[1].removedWithEventTypeIds = ['removed'];
-            if (variation === 'third-definition') declarations.push({ ...declarations[1], name: 'OracleThird' });
+            const declarations = overlapDeclarations(template, variation);
             const constraints = declarations.map((declaration, index) => definition(types, declaration, variation === 'different-scope' && index === 1 ? 1 : 0));
             if (variation === 'mixed-kind') {
                 class Once { define(builder: IConstraintBuilder) { builder.uniqueFor(types.number, 'Once', 'OracleOnce'); } }
@@ -125,31 +131,63 @@ function fieldlessRejections(types: Types): void {
     });
 }
 
-export function removalAndOverlapBehaviors(types: Types): void {
-    fieldlessRejections(types);
-    for (const name of ['removal-combinations', 'overlapping-definitions']) {
-        const fixture = JSON.parse(readFileSync(new URL(`../../fixtures/constraints-${name}.json`, import.meta.url), 'utf8')) as Fixture;
-        describe(`with ${name}`, () => {
-            it('should retain every measured scope case', () => {
-                const expectedNames = fixture.fieldCombinationCases.flatMap(test => Array.from({ length: 8 }, (_, mask) => `${test.name}-${mask}`));
-                should(expectedNames.length).equal(name === 'removal-combinations' ? 16 : 8);
-                should(fixture.expected.cases.map(test => test.name)).deep.equal(expectedNames);
-            });
-            for (const template of fixture.fieldCombinationCases) {
-                for (let mask = 0; mask < 8; mask++) {
-                    if (template.name === 'claim-remove') {
-                        it(`should reject covered/removal extended keys under scope mask ${mask}`, () => {
-                            // The kernel checks a covered/removal claim but does not retain it durably.
-                            const outcomes = fixture.expected.cases.find(test => test.name === `${template.name}-${mask}`)!.outcomes;
-                            should(outcomes.slice(0, 3).map(outcome => outcome.success)).deep.equal([true, true, false]);
-                            const constraints = template.constraintDefinitions.map(declaration => definition(types, declaration, mask));
-                            should(() => new EventScenario({ artifacts: { eventTypes: [types.number, types.guid, types.string], constraints } }))
-                                .throw(UnsupportedEventSequenceOperation, 'covered-and-removal');
-                        });
-                    } else replay(fixture, template, mask, types);
-                }
-                if (template.name === 'overlapping') overlapRejections(template, types);
-            }
+function unprovenOverlapKeyRejections(types: Types): void {
+    const schemas: JsonSchema[] = [
+        { type: 'number', format: 'double' }, { type: 'number', format: 'decimal' }, { type: 'number', format: 'float' },
+        { type: 'string', format: 'date' }, { type: 'string', format: 'date-time' }, { type: 'string', format: 'email' },
+        { type: 'boolean' }, { type: 'integer' }, { type: 'object' }, { type: 'array' }
+    ];
+    for (const schema of schemas) {
+        it(`should reject overlapping ${schema.type}/${schema.format} and string keys on one event type`, () => {
+            const properties = getEventTypeMetadata(types.formatted)!.schema.properties!;
+            const original = properties.key;
+            properties.key = schema;
+            try {
+                const declaration: Declaration = { name: 'OracleUnprovenKey', message: 'Taken', ignoreCasing: false,
+                    removedWithEventTypeIds: [], events: [{ type: 'formatted', properties: ['key'] }] };
+                const stringDeclaration: Declaration = { ...declaration, name: 'OracleIndependentString',
+                    events: [{ type: 'formatted', properties: ['suffix'] }] };
+                const constraints = [declaration, stringDeclaration].map(entry => definition(types, entry, 0));
+                should(() => new EventScenario({ artifacts: { eventTypes: [types.formatted], constraints } }))
+                    .throw(UnsupportedEventSequenceOperation, 'Overlapping constraints are not fixture-backed.');
+            } finally { properties.key = original; }
         });
     }
+}
+
+function claimRemoveRejection(fixture: Fixture, template: Template, mask: number, types: Types): void {
+    it(`should reject covered/removal extended keys under scope mask ${mask}`, () => {
+        // The kernel checks a covered/removal claim but does not retain it durably.
+        const outcomes = fixture.expected.cases.find(test => test.name === `${template.name}-${mask}`)!.outcomes;
+        should(outcomes.slice(0, 3).map(outcome => outcome.success)).deep.equal([true, true, false]);
+        const constraints = template.constraintDefinitions.map(declaration => definition(types, declaration, mask));
+        should(() => new EventScenario({ artifacts: { eventTypes: [types.number, types.guid, types.string], constraints } }))
+            .throw(UnsupportedEventSequenceOperation, 'covered-and-removal');
+    });
+}
+
+function registerTemplate(fixture: Fixture, template: Template, types: Types): void {
+    for (let mask = 0; mask < 8; mask++) {
+        if (template.name === 'claim-remove') claimRemoveRejection(fixture, template, mask, types);
+        else replay(fixture, template, mask, types);
+    }
+    if (template.name === 'overlapping') overlapRejections(template, types);
+}
+
+function registerFixture(name: string, types: Types): void {
+    const fixture = JSON.parse(readFileSync(new URL(`../../fixtures/constraints-${name}.json`, import.meta.url), 'utf8')) as Fixture;
+    describe(`with ${name}`, () => {
+        it('should retain every measured scope case', () => {
+            const expectedNames = fixture.fieldCombinationCases.flatMap(test => Array.from({ length: 8 }, (_, mask) => `${test.name}-${mask}`));
+            should(expectedNames.length).equal(name === 'removal-combinations' ? 16 : 8);
+            should(fixture.expected.cases.map(test => test.name)).deep.equal(expectedNames);
+        });
+        for (const template of fixture.fieldCombinationCases) registerTemplate(fixture, template, types);
+    });
+}
+
+export function removalAndOverlapBehaviors(types: Types): void {
+    fieldlessRejections(types);
+    unprovenOverlapKeyRejections(types);
+    for (const name of ['removal-combinations', 'overlapping-definitions']) registerFixture(name, types);
 }

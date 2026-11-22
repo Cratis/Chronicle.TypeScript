@@ -23,9 +23,14 @@ class GuidKey {
 class TextKey { @field(String) key = ''; }
 @eventType('OracleCombinedBoolean')
 class BooleanKey { @field(Boolean) key = true; }
+@eventType('OracleOverlapFormatted')
+class FormattedKey {
+    @field(Number) key = 7;
+    @field(String) suffix = 'Alpha';
+}
 @eventType('OracleCombinedRemoved')
 class Removed { }
 
 describe('when appending fieldless removals and overlapping definitions with legacy decorators', () => {
-    removalAndOverlapBehaviors({ number: NumberKey, guid: GuidKey, string: TextKey, boolean: BooleanKey, removed: Removed });
+    removalAndOverlapBehaviors({ number: NumberKey, guid: GuidKey, string: TextKey, boolean: BooleanKey, formatted: FormattedKey, removed: Removed });
 });

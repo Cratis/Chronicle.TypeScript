@@ -17,9 +17,15 @@ export function supportsPropertyOverlap(definitions: ReadonlyMap<string, Constra
         if (!other || other.properties[0] === entry.properties[0]) return false;
         return [entry.properties[0], other.properties[0]].every(property => {
             const field = schemas.get(entry.eventTypeId)?.properties?.[property];
-            return field?.type === 'string' || field?.type === 'number';
+            return isProvenOverlapKey(field);
         });
     });
+}
+
+function isProvenOverlapKey(schema: JsonSchema | undefined): boolean {
+    if (schema?.type === 'number') return schema.format === undefined;
+    if (schema?.type === 'string') return schema.format === undefined || schema.format === 'guid';
+    return false;
 }
 
 function isIndependentProperty(capture: ConstraintCapture): boolean {
