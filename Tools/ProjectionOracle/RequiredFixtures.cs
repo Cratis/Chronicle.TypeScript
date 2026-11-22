@@ -23,6 +23,8 @@ internal static class RequiredFixtures
         "add-children-lifecycle.json", "add-children-same-property.json", "add-children-leading-underscore.json",
         "subtract-children-lifecycle.json", "subtract-children-same-property.json", "subtract-children-leading-underscore.json",
         "subtract-children-legacy.json", "subtract-children-standard.json",
+        "increment-children-fluent.json", "increment-children-legacy.json", "increment-children-standard.json",
+        "decrement-children-fluent.json", "decrement-children-legacy.json", "decrement-children-standard.json",
         "arithmetic.json", "aggregate-only-automap.json", "rounded-integer-operand.json", "int32-overflow.json", "null-accumulator.json",
         "arithmetic-numeric-matrix.json", "arithmetic-initial-and-large.json", "arithmetic-integer-boundaries.json",
         "arithmetic-rounding.json", "arithmetic-automap.json", "arithmetic-string-operand.json",
