@@ -172,6 +172,7 @@ export class ReactorPageDispatcher {
 
         const context = this.createBatchContext(message, partitions);
         for (const method of this._target.batchMethods) {
+            if (this._target.signal.aborted) break;
             const observed = events.filter(event => method.eventTypes.has(event.event.context.eventType.id.value));
             if (observed.length === 0) continue;
             problems.push(...await this.invokeBatchMethod(artifact, method, observed, context));
@@ -236,6 +237,7 @@ export class ReactorPageDispatcher {
     private async observePartition(artifact: Artifact, partition: DeliveredPartition): Promise<PartitionProblem | undefined> {
         if (this._target.runtime) return this.observeRuntimePartition(partition);
         for (const event of partition.events) {
+            if (this._target.signal.aborted) break;
             const problem = await this.observeClassEvent(artifact, partition.partition, event);
             if (problem) return problem;
         }

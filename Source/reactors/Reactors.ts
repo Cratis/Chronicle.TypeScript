@@ -166,13 +166,8 @@ export class Reactors implements IReactors {
 
     private startObservation(registration: ReactorRegistration, subscription: ReactorSubscription): void {
         const attempt = new ReactorObservation(registration, this._lifecycle.connectionId);
-        const dispatcher = this.createDispatcher(subscription, attempt.controller.signal);
-        attempt.queue.send(reactorSubscriptionMessage(subscription, {
-            connectionId: attempt.connectionId, eventStore: this._eventStoreName, namespace: this._namespace
-        }));
         this._observations.set(registration.id, attempt);
-        this.reconnectBackoffFor(registration.id).streamOpened();
-        runInBackgroundContext(() => { void this.runObservation(attempt, subscription, dispatcher); });
+        runInBackgroundContext(() => { void this.runObservation(attempt, subscription); });
     }
 
     private createDispatcher(subscription: ReactorSubscription, signal: AbortSignal): ReactorPageDispatcher {
@@ -191,16 +186,21 @@ export class Reactors implements IReactors {
         });
     }
 
-    private async runObservation(attempt: ReactorObservation, subscription: ReactorSubscription, dispatcher: ReactorPageDispatcher): Promise<void> {
+    private async runObservation(attempt: ReactorObservation, subscription: ReactorSubscription): Promise<void> {
         const id = attempt.registration.id;
         let outcome: ObservationStreamOutcome = 'ended';
         try {
+            this.reconnectBackoffFor(id).streamOpened();
+            const dispatcher = this.createDispatcher(subscription, attempt.controller.signal);
+            attempt.queue.send(reactorSubscriptionMessage(subscription, {
+                connectionId: attempt.connectionId, eventStore: this._eventStoreName, namespace: this._namespace
+            }));
             outcome = await attempt.observe(this._connection.reactors.observe(attempt.queue, { signal: attempt.controller.signal }), dispatcher, {
                 delivered: () => this.reconnectBackoffFor(id).streamDelivered(),
                 failed: error => this.streamFailed(attempt, error)
             });
         } catch (error) {
-            this._logger.error('Reactor observation failed while handling a delivery', { reactorId: id, error });
+            if (this.isCurrent(attempt)) this._logger.error('Reactor observation failed while handling a delivery', { reactorId: id, error });
         } finally {
             attempt.stop();
         }
