@@ -10,6 +10,20 @@ Start with [TypeScript connection and artifact setup](/chronicle/clients/typescr
 
 ## TypeScript client notes
 
+### Registering runtime callbacks
+
+Use `store.reactors.define(id, builder => ...)` to create an immutable definition without starting observation. Register it with `await store.reactors.register(definition)`, or pass the ID and builder callback directly to `register`. IDs must be nonempty and unique across discovered and runtime reactors in that store and namespace.
+
+The fluent builder supports `on(EventType, (event, context) => ...)` for typed callbacks and `subscribe((event, context) => ...)` for all **currently registered** event types. Catch-all subscriptions snapshot the known catalog when defined; they do not include types discovered later. Callbacks run in registration order within each category, typed callbacks before catch-all callbacks, and are awaited before event-processing acknowledgment. A rejected callback fails its partition using the normal observation-result path. Runtime callbacks return `void` or `Promise<void>`, not side-effect events, and are not created through the artifact activator.
+
+For a delegate receiving `{ content, context }` and an `AbortSignal`, use `register(id, builder => builder.withEventType(EventType), async (event, signal) => ...)`. Both builder styles support `onEventSequence(id)` and `notReplayable()`; the defaults are the event log and replayable delivery. Event types must already be registered.
+
+`await register(...)` means **local validation, ID reservation, and observation start**, matching the .NET client. It does not confirm kernel registration: the pinned protocol has no positive subscription-acceptance frame. To wait for readiness separately, use `await store.reactors.waitTillSubscribed(id, { timeout: 5000, signal })`. This polls observer information until `IsSubscribed`; it is not a causal acknowledgment of that particular registration call and may observe an existing subscription. Timeouts, cancellation, disposal, and query errors reject the readiness wait.
+
+`await store.reactors.unregister(id)` means **local stop**: the definition loses reconnect eligibility, its retry timer is canceled, and its stream signal is aborted. Unknown IDs are harmless. Discovered reactors intentionally removed this way are not rediscovered by that collection. A new explicit registration can reuse the ID. Unregister does not wait for a kernel unsubscribe acknowledgment or an already-running callback, undo side effects, or delete persisted observer metadata. Callbacks should stop cooperatively on cancellation; later events and stale results cannot enter a replacement stream. Retained definitions reopen once on reconnect; disposed collections cannot start new runtime observations.
+
+Compiled examples: [fluent registration](./client-snippets/reactors/registration/fluent.md), [delegate registration](./client-snippets/reactors/registration/delegate.md), and [readiness and removal](./client-snippets/reactors/registration/lifecycle.md).
+
 ### Choosing a handler name
 
 By default, Chronicle calls the method whose name is the camelCase name of a registered event class: `authorRegistered(event)` handles `AuthorRegistered`. That convention saves a method decorator when the name already says which event it handles. It still depends on the event being in the store's discovered catalog; TypeScript's parameter annotation alone cannot identify it at runtime.

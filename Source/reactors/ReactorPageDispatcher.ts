@@ -78,7 +78,7 @@ export class ReactorPageDispatcher {
         try {
             if (artifactActivator && message.ReplayState !== ReplayState.REPLAY_STATE_None) {
                 if (!services) throw new Error('Reactor activation requires the owning event store.');
-                await withActivatedArtifact(reactorType, {
+                await withActivatedArtifact(reactorType!, {
                     kind: ArtifactKind.Reactor, artifactId: id, eventStore: services.eventStore,
                     readModels: services.readModels, eventSequenceId, partition: message.Partition,
                     signal, delivery: ArtifactDelivery.ReplayNotification, replayState: message.ReplayState
@@ -94,13 +94,16 @@ export class ReactorPageDispatcher {
             return undefined;
         } catch (error) {
             this._target.logger.error('Error notifying reactor of replay lifecycle transition', { reactorId: id, error });
-            const messages = error instanceof ArtifactCompletionFailed && error.processingError !== undefined
-                ? [String(error.processingError), String(error)] : [String(error)];
-            return partitions.map(partition => ({
-                ...failedAt(partition.partition, firstSequenceNumberOf(partition), error),
-                exceptionMessages: messages
-            }));
+            return this.replayFailures(partitions, error);
         }
+    }
+
+    private replayFailures(partitions: readonly DeliveredPartition[], error: unknown): PartitionProblem[] {
+        const messages = error instanceof ArtifactCompletionFailed && error.processingError !== undefined
+            ? [String(error.processingError), String(error)] : [String(error)];
+        return partitions.map(partition => ({
+            ...failedAt(partition.partition, firstSequenceNumberOf(partition), error), exceptionMessages: messages
+        }));
     }
 
     private async observe(message: EventsToObserve, partitions: readonly DeliveredPartition[]): Promise<PartitionProblem[]> {
@@ -131,17 +134,21 @@ export class ReactorPageDispatcher {
     private firstInvocableEvent(partitions: readonly DeliveredPartition[]): { partition: string; event: AppendedEvent } | undefined {
         for (const partition of partitions) {
             for (const event of partition.events) {
-                const eventTypeId = event.Context?.EventType?.Id;
-                if (eventTypeId && this._batchEventTypes.has(eventTypeId)) return { partition: partition.partition, event };
-                const selection = this.select(this._target.reactorInstance, event);
-                if (selection?.methodName && !selection.skipReplay) return { partition: partition.partition, event };
+                if (this.isInvocable(event)) return { partition: partition.partition, event };
             }
         }
         return undefined;
     }
 
+    private isInvocable(event: AppendedEvent): boolean {
+        const eventTypeId = event.Context?.EventType?.Id;
+        if (eventTypeId && this._batchEventTypes.has(eventTypeId)) return true;
+        const selection = this.select(this._target.reactorInstance, event);
+        return !!selection?.methodName && !selection.skipReplay;
+    }
+
     private select(instance: ReactorInstance | undefined, event: AppendedEvent) {
-        return selectReactorHandler(this._target.entries, this._target.reactorType, instance,
+        return selectReactorHandler(this._target.entries, this._target.reactorType!, instance,
             event.Context?.EventType?.Id, event.Context?.ObservationState ?? 0);
     }
 
@@ -160,19 +167,8 @@ export class ReactorPageDispatcher {
     private async observeBatches(artifact: Artifact, message: EventsToObserve, partitions: readonly DeliveredPartition[]): Promise<PartitionProblem[]> {
         const problems: PartitionProblem[] = [];
         const events: PageEvent[] = [];
-        for (const partition of partitions) {
-            for (const event of partition.events) {
-                const batchEventType = this._batchEventTypes.get(event.Context?.EventType?.Id ?? '');
-                if (!batchEventType) continue;
-                try {
-                    events.push({ partition: partition.partition, event: this.toEventAndContext(event, batchEventType.type) });
-                } catch (error) {
-                    problems.push(failedAt(partition.partition, event.Context!.SequenceNumber, error));
-                }
-            }
-        }
-        events.sort((left, right) => left.event.context.sequenceNumber < right.event.context.sequenceNumber ? -1
-            : left.event.context.sequenceNumber > right.event.context.sequenceNumber ? 1 : 0);
+        for (const partition of partitions) this.collectBatchEvents(partition, events, problems);
+        events.sort(comparePageEvents);
 
         const context = this.createBatchContext(message, partitions);
         for (const method of this._target.batchMethods) {
@@ -181,6 +177,18 @@ export class ReactorPageDispatcher {
             problems.push(...await this.invokeBatchMethod(artifact, method, observed, context));
         }
         return problems;
+    }
+
+    private collectBatchEvents(partition: DeliveredPartition, events: PageEvent[], problems: PartitionProblem[]): void {
+        for (const event of partition.events) {
+            const batchEventType = this._batchEventTypes.get(event.Context?.EventType?.Id ?? '');
+            if (!batchEventType) continue;
+            try {
+                events.push({ partition: partition.partition, event: this.toEventAndContext(event, batchEventType.type) });
+            } catch (error) {
+                problems.push(failedAt(partition.partition, event.Context!.SequenceNumber, error));
+            }
+        }
     }
 
     private async invokeBatchMethod(artifact: Artifact, method: BatchMethod, observed: readonly PageEvent[], context: BatchContext): Promise<PartitionProblem[]> {
@@ -209,41 +217,69 @@ export class ReactorPageDispatcher {
         }
     }
 
-    private async observePartition(artifact: Artifact, partition: DeliveredPartition): Promise<PartitionProblem | undefined> {
-        const { id, reactorType, eventStoreName, namespace, services, eventLog, resultHandler } = this._target;
+    private async observeRuntimePartition(partition: DeliveredPartition): Promise<PartitionProblem | undefined> {
         for (const event of partition.events) {
-            const eventTypeId = event.Context?.EventType?.Id;
-            if (!eventTypeId) {
-                this._target.logger.warn('Event missing event type context', { reactorId: id });
-                continue;
-            }
-            if (this._batchEventTypes.has(eventTypeId)) continue;
-
-            const selection = this.select(artifact.instance, event);
-            if (!selection?.methodName || selection.skipReplay) {
-                if (selection?.skipReplay) {
-                    this._target.logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: selection.methodName });
-                } else {
-                    this._target.logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay: selection?.isReplay ?? false });
-                }
-                continue;
-            }
-
+            if (this._target.signal.aborted) break;
+            if (!event.Context?.EventType) continue;
             try {
-                const content = JSON.parse(event.Content) as Record<string, unknown>;
-                const context = toClientEventContext(event.Context!);
-                this._target.logger.info('Invoking reactor handler', {
-                    reactorId: id, method: selection.methodName, sequenceNumber: event.Context!.SequenceNumber.toString(), eventTypeId
-                });
-                await invokeReactorHandler(artifact, selection.methodName, content, context, services, result =>
-                    dispatchReactorSideEffects(eventLog, result, context, reactorType as Function, eventStoreName, namespace, resultHandler),
-                this.deliveryFor(context));
+                await this._target.runtime!.handle({
+                    content: JSON.parse(event.Content), context: toClientEventContext(event.Context)
+                }, this._target.signal);
             } catch (error) {
-                this._target.logger.error('Error handling event in reactor', { reactorId: id, error });
-                return failedAt(partition.partition, event.Context!.SequenceNumber, error);
+                this._target.logger.error('Error handling event in reactor', { reactorId: this._target.id, error });
+                return failedAt(partition.partition, event.Context.SequenceNumber, error);
             }
         }
         return undefined;
+    }
+
+    private async observePartition(artifact: Artifact, partition: DeliveredPartition): Promise<PartitionProblem | undefined> {
+        if (this._target.runtime) return this.observeRuntimePartition(partition);
+        for (const event of partition.events) {
+            const problem = await this.observeClassEvent(artifact, partition.partition, event);
+            if (problem) return problem;
+        }
+        return undefined;
+    }
+
+    private async observeClassEvent(artifact: Artifact, partition: string, event: AppendedEvent): Promise<PartitionProblem | undefined> {
+        const { id, reactorType, eventStoreName, namespace, services, eventLog, resultHandler } = this._target;
+        const eventTypeId = event.Context?.EventType?.Id;
+        if (!eventTypeId) {
+            this._target.logger.warn('Event missing event type context', { reactorId: id });
+            return undefined;
+        }
+        if (this._batchEventTypes.has(eventTypeId)) return undefined;
+
+        const selection = this.select(artifact.instance, event);
+        if (!selection?.methodName || selection.skipReplay) {
+            this.logSkippedHandler(eventTypeId, selection);
+            return undefined;
+        }
+
+        try {
+            const content = JSON.parse(event.Content) as Record<string, unknown>;
+            const context = toClientEventContext(event.Context!);
+            this._target.logger.info('Invoking reactor handler', {
+                reactorId: id, method: selection.methodName, sequenceNumber: event.Context!.SequenceNumber.toString(), eventTypeId
+            });
+            await invokeReactorHandler(artifact, selection.methodName, content, context, services, result =>
+                dispatchReactorSideEffects(eventLog, result, context, reactorType as Function, eventStoreName, namespace, resultHandler),
+            this.deliveryFor(context));
+        } catch (error) {
+            this._target.logger.error('Error handling event in reactor', { reactorId: id, error });
+            return failedAt(partition, event.Context!.SequenceNumber, error);
+        }
+        return undefined;
+    }
+
+    private logSkippedHandler(eventTypeId: string, selection: ReturnType<ReactorPageDispatcher['select']>): void {
+        const { id } = this._target;
+        if (selection?.skipReplay) {
+            this._target.logger.debug('Reactor handler skipped for replay', { reactorId: id, eventTypeId, method: selection.methodName });
+        } else {
+            this._target.logger.debug('No reactor handler found', { reactorId: id, eventTypeId, isReplay: selection?.isReplay ?? false });
+        }
     }
 
     private toEventAndContext(event: AppendedEvent, eventType: Constructor): EventAndContext {
@@ -261,6 +297,12 @@ export class ReactorPageDispatcher {
         const { id, eventStoreName, namespace, eventSequenceId, signal } = this._target;
         return createBatchContext({ observerId: id, eventStore: eventStoreName, namespace, eventSequenceId, signal }, message, partitions);
     }
+}
+
+function comparePageEvents(left: PageEvent, right: PageEvent): number {
+    const first = left.event.context.sequenceNumber;
+    const second = right.event.context.sequenceNumber;
+    return first < second ? -1 : first > second ? 1 : 0;
 }
 
 /**
