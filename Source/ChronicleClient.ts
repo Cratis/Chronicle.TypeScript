@@ -181,7 +181,7 @@ export class ChronicleClient implements IChronicleClient {
     /** @inheritdoc */
     async getEventStore(name: string | EventStoreName, namespace?: string | EventStoreNamespaceName): Promise<IEventStore> {
         const storeName = typeof name === 'string' ? new EventStoreName(name) : name;
-        const namespaceName = this.toNamespaceName(namespace);
+        const namespaceName = await this.resolveNamespaceName(namespace);
 
         return observeOperation('getEventStore', async span => {
             setTelemetryAttribute(span, 'eventStore', storeName.value);
@@ -207,6 +207,19 @@ export class ChronicleClient implements IChronicleClient {
                 span.end();
             }
         });
+    }
+
+    private async resolveNamespaceName(namespace: string | EventStoreNamespaceName | undefined): Promise<EventStoreNamespaceName> {
+        if (namespace !== undefined) return this.toNamespaceName(namespace);
+        const resolver = this.options.namespaceResolver;
+        if (!resolver) return EventStoreNamespaceName.default;
+
+        const resolved = await resolver();
+        const value = resolved instanceof EventStoreNamespaceName ? resolved.value : resolved;
+        if (typeof value !== 'string' || value.trim().length === 0) {
+            throw new TypeError('namespaceResolver must return a non-empty namespace name.');
+        }
+        return this.toNamespaceName(resolved);
     }
 
     private toNamespaceName(namespace: string | EventStoreNamespaceName | undefined): EventStoreNamespaceName {
