@@ -38,6 +38,9 @@ const allFixtures = readdirSync(directory).filter(name => name.endsWith('.json')
     .map(name => ({ name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture }));
 const fixtures = allFixtures.filter(({ fixture }) => fixture.kind === 'kernelSemantics');
 const guardErrors: Record<string, { type: string; message: string }> = {
+    'composite-child-creation-fluent.json': { type: 'UnsupportedProjectionOperation', message: 'only a string child identifier is fixture-backed' },
+    'composite-child-creation-legacy.json': { type: 'UnsupportedProjectionOperation', message: 'only a string child identifier is fixture-backed' },
+    'composite-child-creation-standard.json': { type: 'UnsupportedProjectionOperation', message: 'only a string child identifier is fixture-backed' },
     'composite-parent-key-without-constant.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
     'composite-child-join-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },
     'composite-key-expression-parts.json': { type: 'UnsupportedProjectionOperation', message: 'only a lowercase id with a fixture-backed string, GUID, or number/double schema' },

@@ -1,0 +1,1306 @@
+{
+  "formatVersion": 1,
+  "kind": "oracleGuard",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
+  },
+  "definitionSource": "Public composite-child-creation-fluent declaration in projections/modelBound/for_childrenAndNestedBuilder; creation/update only, no removals. ReadModelScenario composite child keys remain rejected (Chronicle#6139).",
+  "compilerLastUpdated": {
+    "Value": "2029-06-17T17:34:04.000Z"
+  },
+  "normalization": "Oracle input only: omit definition LastUpdated registration metadata, retained above and asserted against unchanged client output; v19.30.0 ProjectionDefinitionComparer.cs:38,48-53 treats it as nonstructural metadata and projection evaluation does not read it (ProjectionFactory.cs, ProjectionPipeline.cs:121-131). Supply root NoAutoMapProperties [] only when the compiler omits it. Omit Tombstone only when exactly false on event-schema headers (kernel Concepts/Events/EventType.cs:12 defaults false); retain it on wire event keys and in client assertions. Every other field and all schema bodies compare exactly.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "composite-child-creation-fluent",
+    "ReadModel": "Parent",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "CompositeParentOpened",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {},
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {
+      "items": {
+        "IdentifiedBy": "id",
+        "From": [
+          {
+            "Key": {
+              "Id": "CompositeItemChanged",
+              "Generation": 1,
+              "Tombstone": false
+            },
+            "Value": {
+              "Properties": {},
+              "Key": "$composite(left=left,right=right)",
+              "ParentKey": ""
+            }
+          },
+          {
+            "Key": {
+              "Id": "CompositeItemReordered",
+              "Generation": 1,
+              "Tombstone": false
+            },
+            "Value": {
+              "Properties": {},
+              "Key": "$composite(right=right,left=left)",
+              "ParentKey": ""
+            }
+          }
+        ],
+        "Join": [],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [],
+        "RemovedWithJoin": [],
+        "AutoMap": 0,
+        "Nested": {}
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Parent",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Item",
+            "type": "object",
+            "properties": {
+              "id": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "title": "ChildKey",
+                "type": "object",
+                "properties": {
+                  "left": {
+                    "type": "string"
+                  },
+                  "right": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "left",
+                  "right"
+                ],
+                "additionalProperties": false
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "caption",
+        "items"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "eventSchemas": [
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Opened",
+        "type": "object",
+        "properties": {
+          "caption": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "caption"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "CompositeParentOpened",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "ItemChanged",
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "string"
+          },
+          "right": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "left",
+          "right",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "CompositeItemChanged",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "ReorderedItemChanged",
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "string"
+          },
+          "right": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "left",
+          "right",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "CompositeItemReordered",
+        "Generation": 1
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeParentOpened",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "caption": "A"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:01.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "x",
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:02.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "y",
+        "name": "second"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:03.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "b",
+        "right": "x",
+        "name": "third"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:04.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "x",
+        "name": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemReordered",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:05.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "x",
+        "name": "reordered"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:06.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a_b",
+        "right": "c",
+        "name": "delimiter-one"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "7",
+        "occurred": "2025-01-01T00:00:07.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "b_c",
+        "name": "delimiter-two"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeParentOpened",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "8",
+        "occurred": "2025-01-01T00:00:08.000Z",
+        "subject": "B",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "caption": "B"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "9",
+        "occurred": "2025-01-01T00:00:09.000Z",
+        "subject": "B",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "x",
+        "name": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "CompositeItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "10",
+        "occurred": "2025-01-01T00:00:10.000Z",
+        "subject": "A",
+        "eventSourceType": "Default",
+        "eventStreamType": "All",
+        "eventStreamId": "Default",
+        "eventStore": "[NotSet]",
+        "namespace": "[NotSet]",
+        "correlationId": "00000000-0000-0000-0000-000000000000",
+        "causation": [],
+        "tags": []
+      },
+      "content": {
+        "left": "a",
+        "right": "x",
+        "name": "final"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "A": {
+          "items": [],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": []
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "first"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "updated"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "updated"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "7",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "8",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [],
+          "__initialized": true,
+          "id": "B",
+          "caption": "B",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ]
+        },
+        "B": {
+          "id": "B",
+          "caption": "B",
+          "items": []
+        }
+      }
+    },
+    {
+      "sequenceNumber": "9",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "caption": "B",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "reordered"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ]
+        },
+        "B": {
+          "id": "B",
+          "caption": "B",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "independent"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "10",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "final"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "caption": "A",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "caption": "B",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "caption": "A",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "final"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "y"
+              },
+              "name": "second"
+            },
+            {
+              "id": {
+                "left": "b",
+                "right": "x"
+              },
+              "name": "third"
+            },
+            {
+              "id": {
+                "left": "a_b",
+                "right": "c"
+              },
+              "name": "delimiter-one"
+            },
+            {
+              "id": {
+                "left": "a",
+                "right": "b_c"
+              },
+              "name": "delimiter-two"
+            }
+          ]
+        },
+        "B": {
+          "id": "B",
+          "caption": "B",
+          "items": [
+            {
+              "id": {
+                "left": "a",
+                "right": "x"
+              },
+              "name": "independent"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
