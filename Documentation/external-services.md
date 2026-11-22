@@ -28,6 +28,27 @@ await eventStore.externalServices.register('CustomersApi', builder => builder
 client.dispose();
 ```
 
+## Request OAuth scopes for an HTTP service
+
+For OAuth authentication, replace the bearer-token configuration above with the following registration while the client is still alive. Read the authority and credentials from your configuration:
+
+```typescript
+await eventStore.externalServices.register('CustomersApi', builder => builder
+    .http('https://api.example.com')
+    .withOAuth(
+        process.env.OAUTH_AUTHORITY!,
+        process.env.OAUTH_CLIENT_ID!,
+        process.env.OAUTH_CLIENT_SECRET!,
+        'customers.read customers.write'
+    )
+    .withHeader('X-Tenant', 'acme'));
+```
+
+The optional fourth argument is a space-delimited string forwarded unchanged. Existing three-argument calls still work; an omitted or empty scope sends no scope value.
+
+> [!WARNING]
+> Chronicle kernels released before OAuth scope support ([Cratis/Chronicle#5139](https://github.com/Cratis/Chronicle/issues/5139)) ignore the scope: the registration succeeds, but tokens are requested without it. Upgrade the kernel before relying on a scope.
+
 ## Register a PostgreSQL database service
 
 For the PostgreSQL alternative, reuse the `eventStore` setup above while its client is still alive, before `client.dispose()`. Supply `password` from your configuration.
@@ -48,7 +69,7 @@ The builder passed to `configure` exposes:
 - `http(url)`
 - `withBasicAuth(username, password)`
 - `withBearerToken(token)`
-- `withOAuth(authority, clientId, clientSecret)`
+- `withOAuth(authority, clientId, clientSecret, scope?)`
 - `withHeader(key, value)`
 - `msSql(host, database, username, password, port?)`
 - `postgreSql(host, database, username, password, port?)`

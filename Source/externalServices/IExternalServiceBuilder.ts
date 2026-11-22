@@ -32,9 +32,10 @@ export interface IExternalServiceBuilder {
      * @param authority - The OAuth authority.
      * @param clientId - The OAuth client id.
      * @param clientSecret - The OAuth client secret.
+     * @param scope - Optional space-delimited OAuth scope.
      * @returns The builder for chaining.
      */
-    withOAuth(authority: string, clientId: string, clientSecret: string): IExternalServiceBuilder;
+    withOAuth(authority: string, clientId: string, clientSecret: string, scope?: string): IExternalServiceBuilder;
 
     /**
      * Adds a header to send with every HTTP request.

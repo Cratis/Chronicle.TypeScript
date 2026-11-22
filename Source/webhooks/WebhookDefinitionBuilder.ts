@@ -66,12 +66,12 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
     }
 
     /** @inheritdoc */
-    withOAuth(authority: string, clientId: string, clientSecret: string): IWebhookDefinitionBuilder {
+    withOAuth(authority: string, clientId: string, clientSecret: string, scope?: string): IWebhookDefinitionBuilder {
         const value: OAuthAuthorization = {
             Authority: authority,
             ClientId: clientId,
             ClientSecret: clientSecret,
-            Scope: ''
+            Scope: scope ?? ''
         };
         this._authorization = {
             Value0: undefined,

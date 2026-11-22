@@ -52,11 +52,11 @@ export class ExternalServiceBuilder implements IExternalServiceBuilder {
     }
 
     /** @inheritdoc */
-    withOAuth(authority: string, clientId: string, clientSecret: string): IExternalServiceBuilder {
+    withOAuth(authority: string, clientId: string, clientSecret: string, scope?: string): IExternalServiceBuilder {
         this._authorization = {
             Value0: undefined,
             Value1: undefined,
-            Value2: { Authority: authority, ClientId: clientId, ClientSecret: clientSecret, Scope: '' }
+            Value2: { Authority: authority, ClientId: clientId, ClientSecret: clientSecret, Scope: scope ?? '' }
         };
         return this;
     }

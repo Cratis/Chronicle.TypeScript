@@ -35,9 +35,10 @@ export interface IWebhookDefinitionBuilder {
      * @param authority - OAuth authority.
      * @param clientId - OAuth client id.
      * @param clientSecret - OAuth client secret.
+     * @param scope - Optional space-delimited OAuth scope.
      * @returns The builder for chaining.
      */
-    withOAuth(authority: string, clientId: string, clientSecret: string): IWebhookDefinitionBuilder;
+    withOAuth(authority: string, clientId: string, clientSecret: string, scope?: string): IWebhookDefinitionBuilder;
 
     /**
      * Adds a target header.
