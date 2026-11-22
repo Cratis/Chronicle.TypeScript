@@ -11,6 +11,7 @@ import { Tag } from '../events/Tag.js';
 import { Identity } from '../identity/Identity.js';
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { matchesEventField } from './EventFieldSchema.js';
+import { isMeasuredText } from './MeasuredConstraintKeys.js';
 import type { InProcessConstraints } from './InProcessConstraints.js';
 import type { InProcessEventSequenceEnvironment } from './InProcessEventSequenceEnvironment.js';
 
@@ -77,7 +78,7 @@ export class InProcessEventPayload {
 
     private matchesText(value: unknown, property: JsonSchema): boolean {
         if (property.type !== 'string' || property.format !== undefined) return true;
-        return /^[\x20-\x21\x23-\x5b\x5d-\x7e\u00e9]*$/.test(value as string);
+        return isMeasuredText(value as string);
     }
 
     private matchesConstraint(event: object, content: Record<string, unknown>, key: string): boolean {

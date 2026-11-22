@@ -15,7 +15,7 @@ chai.should();
 
 for (const schema of [
     { type: 'string', format: 'date' }, { type: 'string', format: 'date-time' },
-    { type: 'object' }, { type: 'integer', format: 'int64' }, { type: 'number', format: 'decimal' }
+    { type: 'object' }, { type: 'integer', format: 'int64' }, { type: 'integer', format: 'uint64' }
 ] satisfies JsonSchema[]) {
     describe(`when registering a ${schema.type}/${schema.format ?? 'unformatted'} constrained schema`, () => {
         it('should reject the constraint without rejecting an unconstrained field', async () => {

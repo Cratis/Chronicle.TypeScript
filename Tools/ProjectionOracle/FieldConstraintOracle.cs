@@ -38,24 +38,23 @@ public record OracleFieldDouble(double Key);
 [EventType("OracleFieldDateTime")]
 public record OracleFieldDateTime(DateTime Key);
 
+[EventType("OracleFieldText")]
+public record OracleFieldText(string Key);
+
+[EventType("OracleFieldDecimal")]
+public record OracleFieldDecimal(decimal Key);
+
+[EventType("OracleFieldFloat")]
+public record OracleFieldFloat(float Key);
+
 // Send literal JSON through the packaged service, not the .NET serializer: otherwise Guid casing,
 // numeric spelling and date offsets would be normalized before the kernel ever saw the request.
 internal static class FieldConstraintOracle
 {
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
-        var expectedSchemas = JsonNode.Parse("""
-            {"OracleFieldGuid":{"type":"string","format":"guid"},
-             "OracleFieldNumber":{"type":"number"},
-             "OracleFieldDouble":{"type":"number","format":"double"},
-             "OracleFieldDateTime":{"type":"string","format":"date-time"}}
-            """)!;
-        if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
-            throw new InvalidOperationException("Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.");
+        var expectedSchemas = CheckedSchemas(fixture);
         var cases = fixture["fieldConstraintCases"]!.AsArray();
-        if (!cases.Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}")
-            .SequenceEqual(["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard", "OracleFieldDouble/kernelSemantics"]))
-            throw new InvalidOperationException("Field oracle requires both supported key cases and numeric/date guards.");
         var outcomes = new JsonArray();
         foreach (var test in cases)
         {
@@ -169,5 +168,31 @@ internal static class FieldConstraintOracle
             }
         }
         return outcomes;
+    }
+
+    static JsonNode CheckedSchemas(JsonObject fixture)
+    {
+        var measurements = fixture["fieldKeyMeasurements"]?.GetValue<bool>() == true;
+        var expectedSchemas = JsonNode.Parse(measurements ? """
+            {"OracleFieldText":{"type":"string"},
+             "OracleFieldDecimal":{"type":"number","format":"decimal"},
+             "OracleFieldFloat":{"type":"number","format":"float"}}
+            """ : """
+            {"OracleFieldGuid":{"type":"string","format":"guid"},
+             "OracleFieldNumber":{"type":"number"},
+             "OracleFieldDouble":{"type":"number","format":"double"},
+             "OracleFieldDateTime":{"type":"string","format":"date-time"}}
+            """)!;
+        if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
+            throw new InvalidOperationException(measurements ? "Field fixture must declare the measured property schemas."
+                : "Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.");
+        string[] expectedCases = measurements
+            ? ["OracleFieldText/oracleGuard", "OracleFieldDecimal/oracleGuard", "OracleFieldFloat/oracleGuard"]
+            : ["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard", "OracleFieldDouble/kernelSemantics"];
+        if (!fixture["fieldConstraintCases"]!.AsArray()
+            .Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}").SequenceEqual(expectedCases))
+            throw new InvalidOperationException(measurements ? "Field oracle requires every declared key measurement case."
+                : "Field oracle requires both supported key cases and numeric/date guards.");
+        return expectedSchemas;
     }
 }

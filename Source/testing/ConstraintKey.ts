@@ -6,8 +6,9 @@ import type { AppendedEvent } from '../events/AppendedEvent.js';
 import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.js';
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
+import { isMeasuredNumericFormat, isMeasuredText, measuredNumericKey } from './MeasuredConstraintKeys.js';
 
-type KeyContext = { name: string; fractions: boolean };
+type KeyContext = { name: string; fractions: boolean; measured: boolean };
 type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
 
 // Only characters captured by the packaged oracle, not every valid event-content character.
@@ -37,16 +38,22 @@ function numericKey(value: unknown, context: KeyContext): string {
 
 function kernelKeyString(value: unknown, context: KeyContext, schema?: JsonSchema): string {
     if (schema?.format === 'guid') return guidKey(value, context.name);
-    if (schema?.type === 'number') return numericKey(value, {
-        ...context, fractions: context.fractions && [undefined, 'double'].includes(schema.format)
-    });
-    return scalarKey(value, context.name);
+    if (schema?.type === 'number') return schemaNumericKey(value, context, schema.format);
+    return scalarKey(value, context);
 }
 
-function scalarKey(value: unknown, name: string): string {
-    if (typeof value === 'string' && provenString.test(value)) return value;
+function schemaNumericKey(value: unknown, context: KeyContext, format: string | undefined): string {
+    if (isMeasuredNumericFormat(format)) return measuredNumericKey(value, format!, context.name, context.measured);
+    return numericKey(value, { ...context, fractions: context.fractions && [undefined, 'double'].includes(format) });
+}
+
+function scalarKey(value: unknown, context: KeyContext): string {
+    if (typeof value === 'string') {
+        const accepted = provenString.test(value) || context.measured && isMeasuredText(value);
+        if (accepted) return value;
+    }
     if (typeof value === 'boolean') return value ? 'True' : 'False';
-    throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+    throw new UnsupportedEventSequenceOperation('artifacts.constraints', context.name,
         'Only fixture-backed scalar string and boolean keys are supported.');
 }
 
@@ -73,7 +80,8 @@ export function claimOf(name: string, capture: ConstraintCapture, event: Appende
     const unique = capture.uniqueConstraint!;
     const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === event.eventType.id.value)?.properties;
     if (properties === undefined) return undefined;
-    const context = { name, fractions: options.isolated && supportsFractions(capture) };
+    const fractions = options.isolated && supportsFractions(capture);
+    const context = { name, fractions, measured: fractions && unique.eventDefinitions.length === 1 };
     const parts = properties.map(property => ({ property,
         raw: kernelKeyString(event.content[property], context, options.schema?.properties?.[property]) }));
     const joined = parts.map(part => part.raw).join('-');

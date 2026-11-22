@@ -166,8 +166,9 @@ describe('fixture-backed unique scalar values', () => {
         (await scenario.append('A', new OracleDomainText('0'))).isSuccess.should.be.true;
         const before = historyOf(scenario);
         const results = scenario.results;
-        const unprovenKeys = ['!', '#', '%', '&', "'", '(', ')', '*', '+', ',', '/', ';', '<', '=', '>', '?', '[', ']', '^', '`', '~'];
-        const invalidContent: unknown[] = [1, 0, 1.5, undefined, [], {}, new Date(), 'É', 'e\u0301', '"', '\\', '\n'];
+        const unprovenKeys = ['!', '#', '%', '&', "'", '(', ')', '*', '+', ',', '/', ';', '<', '=', '>', '?', '[', ']', '^', '`', '~',
+            'É', 'e\u0301', '"', '\\', '\n'];
+        const invalidContent: unknown[] = [1, 0, 1.5, undefined, [], {}, new Date()];
         // Fundamentals preserves null in JSON, so checkedContent rejects it as unsupported string content.
         for (const [value, operation] of [
             ...unprovenKeys.map(value => [value, 'artifacts.constraints']),
