@@ -23,9 +23,9 @@ class ModelProjection {
         builder.from(Changed, from => from.usingKey(event => event.targetId).set(model => model.name).to(event => event.title));
     }
 }
-export function candidateFor(name: string, model: typeof Model, projections: Constructor[]) {
+export function candidateFor(name: string, model: typeof Model, projections: Constructor[], eventTypes: Constructor[] = [Changed]) {
     const artifacts = {
-        readModels: [model], projections, eventTypes: [Changed],
+        readModels: [model], projections, eventTypes,
         globalForHandlers: [], reducers: [], reactors: [], seeders: [], constraints: [], webhooks: [], eventTypeMigrations: []
     };
     return { name, model, artifacts, compile: () => new ProjectionDefinitionCompiler(artifacts, 'test').compile(projections, projections.length ? [] : [model]) };

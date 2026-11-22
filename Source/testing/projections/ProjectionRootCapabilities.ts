@@ -11,6 +11,7 @@ import type { ProjectionCapabilityReject } from './ProjectionCapabilityReject.js
 import type { ProjectionEventSchemaResolver } from './ProjectionEventSchemaResolver.js';
 import { ProjectionMappingCapabilities } from './ProjectionMappingCapabilities.js';
 import { ProjectionRootKeyCapabilities } from './ProjectionRootKeyCapabilities.js';
+import { ProjectionSchemaCapabilities } from './ProjectionSchemaCapabilities.js';
 
 /** Validates root subscriptions and accumulator interactions before child traversal. */
 export class ProjectionRootCapabilities {
@@ -69,8 +70,11 @@ export class ProjectionRootCapabilities {
 
     private validateKey(section: string, expression: string, eventSchema: JsonSchema, path: string): void {
         if (expression === '$eventSourceId') return;
-        if (section === 'From' && ProjectionRootKeyCapabilities.supports(this.wire, this.schema, eventSchema, expression)) return;
-        this.reject(`${path}.Key`, 'only $eventSourceId keys are supported outside the fixture-backed flat plain-string root shape; requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        if (section !== 'From' || !ProjectionRootKeyCapabilities.supports(this.wire, this.schema, eventSchema, expression)) {
+            this.reject(`${path}.Key`, 'only $eventSourceId keys are supported outside the fixture-backed flat plain-string root shape; requires a kernel-backed test (ChronicleKernelScenario / live kernel)');
+        }
+        // Routing consumes this property even when no model property maps it.
+        ProjectionSchemaCapabilities.check(eventSchema.properties![expression], `${path}.Key`, this.reject);
     }
 
     private properties(entry: FromRecord, eventSchema: JsonSchema, path: string, mappings: ProjectionMappingCapabilities): void {
