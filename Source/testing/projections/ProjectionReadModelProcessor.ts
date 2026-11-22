@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { AutoMap, type ProjectionDefinition } from '@cratis/chronicle.contracts';
+import type { ProjectionDefinition } from '@cratis/chronicle.contracts';
 import type { Constructor } from '@cratis/fundamentals';
 import type { CompiledProjectionDefinitions } from '../../projections/CompiledProjectionDefinitions.js';
 import { eventContractPath } from '../../projections/eventContractPath.js';
@@ -17,6 +17,7 @@ import { ProjectionCapabilities } from './ProjectionCapabilities.js';
 import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.js';
 import { ProjectionJoins } from './ProjectionJoins.js';
 import type { ProjectionJoinRecord } from './ProjectionJoinRecord.js';
+import { ProjectionRootMappings } from './ProjectionRootMappings.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
@@ -144,10 +145,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 state.__initialized = true;
             }
             if (from) {
-                const explicit = { ...from.Value.Properties };
-                const excluded = (this._definition.NoAutoMapProperties ?? []);
-                const properties = this._definition.AutoMap !== AutoMap.Disabled && !ProjectionArithmetic.suppressesAutoMap(explicit)
-                    ? this.withAutoMap(explicit, schema, this._schema, excluded) : explicit;
+                const properties = this.rootProperties(from, schema);
                 this.apply(properties, content, event, this._schema, state);
                 // ResolveJoin is wired only to From clauses that map the join target (including AutoMap).
                 if (this._join && Object.hasOwn(properties, this._join.Value.On)) {
@@ -165,6 +163,13 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         this._engineState = engine;
         this._publicRead = Object.fromEntries(Object.entries(engine).map(([key, value]) => [key, this.normalize(value)]));
         return states;
+    }
+
+    private rootProperties(from: FromRecord, schema: JsonSchema): Record<string, string> {
+        const explicit = ProjectionRootMappings.explicit(this._definition, from);
+        const excluded = this._definition.NoAutoMapProperties ?? [];
+        return ProjectionRootMappings.usesAutoMap(this._definition, explicit)
+            ? this.withAutoMap(explicit, schema, this._schema, excluded) : explicit;
     }
 
     private keyFor(source: string): string {

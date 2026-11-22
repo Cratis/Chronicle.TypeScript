@@ -8,6 +8,7 @@ import { ProjectionCapabilityReporter } from './ProjectionCapabilityReporter.js'
 import { ProjectionChildrenCapabilities } from './ProjectionChildrenCapabilities.js';
 import { ProjectionDefinitionCapabilities } from './ProjectionDefinitionCapabilities.js';
 import { ProjectionEventSchemaResolver } from './ProjectionEventSchemaResolver.js';
+import { ProjectionFromEveryCapabilities } from './ProjectionFromEveryCapabilities.js';
 import { ProjectionInitialValueCapabilities } from './ProjectionInitialValueCapabilities.js';
 import { ProjectionJoinsCapabilities } from './ProjectionJoinsCapabilities.js';
 import { ProjectionMappingCapabilities } from './ProjectionMappingCapabilities.js';
@@ -31,6 +32,7 @@ export class ProjectionCapabilities {
         const catalog = compiled.eventSchemas.get(definition) ?? reject('Definition', 'event-schema catalog is unavailable');
         ProjectionDefinitionCapabilities.validate(wire, provenance, reject);
         const schema = ProjectionReadModelCapabilities.schema(compiled, model, reject);
+        ProjectionFromEveryCapabilities.validate(definition, schema, catalog, reject);
         const initial = ProjectionInitialValueCapabilities.validate(String(wire.InitialModelState ?? '{}'), schema, reject);
         const resolver = new ProjectionEventSchemaResolver(catalog, reject);
         ProjectionJoinsCapabilities.validate(definition, {
