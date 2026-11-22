@@ -16,6 +16,8 @@ import { EventLog } from './eventSequences/EventLog.js';
 import { EventSequence } from './eventSequences/EventSequence.js';
 import { EventSequenceId } from './eventSequences/EventSequenceId.js';
 import type { EventEnrichmentProvider } from './eventSequences/EventEnrichmentProvider.js';
+import { ConcurrencyScopeStrategies } from './eventSequences/ConcurrencyScopeStrategies.js';
+import type { ConcurrencyScopeStrategy } from './eventSequences/ConcurrencyScopeStrategy.js';
 import { IEventLog } from './eventSequences/IEventLog.js';
 import { IEventSequence } from './eventSequences/IEventSequence.js';
 import { EventStoreName } from './EventStoreName.js';
@@ -119,7 +121,8 @@ export class EventStore implements IEventStore {
         private readonly _telemetry?: ChronicleTelemetryOptions,
         private readonly _skipKeepAlive: boolean = false,
         defaultGraphSinkTypeId: string = WellKnownSinks.Neo4j,
-        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = []
+        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = [],
+        private readonly _concurrencyScopeStrategy: ConcurrencyScopeStrategy = ConcurrencyScopeStrategies.optimistic
     ) {
         this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
@@ -129,7 +132,7 @@ export class EventStore implements IEventStore {
         this.constraints = this._constraints;
         this.eventSources = new EventSources(name.value, _connection, artifacts);
         const resolveConstraintMessage = this._constraints.resolveMessageFor.bind(this._constraints);
-        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources, _eventEnrichmentProviders);
+        this.eventLog = new EventLog(name.value, namespace.value, _connection, this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources, _eventEnrichmentProviders, _concurrencyScopeStrategy);
         this._sequences.set(EventSequenceId.eventLog.value, this.eventLog);
 
         this.eventTypes = new EventTypes(name.value, _connection, artifacts);
@@ -238,7 +241,7 @@ export class EventStore implements IEventStore {
 
         const sequence = new EventSequence(
             id, this.name.value, this.namespace.value, this._connection, this.unitOfWorkManager,
-            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry, this.eventSources, this._eventEnrichmentProviders
+            this._constraints.resolveMessageFor.bind(this._constraints), this._telemetry, this.eventSources, this._eventEnrichmentProviders, this._concurrencyScopeStrategy
         );
         this._sequences.set(id.value, sequence);
         return sequence;
