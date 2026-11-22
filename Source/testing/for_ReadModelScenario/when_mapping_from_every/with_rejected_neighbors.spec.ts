@@ -12,7 +12,7 @@ function should(value: unknown): Assertion { return (value as { should: Assertio
 
 describe('when rejecting neighbors of the bounded fromEvery root mapping before seeding', () => {
     const cases: Array<{ name: string; mutate: (definition: ProjectionDefinition) => void; path: string }> = [
-        { name: 'all-event subscription', mutate: definition => { definition.SubscribesToAllEvents = true; }, path: 'SubscribesToAllEvents' },
+        { name: 'all-event subscription without mappings', mutate: definition => { definition.SubscribesToAllEvents = true; definition.All!.Properties = {}; }, path: 'SubscribesToAllEvents' },
         { name: 'All AutoMap enabled', mutate: definition => { definition.All!.AutoMap = AutoMap.Enabled; }, path: 'All' },
         { name: 'All AutoMap disabled', mutate: definition => { definition.All!.AutoMap = AutoMap.Disabled; }, path: 'All' },
         { name: 'root AutoMap disabled', mutate: definition => { definition.AutoMap = AutoMap.Disabled; }, path: 'All' },

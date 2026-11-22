@@ -21,8 +21,16 @@ export class ProjectionDefinitionCapabilities {
 
     private static subscription(wire: Record<string, unknown>, reject: ProjectionCapabilityReject): void {
         if (wire.IsActive === false) reject('IsActive', 'passive projections require a kernel-backed test');
-        if (wire.SubscribesToAllEvents === true) reject('SubscribesToAllEvents', 'subscribe-to-all projections require a kernel-backed test');
+        if (wire.SubscribesToAllEvents === true && !this.isProvenAllSubscription(wire)) reject('SubscribesToAllEvents', 'subscribe-to-all projections require a kernel-backed test');
         if (wire.EventSequenceId !== EventSequenceId.eventLog.value) reject('EventSequenceId', 'non-default event sequences require a kernel-backed test');
+    }
+
+    private static isProvenAllSubscription(wire: Record<string, unknown>): boolean {
+        const all = wire.All as { Properties?: Record<string, string>; IncludeChildren?: boolean; AutoMap?: AutoMap } | undefined;
+        const expressions = Object.values(all?.Properties ?? {});
+        // Schema, destinations, ordinary mappings and root-only restrictions remain checked below.
+        return all?.IncludeChildren === true && all.AutoMap === AutoMap.Inherit &&
+            expressions.length === 1 && expressions[0] === '$eventContext(SequenceNumber)';
     }
 
     private static unsupportedSection(wire: Record<string, unknown>, section: string, reject: ProjectionCapabilityReject): void {
