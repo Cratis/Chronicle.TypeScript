@@ -1,0 +1,638 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
+  },
+  "definitionSource": "Public from-every-fluent declaration in testing/for_ReadModelScenario/when_mapping_from_every; ordinary root mappings plus fromEvery SequenceNumber, unhandled events and removal/recreation.",
+  "compilerLastUpdated": {
+    "Value": "2053-06-24T14:27:43.000Z"
+  },
+  "normalization": "Oracle input only: omit definition LastUpdated registration metadata, retained above and asserted against unchanged client output; v19.30.0 ProjectionDefinitionComparer.cs:38,48-53 treats it as nonstructural metadata and projection evaluation does not read it (ProjectionFactory.cs, ProjectionPipeline.cs:121-131). Supply root NoAutoMapProperties [] only when the compiler omits it. Omit Tombstone only when exactly false on event-schema headers (kernel Concepts/Events/EventType.cs:12 defaults false); retain it on wire event keys and in client assertions. Every other field and all schema bodies compare exactly.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "from-every-fluent",
+    "ReadModel": "Model",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "Created",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {
+            "name": "name"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "Renamed",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {
+            "name": "name"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {
+        "lastSequence": "$eventContext(SequenceNumber)"
+      },
+      "IncludeChildren": true,
+      "AutoMap": 0
+    },
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "Removed",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Model",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "lastSequence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "lastSequence"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "eventSchemas": [
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Created",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "Created",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Renamed",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "Renamed",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Removed",
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "Removed",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Unhandled",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "Unhandled",
+        "Generation": 1
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "Unhandled",
+          "Generation": 1
+        },
+        "eventSourceId": "C",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "ignored before creation"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Created",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Renamed",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Unhandled",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "ignored update"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Created",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Renamed",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "other"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Created",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "created again"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Removed",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "7",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Unhandled",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "8",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "ignored after removal"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Renamed",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "9",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "recreated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Created",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "10",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "final"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "Removed",
+          "Generation": 1
+        },
+        "eventSourceId": "C",
+        "sequenceNumber": "11",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "lastSequence": "1",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "lastSequence": "1"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "lastSequence": "4",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2"
+        },
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "lastSequence": "4"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated",
+          "lastSequence": "2"
+        },
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "created again",
+          "lastSequence": "6",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "created again",
+          "lastSequence": "6"
+        },
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "7",
+      "engineState": {
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "8",
+      "engineState": {
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "9",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "recreated",
+          "lastSequence": "9",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "recreated",
+          "lastSequence": "9"
+        },
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "10",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "final",
+          "lastSequence": "10",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "final",
+          "lastSequence": "10"
+        },
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "11",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "final",
+          "lastSequence": "10",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "final",
+          "lastSequence": "10"
+        },
+        "B": {
+          "id": "B",
+          "name": "other",
+          "lastSequence": "5"
+        }
+      }
+    }
+  ]
+}

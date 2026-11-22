@@ -34,6 +34,8 @@ export class ProjectionDefinitionCapabilities {
 
     private static all(wire: Record<string, unknown>, provenance: readonly ProjectionCapabilityProvenance[], reject: ProjectionCapabilityReject): void {
         const all = wire.All as { Properties?: Record<string, string>; IncludeChildren?: boolean; AutoMap?: AutoMap } | undefined;
+        // Nonempty mappings are checked against the schema-backed root subset below.
+        if (Object.keys(all?.Properties ?? {}).length) return;
         if (provenance.some(entry => entry.contractPath === 'All') || this.hasAllMappings(all)) {
             reject('All', 'fromEvery/all subscriptions require a kernel-backed test');
         }
