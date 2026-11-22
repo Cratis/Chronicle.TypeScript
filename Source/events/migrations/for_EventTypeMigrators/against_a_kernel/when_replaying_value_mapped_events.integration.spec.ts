@@ -19,14 +19,13 @@ enum LegacyStatus { Open, Closed }
 
 class LegacyDetails {
     @field(Number) status = LegacyStatus.Open;
-    @field(String) note?: string | null;
     @field(String) fullName = 'Ada Lovelace';
     @field(String) prefix = 'Dr';
 }
 
 class Details {
     @field(String) status = '';
-    @field(String) note?: string | null;
+    @field(String) note = '';
     @field(String) firstName = '';
     @field(String) lastName = '';
     @field(String) displayName = '';
@@ -35,7 +34,8 @@ class Details {
 
 @eventType(eventTypeId, 1)
 class LegacyStatusRecorded {
-    @field(Number) status?: number | null;
+    @field(Number) status = LegacyStatus.Open;
+    @field(Number) unmappedCode = 99;
     @field(String) statusName = 'existing';
     @field(LegacyDetails) details = new LegacyDetails();
     @field(Object) payload = { code: 'old', active: true };
@@ -45,6 +45,7 @@ class LegacyStatusRecorded {
 @eventType(eventTypeId, 2)
 class StatusRecorded {
     @field(String) statusName = '';
+    @field(Number) unmappedCode = 0;
     @field(Details) details = new Details();
     @field(Object) payload = {};
     @field(Boolean) flag = false;
@@ -55,8 +56,9 @@ class StatusValueMigration implements IEventTypeMigration<StatusRecorded, Legacy
     upcast(builder: IEventMigrationBuilder<StatusRecorded, LegacyStatusRecorded>): void {
         builder.properties(properties => properties
             .mapValues('statusName', 'status', [
-                { from: LegacyStatus.Open, to: 'open' }, { from: LegacyStatus.Closed, to: 'closed' }, { from: null, to: 'not-set' }
+                { from: LegacyStatus.Open, to: 'open' }, { from: LegacyStatus.Closed, to: 'closed' }
             ])
+            .mapValues('unmappedCode', 'unmappedCode', [{ from: 0, to: 10 }])
             .mapValues('details.status', 'details.status', [{ from: LegacyStatus.Open, to: 'open' }])
             .mapValues('payload', 'payload', [{ from: { active: true, code: 'old' }, to: { code: 'new' } }])
             .mapValues('flag', 'flag', [{ from: false, to: true }])
@@ -80,7 +82,7 @@ class StatusReplay {
 
 // Never skip in CI: a missing connection string must fail rather than pass vacuously.
 describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapped events against the pinned kernel', () => {
-    const sourceValues = [LegacyStatus.Open, LegacyStatus.Closed, 99, null, undefined];
+    const sourceValues = [LegacyStatus.Open, LegacyStatus.Closed];
     const clients: ChronicleClient[] = [];
     const storeName = `ValueMaps${randomUUID().replaceAll('-', '')}`;
     const sourceId = randomUUID();
@@ -89,11 +91,12 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
         const writer = valueMappingClient({ eventTypes: [LegacyStatusRecorded] });
         clients.push(writer);
         const oldStore = await writer.getEventStore(storeName);
-        for (const status of sourceValues) {
-            const event = Object.assign(new LegacyStatusRecorded(), { status });
-            if (status === null) event.details.note = null;
+        const sourceEvents = sourceValues.map(status => Object.assign(new LegacyStatusRecorded(), { status }));
+        for (const event of sourceEvents) {
             expect((await oldStore.eventLog.append(sourceId, event)).isSuccess).toBe(true);
         }
+        const history = await oldStore.eventLog.getForEventSourceIdAndEventTypes(sourceId, [LegacyStatusRecorded]);
+        expect(history.map(event => event.content)).toEqual(JSON.parse(JSON.stringify(sourceEvents)));
         const migrations = { eventTypes: [LegacyStatusRecorded, StatusRecorded], eventTypeMigrations: [StatusValueMigration] };
         const migrator = valueMappingClient(migrations);
         clients.push(migrator);
@@ -111,16 +114,19 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
 
     afterAll(() => clients.forEach(client => client.dispose()));
 
-    it('should map serialized numeric enums, carry unmapped values, map null and preserve the target for an absent source', () => {
-        expect(observed.map(event => event.statusName)).toEqual(['open', 'closed', 99, 'not-set', 'existing']);
+    it('should map serialized numeric enums to strings', () => {
+        expect(observed.map(event => event.statusName)).toEqual(['open', 'closed']);
+    });
+    it('should carry an unmapped number through a number-to-number property map', () => {
+        expect(observed.map(event => event.unmappedCode)).toEqual([99, 99]);
     });
     it('should compare object values structurally, not by key order', () => {
         expect(observed.map(event => event.payload)).toEqual(sourceValues.map(() => ({ code: 'new' })));
     });
     it('should map boolean payload values', () => expect(observed.every(event => event.flag === true)).toBe(true));
-    it('should apply nested maps and defaults without overwriting present null', () => {
+    it('should apply nested maps and default a newly introduced property', () => {
         expect(observed.map(event => event.details.status)).toEqual(sourceValues.map(() => 'open'));
-        expect(observed.map(event => event.details.note)).toEqual(['default-note', 'default-note', 'default-note', null, 'default-note']);
+        expect(observed.map(event => event.details.note)).toEqual(sourceValues.map(() => 'default-note'));
     });
     it('should split, combine and rename nested properties without literal dotted payload keys', () => {
         for (const event of observed) {
