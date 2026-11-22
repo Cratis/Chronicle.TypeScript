@@ -44,6 +44,21 @@ await eventStore.webhooks.register(
 client.dispose();
 ```
 
+## Request OAuth scopes
+
+For a target that requires OAuth scopes, replace the bearer-token call in the registration above with `withOAuth(authority, clientId, clientSecret, scope?)`. Read the authority and credentials from your configuration:
+
+```typescript
+builder.withOAuth(
+    process.env.OAUTH_AUTHORITY!,
+    process.env.OAUTH_CLIENT_ID!,
+    process.env.OAUTH_CLIENT_SECRET!,
+    'employees.read employees.write'
+).withHeader('x-source', 'chronicle');
+```
+
+The fourth argument is a space-delimited string forwarded unchanged. Omit it to keep the existing three-argument call; an omitted or empty scope sends no scope value. The builder remains chainable.
+
 ## Define discoverable webhooks with decorators
 
 For discovery instead of an explicit registration call, declare a class with `@webhook(...)`:
