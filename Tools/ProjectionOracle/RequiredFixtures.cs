@@ -19,6 +19,7 @@ internal static class RequiredFixtures
         "joins-lifecycle.json", "joins-missing-values.json", "joins-automap.json", "joins-automap-enabled.json",
         "joins-automap-disabled.json", "joins-root-key-collision.json", "joins-custom-key.json", "joins-initial-state.json", "joins-unrelated-root-update.json",
         "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json",
+        "context-child-keys-fluent.json", "context-child-keys-legacy.json", "context-child-keys-standard.json",
         "count-children-root-first.json", "count-children-child-first.json",
         "add-children-lifecycle.json", "add-children-same-property.json", "add-children-leading-underscore.json",
         "subtract-children-lifecycle.json", "subtract-children-same-property.json", "subtract-children-leading-underscore.json",
