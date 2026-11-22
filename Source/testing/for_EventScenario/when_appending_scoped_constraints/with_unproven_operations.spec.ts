@@ -39,7 +39,7 @@ async function unsupported(action: () => unknown, reason: string): Promise<void>
 describe('when configuring unproven scoped property shapes', () => {
     for (const [name, configure, reason] of [
         ['covered removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Claim)), 'Scoped covered-and-removal property events'],
-        ['fieldless removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Fieldless)), 'Scoped fieldless removal events']
+        ['fieldless removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Fieldless).ignoreCasing()), 'Scoped fieldless removers require a case-sensitive single-property unique constraint']
     ] as const) {
         it(`should reject ${name} with its specific boundary rather than a compiler failure`, async () => {
             const eventTypes = name === 'fieldless removal' ? [Claim, Fieldless] : [Claim, Flag, Removed];

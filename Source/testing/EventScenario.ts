@@ -14,10 +14,12 @@ import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getEventTypeFor, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { compileConstraints } from '../events/constraints/Constraints.js';
 import type { UniqueConstraintCapture } from '../events/constraints/UniqueConstraintBuilder.js';
+import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.js';
 import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import { getConstraintMetadata } from '../events/constraints/constraint.js';
 import { InProcessConstraints } from './InProcessConstraints.js';
+import { supportsPropertyOverlap } from './PropertyDefinitionSupport.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { EventScenarioGivenBuilder } from './EventScenarioGivenBuilder.js';
 import { EventScenarioWhenBuilder } from './EventScenarioWhenBuilder.js';
@@ -53,7 +55,8 @@ function validateExtendedDefinition(name: string, unique: UniqueConstraintCaptur
         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
             'Guid and numeric keys with covered-and-removal events are not fixture-backed.');
     }
-    if (removers.some(id => Object.keys(getEventTypeMetadata(constructors.get(id)!)?.schema.properties ?? {}).length === 0)) {
+    if (!supportsFieldlessPropertyRemoval(unique, constructors) &&
+        removers.some(id => isFieldless(id, constructors))) {
         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
             'Guid and numeric keys with fieldless removal events are not fixture-backed.');
     }
@@ -80,6 +83,67 @@ function validateKeySchemas(name: string, schemas: ReadonlyArray<{ type?: string
     if (schemas.length > 1 && !hasCombinedKeySchemas(schemas)) {
         fail('Every property of a composite key must be a schema-backed string, Guid or unformatted number.');
     }
+}
+
+function supportsFieldlessPropertyRemoval(unique: UniqueConstraintCapture | undefined, constructors: ReadonlyMap<string, Function>): boolean {
+    return !!unique && !unique.ignoreCasing && unique.eventDefinitions.every(entry => {
+        if (entry.properties.length !== 1) return false;
+        const field = getEventTypeMetadata(constructors.get(entry.eventTypeId)!)?.schema.properties?.[entry.properties[0]];
+        return field?.type === 'string' || field?.type === 'number';
+    });
+}
+
+function isFieldless(id: string | undefined, constructors: ReadonlyMap<string, Function>): boolean {
+    const type = id === undefined ? undefined : constructors.get(id);
+    return type !== undefined && Object.keys(getEventTypeMetadata(type)?.schema.properties ?? {}).length === 0;
+}
+
+function constraintReferences(capture: ConstraintCapture): { ids: (string | undefined)[]; removedWith: (string | undefined)[] } {
+    return {
+        ids: capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
+            capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId],
+        removedWith: [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
+            capture.uniqueConstraint?.removedWithEventTypeId, ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])]
+    };
+}
+
+function validateScenarioDefinition(name: string, capture: ConstraintCapture,
+    options: { selectedIds: ReadonlySet<string>; constructors: ReadonlyMap<string, Function>; definitions: number }): void {
+    const { selectedIds, constructors, definitions } = options;
+    const { ids, removedWith } = constraintReferences(capture);
+    if ([...ids, ...removedWith].some(id => id !== undefined && !selectedIds.has(id))) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Every constrained event type must be in the selected catalog. Claiming and removal references must be complete.');
+    }
+    const scoped = Object.values(capture.scope).some(Boolean);
+    if (scoped && !supportsFieldlessPropertyRemoval(capture.uniqueConstraint, constructors) && removedWith.some(id => isFieldless(id, constructors))) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Scoped fieldless removers require a case-sensitive single-property unique constraint with string, Guid or numeric keys; other combinations are not fixture-backed.');
+    }
+    validateExtendedDefinition(name, capture.uniqueConstraint, constructors);
+    for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
+        const schemas = entry.properties.map(property => getEventTypeMetadata(constructors.get(entry.eventTypeId)!)?.schema.properties?.[property]);
+        validateKeySchemas(name, schemas, { scoped, definitions,
+            isolated: !scoped && capture.uniqueConstraint!.eventDefinitions.length === 1 && !removedWith.some(id => id !== undefined),
+            ignoreCasing: capture.uniqueConstraint!.ignoreCasing });
+    }
+}
+
+function scenarioConstraints(definitions: ReadonlyMap<string, ConstraintCapture>, selectedIds: ReadonlySet<string>,
+    constructors: ReadonlyMap<string, Function>): InProcessConstraints {
+    // Other-sequence definitions neither validate nor index this scenario's event log.
+    const eventLog = EventSequenceId.eventLog.value;
+    const applicable = new Map([...definitions].filter(([, capture]) =>
+        !capture.eventSequences?.length || capture.eventSequences.includes(eventLog)));
+    const inapplicable = new Set([...definitions.keys()].filter(name => !applicable.has(name)));
+    const ignoredRemovals = new Set([...definitions].filter(([name]) => inapplicable.has(name)).flatMap(([, capture]) =>
+        [capture.uniqueConstraint?.removedWithEventTypeId, ...(capture.uniqueConstraint?.removedWithEventTypeIds ?? [])]
+            .filter((id): id is string => id !== undefined)));
+    const schemas = new Map([...constructors].filter(([id]) => selectedIds.has(id)).map(([id, type]) => [id, getEventTypeMetadata(type)!.schema]));
+    const constraints = new InProcessConstraints(applicable, schemas, inapplicable, ignoredRemovals);
+    const count = supportsPropertyOverlap(applicable, schemas) ? 1 : applicable.size;
+    for (const [name, capture] of applicable) validateScenarioDefinition(name, capture, { selectedIds, constructors, definitions: count });
+    return constraints;
 }
 
 function hasConstraintDecorators(type: Function): boolean {
@@ -143,42 +207,7 @@ export class EventScenario {
                         }
                     }
                 }
-                // The scenario appends to the event log only. A definition scoped to other event sequences is neither
-                // validated nor indexed there by the kernel (constraints-event-sequences.json), so it takes no part.
-                const eventLog = EventSequenceId.eventLog.value;
-                const applicable = new Map([...definitions].filter(([, capture]) =>
-                    !capture.eventSequences?.length || capture.eventSequences.includes(eventLog)));
-                const inapplicable = new Set([...definitions.keys()].filter(name => !applicable.has(name)));
-                constraints = new InProcessConstraints(applicable, new Map(eventTypes.map(type =>
-                    [getEventTypeFor(type).id.value, getEventTypeMetadata(type)!.schema])), inapplicable);
-                for (const [name, capture] of applicable) {
-                    const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
-                        capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType?.eventTypeId];
-                    const removedWith = [...(capture.uniqueConstraint?.removedWithEventTypeIds ?? []),
-                        capture.uniqueConstraint?.removedWithEventTypeId,
-                        ...(capture.uniqueEventType?.removedWithEventTypeIds ?? [])];
-                    if ([...ids, ...removedWith].some(id => id !== undefined && !selectedIds.has(id))) {
-                        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                            'Every constrained event type must be in the selected catalog. Claiming and removal references must be complete.');
-                    }
-                    const scoped = Object.values(capture.scope).some(Boolean);
-                    if (scoped && removedWith.some(id => {
-                        const type = eventTypes.find(type => getEventTypeFor(type).id.value === id);
-                        return type && Object.keys(getEventTypeMetadata(type)?.schema.properties ?? {}).length === 0;
-                    })) {
-                        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                            'Scoped fieldless removal events are not fixture-backed.');
-                    }
-                    validateExtendedDefinition(name, capture.uniqueConstraint, constructorsById);
-                    for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
-                        const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
-                        const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);
-                        validateKeySchemas(name, schemas, { scoped, definitions: applicable.size,
-                            isolated: !scoped && capture.uniqueConstraint!.eventDefinitions.length === 1 &&
-                                !removedWith.some(id => id !== undefined),
-                            ignoreCasing: capture.uniqueConstraint!.ignoreCasing });
-                    }
-                }
+                constraints = scenarioConstraints(definitions, selectedIds, constructorsById);
             } catch (error) {
                 if (error instanceof UnsupportedEventSequenceOperation) throw error;
                 throw new UnsupportedEventSequenceOperation('artifacts.constraints', 'compiler', `Invalid constraint definition: ${String(error)}.`);
