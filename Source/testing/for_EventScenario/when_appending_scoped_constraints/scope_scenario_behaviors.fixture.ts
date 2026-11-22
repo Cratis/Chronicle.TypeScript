@@ -15,7 +15,8 @@ import { InProcessConstraints } from '../../InProcessConstraints.js';
 chai.should();
 function should(value: unknown): Assertion { return (value as { should: Assertion }).should; }
 
-type Entry = { source: string; type: string; value: string; sourceType?: string; streamType?: string; streamId?: string };
+type Entry = { source: string; type: string; value?: string; values?: Record<string, string>; sourceType?: string; streamType?: string; streamId?: string };
+type ScopeEvents = Record<string, new (value: string) => object>;
 type Definition = { kind: string; name: string; scope: ConstraintScopeCapture; events?: Array<{ type: string; properties: string[] }>;
     eventTypes?: string[]; ignoreCasing?: boolean; removedWithEventTypeIds: string[]; message: string };
 type History = { sequence: string; source: string; sourceType?: string; streamType?: string; streamId?: string;
@@ -28,8 +29,31 @@ type ScopeCase = { name: string; kind: string; eventSchemas: Record<string, { ev
     isolatedConstraintOperations: Array<{ label: string; mode: string; overload?: string; options?: AppendOptions; events: Entry[] }> };
 type Fixture = { scopeCases: ScopeCase[]; expected: { cases: Array<{ name: string; result: { outcomes: Outcome[] } }> } };
 
+function assertArtifacts(types: ScopeEvents, constraints: Constructor[], test: ScopeCase): void {
+    const aliases = Object.fromEntries(Object.entries(types).map(([alias, type]) => [getEventTypeMetadata(type)!.eventType.id.value, alias]));
+    const compiled = compileConstraints({ eventTypes: Object.keys(test.eventSchemas).map(alias => types[alias]), constraints });
+    should(Object.fromEntries(Object.entries(test.eventSchemas).map(([alias]) => {
+        const metadata = getEventTypeMetadata(types[alias])!;
+        return [alias, { eventTypeId: metadata.eventType.id.value,
+            properties: Object.fromEntries(Object.entries(metadata.schema.properties!).map(([key, property]) => [key, property.type])) }];
+    }))).deep.equal(test.eventSchemas);
+    should([...compiled].map(([name, capture]) => ({
+        kind: capture.uniqueConstraint ? 'uniqueProperty' : 'uniqueEventType', name,
+        ...(capture.uniqueConstraint ? {
+            events: capture.uniqueConstraint.eventDefinitions.map(entry => ({ type: aliases[entry.eventTypeId], properties: entry.properties })),
+            ignoreCasing: capture.uniqueConstraint.ignoreCasing
+        } : { eventTypes: (capture.uniqueEventType!.eventTypeIds ?? [capture.uniqueEventType!.eventTypeId]).map(id => aliases[id]) }),
+        removedWithEventTypeIds: (capture.uniqueConstraint?.removedWithEventTypeIds ?? capture.uniqueEventType?.removedWithEventTypeIds ?? []).map(id => aliases[id]),
+        message: capture.uniqueConstraint?.message ?? capture.uniqueEventType?.message ?? '', scope: capture.scope
+    }))).deep.equal(test.constraintDefinitions);
+}
+
+function eventOf(types: ScopeEvents, entry: Entry): object {
+    return Object.assign(new types[entry.type](entry.value ?? ''), entry.values);
+}
+
 export function scopeScenarioBehaviors(
-    types: Record<string, new (value: string) => object>,
+    types: ScopeEvents,
     constraints: (scope: ConstraintScopeCapture, kind: string) => Constructor[]
 ): void {
     const fixture = JSON.parse(readFileSync(new URL('../../fixtures/constraints-scopes.json', import.meta.url), 'utf8')) as Fixture;
@@ -38,10 +62,10 @@ export function scopeScenarioBehaviors(
         sourceType: event.context.eventSourceType, streamType: event.context.eventStreamType, streamId: event.context.eventStreamId,
         type: event.eventType.id.value, content: event.content, hash: event.context.hash
     }));
-    const aliases = Object.fromEntries(Object.entries(types).map(([alias, type]) => [getEventTypeMetadata(type)!.eventType.id.value, alias]));
-
-    it('should retain all seven scope combinations for both constraint kinds and the alias guards', () => {
+    it('should retain all seven scope combinations for property shapes, both constraint kinds and the alias guards', () => {
         should(fixture.scopeCases.map(test => test.name)).deep.equal([
+            ...Array.from({ length: 7 }, (_, index) => `composite-${index + 1}`),
+            ...Array.from({ length: 7 }, (_, index) => `folded-${index + 1}`),
             ...Array.from({ length: 7 }, (_, index) => ['property', 'cycle', 'once'].map(kind => `${kind}-${index + 1}`)).flat(),
             'property-delimiter-alias', 'cycle-delimiter-alias'
         ]);
@@ -55,21 +79,7 @@ export function scopeScenarioBehaviors(
                 const definition = test.constraintDefinitions[0];
                 const selected = Object.keys(test.eventSchemas).map(alias => types[alias]);
                 const selectedConstraints = constraints(definition.scope, test.name.split('-')[0]);
-                const compiled = compileConstraints({ eventTypes: selected, constraints: selectedConstraints });
-                should(Object.fromEntries(Object.entries(test.eventSchemas).map(([alias]) => {
-                    const metadata = getEventTypeMetadata(types[alias])!;
-                    return [alias, { eventTypeId: metadata.eventType.id.value,
-                        properties: Object.fromEntries(Object.entries(metadata.schema.properties!).map(([key, property]) => [key, property.type])) }];
-                }))).deep.equal(test.eventSchemas);
-                should([...compiled].map(([name, capture]) => ({
-                    kind: capture.uniqueConstraint ? 'uniqueProperty' : 'uniqueEventType', name,
-                    ...(capture.uniqueConstraint ? {
-                        events: capture.uniqueConstraint.eventDefinitions.map(entry => ({ type: aliases[entry.eventTypeId], properties: entry.properties })),
-                        ignoreCasing: capture.uniqueConstraint.ignoreCasing
-                    } : { eventTypes: (capture.uniqueEventType!.eventTypeIds ?? [capture.uniqueEventType!.eventTypeId]).map(id => aliases[id]) }),
-                    removedWithEventTypeIds: (capture.uniqueConstraint?.removedWithEventTypeIds ?? capture.uniqueEventType?.removedWithEventTypeIds ?? []).map(id => aliases[id]),
-                    message: capture.uniqueConstraint?.message ?? capture.uniqueEventType?.message ?? '', scope: capture.scope
-                }))).deep.equal(test.constraintDefinitions);
+                assertArtifacts(types, selectedConstraints, test);
                 const scenario = new EventScenario({ artifacts: { eventTypes: selected, constraints: selectedConstraints } });
                 const notifications = scenario.eventLog.appendOperations[Symbol.asyncIterator]();
                 if (test.kind === 'oracleGuard') {
@@ -77,7 +87,7 @@ export function scopeScenarioBehaviors(
                     try {
                         for (const operation of test.isolatedConstraintOperations) {
                             const entry = operation.events[0];
-                            await scenario.append(entry.source, new types[entry.type](entry.value), operation.options)
+                            await scenario.append(entry.source, eventOf(types, entry), operation.options)
                                 .then(() => { throw new Error('Unsupported route succeeded'); }, error => {
                                     should(error instanceof UnsupportedEventSequenceOperation).be.true;
                                     should((error as Error).message).include('Only simple routing identifiers');
@@ -101,7 +111,7 @@ export function scopeScenarioBehaviors(
                     for (const [index, operation] of test.isolatedConstraintOperations.entries()) {
                         const before = historyOf(scenario);
                         const nextNotification = notifications.next();
-                        const entries = operation.events.map(entry => ({ eventSourceId: entry.source, event: new types[entry.type](entry.value),
+                        const entries = operation.events.map(entry => ({ eventSourceId: entry.source, event: eventOf(types, entry),
                             eventSourceType: entry.sourceType, eventStreamType: entry.streamType, eventStreamId: entry.streamId }));
                         const results = operation.mode === 'single'
                             ? [await scenario.append(entries[0].eventSourceId, entries[0].event, operation.options)]

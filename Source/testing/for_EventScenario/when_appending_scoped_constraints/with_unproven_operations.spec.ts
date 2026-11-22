@@ -38,8 +38,6 @@ async function unsupported(action: () => unknown, reason: string): Promise<void>
 
 describe('when configuring unproven scoped property shapes', () => {
     for (const [name, configure, reason] of [
-        ['composite', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key, event => event.other)), 'Scoped composite or case-insensitive property keys'],
-        ['casing', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).ignoreCasing()), 'Scoped composite or case-insensitive property keys'],
         ['boolean', (builder: IConstraintBuilder) => builder.unique(value => value.on(Flag, event => event.key)), 'Scoped property keys must be schema-backed strings'],
         ['covered removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Claim)), 'Scoped covered-and-removal property events'],
         ['fieldless removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Fieldless)), 'Scoped fieldless removal events']
@@ -65,6 +63,38 @@ describe('when configuring unproven scoped property shapes', () => {
         await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Decorated], constraints: [scoped] } }),
             "Conflicting scopes for constraint 'Conflict'");
     });
+});
+
+describe('when a scoped case-insensitive append uses non-ASCII keys', () => {
+    for (const composite of [false, true]) {
+        it(`should preserve state and notifications after rejecting a ${composite ? 'composite' : 'single'} key`, async () => {
+            const folded = definition(builder => builder.perEventStreamId().unique(value =>
+                (composite ? value.on(Claim, event => event.key, event => event.other) : value.on(Claim, event => event.key))
+                    .ignoreCasing().removedWith(Removed)));
+            const scenario = new EventScenario({ artifacts: { eventTypes: [Claim, Removed], constraints: [folded] } });
+            (await scenario.append('A', new Claim('Alpha'), { streamId: 'West' })).isSuccess.should.be.true;
+            const before = scenario.appendedEvents;
+            const results = scenario.results;
+            const notifications = scenario.eventLog.appendOperations[Symbol.asyncIterator]();
+            const pending = notifications.next();
+            try {
+                await unsupported(() => scenario.append('A', new Claim('é'), { streamId: 'West' }), 'ASCII key domain');
+                await unsupported(() => scenario.appendMany('A', [new Claim('Temp'), new Claim('é')], { streamId: 'West' }),
+                    'ASCII key domain');
+                await unsupported(() => scenario.appendMany([
+                    { eventSourceId: 'B', event: new Claim('Temp'), eventStreamId: 'West' },
+                    { eventSourceId: 'A', event: new Claim('é'), eventStreamId: 'West' }
+                ]), 'ASCII key domain');
+                scenario.appendedEvents.should.deep.equal(before);
+                scenario.results.should.deep.equal(results);
+                (await scenario.eventLog.getNextSequenceNumber()).value.should.equal(1n);
+                const duplicate = await scenario.append('B', new Claim('ALPHA'), { streamId: 'West' });
+                duplicate.isSuccess.should.be.false;
+                (await pending).value![0].result.should.equal(duplicate);
+                (await scenario.append('B', new Claim('TEMP'), { streamId: 'West' })).sequenceNumber.value.should.equal(1n);
+            } finally { await notifications.return?.(); }
+        });
+    }
 });
 
 describe('when a scoped append uses unsupported routes or metadata', () => {
