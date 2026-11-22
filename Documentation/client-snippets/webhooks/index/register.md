@@ -29,5 +29,16 @@ class WebhooksIndexRegister {
             }
         );
     }
+
+    async registerWebhookWithOAuth(authority: string, clientId: string, clientSecret: string): Promise<void> {
+        await this.store.webhooks.register(
+            'account-events-oauth',
+            'https://example.com/chronicle/webhooks',
+            builder => builder
+                .withEventType(WebhooksIndexAccountOpened)
+                .withOAuth(authority, clientId, clientSecret, 'accounts.read accounts.write')
+                .withHeader('x-source', 'my-app')
+        );
+    }
 }
 ```

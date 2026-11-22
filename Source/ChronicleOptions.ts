@@ -13,9 +13,11 @@ import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActiva
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
 import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
 import type { IChronicleLogger } from './logging/IChronicleLogger.js';
+import type { EventStoreNamespaceResolver } from './EventStoreNamespaceResolver.js';
 
 type ChronicleOptionsConstructorParams = {
     concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
+    namespaceResolver?: EventStoreNamespaceResolver;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
@@ -38,6 +40,7 @@ type ChronicleOptionsConstructorParams = {
 
 type ChronicleOptionsFactoryParams = {
     concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
+    namespaceResolver?: EventStoreNamespaceResolver;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     skipKeepAlive?: boolean;
     telemetry?: ChronicleTelemetryOptions;
@@ -58,6 +61,13 @@ type ChronicleOptionsFactoryParams = {
  * Represents configuration options for the Chronicle client.
  */
 export class ChronicleOptions {
+    /**
+     * Resolves the namespace for each getEventStore call without an explicit namespace.
+     * Absent uses the default namespace.
+     * See {@link EventStoreNamespaceResolver} for the callback's context and failure contract.
+     */
+    readonly namespaceResolver?: EventStoreNamespaceResolver;
+
     /** Skip the keep-alive stream and health watchdog for short-lived processes. Either input can enable this. */
     readonly skipKeepAlive: boolean;
 
@@ -156,6 +166,7 @@ export class ChronicleOptions {
     readonly connectTimeout: number;
 
     private constructor(options: ChronicleOptionsConstructorParams) {
+        this.namespaceResolver = options.namespaceResolver;
         this.connectionString = options.connectionString;
         this.skipKeepAlive = options.skipKeepAlive === true;
         this.programIdentifier = options.programIdentifier ?? 'Unknown';
@@ -265,6 +276,7 @@ export class ChronicleOptions {
             : connectionString;
         const factoryOptions: ChronicleOptionsFactoryParams = options ?? {};
         return new ChronicleOptions({
+            namespaceResolver: factoryOptions.namespaceResolver,
             connectionString: parsed,
             skipKeepAlive: ChronicleOptions.shouldSkipKeepAlive(parsed, options),
             clientArtifactsProvider: factoryOptions.clientArtifactsProvider,
