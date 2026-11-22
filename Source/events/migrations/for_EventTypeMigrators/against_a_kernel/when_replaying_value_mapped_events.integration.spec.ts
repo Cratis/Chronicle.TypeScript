@@ -39,6 +39,7 @@ class LegacyStatusRecorded {
     @field(Number) unmappedCode = 99;
     @field(String) statusName = 'existing';
     @field(LegacyDetails) details = new LegacyDetails();
+    // Kernel 19.37.4 compares object JSON text; the mapping must use this property order.
     @field(Object) payload = { code: 'old', active: true };
     @field(Boolean) flag = false;
 }
@@ -61,7 +62,7 @@ class StatusValueMigration implements IEventTypeMigration<StatusRecorded, Legacy
             ])
             .mapValues('unmappedCode', 'unmappedCode', [{ from: 0, to: 10 }])
             .mapValues('details.status', 'details.status', [{ from: LegacyStatus.Open, to: 'open' }])
-            .mapValues('payload', 'payload', [{ from: { active: true, code: 'old' }, to: { code: 'new' } }])
+            .mapValues('payload', 'payload', [{ from: { code: 'old', active: true }, to: { code: 'new' } }])
             .mapValues('flag', 'flag', [{ from: false, to: true }])
             .defaultValue('details.note', 'default-note')
             .split('details.firstName', 'details.fullName', ' ', 0)
@@ -108,11 +109,16 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
     afterAll(() => clients.forEach(client => client.dispose()));
 
     it('should replay value maps and nested transformations from stored history', async () => {
-        // Wait for background migration before any observer replays the old history.
+        // The read returns the highest stored generation, not one selected by the constructor.
+        // Wait for the background job to store generation 2 before replaying the history.
         await expect.poll(async () => {
             const events = await store.eventLog.getForEventSourceIdAndEventTypes(sourceId, [StatusRecorded]);
-            return events.map(event => (event.content as unknown as StatusRecorded).details?.status);
-        }, { timeout: 20_000 }).toEqual(sourceValues.map(() => 'open'));
+            return events.map(event => ({
+                generation: event.context.eventType.generation.value,
+                payload: (event.content as unknown as StatusRecorded).payload,
+                status: (event.content as unknown as StatusRecorded).details?.status
+            }));
+        }, { timeout: 20_000 }).toEqual(sourceValues.map(() => ({ generation: 2, payload: { code: 'new' }, status: 'open' })));
         const reader = valueMappingClient({ ...migrations, reactors: [StatusReplay] });
         clients.push(reader);
         await reader.getEventStore(storeName);

@@ -60,8 +60,9 @@ export interface IEventMigrationPropertyBuilder<TTarget, TSource> {
 
     /**
      * Map payload values using ordered pairs. Unmapped values pass through unchanged;
-     * an absent source produces no result. The kernel compares JSON values structurally
-     * and uses the first matching pair. Directions are independent: no inverse is inferred.
+     * an absent source produces no result. The first matching pair wins. In kernel 19.37.4,
+     * object values must use the same property order as the source payload.
+     * Directions are independent: no inverse is inferred.
      * @param targetProperty - Root or nested target payload property.
      * @param sourceProperty - Root or nested source payload property.
      * @param mappings - JSON-serializable values (including null, numbers and objects), not enum names.
