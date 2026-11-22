@@ -29,6 +29,7 @@ import { invalidEventContextPropertyInProjection } from './invalidEventContextPr
 import { getProjectionMetadata } from './declarative/projection.js';
 import { ProjectionBuilderFor } from './declarative/ProjectionBuilderFor.js';
 import type { IProjectionFor } from './declarative/IProjectionFor.js';
+import type { IProjectionBuilderFor } from './declarative/IProjectionBuilderFor.js';
 import {
     applyPropertyMappings, buildChildrenEntry, buildNestedEntry, ChildrenDefinitionLike,
     ContractEventType, ensureFromEntry, FromRecord, getEventTypeMapKey, toContractEventType
@@ -87,6 +88,36 @@ export class ProjectionDefinitionCompiler {
                 getProjectionMetadata(type)?.readModelType)),
             ...Array.from(modelBound, type => this.buildWithContextValidation(type, () => this.buildModelBoundDefinition(type), type))
         ];
+        return this.finalize(builtProjections);
+    }
+
+    /**
+     * Compiles an explicitly supplied read model without requiring artifact discovery.
+     * @param readModelType - The read model constructor.
+     * @param define - Fluent definition callback; omitted for a model-bound projection.
+     * @param identifier - Projection identifier, defaulting to the read model identifier.
+     * @returns Validated projection and read model contracts.
+     */
+    compileFor<TReadModel>(readModelType: Constructor<TReadModel>, define?: (builder: IProjectionBuilderFor<TReadModel>) => void,
+        identifier = getReadModelId(readModelType)): CompiledProjectionDefinitions {
+        const built = this.buildWithContextValidation(readModelType, () => {
+            if (!define) {
+                if (!isModelBoundProjection(readModelType)) {
+                    throw new Error(`Read model '${readModelType.name}' has no model-bound projection.`);
+                }
+                return this.buildModelBoundDefinition(readModelType);
+            }
+            const builder = new ProjectionBuilderFor<TReadModel>();
+            define(builder);
+            return this.buildFluentDefinition(readModelType.name, identifier, builder, readModelType);
+        }, readModelType);
+        if (built.variant) {
+            throw new Error(`Variant read model '${readModelType.name}' cannot be registered explicitly. Register its variants together through discovery.`);
+        }
+        return this.finalize([built], new Map([[String(built.definition.ReadModel), readModelType]]));
+    }
+
+    private finalize(builtProjections: BuiltProjection[], readModelTypes = new Map<string, Constructor>()): CompiledProjectionDefinitions {
         // A sibling's entering event adds RemovedWith to each variant. Hash only after
         // every variant has been cross-wired, so repeated registrations remain stable.
         crossWireGroups(builtProjections);
@@ -110,7 +141,7 @@ export class ProjectionDefinitionCompiler {
         }
         return {
             definitions,
-            readModels: this.buildReadModelDefinitions(definitions),
+            readModels: this.buildReadModelDefinitions(definitions, readModelTypes),
             provenance,
             eventSchemas
         };
@@ -157,7 +188,7 @@ export class ProjectionDefinitionCompiler {
         }
     }
 
-    private buildReadModelDefinitions(projections: ProjectionDefinition[]): ReturnType<typeof buildReadModelDefinition>[] {
+    private buildReadModelDefinitions(projections: ProjectionDefinition[], readModelTypes: ReadonlyMap<string, Constructor>): ReturnType<typeof buildReadModelDefinition>[] {
         const byReadModel = new Map<string, ReturnType<typeof buildReadModelDefinition>>();
         for (const projection of projections) {
             const readModelIdentifier = projection.ReadModel;
@@ -171,7 +202,7 @@ export class ProjectionDefinitionCompiler {
                 }
                 continue;
             }
-            const readModelType = this.getReadModelType(readModelIdentifier);
+            const readModelType = readModelTypes.get(readModelIdentifier) ?? this.getReadModelType(readModelIdentifier);
             byReadModel.set(readModelIdentifier, buildReadModelDefinition({
                 identifier: readModelIdentifier,
                 type: readModelType,
@@ -212,19 +243,17 @@ export class ProjectionDefinitionCompiler {
         const builder = new ProjectionBuilderFor<unknown>();
         const instance = new type() as IProjectionFor<unknown>;
         instance.define(builder);
-        const definition = builder.build(metadata.id.value, type.name) as Record<string, unknown>;
-        definition.Tags = getTagsFor(type).map(tag => tag.value).sort();
+        const built = this.buildFluentDefinition(type.name, metadata.id.value, builder, metadata.readModelType);
+        built.definition.Tags = getTagsFor(type).map(tag => tag.value).sort();
+        return built;
+    }
 
-        const explicitReadModelIdentifier = definition.ReadModel as string;
-        if (explicitReadModelIdentifier === type.name) {
-            if (metadata.readModelType) {
-                definition.ReadModel = getReadModelId(metadata.readModelType);
-            } else {
-                const inferredReadModelIdentifier = this.inferReadModelIdentifier(builder.getMappedReadModelProperties());
-                if (inferredReadModelIdentifier) {
-                    definition.ReadModel = inferredReadModelIdentifier;
-                }
-            }
+    private buildFluentDefinition<TReadModel>(typeName: string, identifier: string, builder: ProjectionBuilderFor<TReadModel>, readModelType?: Constructor): BuiltProjection {
+        const definition = builder.build(identifier, typeName);
+        if (definition.ReadModel === typeName) {
+            definition.ReadModel = readModelType
+                ? getReadModelId(readModelType)
+                : this.inferReadModelIdentifier(builder.getMappedReadModelProperties()) ?? typeName;
         }
 
         const declarations = getProjectionBuilderProvenance(builder);
@@ -237,7 +266,7 @@ export class ProjectionDefinitionCompiler {
         const variantDeclaration = builder.getVariantDeclaration();
         if (variantDeclaration) {
             const reclassified = reclassify(
-                type.name, definition.From as FromRecord[], definition.Join as JoinRecord[],
+                typeName, definition.From as FromRecord[], definition.Join as JoinRecord[],
                 variantDeclaration.enteringEventTypes, variantDeclaration.key);
             definition.From = reclassified.from;
             definition.Join = reclassified.join;
@@ -246,7 +275,7 @@ export class ProjectionDefinitionCompiler {
             provenance.push({ contractPath: 'Variant.Key', declaration: '.variantOf' });
             for (const entering of variant.enteringEventTypes) provenance.push({ contractPath: eventContractPath('EntersOn', entering), declaration: '.entersOn' });
         }
-        return { typeName: type.name, definition, variant, provenance };
+        return { typeName, definition, variant, provenance };
     }
 
     private inferReadModelIdentifier(mappedProperties: string[]): string | undefined {
