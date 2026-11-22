@@ -15,7 +15,17 @@ import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOp
 import type { IChronicleLogger } from './logging/IChronicleLogger.js';
 import type { EventStoreNamespaceResolver } from './EventStoreNamespaceResolver.js';
 
-type ChronicleOptionsConstructorParams = {
+import type { ReadModelReactorActivator } from './readModels/ReadModelReactorActivator.js';
+import type { ReadModelReactorResultHandler } from './readModels/ReadModelReactorResultHandler.js';
+import type { ReadModelReactorErrorHandler } from './readModels/ReadModelReactorErrorHandler.js';
+
+type ReadModelReactorOptions = {
+    readModelReactorActivator?: ReadModelReactorActivator;
+    readModelReactorResultHandler?: ReadModelReactorResultHandler;
+    readModelReactorOnError?: ReadModelReactorErrorHandler;
+};
+
+type ChronicleOptionsConstructorParams = ReadModelReactorOptions & {
     concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
     namespaceResolver?: EventStoreNamespaceResolver;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
@@ -38,7 +48,7 @@ type ChronicleOptionsConstructorParams = {
     connectTimeout?: number;
 };
 
-type ChronicleOptionsFactoryParams = {
+type ChronicleOptionsFactoryParams = ReadModelReactorOptions & {
     concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
     namespaceResolver?: EventStoreNamespaceResolver;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
@@ -129,6 +139,13 @@ export class ChronicleOptions {
     /** Optional handler for application-owned reactor returns, installed before observations begin. */
     readonly reactorResultHandler?: ReactorResultHandler;
 
+    /** Separate activation context for read-model deliveries, not appended events. */
+    readonly readModelReactorActivator?: ReadModelReactorActivator;
+    /** Return true to handle a result, false to use explicit EventForEventSourceId destinations. */
+    readonly readModelReactorResultHandler?: ReadModelReactorResultHandler;
+    /** Reports non-terminal per-change failures. Errors from this callback are logged. */
+    readonly readModelReactorOnError?: ReadModelReactorErrorHandler;
+
     /** Ordered post-serialization providers for single and batch appends on every event store and sequence. */
     readonly eventEnrichmentProviders: readonly EventEnrichmentProvider[];
 
@@ -177,6 +194,9 @@ export class ChronicleOptions {
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
         this.defaultGraphSinkTypeId = options.defaultGraphSinkTypeId ?? WellKnownSinks.Neo4j;
         this.reactorResultHandler = options.reactorResultHandler;
+        this.readModelReactorActivator = options.readModelReactorActivator;
+        this.readModelReactorResultHandler = options.readModelReactorResultHandler;
+        this.readModelReactorOnError = options.readModelReactorOnError;
         this.eventEnrichmentProviders = [...(options.eventEnrichmentProviders ?? [])];
         this.concurrencyScopeStrategy = options.concurrencyScopeStrategy ?? ConcurrencyScopeStrategies.optimistic;
         this.artifactActivator = options.artifactActivator;
@@ -284,6 +304,9 @@ export class ChronicleOptions {
             defaultSinkTypeId: factoryOptions.defaultSinkTypeId,
             defaultGraphSinkTypeId: factoryOptions.defaultGraphSinkTypeId,
             reactorResultHandler: factoryOptions.reactorResultHandler,
+            readModelReactorActivator: factoryOptions.readModelReactorActivator,
+            readModelReactorResultHandler: factoryOptions.readModelReactorResultHandler,
+            readModelReactorOnError: factoryOptions.readModelReactorOnError,
             eventEnrichmentProviders: factoryOptions.eventEnrichmentProviders,
             concurrencyScopeStrategy: factoryOptions.concurrencyScopeStrategy,
             artifactActivator: factoryOptions.artifactActivator,

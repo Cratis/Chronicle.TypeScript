@@ -16,6 +16,9 @@ export interface IClientArtifactsProvider {
     /** Gets discovered reactor constructors. */
     readonly reactors: Constructor[];
 
+    /** Gets client-managed read-model reactors. Optional for existing providers. */
+    readonly readModelReactors?: Constructor[];
+
     /** Gets discovered reducer constructors. */
     readonly reducers: Constructor[];
 

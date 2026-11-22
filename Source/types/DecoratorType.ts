@@ -14,6 +14,9 @@ export enum DecoratorType {
     /** Reactor artifacts discovered through the reactor decorator. */
     Reactor = 'reactor',
 
+    /** Client-managed read-model change reactors. */
+    ReadModelReactor = 'readModelReactor',
+
     /** Reducer artifacts discovered through the reducer decorator. */
     Reducer = 'reducer',
 
