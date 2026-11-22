@@ -6,6 +6,7 @@ import type { FromRecord, RemovedWithRecord } from '../../projections/declarativ
 import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
 import { ProjectionArithmetic } from './ProjectionArithmetic.js';
+import { ProjectionCountChildrenCapabilities } from './ProjectionCountChildrenCapabilities.js';
 import type { ProjectionCapabilityReject } from './ProjectionCapabilityReject.js';
 import type { ProjectionEventSchemaResolver } from './ProjectionEventSchemaResolver.js';
 import { ProjectionMappingCapabilities } from './ProjectionMappingCapabilities.js';
@@ -39,7 +40,9 @@ export class ProjectionRootCapabilities {
     }
 
     private checkAccumulatorChildren(accumulators: Set<string>): void {
-        if (accumulators.size && Object.keys(this.wire.Children as object ?? {}).length) {
+        if (!accumulators.size) return;
+        if (!Object.keys(this.wire.Children as object ?? {}).length) return;
+        if (!ProjectionCountChildrenCapabilities.supports(this.schema, this.wire)) {
             this.reject('Children', 'root arithmetic combined with children requires a kernel-backed test');
         }
     }
