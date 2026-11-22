@@ -2,11 +2,14 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { IEventMigrationPropertyBuilder } from './IEventMigrationPropertyBuilder.js';
+import type { MigrationPropertyPath } from './MigrationPropertyPath.js';
+import type { ValueMapping } from './ValueMapping.js';
 
 const SPLIT_EXPRESSION = '$split';
 const COMBINE_EXPRESSION = '$combine';
 const RENAME_EXPRESSION = '$rename';
 const DEFAULT_VALUE_EXPRESSION = '$defaultValue';
+const MAP_VALUES_EXPRESSION = '$mapValues';
 
 /**
  * Represents an implementation of {@link IEventMigrationPropertyBuilder}.
@@ -23,8 +26,8 @@ export class EventMigrationPropertyBuilder<TTarget, TSource> implements IEventMi
 
     /** @inheritdoc */
     split(
-        targetProperty: keyof TTarget & string,
-        sourceProperty: keyof TSource & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>,
         separator: string,
         part: number
     ): IEventMigrationPropertyBuilder<TTarget, TSource> {
@@ -40,9 +43,9 @@ export class EventMigrationPropertyBuilder<TTarget, TSource> implements IEventMi
 
     /** @inheritdoc */
     combine(
-        targetProperty: keyof TTarget & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
         separator: string,
-        ...sourceProperties: (keyof TSource & string)[]
+        ...sourceProperties: MigrationPropertyPath<TSource>[]
     ): IEventMigrationPropertyBuilder<TTarget, TSource> {
         this._properties[targetProperty] = {
             [COMBINE_EXPRESSION]: {
@@ -55,8 +58,8 @@ export class EventMigrationPropertyBuilder<TTarget, TSource> implements IEventMi
 
     /** @inheritdoc */
     renamedFrom(
-        targetProperty: keyof TTarget & string,
-        sourceProperty: keyof TSource & string
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>
     ): IEventMigrationPropertyBuilder<TTarget, TSource> {
         this._properties[targetProperty] = {
             [RENAME_EXPRESSION]: sourceProperty
@@ -66,11 +69,26 @@ export class EventMigrationPropertyBuilder<TTarget, TSource> implements IEventMi
 
     /** @inheritdoc */
     defaultValue(
-        targetProperty: keyof TTarget & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
         value: unknown
     ): IEventMigrationPropertyBuilder<TTarget, TSource> {
         this._properties[targetProperty] = {
             [DEFAULT_VALUE_EXPRESSION]: value
+        };
+        return this;
+    }
+
+    /** @inheritdoc */
+    mapValues(
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>,
+        mappings: readonly ValueMapping[]
+    ): IEventMigrationPropertyBuilder<TTarget, TSource> {
+        this._properties[targetProperty] = {
+            [MAP_VALUES_EXPRESSION]: {
+                source: sourceProperty,
+                mappings: mappings.map(({ from, to }) => ({ from, to }))
+            }
         };
         return this;
     }
