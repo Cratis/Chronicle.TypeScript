@@ -16,6 +16,7 @@ import { getCompensatedTypeFor } from './compensationForDecorator.js';
 
 /** Converts kernel metadata identically for reads, reactors, and reducers. */
 export function toClientEventContext(context: WireEventContext): EventContext {
+    const appendedGeneration = context.AppendedGeneration ?? 0;
     return {
         eventStore: context.EventStore,
         namespace: context.Namespace,
@@ -28,6 +29,7 @@ export function toClientEventContext(context: WireEventContext): EventContext {
         subject: context.Subject,
         hash: context.Hash,
         observationState: context.ObservationState,
+        appendedGeneration: appendedGeneration > 0 ? new EventTypeGeneration(appendedGeneration) : undefined,
         causedBy: toClientIdentity(context.CausedBy),
         eventType: new EventType(
             new EventTypeId(context.EventType?.Id ?? ''),

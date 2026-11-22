@@ -10,6 +10,16 @@ Start with [TypeScript connection and artifact setup](/chronicle/clients/typescr
 
 ## TypeScript client notes
 
+### Choosing the delivered generation
+
+Compatibility delivery remains the default. With Chronicle kernel **19.41.0 or later**, choose `EventGenerationDelivery.Pinned` to receive each event in the generation your reactor subscribes to, including catch-up and replay. Register the required migration chain and downcasts before observation; pinning does not create a missing migration.
+
+For a class reactor, append the optional third decorator argument: `@reactor('notifications', undefined, EventGenerationDelivery.Pinned)`. Existing one- and two-argument calls remain compatible. For either runtime builder style, call `.withEventGenerationDelivery(EventGenerationDelivery.Pinned)` before registration. This changes the delivery policy, not the subscribed event type's generation. For pinned observers, register one generation per event type and use explicit subscriptions rather than a multi-generation catch-all. See the [self-contained declaration and runtime registration examples](./client-snippets/reactors/pinned-generation.md).
+
+The kernel supplies released, decrypted and migrated `Content`; the client does not substitute a `GenerationalContent` entry. See [original and delivered generations](./event-types.md#original-and-delivered-generations). `context.eventType.generation` identifies the delivered generation. `context.appendedGeneration?.value` identifies the original appended generation; it is `undefined` when unknown, including events written before the kernel recorded it. Do not infer it from the delivered generation. An event appended at generation 2 can therefore reach a generation-1 pinned handler with `eventType.generation.value === 1` and `appendedGeneration?.value === 2`.
+
+Older kernels may ignore the policy and cannot guarantee pinned delivery. Upgrade the kernel before opting in; this client does not negotiate or emulate pinning. Graph and webhook observers are unchanged.
+
 ### Registering runtime callbacks
 
 Use `store.reactors.define(id, builder => ...)` to create an immutable definition without starting observation. Register it with `await store.reactors.register(definition)`, or pass the ID and builder callback directly to `register`. IDs must be nonempty and unique across discovered and runtime reactors in that store and namespace.

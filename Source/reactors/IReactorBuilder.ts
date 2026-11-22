@@ -4,6 +4,7 @@
 import type { Constructor } from '@cratis/fundamentals';
 import type { EventContext } from '../events/EventContext.js';
 import type { EventSequenceId } from '../eventSequences/EventSequenceId.js';
+import type { EventGenerationDelivery } from '../observation/EventGenerationDelivery.js';
 
 /** Defines local callbacks without opening a stream. */
 export interface IReactorBuilder {
@@ -12,4 +13,6 @@ export interface IReactorBuilder {
     subscribe(handler: (event: unknown, context: EventContext) => void | Promise<void>): this;
     onEventSequence(eventSequenceId: EventSequenceId | string): this;
     notReplayable(): this;
+    /** Selects generation delivery. Pinned requires kernel 19.41.0 or later. */
+    withEventGenerationDelivery(delivery: EventGenerationDelivery): this;
 }
