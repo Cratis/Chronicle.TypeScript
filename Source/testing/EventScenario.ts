@@ -24,6 +24,10 @@ import { InProcessEventSequence } from './InProcessEventSequence.js';
 import { registerScenarioSeed } from './EventScenarioSeed.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
+function hasPlainScalarSchemas(schemas: ReadonlyArray<{ type?: string; format?: string } | undefined>): boolean {
+    return schemas.every(schema => ['string', 'boolean'].includes(schema?.type ?? '') && schema?.format === undefined);
+}
+
 function hasConstraintDecorators(type: Function): boolean {
     return getUniqueEventMetadata(type) !== undefined || getRemovedConstraintNames(type).length > 0 ||
         TypeIntrospector.getTrackedProperties(type).some(property => getUniquePropertyMetadata(type, property) !== undefined);
@@ -115,9 +119,9 @@ export class EventScenario {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
                         const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);
                         const plainStrings = schemas.every(schema => schema?.type === 'string' && schema.format === undefined);
-                        if (scoped && !plainStrings) {
+                        if (scoped && !hasPlainScalarSchemas(schemas)) {
                             throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
-                                'Scoped property keys must be schema-backed strings.');
+                                'Scoped property keys must be schema-backed strings or booleans.');
                         }
                         for (const schema of schemas) {
                             const supported = schema?.type === 'boolean' && schema.format === undefined ||

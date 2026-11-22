@@ -15,7 +15,7 @@ chai.should();
 @eventType('ScopedGuardClaim')
 class Claim { @field(String) key: string; @field(String) other = 'Other'; constructor(key: string) { this.key = key; } }
 @eventType('ScopedGuardFlag')
-class Flag { @field(Boolean) key = true; }
+class Flag { @field(Boolean) key = true; @field(Boolean) other = false; }
 @eventType('ScopedGuardRemoval')
 class Removed { @field(String) label = 'release'; }
 @eventType('ScopedGuardFieldless')
@@ -38,7 +38,6 @@ async function unsupported(action: () => unknown, reason: string): Promise<void>
 
 describe('when configuring unproven scoped property shapes', () => {
     for (const [name, configure, reason] of [
-        ['boolean', (builder: IConstraintBuilder) => builder.unique(value => value.on(Flag, event => event.key)), 'Scoped property keys must be schema-backed strings'],
         ['covered removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Claim)), 'Scoped covered-and-removal property events'],
         ['fieldless removal', (builder: IConstraintBuilder) => builder.unique(value => value.on(Claim, event => event.key).removedWith(Fieldless)), 'Scoped fieldless removal events']
     ] as const) {
@@ -46,6 +45,18 @@ describe('when configuring unproven scoped property shapes', () => {
             const eventTypes = name === 'fieldless removal' ? [Claim, Fieldless] : [Claim, Flag, Removed];
             new EventScenario({ artifacts: { eventTypes, constraints: [definition(configure)] } }).should.be.instanceOf(EventScenario);
             await unsupported(() => new EventScenario({ artifacts: { eventTypes,
+                constraints: [definition(builder => { builder.perEventSourceType(); configure(builder); })] } }), reason);
+        });
+    }
+
+    for (const [name, configure, reason] of [
+        ['boolean casing', (builder: IConstraintBuilder) => builder.unique(value => value.on(Flag, event => event.key).ignoreCasing()),
+            'Case-insensitive keys must be schema-backed strings'],
+        ['boolean composite', (builder: IConstraintBuilder) => builder.unique(value => value.on(Flag, event => event.key, event => event.other)),
+            'Every property of a composite key must be a schema-backed string']
+    ] as const) {
+        it(`should retain rejection of scoped ${name}`, async () => {
+            await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Flag],
                 constraints: [definition(builder => { builder.perEventSourceType(); configure(builder); })] } }), reason);
         });
     }
