@@ -20,6 +20,7 @@ import type { ProjectionJoinRecord } from './ProjectionJoinRecord.js';
 import { ProjectionRootMappings } from './ProjectionRootMappings.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 import { ProjectionValueChildrenCapabilities } from './ProjectionValueChildrenCapabilities.js';
+import { ProjectionContextChildKeyCapabilities } from './ProjectionContextChildKeyCapabilities.js';
 import { UnsupportedProjectionOperation } from './UnsupportedProjectionOperation.js';
 
 interface ChildBinding {
@@ -241,11 +242,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             this.appendValueChild(child, content, state, binding);
             return;
         }
-        const identity = ProjectionExpressionEvaluator.pathValue(content, child.key);
-        if (typeof identity !== 'string') {
-            throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
-                `child key '${child.key}' has no string value in the seeded event; missing child keys require a kernel-backed test`);
-        }
+        const identity = this.childIdentity(child, input, binding);
         const collection = (state[child.property] ??= []) as Record<string, unknown>[];
         const index = collection.findIndex(item => item[child.identifiedBy] === identity);
         if (!child.from) {
@@ -260,6 +257,15 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         this.apply(properties, input, child.items, item);
     }
 
+    private childIdentity(child: ChildBinding, input: ProjectionInput, binding: { path: string; declaration: string }): string {
+        const identity = ProjectionContextChildKeyCapabilities.value(child.key, input.content, input.event.context);
+        if (typeof identity !== 'string') {
+            throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
+                `child key '${child.key}' has no string value in the seeded event; missing child keys require a kernel-backed test`);
+        }
+        return identity;
+    }
+
     private appendValueChild(child: ChildBinding, content: unknown, state: Record<string, unknown>, binding: { path: string; declaration: string }): void {
         const value = ProjectionExpressionEvaluator.pathValue(content, child.valueProperty!);
         if (typeof value !== 'string') {
@@ -272,11 +278,10 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     private withAutoMap(explicit: Record<string, string>, eventSchema: JsonSchema, target: JsonSchema, exclusions: readonly string[]): Record<string, string> {
         const properties = { ...explicit };
-        const mapped = new Set(Object.keys(properties).map(name => name.toLowerCase()));
-        const excluded = new Set(exclusions.map(name => name.toLowerCase()));
+        const mapped = new Set([...Object.keys(properties), ...exclusions].map(name => name.toLowerCase()));
         for (const source of Object.keys(eventSchema.properties ?? {})) {
             const destination = Object.keys(target.properties ?? {}).find(name => name.toLowerCase() === source.toLowerCase());
-            if (destination && !mapped.has(destination.toLowerCase()) && !excluded.has(destination.toLowerCase())) {
+            if (destination && !mapped.has(destination.toLowerCase())) {
                 properties[destination] = source;
                 mapped.add(destination.toLowerCase());
             }
@@ -291,9 +296,13 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
                 ? ProjectionArithmetic.value(expression, content, target.properties![destination], state[destination])
                 : ProjectionExpressionEvaluator.value(expression, content, event.context, target.properties![destination]);
             // Zero arithmetic on an absent accumulator is no change, just like null on an absent scalar.
-            if (arithmetic && value === 0 && state[destination] === undefined) continue;
+            if (this.isZeroInitialization(arithmetic, value, state[destination])) continue;
             if (value !== null || state[destination] !== undefined) state[destination] = value;
         }
+    }
+
+    private isZeroInitialization(arithmetic: boolean, value: unknown, current: unknown): boolean {
+        return arithmetic && value === 0 && current === undefined;
     }
 
     private initialValues(): Record<string, unknown> {

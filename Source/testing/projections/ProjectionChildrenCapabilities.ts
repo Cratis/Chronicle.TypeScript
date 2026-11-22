@@ -7,6 +7,7 @@ import type { ContractEventType, FromRecord, RemovedWithRecord } from '../../pro
 import type { ChildrenDefinitionLike } from '../../projections/modelBound/childrenAndNestedBuilder.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
 import { ProjectionValueChildrenCapabilities } from './ProjectionValueChildrenCapabilities.js';
+import { ProjectionContextChildKeyCapabilities } from './ProjectionContextChildKeyCapabilities.js';
 
 /** Rejects an operation at a contract path, optionally naming the responsible declaration. */
 export type RejectOperation = (path: string, reason: string, fallback?: string) => never;
@@ -35,6 +36,7 @@ export class ProjectionChildrenCapabilities {
         if (Object.keys(children).length && context.hasInitialModelState) {
             context.reject('InitialModelState', `children with initial model state ${kernelBacked}`);
         }
+        ProjectionContextChildKeyCapabilities.validate(children, context);
         const owners = new Map<string, string>();
         for (const [property, child] of Object.entries(children)) {
             new ChildValidation(property, child, context, owners).validate();
@@ -107,13 +109,21 @@ class ChildValidation {
     private identity(items: JsonSchema): void {
         const identifiedBy = this.child.IdentifiedBy;
         if (!identifiedBy) this.reject(`${this.base}.IdentifiedBy`, `children without a direct identifying property ${kernelBacked}`);
-        if (identifiedBy === '*NotSet*' || identifiedBy.includes('.')) {
+        if (!this.directIdentifier(identifiedBy)) {
             this.reject(`${this.base}.IdentifiedBy`, `children without a direct identifying property ${kernelBacked}`);
         }
         const identity = items.properties?.[identifiedBy];
-        if (items.properties !== undefined && (identity?.type !== 'string' || identity.format)) {
+        if (items.properties !== undefined && !this.plainString(identity)) {
             this.reject(`${this.base}.IdentifiedBy`, `only a string child identifier is fixture-backed; other identifiers ${kernelBacked}`);
         }
+    }
+
+    private directIdentifier(expression: string): boolean {
+        return expression !== '*NotSet*' && !expression.includes('.');
+    }
+
+    private plainString(schema: JsonSchema | undefined): boolean {
+        return schema?.type === 'string' && !schema.format;
     }
 
     private entry(entry: FromRecord | RemovedWithRecord, items: JsonSchema): void {
@@ -139,13 +149,17 @@ class ChildValidation {
     }
 
     private keys(entry: FromRecord | RemovedWithRecord, eventSchema: JsonSchema, path: string): void {
-        const key = eventSchema.properties?.[entry.Value.Key];
-        const plainStringKey = key?.type === 'string' && !key.format;
-        if (!/^[A-Za-z_]\w*$/.test(entry.Value.Key) || !plainStringKey) {
-            this.reject(`${path}.Key`, `only a child key read from a string event property is fixture-backed; other child keys ${kernelBacked}`);
-        }
+        if (!ProjectionContextChildKeyCapabilities.matches(entry.Value.Key)) this.contentKey(entry, eventSchema, path);
         if (entry.Value.ParentKey && entry.Value.ParentKey !== '$eventSourceId') {
             this.reject(`${path}.ParentKey`, `parent keys other than the event source id ${kernelBacked}`);
+        }
+    }
+
+    private contentKey(entry: FromRecord | RemovedWithRecord, eventSchema: JsonSchema, path: string): void {
+        const key = eventSchema.properties?.[entry.Value.Key];
+        const plainStringKey = this.plainString(key);
+        if (!/^[A-Za-z_]\w*$/.test(entry.Value.Key) || !plainStringKey) {
+            this.reject(`${path}.Key`, `only a child key read from a string event property is fixture-backed; other child keys ${kernelBacked}`);
         }
     }
 
