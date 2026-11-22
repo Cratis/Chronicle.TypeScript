@@ -82,6 +82,7 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | `discoveryPatterns` | None for compiled JavaScript; `**/*.ts` and `**/*.tsx` with exclusions when the program runs from TypeScript | Glob patterns for [artifact discovery](./getting-started.md#artifact-discovery). `[]` turns it off. |
 | `defaultSinkTypeId` | `WellKnownSinks.MongoDB` | Where registered read models are stored; see [Sinks](./sinks.md). |
 | `clientArtifactsProvider` | The shared default provider | Supplies the event types, projections, reducers, and reactors to register. |
+| `namespaceResolver` | Not set; uses the `Default` namespace | Resolves a namespace when `getEventStore` omits it; see [Resolve namespaces from application context](#resolve-namespaces-from-application-context). |
 | `reactorResultHandler` | Not set | Handles values that reactors return; see [Reactors](./reactors.md). |
 | `telemetry` | Event source identifiers omitted | Per-client identifier privacy; see [Observability](./observability.md#privacy-options). |
 | `logger` | `diag` compatibility adapter | Per-client structured diagnostic sink; see [Observability](./observability.md#application-diagnostics). |
@@ -92,6 +93,39 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 `ChronicleOptions.development(options)` takes the same second argument. `ChronicleConnectionString` is exported from `@cratis/chronicle`, so you can build or inspect a connection string in code and pass it to `fromConnectionString`.
 
 Spans always use the `cratis.chronicle.client.*` convention names. For upgrade actions, see [Telemetry naming cutoff](./observability.md#telemetry-naming-cutoff).
+
+## Resolve namespaces from application context
+
+For a shared client serving several tenants, configure `namespaceResolver` in `ChronicleOptions.fromConnectionString(...)` or `ChronicleOptions.development(...)`. The exported `EventStoreNamespaceResolver` callback returns a `string`, an `EventStoreNamespaceName`, or a promise of either. Without a resolver, omitting the namespace still selects `EventStoreNamespaceName.default` (`Default`).
+
+The application owns the context and tenant selection. This example uses Node.js `AsyncLocalStorage`; the client has no HTTP-framework or claims dependency. It requires a local development kernel:
+
+```typescript
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { ChronicleClient, ChronicleOptions } from '@cratis/chronicle';
+
+const tenantContext = new AsyncLocalStorage<string>();
+const client = new ChronicleClient(ChronicleOptions.development({
+    namespaceResolver: () => {
+        const tenant = tenantContext.getStore();
+        if (!tenant) throw new Error('A tenant context is required');
+        return tenant;
+    }
+}));
+
+try {
+    await tenantContext.run('tenant-a', async () => {
+        const store = await client.getEventStore('orders');
+        console.log(store.namespace.value); // tenant-a
+    });
+} finally {
+    client.dispose();
+}
+```
+
+Call `getEventStore` inside the application's tenant context. The client calls the resolver once for every retrieval that omits the namespace, including cache hits, and awaits it before looking up the store. The resolved namespace is part of the cache key: a resolved `tenant-a` and an explicit `getEventStore('orders', 'tenant-a')` share a store. An explicit namespace always wins and bypasses the callback.
+
+Do not keep a mutable current tenant on the shared client or in a global variable. Concurrent callbacks run in their callers' contexts; the client does not retain a resolved namespace as its default. Obtain the store for the current request rather than sharing one tenant's store with other tenants. Throw when context is missing or invalid: a thrown error, rejected promise, empty or whitespace-only name, or invalid runtime result rejects `getEventStore` without falling back to `Default`.
 
 ## Authenticate
 
