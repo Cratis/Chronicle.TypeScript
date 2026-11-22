@@ -14,4 +14,10 @@ If you need to distinguish an event from an arbitrary command response, call `is
 
 Once the type is registered, [append an instance to the event log](./event-log.md) and check the append result. Registration describes what Chronicle can store; it is not evidence that an event was accepted. [Events and event logs](/chronicle/events/) explains where those instances live. When the event's shape needs to change, follow [Event evolution](/chronicle/understanding-event-evolution/) for naming, generations, and schema changes rather than treating a new class definition as a migration.
 
+## Original and delivered generations
+
+`EventContext.eventType.generation` describes the delivered content, not necessarily its original schema. `EventContext.appendedGeneration` is an optional `EventTypeGeneration`; read its number through `.value`. An unknown original generation is `undefined` (the kernel's zero sentinel is not a real generation), including for events written before it was recorded. Do not substitute the delivered generation for an unknown original.
+
+With Chronicle kernel **19.41.0 or later**, [reactors](./reactors.md#choosing-the-delivered-generation) and [reducers](./reducers.md#choosing-the-delivered-generation) can choose `EventGenerationDelivery.Pinned`. An event appended as generation 2 and delivered to a generation-1 subscription then has delivered generation 1 and appended generation 2. Compatibility delivery remains the default; pinning needs the migration chain and does not change graph or webhook delivery.
+
 To declare an event as a compensation for another event type, add `@compensationFor(OriginalEvent)` next to `@eventType()`, for example `@eventType() @compensationFor(EntryPosted) class EntryReversed { ... }`. Chronicle registers the link with the event type's schema, and a compensation event type can compensate for one event type. Append it with [`eventLog.compensate`](./event-log.md). Observers receive the compensated sequence number as `context.compensationFor`, which is `undefined` for events that are not compensations. See [Event compensation](/chronicle/events/compensation/).

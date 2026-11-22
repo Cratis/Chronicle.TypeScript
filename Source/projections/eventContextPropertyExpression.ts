@@ -23,9 +23,9 @@ const contextProperties = {
     correlationId: true,
     causation: true,
     tags: true
-    // eventSource, namedTags and compensationFor are deliberately not projectable: their kernel resolution is not part of the
-    // supported expression set.
-} satisfies Record<Exclude<keyof EventContext, 'eventSource' | 'namedTags' | 'compensationFor'>, true>;
+    // eventSource, namedTags, compensationFor and appendedGeneration are deliberately not projectable: their kernel
+    // resolution is not part of the supported expression set.
+} satisfies Record<Exclude<keyof EventContext, 'eventSource' | 'namedTags' | 'compensationFor' | 'appendedGeneration'>, true>;
 
 // Mirror the kernel's DerivedPropertyFunctions registry: Week() applies to dates only.
 const derivedFunctions: Record<string, string> = { week: 'Week' };
@@ -47,16 +47,7 @@ function validNestedPath(root: string, segments: string[]): boolean {
     return members.length === 1 && (identityProperties.has(members[0]) || members[0] === 'onBehalfOf');
 }
 
-/** Build the expression read by Chronicle's event-context resolver, using CLR property casing. */
-export function eventContextPropertyExpression(propertyPath: string): string {
-    // The kernel accepts dotted CLR paths (and terminal derived-property functions) using
-    // [A-Za-z.()]. Reject unsupported characters and unknown root properties before registration.
-    const segments = propertyPath.split('.');
-    const contextProperty = segments[0].charAt(0).toLowerCase() + segments[0].slice(1);
-    if (!/^[A-Za-z]+(?:\.[A-Za-z]+)*(?:\(\))?$/.test(propertyPath) ||
-        !Object.hasOwn(contextProperties, contextProperty)) {
-        throw new InvalidEventContextPropertyError(propertyPath);
-    }
+function normalizeMemberPath(segments: string[], contextProperty: string, propertyPath: string): void {
     const lastIndex = segments.length - 1;
     const isFunction = segments[lastIndex].endsWith('()');
     if (isFunction) {
@@ -69,6 +60,19 @@ export function eventContextPropertyExpression(propertyPath: string): string {
         !validNestedPath(contextProperty, segments.slice(1))) {
         throw new InvalidEventContextPropertyError(propertyPath);
     }
+}
+
+/** Build the expression read by Chronicle's event-context resolver, using CLR property casing. */
+export function eventContextPropertyExpression(propertyPath: string): string {
+    // The kernel accepts dotted CLR paths (and terminal derived-property functions) using
+    // [A-Za-z.()]. Reject unsupported characters and unknown root properties before registration.
+    const segments = propertyPath.split('.');
+    const contextProperty = segments[0].charAt(0).toLowerCase() + segments[0].slice(1);
+    if (!/^[A-Za-z]+(?:\.[A-Za-z]+)*(?:\(\))?$/.test(propertyPath) ||
+        !Object.hasOwn(contextProperties, contextProperty)) {
+        throw new InvalidEventContextPropertyError(propertyPath);
+    }
+    normalizeMemberPath(segments, contextProperty, propertyPath);
     const clrPath = segments.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('.');
     return `$eventContext(${clrPath}${propertyPath.endsWith('()') ? '()' : ''})`;
 }

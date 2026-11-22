@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 export { ObserverId } from './ObserverId.js';
+export { EventGenerationDelivery } from './EventGenerationDelivery.js';
 export { ObserverRunningState } from './ObserverRunningState.js';
 export type { FailedPartition } from './FailedPartition.js';
 export type { FailedPartitionAttempt } from './FailedPartitionAttempt.js';

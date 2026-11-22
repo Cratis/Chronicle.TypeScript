@@ -12,6 +12,7 @@ import type { IReactorBuilder } from './IReactorBuilder.js';
 import type { IReactorDefinitionBuilder } from './IReactorDefinitionBuilder.js';
 import type { IReactorDefinition } from './IReactorDefinition.js';
 import { ReactorId } from './ReactorId.js';
+import { EventGenerationDelivery } from '../observation/EventGenerationDelivery.js';
 
 import type { ReactorCallback } from './ReactorCallback.js';
 
@@ -23,6 +24,7 @@ export class ReactorBuilder implements IReactorBuilder, IReactorDefinitionBuilde
     private readonly _catchAll: ReactorCallback[] = [];
     private _eventSequenceId = EventSequenceId.eventLog.value;
     private _isReplayable = true;
+    private _generationDelivery = EventGenerationDelivery.Compatibility;
 
     constructor(private readonly _id: ReactorId | string, knownTypes: readonly Constructor[]) {
         if (!(typeof _id === 'string' ? _id : _id.value).trim()) throw new Error('Reactor id must not be empty.');
@@ -65,6 +67,12 @@ export class ReactorBuilder implements IReactorBuilder, IReactorDefinitionBuilde
     }
 
     /** @inheritdoc */
+    withEventGenerationDelivery(delivery: EventGenerationDelivery): this {
+        this._generationDelivery = delivery;
+        return this;
+    }
+
+    /** @inheritdoc */
     notReplayable(): this {
         this._isReplayable = false;
         return this;
@@ -92,7 +100,7 @@ export class ReactorBuilder implements IReactorBuilder, IReactorDefinitionBuilde
         return Object.freeze({
             id: Object.freeze(new ReactorId(typeof this._id === 'string' ? this._id : this._id.value)),
             eventSequenceId: Object.freeze(new EventSequenceId(this._eventSequenceId)),
-            eventTypes, isReplayable: this._isReplayable, handle
+            eventTypes, isReplayable: this._isReplayable, generationDelivery: this._generationDelivery, handle
         });
     }
 }
