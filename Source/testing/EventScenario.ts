@@ -13,6 +13,7 @@ import type { IEventLog } from '../eventSequences/IEventLog.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { getEventTypeFor, getEventTypeMetadata } from '../events/eventTypeDecorator.js';
 import { compileConstraints } from '../events/constraints/Constraints.js';
+import type { UniqueConstraintCapture } from '../events/constraints/UniqueConstraintBuilder.js';
 import { getUniqueEventMetadata, getUniquePropertyMetadata } from '../events/constraints/unique.js';
 import { getRemovedConstraintNames } from '../events/constraints/removeConstraint.js';
 import { getConstraintMetadata } from '../events/constraints/constraint.js';
@@ -33,6 +34,31 @@ function hasCombinedKeySchemas(schemas: ReadonlyArray<{ type?: string; format?: 
         schema?.type === 'number' && schema.format === undefined);
 }
 
+function isGuidOrNumericKey(schema: { type?: string; format?: string } | undefined): boolean {
+    return schema?.format === 'guid' || schema?.type === 'number';
+}
+
+function validateExtendedDefinition(name: string, unique: UniqueConstraintCapture | undefined,
+    constructors: ReadonlyMap<string, Function>): void {
+    if (!unique) return;
+    const schemas = unique.eventDefinitions.flatMap(entry => entry.properties.map(property =>
+        getEventTypeMetadata(constructors.get(entry.eventTypeId)!)?.schema.properties?.[property]));
+    if (!schemas.some(isGuidOrNumericKey)) return;
+    if (schemas.some(schema => schema?.type === 'boolean')) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Boolean keys mixed with Guid or numeric keys in one definition are not fixture-backed.');
+    }
+    const removers = [unique.removedWithEventTypeId, ...(unique.removedWithEventTypeIds ?? [])].filter(id => id !== undefined);
+    if (unique.eventDefinitions.some(entry => removers.includes(entry.eventTypeId))) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Guid and numeric keys with covered-and-removal events are not fixture-backed.');
+    }
+    if (removers.some(id => Object.keys(getEventTypeMetadata(constructors.get(id)!)?.schema.properties ?? {}).length === 0)) {
+        throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
+            'Guid and numeric keys with fieldless removal events are not fixture-backed.');
+    }
+}
+
 function validateKeySchemas(name: string, schemas: ReadonlyArray<{ type?: string; format?: string } | undefined>,
     options: { scoped: boolean; isolated: boolean; definitions: number; ignoreCasing: boolean }): void {
     const fail = (reason: string) => { throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, reason); };
@@ -46,7 +72,7 @@ function validateKeySchemas(name: string, schemas: ReadonlyArray<{ type?: string
             schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
         if (!supported) fail(`Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
     }
-    if (schemas.some(schema => schema?.type === 'number' || schema?.format === 'guid') &&
+    if (schemas.some(isGuidOrNumericKey) &&
         (options.definitions !== 1 || !options.isolated && !hasCombinedKeySchemas(schemas))) {
         fail('Guid and numeric keys require one definition; combined keys require unformatted numbers or Guids.');
     }
@@ -143,6 +169,7 @@ export class EventScenario {
                         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
                             'Scoped fieldless removal events are not fixture-backed.');
                     }
+                    validateExtendedDefinition(name, capture.uniqueConstraint, constructorsById);
                     for (const entry of capture.uniqueConstraint?.eventDefinitions ?? []) {
                         const type = eventTypes.find(type => getEventTypeFor(type).id.value === entry.eventTypeId)!;
                         const schemas = entry.properties.map(property => getEventTypeMetadata(type)?.schema.properties?.[property]);

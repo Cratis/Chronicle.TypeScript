@@ -5,6 +5,7 @@ import { field, Guid } from '@cratis/fundamentals';
 import { describe } from 'vitest';
 import { eventType } from '../../../events/eventTypeDecorator.js';
 import { combinationBehaviors } from './combination_behaviors.fixture.js';
+import { definitionRejectionBehaviors } from './definition_rejection_behaviors.fixture.js';
 
 @eventType('OracleCombinedNumber')
 class NumberKey {
@@ -22,7 +23,12 @@ class GuidKey {
 class TextKey { @field(String) key = ''; }
 @eventType('OracleCombinedRemoved')
 class Removed { @field(String) label = ''; }
+@eventType('OracleCombinedBoolean')
+class Flag { @field(Boolean) key = true; }
+@eventType('OracleCombinedFieldless')
+class Fieldless { }
 
 describe('when appending combined Guid/numeric keys with standard decorators', () => {
     combinationBehaviors({ number: NumberKey, guid: GuidKey, string: TextKey, removed: Removed });
+    definitionRejectionBehaviors({ number: NumberKey, guid: GuidKey, text: TextKey, removed: Removed, flag: Flag, fieldless: Fieldless });
 });
