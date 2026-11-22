@@ -1,0 +1,2044 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "4427225cae8a9c52a8384bae7df167372485e5a723754dbee1c36b767dc41eb2"
+  },
+  "oracle": "eventScenario",
+  "constraintDescriptorSha256": "9aa6a0fb78fe79f136dda3da99d3dedf7f0d30a74024b38709b0c7037a08a813",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "definitionSource": "One isolated, unscoped, case-sensitive single-property unique definition over OracleFieldText.key with no removers. Each case uses a fresh scenario. Candidate scalars are exactly U+039B, U+03BB, U+0416, U+0436 and U+4E2D. Observations cross-check the kernel key builder against UTF-8 SHA-256 without casing or normalization; service appends measure content, event hashes, collision details and rollback.",
+  "caseSensitiveTextMeasurements": true,
+  "fieldSchemas": {
+    "OracleFieldText": {
+      "type": "string"
+    }
+  },
+  "fieldConstraintCases": [
+    {
+      "name": "capital-lambda",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"Λ\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small-lambda",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "capital-zhe",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Ж\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"Ж\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "small-zhe",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"ж\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"ж\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "middle",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"中\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"中\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "greek-case-distinction",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 4,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "content": "{\"key\":\"Λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cyrillic-case-distinction",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 4,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Ж\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"ж\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "content": "{\"key\":\"Ж\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "content": "{\"key\":\"ж\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mixed-scripts",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"AΛλЖж中z\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"AΛλЖж中z\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mixed-cjk",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"中東京\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"中東京\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "combining-after",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"λ́\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"λ́\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "combining-before",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"́λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"́λ\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mixed-supplementary",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"中\uD83D\uDE00λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"中\uD83D\uDE00λ\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "json-spelling-not-normalization",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 4,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"\\\\u039B\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "content": "{\"key\":\"\\u039B\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "content": "{\"key\":\"\\\\u039B\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "canonical-distinction",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 4,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"é中\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"é中\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "content": "{\"key\":\"é中\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "D",
+              "content": "{\"key\":\"é中\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "failed-batch-rollback",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 3,
+      "operations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"中Ж\"}"
+            },
+            {
+              "source": "C",
+              "content": "{\"key\":\"λ\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "content": "{\"key\":\"中Ж\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "intra-batch-duplicate",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 2,
+      "operations": [
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Λ中\"}"
+            },
+            {
+              "source": "B",
+              "content": "{\"key\":\"Λ中\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "C",
+              "content": "{\"key\":\"Λ中\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "distinct-scalar-batch",
+      "kind": "oracleGuard",
+      "eventType": "OracleFieldText",
+      "localSteps": 1,
+      "operations": [
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "A",
+              "content": "{\"key\":\"Λ\"}"
+            },
+            {
+              "source": "B",
+              "content": "{\"key\":\"λ\"}"
+            },
+            {
+              "source": "C",
+              "content": "{\"key\":\"Ж\"}"
+            },
+            {
+              "source": "D",
+              "content": "{\"key\":\"ж\"}"
+            },
+            {
+              "source": "E",
+              "content": "{\"key\":\"中\"}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": [
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Λ",
+          "utf8Sha256": "8332d8f36f689be335082204360b7f62d80e193f5368e638c72147d7b9691de7",
+          "scalars": [
+            923
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "324jnxLZen6nLpY+qwXzzLdsREF2os3igUli/hO5t0A="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "324jnxLZen6nLpY+qwXzzLdsREF2os3igUli/hO5t0A="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "λ",
+          "utf8Sha256": "6bb5604cb68c1e249874295f9dad38394b818646a41a813af58598b72f0c221b",
+          "scalars": [
+            955
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Ж"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Ж",
+          "utf8Sha256": "af01de547c2d86e9c4881cc4cf0dd3ab521b9d1cceee461908680b33c433c5ac",
+          "scalars": [
+            1046
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "OOZ+ZaMl+KSciqv+7bivM7/JnSd9HbGSIHlq0uCP2VM="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "ж"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "OOZ+ZaMl+KSciqv+7bivM7/JnSd9HbGSIHlq0uCP2VM="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "ж",
+          "utf8Sha256": "dd591284d827e17f0f15706e4e430548c62b4f93d2847e0fcc7972b4aed83551",
+          "scalars": [
+            1078
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中"
+              },
+              "hash": "mtIwS/5WOTcqFd2r5+O1autjvqW/kFOE+OVLvH4/9W8="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "中"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中"
+              },
+              "hash": "mtIwS/5WOTcqFd2r5+O1autjvqW/kFOE+OVLvH4/9W8="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "中",
+          "utf8Sha256": "a567bdaa11367f260f0708391f4d10766b5962f565d9e432f17981a3584fe1e2",
+          "scalars": [
+            20013
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "1"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "4otF3LqTZhlnaCWueCAXYoBW0/uUr4sK0ZF/AMpX6u4="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "4otF3LqTZhlnaCWueCAXYoBW0/uUr4sK0ZF/AMpX6u4="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "1",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 1",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "4otF3LqTZhlnaCWueCAXYoBW0/uUr4sK0ZF/AMpX6u4="
+            }
+          ],
+          "next": "2"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Λ",
+          "utf8Sha256": "8332d8f36f689be335082204360b7f62d80e193f5368e638c72147d7b9691de7",
+          "scalars": [
+            923
+          ]
+        },
+        {
+          "input": "λ",
+          "utf8Sha256": "6bb5604cb68c1e249874295f9dad38394b818646a41a813af58598b72f0c221b",
+          "scalars": [
+            955
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "1"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "en1nDaMQS1DMhe7ATnvTxRjzY1vwZH+DHulb992bAQY="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Ж"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "en1nDaMQS1DMhe7ATnvTxRjzY1vwZH+DHulb992bAQY="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "1",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 1",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "ж"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "EIEhaYEd7pcEditkmm9hIVdUVIUPgvBmVsQihhKAUMM="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "en1nDaMQS1DMhe7ATnvTxRjzY1vwZH+DHulb992bAQY="
+            }
+          ],
+          "next": "2"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Ж",
+          "utf8Sha256": "af01de547c2d86e9c4881cc4cf0dd3ab521b9d1cceee461908680b33c433c5ac",
+          "scalars": [
+            1046
+          ]
+        },
+        {
+          "input": "ж",
+          "utf8Sha256": "dd591284d827e17f0f15706e4e430548c62b4f93d2847e0fcc7972b4aed83551",
+          "scalars": [
+            1078
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "AΛλЖж中z"
+              },
+              "hash": "mJU2zVB62iXtQPHX0OHg7nEgeSI5eod85yPvCm7JBFs="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "AΛλЖж中z"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "AΛλЖж中z"
+              },
+              "hash": "mJU2zVB62iXtQPHX0OHg7nEgeSI5eod85yPvCm7JBFs="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "AΛλЖж中z",
+          "utf8Sha256": "159993abf1f919b9ed7cd4741c27b72db400dc089690d0d86fe6a51591447851",
+          "scalars": [
+            65,
+            923,
+            955,
+            1046,
+            1078,
+            20013,
+            122
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中東京"
+              },
+              "hash": "xjQQqPmnZTie7KoFwVGGJWlmEyDMhshlAYMbmidcf9c="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "中東京"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中東京"
+              },
+              "hash": "xjQQqPmnZTie7KoFwVGGJWlmEyDMhshlAYMbmidcf9c="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "中東京",
+          "utf8Sha256": "89e34a1fb2a4055ffe11745cd18a3c3ac453874b338e8ded7eba9281ae704ca8",
+          "scalars": [
+            20013,
+            26481,
+            20140
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ́"
+              },
+              "hash": "fdTwM96SmmcLFJCmyPJuZ7gQmFeRC2bMFgOPDLgfSyk="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "λ́"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ́"
+              },
+              "hash": "fdTwM96SmmcLFJCmyPJuZ7gQmFeRC2bMFgOPDLgfSyk="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "λ́",
+          "utf8Sha256": "3344d6ac513fa103cf8334f5898da559e249afee29876417922ac2f7e40b7ea5",
+          "scalars": [
+            955,
+            769
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "́λ"
+              },
+              "hash": "mprPGE3avHQ6dA2f5q2981kgKnjuxuOEwz60qiTcv9U="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "́λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "́λ"
+              },
+              "hash": "mprPGE3avHQ6dA2f5q2981kgKnjuxuOEwz60qiTcv9U="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "́λ",
+          "utf8Sha256": "f4fc46a996188eb21fa02c35d471779ab896ed7104dbf288331ad7a3db7249e5",
+          "scalars": [
+            769,
+            955
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中\uD83D\uDE00λ"
+              },
+              "hash": "xRTaEtKVcMXOD+QT54xXtIIkW4/fQU1YNDNAIXGT2Y4="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "中\uD83D\uDE00λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "中\uD83D\uDE00λ"
+              },
+              "hash": "xRTaEtKVcMXOD+QT54xXtIIkW4/fQU1YNDNAIXGT2Y4="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "中\uD83D\uDE00λ",
+          "utf8Sha256": "20a62f55e0c441caf8418ff9885d9668cf40c7f0c6ec37671e3a9bb10b669edd",
+          "scalars": [
+            20013,
+            128512,
+            955
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "1"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "\\u039B"
+              },
+              "hash": "oEgnTCPkXSgJEp/Ygn2Sab9kJ/MryJqi78JJlKu1Bio="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "\\u039B"
+              },
+              "hash": "oEgnTCPkXSgJEp/Ygn2Sab9kJ/MryJqi78JJlKu1Bio="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "1",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 1",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\\u039B"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "\\u039B"
+              },
+              "hash": "oEgnTCPkXSgJEp/Ygn2Sab9kJ/MryJqi78JJlKu1Bio="
+            }
+          ],
+          "next": "2"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "\\u039B",
+          "utf8Sha256": "6fbd725954890301c9f4174b16982884f3c6dd09c7fb15bbb3bc2b0389bdf5d7",
+          "scalars": [
+            92,
+            117,
+            48,
+            51,
+            57,
+            66
+          ]
+        },
+        {
+          "input": "Λ",
+          "utf8Sha256": "8332d8f36f689be335082204360b7f62d80e193f5368e638c72147d7b9691de7",
+          "scalars": [
+            923
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "02mkO6WAv1HrnC+cYJBpoosUSD+4qcEEA3DReTrFAew="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "1"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "02mkO6WAv1HrnC+cYJBpoosUSD+4qcEEA3DReTrFAew="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "LA1w2Tg2g+BF6EjJx+OnJ3+bMzW12O15hJIoFkUHJDw="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "é中"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "02mkO6WAv1HrnC+cYJBpoosUSD+4qcEEA3DReTrFAew="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "LA1w2Tg2g+BF6EjJx+OnJ3+bMzW12O15hJIoFkUHJDw="
+            }
+          ],
+          "next": "2"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "1",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 1",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "é中"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "02mkO6WAv1HrnC+cYJBpoosUSD+4qcEEA3DReTrFAew="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "é中"
+              },
+              "hash": "LA1w2Tg2g+BF6EjJx+OnJ3+bMzW12O15hJIoFkUHJDw="
+            }
+          ],
+          "next": "2"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "é中",
+          "utf8Sha256": "9deda3a54521e68f7dcdbd4db1fc10199e56543ebf959149487c01427dc7a811",
+          "scalars": [
+            101,
+            769,
+            20013
+          ]
+        },
+        {
+          "input": "é中",
+          "utf8Sha256": "3f604033720373903cc2a7f1555480bc2b976e5dafacc8e46335fec6a326aa0e",
+          "scalars": [
+            233,
+            20013
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "324jnxLZen6nLpY+qwXzzLdsREF2os3igUli/hO5t0A="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "0",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 0",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "λ"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "324jnxLZen6nLpY+qwXzzLdsREF2os3igUli/hO5t0A="
+            }
+          ],
+          "next": "1"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "1"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "324jnxLZen6nLpY+qwXzzLdsREF2os3igUli/hO5t0A="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "中Ж"
+              },
+              "hash": "kj3gagxb8eONnK6obTbYck0fabrH2ZmZnH4vJnkwn6c="
+            }
+          ],
+          "next": "2"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "λ",
+          "utf8Sha256": "6bb5604cb68c1e249874295f9dad38394b818646a41a813af58598b72f0c221b",
+          "scalars": [
+            955
+          ]
+        },
+        {
+          "input": "中Ж",
+          "utf8Sha256": "9f19c80e8b71849600e3f0d6a0051af09e70f73f89c0c7203534e36dcf8bc5d3",
+          "scalars": [
+            20013,
+            1046
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "Λ中"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "0"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "C",
+              "sequence": "0",
+              "content": {
+                "key": "Λ中"
+              },
+              "hash": "RaJcLz4knkAC+2poGvczIpOSp/xJO3Ckv8q0f6NoXuc="
+            }
+          ],
+          "next": "1"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Λ中",
+          "utf8Sha256": "d6ac1ca4de1614707f4ea0eaf6eb36e6983a5993c68fe0b966acb0431cc08605",
+          "scalars": [
+            923,
+            20013
+          ]
+        }
+      ]
+    },
+    {
+      "fieldSchema": {
+        "type": "string"
+      },
+      "steps": [
+        {
+          "success": true,
+          "sequences": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "A",
+              "sequence": "0",
+              "content": {
+                "key": "Λ"
+              },
+              "hash": "PShQ54Hipj/9Uw0oyP4xOF9nC7o2tw68vRV5Q8+f5cg="
+            },
+            {
+              "source": "B",
+              "sequence": "1",
+              "content": {
+                "key": "λ"
+              },
+              "hash": "4otF3LqTZhlnaCWueCAXYoBW0/uUr4sK0ZF/AMpX6u4="
+            },
+            {
+              "source": "C",
+              "sequence": "2",
+              "content": {
+                "key": "Ж"
+              },
+              "hash": "6Cc3OU6AYL6cbyynqni0oxns1qTmdvCELAUeIFZ2LxY="
+            },
+            {
+              "source": "D",
+              "sequence": "3",
+              "content": {
+                "key": "ж"
+              },
+              "hash": "PfrkHAos+zFy3DeBnHKOdlalpsUQvOcOkF0Alqzi3H0="
+            },
+            {
+              "source": "E",
+              "sequence": "4",
+              "content": {
+                "key": "中"
+              },
+              "hash": "mGyjr4q1dtiXIG1CDoIE3CTQKNY0E6WPqD+aCaA4rVY="
+            }
+          ],
+          "next": "5"
+        }
+      ],
+      "textObservations": [
+        {
+          "input": "Λ",
+          "utf8Sha256": "8332d8f36f689be335082204360b7f62d80e193f5368e638c72147d7b9691de7",
+          "scalars": [
+            923
+          ]
+        },
+        {
+          "input": "λ",
+          "utf8Sha256": "6bb5604cb68c1e249874295f9dad38394b818646a41a813af58598b72f0c221b",
+          "scalars": [
+            955
+          ]
+        },
+        {
+          "input": "Ж",
+          "utf8Sha256": "af01de547c2d86e9c4881cc4cf0dd3ab521b9d1cceee461908680b33c433c5ac",
+          "scalars": [
+            1046
+          ]
+        },
+        {
+          "input": "ж",
+          "utf8Sha256": "dd591284d827e17f0f15706e4e430548c62b4f93d2847e0fcc7972b4aed83551",
+          "scalars": [
+            1078
+          ]
+        },
+        {
+          "input": "中",
+          "utf8Sha256": "a567bdaa11367f260f0708391f4d10766b5962f565d9e432f17981a3584fe1e2",
+          "scalars": [
+            20013
+          ]
+        }
+      ]
+    }
+  ]
+}

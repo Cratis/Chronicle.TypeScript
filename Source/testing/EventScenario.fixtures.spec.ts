@@ -61,7 +61,7 @@ const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
         'constraints-event-type-siblings.json', 'constraints-composite.json',
         'constraints-ignore-casing.json', 'constraints-scopes.json', 'constraints-field-types.json', 'constraints-event-sequences.json',
         'constraints-field-combinations.json', 'constraints-removal-combinations.json', 'constraints-overlapping-definitions.json',
-        'constraints-fractional-field-types.json', 'constraints-fractional-collisions.json', 'constraints-field-key-measurements.json', 'constraints-ignore-casing-measurements.json'].includes(name)).map(name => ({
+        'constraints-fractional-field-types.json', 'constraints-fractional-collisions.json', 'constraints-field-key-measurements.json', 'constraints-ignore-casing-measurements.json', 'constraints-case-sensitive-unicode.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
