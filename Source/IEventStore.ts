@@ -20,6 +20,7 @@ import type { IPatterns } from './patterns/index.js';
 import { IWebhooks } from './webhooks/IWebhooks.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
 import { IEventStoreSubscriptions } from './eventStoreSubscriptions/IEventStoreSubscriptions.js';
+import type { IReadModelReactors } from './readModels/IReadModelReactors.js';
 import { IReadModels } from './readModels/IReadModels.js';
 import { IExternalServices } from './externalServices/IExternalServices.js';
 import { IIdentityManager } from './identities/IIdentityManager.js';
@@ -77,6 +78,9 @@ export interface IEventStore {
 
     /** The read-models manager for this event store. */
     readonly readModels: IReadModels;
+
+    /** Client-managed read-model change consumers. Optional for existing store implementations. */
+    readonly readModelReactors?: IReadModelReactors;
 
     /** The unit of work manager for transaction-scoped appends. */
     readonly unitOfWorkManager: IUnitOfWorkManager;

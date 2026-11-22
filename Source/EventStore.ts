@@ -43,6 +43,10 @@ import { Reducers } from './reducers/Reducers.js';
 import { IReducers } from './reducers/IReducers.js';
 import { IReadModels } from './readModels/IReadModels.js';
 import { ReadModels } from './readModels/ReadModels.js';
+import { ReadModelReactors } from './readModels/ReadModelReactors.js';
+import type { ReadModelReactorActivator } from './readModels/ReadModelReactorActivator.js';
+import type { ReadModelReactorResultHandler } from './readModels/ReadModelReactorResultHandler.js';
+import type { ReadModelReactorErrorHandler } from './readModels/ReadModelReactorErrorHandler.js';
 import { EventSeeding } from './seeding/EventSeeding.js';
 import { IEventSeeding } from './seeding/IEventSeeding.js';
 import { observeOperation } from './telemetry/observeOperation.js';
@@ -86,6 +90,7 @@ export class EventStore implements IEventStore {
     readonly reactors: IReactors;
     readonly reducers: IReducers;
     readonly readModels: IReadModels;
+    readonly readModelReactors: ReadModelReactors;
     readonly unitOfWorkManager: IUnitOfWorkManager;
     readonly jobs: IJobs;
     readonly patterns: IPatterns;
@@ -122,7 +127,10 @@ export class EventStore implements IEventStore {
         private readonly _skipKeepAlive: boolean = false,
         defaultGraphSinkTypeId: string = WellKnownSinks.Neo4j,
         private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = [],
-        private readonly _concurrencyScopeStrategy: ConcurrencyScopeStrategy = ConcurrencyScopeStrategies.optimistic
+        private readonly _concurrencyScopeStrategy: ConcurrencyScopeStrategy = ConcurrencyScopeStrategies.optimistic,
+        readModelReactorActivator?: ReadModelReactorActivator,
+        readModelReactorResultHandler?: ReadModelReactorResultHandler,
+        readModelReactorOnError?: ReadModelReactorErrorHandler
     ) {
         this._logger = createLogger('@cratis/chronicle/EventStore', _connection.logger);
         this.unitOfWorkManager = new UnitOfWorkManager(this);
@@ -142,6 +150,10 @@ export class EventStore implements IEventStore {
         this.reactors = new Reactors(artifacts, _connection, name.value, namespace.value, lifecycle, this.eventLog, reactorResultHandler, this, artifactActivator, _skipKeepAlive);
         this.reducers = new Reducers(artifacts, _connection, name.value, namespace.value, lifecycle, defaultSinkTypeId, this, artifactActivator, readModelNamingPolicy, _skipKeepAlive);
         this.readModels = new ReadModels(name.value, namespace.value, _connection, artifacts, defaultSinkTypeId, readModelType => this.projections.hasForModel(readModelType), readModelNamingPolicy, lifecycle);
+        this.readModelReactors = new ReadModelReactors(artifacts, this,
+            targetNamespace => targetNamespace === namespace.value ? this.eventLog : new EventLog(name.value, targetNamespace, _connection,
+                this.unitOfWorkManager, resolveConstraintMessage, _telemetry, this.eventSources, _eventEnrichmentProviders, _concurrencyScopeStrategy),
+            readModelReactorActivator, readModelReactorResultHandler, readModelReactorOnError, _connection.logger);
         this.jobs = new Jobs(name.value, namespace.value, _connection);
         this.patterns = new Patterns(name.value, namespace.value, _connection);
         this.webhooks = new Webhooks(name.value, _connection, this.eventTypes, artifacts);
@@ -218,6 +230,7 @@ export class EventStore implements IEventStore {
         ]);
 
         await this.seeding.register();
+        await this.readModelReactors.start();
 
         this._logger.info('Artifact registration completed', {
             eventStore: this.name.value,
@@ -229,6 +242,7 @@ export class EventStore implements IEventStore {
     disposeObservations(): void {
         (this.reactors as Reactors).dispose();
         (this.reducers as Reducers).dispose();
+        this.readModelReactors.stop();
         (this.readModels as ReadModels).dispose();
     }
 

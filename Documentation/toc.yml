@@ -4,6 +4,8 @@
   href: getting-started.md
 - name: Connect to Chronicle
   href: connecting.md
+- name: React to Read-Model Changes
+  href: read-model-reactors.md
 - name: Test Events and Read Models
   href: testing.md
 - name: Preserve Existing Append Routes

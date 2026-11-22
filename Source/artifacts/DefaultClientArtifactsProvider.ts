@@ -7,6 +7,7 @@ import { DecoratorType } from '../types/DecoratorType.js';
 import { TypeDiscoverer } from '../types/TypeDiscoverer.js';
 import { getProjectionMetadata } from '../projections/declarative/projection.js';
 import { getReducerMetadata } from '../reducers/reducer.js';
+import { getReadModelReactorMetadata } from '../readModels/readModelReactor.js';
 import { isGraphElement } from '../projections/graphs/isGraphElement.js';
 
 /**
@@ -34,13 +35,16 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
             ...this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModel),
             ...this.discoverer.getPropertyOnlyModels()
         ].filter(type => !isGraphElement(type)));
-        for (const projection of this.projections) {
-            const type = getProjectionMetadata(projection)?.readModelType;
+        const referencedModels = [
+            ...this.projections.map(projection => getProjectionMetadata(projection)?.readModelType),
+            ...this.reducers.map(reducer => getReducerMetadata(reducer)?.readModel)
+        ];
+        for (const type of referencedModels) {
             if (type) types.add(type);
         }
-        for (const reducer of this.reducers) {
-            const type = getReducerMetadata(reducer)?.readModel;
-            if (type) types.add(type);
+        for (const reactor of this.readModelReactors) {
+            const type = getReadModelReactorMetadata(reactor)?.readModel;
+            if (type && !isGraphElement(type)) types.add(type);
         }
         return Array.from(types);
     }
@@ -48,6 +52,11 @@ export class DefaultClientArtifactsProvider implements IClientArtifactsProvider 
     /** @inheritdoc */
     get reactors(): Constructor[] {
         return this.discoverer.getTypesByDecoratorType(DecoratorType.Reactor);
+    }
+
+    /** @inheritdoc */
+    get readModelReactors(): Constructor[] {
+        return this.discoverer.getTypesByDecoratorType(DecoratorType.ReadModelReactor);
     }
 
     /** @inheritdoc */
