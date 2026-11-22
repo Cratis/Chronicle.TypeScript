@@ -25,7 +25,7 @@ export class ProjectionArithmeticChildrenCapabilities {
 
     private static accumulator(target: JsonSchema | undefined, expression: string, from: FromRecord, require: ProjectionEventSchemaResolver['require']): boolean {
         if (expression === '$count') return this.countTarget(target);
-        const operand = /^\$add\(([A-Za-z_][A-Za-z0-9]*)\)$/.exec(expression)?.[1];
+        const operand = /^\$(?:add|subtract)\(([A-Za-z_][A-Za-z0-9]*)\)$/.exec(expression)?.[1];
         if (!operand || !this.unformattedNumber(target)) return false;
         const event = require(from.Key, eventContractPath('From', from.Key));
         return this.unformattedNumber(event.properties?.[operand]);
