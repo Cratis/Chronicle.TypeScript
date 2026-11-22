@@ -97,12 +97,11 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             const removed = this._removed.has(typeId);
             const child = this._children.get(typeId);
             const joining = this._join?.Key.Id === typeId;
-            if (!from && !removed && !child && !joining) continue;
-            const binding = this._bindings.get(typeId)!;
-            if (event.context.eventType.generation.value !== binding.generation) {
-                throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
-                    `seeded event generation ${event.context.eventType.generation.value} differs from subscribed generation ${binding.generation}; multi-generation history requires a kernel-backed test`);
+            if (!from && !removed && !child && !joining) {
+                this.processAllEvent(event, engine, states);
+                continue;
             }
+            const binding = this.bindingFor(event);
             if (joining) {
                 const content = ProjectionValueConverter.eventContent(event.content, this._eventSchemas.get(typeId)!);
                 joinedEvents.set(event.sourceId, { event, content });
@@ -163,6 +162,25 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         this._engineState = engine;
         this._publicRead = Object.fromEntries(Object.entries(engine).map(([key, value]) => [key, this.normalize(value)]));
         return states;
+    }
+
+    private bindingFor(event: ScenarioEvent) {
+        const binding = this._bindings.get(event.context.eventType.id.value)!;
+        if (event.context.eventType.generation.value !== binding.generation) {
+            throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
+                `seeded event generation ${event.context.eventType.generation.value} differs from subscribed generation ${binding.generation}; multi-generation history requires a kernel-backed test`);
+        }
+        return binding;
+    }
+
+    private processAllEvent(event: ScenarioEvent, engine: Record<string, Record<string, unknown>>, states: Map<string, ReadModelState<TReadModel>>): void {
+        if (!this._definition.SubscribesToAllEvents) return;
+        const key = this.keyFor(event.sourceId);
+        const state = engine[key] ?? this.initialState(key, event);
+        // This bounded All block reads only SequenceNumber, never the undeclared payload or AutoMap.
+        this.apply(this._definition.All!.Properties, event.content, event, this._schema, state);
+        engine[key] = state;
+        states.set(event.sourceId, { instance: this.materialize(state), deleted: false });
     }
 
     private rootProperties(from: FromRecord, schema: JsonSchema): Record<string, string> {
