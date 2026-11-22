@@ -6,12 +6,14 @@ import { DefaultClientArtifactsProvider, IClientArtifactsProvider } from './arti
 import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
+import type { EventEnrichmentProvider } from './eventSequences/EventEnrichmentProvider.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
 import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
 import type { IChronicleLogger } from './logging/IChronicleLogger.js';
 
 type ChronicleOptionsConstructorParams = {
+    eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
     connectionString: ChronicleConnectionString;
@@ -32,6 +34,7 @@ type ChronicleOptionsConstructorParams = {
 };
 
 type ChronicleOptionsFactoryParams = {
+    eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     skipKeepAlive?: boolean;
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
@@ -112,6 +115,9 @@ export class ChronicleOptions {
     /** Optional handler for application-owned reactor returns, installed before observations begin. */
     readonly reactorResultHandler?: ReactorResultHandler;
 
+    /** Ordered post-serialization providers for single and batch appends on every event store and sequence. */
+    readonly eventEnrichmentProviders: readonly EventEnrichmentProvider[];
+
     /** Optional per-delivery reactor/reducer activator; absent means one instance per observation stream. */
     readonly artifactActivator?: ClientArtifactsActivator;
 
@@ -153,6 +159,7 @@ export class ChronicleOptions {
         this.defaultSinkTypeId = options.defaultSinkTypeId ?? WellKnownSinks.MongoDB;
         this.defaultGraphSinkTypeId = options.defaultGraphSinkTypeId ?? WellKnownSinks.Neo4j;
         this.reactorResultHandler = options.reactorResultHandler;
+        this.eventEnrichmentProviders = [...(options.eventEnrichmentProviders ?? [])];
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
         this.maxReceiveMessageSize = options.maxReceiveMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxReceiveMessageSize;
@@ -165,7 +172,8 @@ export class ChronicleOptions {
 
     private static validConnectTimeout(connectTimeout: number): number {
         // AbortSignal.timeout accepts only whole milliseconds that fit an unsigned 32-bit integer.
-        if (!Number.isInteger(connectTimeout) || connectTimeout <= 0 || connectTimeout > ChronicleOptions.maxConnectTimeout) {
+        const isSupportedTimeout = Number.isInteger(connectTimeout) && connectTimeout > 0 && connectTimeout <= ChronicleOptions.maxConnectTimeout;
+        if (!isSupportedTimeout) {
             throw new TypeError(`connectTimeout must be a whole number of milliseconds between 1 and ${ChronicleOptions.maxConnectTimeout}.`);
         }
         return connectTimeout;
@@ -213,7 +221,8 @@ export class ChronicleOptions {
         const typescriptLoader = process.execArgv.some(arg => /(?:tsx|ts-node|--experimental-strip-types|--experimental-transform-types)/i.test(arg));
         // process.features.typescript is set on every Node.js 24+ process (type stripping), so it
         // does not mean the program was started from TypeScript; it is deliberately not consulted.
-        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader) return [];
+        const discoversTypeScript = typescriptEntry || !!process.env.VITEST || typescriptLoader;
+        if (!discoversTypeScript) return [];
         return [
             '**/*.ts',
             '**/*.tsx',
@@ -255,6 +264,7 @@ export class ChronicleOptions {
             defaultSinkTypeId: factoryOptions.defaultSinkTypeId,
             defaultGraphSinkTypeId: factoryOptions.defaultGraphSinkTypeId,
             reactorResultHandler: factoryOptions.reactorResultHandler,
+            eventEnrichmentProviders: factoryOptions.eventEnrichmentProviders,
             artifactActivator: factoryOptions.artifactActivator,
             readModelNamingPolicy: factoryOptions.readModelNamingPolicy,
             maxReceiveMessageSize: factoryOptions.maxReceiveMessageSize,
