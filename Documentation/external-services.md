@@ -46,6 +46,9 @@ await eventStore.externalServices.register('CustomersApi', builder => builder
 
 The optional fourth argument is a space-delimited string forwarded unchanged. Existing three-argument calls still work; an omitted or empty scope sends no scope value.
 
+> [!WARNING]
+> Chronicle kernels released before OAuth scope support ([Cratis/Chronicle#5139](https://github.com/Cratis/Chronicle/issues/5139)) ignore the scope: the registration succeeds, but tokens are requested without it. Upgrade the kernel before relying on a scope.
+
 ## Register a PostgreSQL database service
 
 For the PostgreSQL alternative, reuse the `eventStore` setup above while its client is still alive, before `client.dispose()`. Supply `password` from your configuration.

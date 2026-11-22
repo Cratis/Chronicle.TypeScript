@@ -59,6 +59,9 @@ builder.withOAuth(
 
 The fourth argument is a space-delimited string forwarded unchanged. Omit it to keep the existing three-argument call; an omitted or empty scope sends no scope value. The builder remains chainable.
 
+> [!WARNING]
+> Chronicle kernels released before OAuth scope support ([Cratis/Chronicle#5139](https://github.com/Cratis/Chronicle/issues/5139)) ignore the scope: the registration succeeds, but tokens are requested without it. Upgrade the kernel before relying on a scope.
+
 ## Define discoverable webhooks with decorators
 
 For discovery instead of an explicit registration call, declare a class with `@webhook(...)`:
