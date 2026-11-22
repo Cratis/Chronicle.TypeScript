@@ -95,6 +95,9 @@ export class Projections implements IProjections {
                 continue;
             }
 
+            if (this._runtime.findForModel(type) === metadata.id.value) {
+                continue;
+            }
             this._runtime.assertAvailable(metadata.id.value);
             this._logger.debug('Discovered model-bound projection', { projectionId: metadata.id.value, type: type.name });
             if (!this._modelBound.has(metadata.id.value)) {
@@ -142,13 +145,11 @@ export class Projections implements IProjections {
         id?: ProjectionId | string): Promise<void> {
         await this.discover();
         const identifier = id === undefined ? getReadModelId(readModelType) : this.toProjectionIdValue(id);
-        if (this._declarative.has(identifier) || this._modelBound.has(identifier)) {
-            throw new Error(`Projection id '${identifier}' is already discovered.`);
+        if (!define && this._runtime.findForModel(readModelType) === identifier) {
+            return;
         }
-        this._runtime.assertAvailable(identifier);
-        if (this.hasForModel(readModelType)) {
-            throw new Error(`Read model '${readModelType.name}' already has a projection.`);
-        }
+        const discoveredModelBound = !define && !this._declarative.has(identifier) && this._modelBound.get(identifier) === readModelType;
+        this.assertRuntimeRegistrationAvailable(readModelType, identifier, discoveredModelBound);
         const inferred = this._clientArtifacts.projections
             .map(type => getProjectionMetadata(type)?.readModelType)
             .filter((type): type is Constructor => type !== undefined);
@@ -156,6 +157,20 @@ export class Projections implements IProjections {
         const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
             .compileFor(readModelType, define, identifier);
         await this._runtime.register(readModelType, compiled, definition => this.registerDefinitions(definition));
+        if (discoveredModelBound) {
+            this._modelBound.delete(identifier);
+        }
+    }
+
+    private assertRuntimeRegistrationAvailable(readModelType: Constructor, identifier: string, discoveredModelBound: boolean): void {
+        const discovered = this._declarative.has(identifier) || this._modelBound.has(identifier);
+        if (!discoveredModelBound && discovered) {
+            throw new Error(`Projection id '${identifier}' is already discovered.`);
+        }
+        this._runtime.assertAvailable(identifier);
+        if (!discoveredModelBound && this.hasForModel(readModelType)) {
+            throw new Error(`Read model '${readModelType.name}' already has a projection.`);
+        }
     }
 
     private async registerDefinitions(compiled: CompiledProjectionDefinitions,

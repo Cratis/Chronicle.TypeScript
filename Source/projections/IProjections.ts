@@ -44,8 +44,11 @@ export interface IProjections {
      * Registers the decorator-based projection on a read model without requiring its discovery.
      * @param readModelType - Constructor carrying model-bound projection decorators.
      * @returns A promise resolving after the kernel acknowledges registration.
-     * @remarks Uses the read model identifier as the projection identifier, with the same collision,
-     * validation and retention rules as registerFor(). A type without model-bound decorators is rejected.
+     * @remarks Uses the read model identifier as the projection identifier. An already-discovered model
+     * with the same constructor is registered and retained at runtime; later discovery skips that model.
+     * Repeating this call for the same retained constructor and identifier is a no-op.
+     * Different declarations with the same identifier and in-flight registrations are still rejected.
+     * Validation and retention otherwise follow registerFor(). A type without model-bound decorators is rejected.
      */
     registerModelBound(readModelType: Constructor): Promise<void>;
 
