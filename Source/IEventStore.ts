@@ -5,6 +5,7 @@ import { IEventLog } from './eventSequences/IEventLog.js';
 import { IEventSequence } from './eventSequences/IEventSequence.js';
 import { EventSequenceId } from './eventSequences/EventSequenceId.js';
 import { EventStoreName } from './EventStoreName.js';
+import type { ArtifactRegistrationResult } from './ArtifactRegistrationResult.js';
 import { EventStoreNamespaceName } from './EventStoreNamespaceName.js';
 import type { IEventSources } from './eventSources/IEventSources.js';
 import { IEventTypes } from './events/IEventTypes.js';
@@ -31,6 +32,12 @@ import { IObservers } from './observation/IObservers.js';
  * An event store is a logical grouping of event sequences within a namespace.
  */
 export interface IEventStore {
+    /**
+     * Snapshot of the most recent artifact registration attempt, not observer readiness.
+     * Optional for compatibility with event stores that do not perform kernel registration.
+     */
+    readonly registrationResult?: ArtifactRegistrationResult;
+
     /** The name of the event store. */
     readonly name: EventStoreName;
 

@@ -232,7 +232,7 @@ export class ChronicleClient implements IChronicleClient {
         });
         ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
 
-        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry, this.options.skipKeepAlive, this.options.defaultGraphSinkTypeId);
+        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry, this.options.skipKeepAlive, this.options.defaultGraphSinkTypeId, this.options.eventEnrichmentProviders);
         this._stores.set(key, created);
 
         try {
@@ -671,7 +671,7 @@ export class ChronicleClient implements IChronicleClient {
             );
         }
 
-        await store.registerArtifacts();
+        await store.registerArtifacts(reason);
 
         this._logger.info('Registered artifacts for event store', {
             eventStore: store.name.value,

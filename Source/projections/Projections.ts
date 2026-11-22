@@ -26,6 +26,7 @@ import { ProjectionState } from './ProjectionState.js';
 import { ProjectionDefinitionCompiler } from './ProjectionDefinitionCompiler.js';
 import { ensureChildrenOrderingIsSupported } from './childrenOrderingSupport.js';
 import { registerProjectionWithRetry } from './registerProjectionWithRetry.js';
+import type { ProjectionRegistrationOutcome } from '../ArtifactRegistrationResult.js';
 import type { ResolvedModelBoundMetadata } from './ResolvedModelBoundMetadata.js';
 import { UnableToQueryProjection } from './UnableToQueryProjection.js';
 
@@ -99,7 +100,7 @@ export class Projections implements IProjections {
     }
 
     /** @inheritdoc */
-    async register(): Promise<void> {
+    async register(record: (outcome: ProjectionRegistrationOutcome) => void = () => {}): Promise<void> {
         if (this._declarative.size === 0 && this._modelBound.size === 0) {
             await this.discover();
         }
@@ -122,6 +123,10 @@ export class Projections implements IProjections {
             return;
         }
 
+        projections.forEach(projection => {
+            record({ identifier: String(projection.Identifier ?? '<unknown>'), state: 'not-run' });
+        });
+
         const readModels = compiled.readModels;
         if (readModels.length > 0) {
             await this._connection.readModels.registerMany({
@@ -134,7 +139,7 @@ export class Projections implements IProjections {
 
         for (const projection of projections) {
             const identifier = String(projection.Identifier ?? '<unknown>');
-            await this.registerWithRetry(projection, identifier);
+            await this.registerWithRetry(projection, identifier, record);
         }
     }
 
@@ -280,8 +285,9 @@ export class Projections implements IProjections {
         return EventSequenceId.eventLog.value;
     }
 
-    private registerWithRetry(projection: ProjectionDefinition, identifier: string): Promise<void> {
-        return registerProjectionWithRetry(this._connection, this._eventStore, this._logger, projection, identifier);
+    private async registerWithRetry(projection: ProjectionDefinition, identifier: string,
+        record: (outcome: ProjectionRegistrationOutcome) => void): Promise<void> {
+        await registerProjectionWithRetry(this._connection, this._eventStore, this._logger, projection, identifier, undefined, record);
     }
 
     private resolveModelBoundMetadata(type: Constructor): ResolvedModelBoundMetadata | undefined {

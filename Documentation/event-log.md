@@ -12,6 +12,52 @@ Inspect the returned `AppendResult.isSuccess` before doing anything that assumes
 
 An accepted append does not mean a reactor, reducer, or projection has finished processing it. In a script or test, you can wait on that accepted result with `waitForCompletion()`: inspect `completion.isSuccess` and `completion.failedPartitions`, and handle rejection separately. A timeout or cancellation stops the wait, not the append. Do not append the event again just because the wait ended. The [failed-partitions example](./failed-partitions.md#waiting-for-completion-instead-of-polling) shows these branches together. If you then need current state, [read the model and handle absence](./read-models.md); a successful wait does not promise that a particular model/key exists.
 
+## Enriching event content before append
+
+Use `eventEnrichmentProviders` on `ChronicleOptions` to fill schema-defined content fields from client-side context after serialization, such as the namespace that recorded an event. Providers apply to production `append` and both `appendMany` overloads on every event store and event sequence created by that client, including the event log.
+
+```typescript
+import { ChronicleClient, ChronicleOptions, eventType, type EventEnrichmentProvider } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
+
+@eventType('EnrichedOrderPlaced')
+class EnrichedOrderPlaced {
+    @field(String) readonly orderNumber: string;
+    @field(String) readonly recordedInNamespace: string;
+
+    constructor(orderNumber: string, recordedInNamespace = '') {
+        this.orderNumber = orderNumber;
+        this.recordedInNamespace = recordedInNamespace;
+    }
+}
+
+async function appendEnrichedOrder(): Promise<void> {
+    const recordNamespace: EventEnrichmentProvider = (content, context) => {
+        content.recordedInNamespace = context.namespace;
+    };
+
+    const client = new ChronicleClient(ChronicleOptions.fromConnectionString(
+        'chronicle://localhost:35000',
+        { eventEnrichmentProviders: [recordNamespace] }
+    ));
+    try {
+        const store = await client.getEventStore('Orders', 'sales');
+        const result = await store.eventLog.append('order-123', new EnrichedOrderPlaced('123'));
+        if (!result.isSuccess) {
+            throw new Error('Order was not appended');
+        }
+    } finally {
+        client.dispose();
+    }
+}
+```
+
+A provider receives a mutable serialized JSON object and read-only `EventEnrichmentContext`: the original event, event type, event store, namespace, sequence ID, source ID, and correlation ID. It may add, replace, or remove content properties, including nested values. Keep the result JSON-serializable and compatible with the registered event schema; this is not a way to bypass schema validation. Treat the original event and context as read-only. Routing, tags, subjects, causation, and other append metadata are separate from content and are not changed by enrichment.
+
+Providers may return `void` or `Promise<void>`. They run and are awaited in configured order, each seeing the preceding provider's mutations. Batch events are enriched sequentially in input order, with the complete provider list applied to each event before moving to the next. All enrichment finishes before the append request is sent. A provider that throws or rejects (or content that fails JSON serialization) rejects the append; later providers are not invoked and no append request is sent, including when a later event in a batch fails. Providers' own external side effects are not rolled back.
+
+With no providers, content and append behavior are unchanged. Configuration copies the provider list when options are created; configure it before constructing the client. These callbacks are not run by the synchronous in-process testing client, compensation, or event import.
+
 ## TypeScript client notes
 
 - An append without route options leaves the route to the kernel. Clients before this change sent a `Default` route themselves, so existing streams need attention; follow [Preserve existing append routes](./migrate-append-routing.md) before upgrading.
