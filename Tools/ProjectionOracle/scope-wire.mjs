@@ -14,7 +14,7 @@ if (contractsVersion !== fixture.tsContracts.version) {
     process.exit(1);
 }
 const encode = (type, value) => Buffer.from(type.encode(type.fromPartial(value)).finish()).toString('base64');
-const cases = fixture.scopeCases.map(test => ({
+const cases = (fixture.scopeCases ?? fixture.fieldCombinationCases).map(test => ({
     scopes: test.constraintDefinitions.map(definition => encode(ConstraintScope, {
         EventSourceType: definition.scope.perEventSourceType ? '*' : '',
         EventStreamType: definition.scope.perEventStreamType ? '*' : '',

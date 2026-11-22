@@ -248,7 +248,7 @@ describe('fixture-backed composite unique-property keys', () => {
         constraint('OracleMixed')(Single);
         new EventScenario({ artifacts: { eventTypes: [Mixed], constraints: [Single] } }).should.be.instanceOf(EventScenario);
         await unsupported(() => new EventScenario({ artifacts: { eventTypes: [Mixed], constraints: [Composite] } }),
-            'artifacts.constraints (OracleMixed)', 'Every property of a composite key must be a schema-backed string.');
+            'artifacts.constraints (OracleMixed)', 'Every property of a composite key must be a schema-backed string, Guid or unformatted number.');
     });
 
     it('rejects an unproven component value in a batch and leaves history, results and claims unchanged', async () => {

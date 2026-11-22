@@ -15,6 +15,11 @@ namespace ProjectionOracle;
 
 internal static class Program
 {
+    static bool RequiresConstraintDescriptor(JsonObject fixture) => new[]
+    {
+        "constraintDefinitions", "scopeCases", "eventSequenceCases", "fieldConstraintCases", "fieldCombinationCases"
+    }.Any(key => fixture[key] is not null);
+
     static async Task<int> Main(string[] args)
     {
         Environment.SetEnvironmentVariable("TZ", "UTC");
@@ -62,7 +67,7 @@ internal static class Program
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
             var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
-            foreach (var required in new[] { "constraints.json", "constraints-isolation.json", "constraints-key-domain.json", "constraints-property-lifecycle.json", "constraints-property-covered-removal.json", "constraints-event-type-cycles.json", "constraints-event-type-siblings.json", "constraints-composite.json", "constraints-ignore-casing.json", "constraints-scopes.json", "constraints-field-types.json", "constraints-event-sequences.json" })
+            foreach (var required in new[] { "constraints.json", "constraints-isolation.json", "constraints-key-domain.json", "constraints-property-lifecycle.json", "constraints-property-covered-removal.json", "constraints-event-type-cycles.json", "constraints-event-type-siblings.json", "constraints-composite.json", "constraints-ignore-casing.json", "constraints-scopes.json", "constraints-field-types.json", "constraints-event-sequences.json", "constraints-field-combinations.json" })
             {
                 if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", required)))
                     throw new InvalidOperationException($"Event oracle requires {required}; refusing a vacuous check.");
@@ -114,7 +119,7 @@ internal static class Program
                 {
                     throw new InvalidOperationException($"{path}: kind must be 'kernelSemantics' or 'oracleGuard'.");
                 }
-                if ((fixture["constraintDefinitions"] is not null || fixture["scopeCases"] is not null || fixture["eventSequenceCases"] is not null || fixture["fieldConstraintCases"] is not null) && fixture["constraintDescriptorSha256"]?.GetValue<string>() !=
+                if (RequiresConstraintDescriptor(fixture) && fixture["constraintDescriptorSha256"]?.GetValue<string>() !=
                     Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(package, "generated", "events_constraints.ts")))))
                     throw new InvalidOperationException($"{path}: constraint contract descriptor does not match installed TypeScript contracts.");
                 if (fixture["formatVersion"]?.GetValue<int>() != 1 ||
