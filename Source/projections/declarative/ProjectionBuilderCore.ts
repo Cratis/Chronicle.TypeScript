@@ -252,6 +252,7 @@ export abstract class ProjectionBuilderCore<TReadModel, TBuilder> {
 
             if (child.fromEventProperty) {
                 childDefinition.FromEventProperty = { Event: eventType, PropertyExpression: child.fromEventProperty };
+                continue;
             }
 
             childDefinition.From.push({
