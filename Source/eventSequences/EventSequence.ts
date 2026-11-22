@@ -30,6 +30,7 @@ import { AppendedEventWithResult } from './AppendedEventWithResult.js';
 import { AppendOperationsBroadcaster } from './AppendOperationsBroadcaster.js';
 import { AppendOptions } from './AppendOptions.js';
 import { AppendResult } from './AppendResult.js';
+import type { AppendMetricsContext } from './AppendMetricsContext.js';
 import { createAppendResult } from './createAppendResult.js';
 import { CompensateOptions } from './CompensateOptions.js';
 import { CompleteStreamError } from './CompleteStreamError.js';
@@ -57,7 +58,11 @@ import { fromContractsGuid, toContractsGuid, type Guid } from '../connection/Gui
 import { ensureCommandResponse, ensureCommandSuccess, ensureQuerySuccess, type CallResultLike } from '../connection/callResults.js';
 import type { ConcurrencyScope } from './ConcurrencyScope.js';
 import type { IEventSources } from '../eventSources/IEventSources.js';
-import { deriveConcurrencyScope, planDerivedGuards, resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
+import { resolveBatchRouting, resolveSingleRouting } from './resolveEventSourceRouting.js';
+import { ConcurrencyScopeStrategies } from './ConcurrencyScopeStrategies.js';
+import type { ConcurrencyScopeStrategy } from './ConcurrencyScopeStrategy.js';
+import { resolveConcurrencyScope } from './resolveConcurrencyScope.js';
+import { planConcurrencyScopeStrategies } from './planConcurrencyScopeStrategies.js';
 import { IUnitOfWorkManager } from '../transactions/IUnitOfWorkManager.js';
 import { beginEventImport } from '../imports/beginEventImport.js';
 import { importEvents } from '../imports/importEvents.js';
@@ -85,7 +90,8 @@ export class EventSequence implements IEventSequence {
         private readonly _resolveConstraintMessage?: (violation: ConstraintViolation) => ConstraintViolation,
         private readonly _telemetry?: ChronicleTelemetryOptions,
         private readonly _eventSources?: IEventSources,
-        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = []
+        private readonly _eventEnrichmentProviders: readonly EventEnrichmentProvider[] = [],
+        private readonly _concurrencyScopeStrategy: ConcurrencyScopeStrategy = ConcurrencyScopeStrategies.optimistic
     ) {
         this.transactional = new TransactionalEventSequence(this, this._unitOfWorkManager);
     }
@@ -123,7 +129,7 @@ export class EventSequence implements IEventSequence {
                 setSequenceNumber(span, result.sequenceNumber.value);
                 span.setStatus({ code: SpanStatusCode.OK });
 
-                this.recordAppendMetrics(result, durationInSeconds, metricAttributes, sequenceMetricAttributes);
+                this.recordAppendMetrics(result, { eventCount: 1, durationInSeconds, attributes: metricAttributes }, sequenceMetricAttributes);
 
                 if (this.appendOperations.hasSubscribers) {
                     this.appendOperations.publish([createAppendNotification(eventSourceId, event, result,
@@ -155,9 +161,9 @@ export class EventSequence implements IEventSequence {
         options?: AppendOptions
     ) {
         const { eventSourceId } = prepared;
-        const concurrencyScope = options?.concurrencyScope ?? (routing
-            ? await deriveConcurrencyScope(routing, eventSourceId, options?.streamId, this.tailReader)
-            : undefined);
+        const concurrencyScope = await resolveConcurrencyScope(this._concurrencyScopeStrategy, options?.concurrencyScope, {
+            eventSourceId, events: [{ eventSourceId, event: prepared.event }], options, readTail: this.tailReader
+        }, routing ? { routing, streamId: options?.streamId } : undefined);
         const request = this.createAppendRequest(prepared, concurrencyScope, this.toAppendRouteFields(routing, options));
         // Named tags travel on the dedicated call so a kernel without support rejects them instead of dropping them.
         return prepared.namedTags.length === 0
@@ -203,12 +209,11 @@ export class EventSequence implements IEventSequence {
 
     private recordAppendMetrics(
         result: AppendResult,
-        durationInSeconds: number,
-        metricAttributes: Record<string, string>,
+        { eventCount, durationInSeconds, attributes }: AppendMetricsContext,
         sequenceMetricAttributes: Record<string, string>
     ): void {
-        ChronicleConventionMetrics.eventsAppended.add(1, metricAttributes);
-        ChronicleConventionMetrics.appendDuration.record(durationInSeconds, metricAttributes);
+        ChronicleConventionMetrics.eventsAppended.add(eventCount, attributes);
+        ChronicleConventionMetrics.appendDuration.record(durationInSeconds, attributes);
         if (result.constraintViolations.length > 0) {
             ChronicleConventionMetrics.constraintViolations.add(result.constraintViolations.length, sequenceMetricAttributes);
         }
@@ -241,8 +246,7 @@ export class EventSequence implements IEventSequence {
             }
         }
         await this.verifyNamedTagBatch(prepared, routings);
-        const explicitIds = new Set([...concurrencyScopes].filter(([, scope]) => scope !== undefined).map(([id]) => id));
-        const derivedGuards = planDerivedGuards(routings, eventsForEventSourceIds, appendOptions?.streamId, explicitIds);
+        const scopePlans = planConcurrencyScopeStrategies(this._concurrencyScopeStrategy, prepared, routings);
         const distinctEventSourceIds = [...new Set(eventsForEventSourceIds.map(_ => _.eventSourceId))];
 
         const batchMetricAttributes = this.sequenceMetricAttributes;
@@ -256,8 +260,9 @@ export class EventSequence implements IEventSequence {
             const startTime = performance.now();
             try {
                 this.applyBatchRouting(wireEvents, routings);
-                for (const [id, { routing, streamId }] of derivedGuards) {
-                    concurrencyScopes.set(id, await deriveConcurrencyScope(routing, id, streamId, this.tailReader));
+                for (const { eventSourceId, events, guard } of scopePlans) {
+                    concurrencyScopes.set(eventSourceId, await resolveConcurrencyScope(this._concurrencyScopeStrategy,
+                        concurrencyScopes.get(eventSourceId), { eventSourceId, events, options: appendOptions, readTail: this.tailReader }, guard));
                 }
                 const response = await this.sendAppendMany(prepared, wireEvents);
 
@@ -266,7 +271,7 @@ export class EventSequence implements IEventSequence {
                 const result = this.toAppendManyResults(appendManyResponse, prepared);
                 span.setStatus({ code: SpanStatusCode.OK });
 
-                this.recordAppendManyMetrics(result, eventsForEventSourceIds.length, durationInSeconds, batchMetricAttributes);
+                this.recordAppendManyMetrics(result, { eventCount: eventsForEventSourceIds.length, durationInSeconds, attributes: batchMetricAttributes });
                 this.publishAppendMany(prepared, result);
 
                 return result;
@@ -364,21 +369,19 @@ export class EventSequence implements IEventSequence {
 
     private recordAppendManyMetrics(
         result: AppendResult[],
-        eventCount: number,
-        durationInSeconds: number,
-        batchMetricAttributes: Record<string, string>
+        { eventCount, durationInSeconds, attributes }: AppendMetricsContext
     ): void {
-        ChronicleConventionMetrics.batchAppendsPerformed.add(1, batchMetricAttributes);
-        ChronicleConventionMetrics.eventsAppended.add(eventCount, batchMetricAttributes);
-        ChronicleConventionMetrics.appendManyDuration.record(durationInSeconds, batchMetricAttributes);
+        ChronicleConventionMetrics.batchAppendsPerformed.add(1, attributes);
+        ChronicleConventionMetrics.eventsAppended.add(eventCount, attributes);
+        ChronicleConventionMetrics.appendManyDuration.record(durationInSeconds, attributes);
 
         const totalViolations = result.reduce((sum: number, appendResult: AppendResult) => sum + appendResult.constraintViolations.length, 0);
         if (totalViolations > 0) {
-            ChronicleConventionMetrics.constraintViolations.add(totalViolations, batchMetricAttributes);
+            ChronicleConventionMetrics.constraintViolations.add(totalViolations, attributes);
         }
         const totalErrors = result.reduce((sum: number, appendResult: AppendResult) => sum + appendResult.errors.length, 0);
         if (totalErrors > 0) {
-            ChronicleConventionMetrics.appendErrors.add(totalErrors, batchMetricAttributes);
+            ChronicleConventionMetrics.appendErrors.add(totalErrors, attributes);
         }
     }
 
@@ -607,7 +610,9 @@ export class EventSequence implements IEventSequence {
                     response.ConcurrencyViolation
                 );
                 span.setStatus({ code: SpanStatusCode.OK });
-                this.recordAppendMetrics(result, (performance.now() - startTime) / 1000, metricAttributes, this.sequenceMetricAttributes);
+                this.recordAppendMetrics(result, {
+                    eventCount: 1, durationInSeconds: (performance.now() - startTime) / 1000, attributes: metricAttributes
+                }, this.sequenceMetricAttributes);
                 return result;
             } catch (error) {
                 recordSafeException(span, error);

@@ -7,12 +7,15 @@ import { ChronicleConnectionString } from './connection/index.js';
 import { WellKnownSinks } from './sinks/index.js';
 import type { ReactorResultHandler } from './reactors/ReactorResultHandler.js';
 import type { EventEnrichmentProvider } from './eventSequences/EventEnrichmentProvider.js';
+import { ConcurrencyScopeStrategies } from './eventSequences/ConcurrencyScopeStrategies.js';
+import type { ConcurrencyScopeStrategy } from './eventSequences/ConcurrencyScopeStrategy.js';
 import type { ClientArtifactsActivator } from './artifacts/ClientArtifactsActivator.js';
 import type { ReadModelNamingPolicy } from './readModels/ReadModelNamingPolicy.js';
 import type { ChronicleTelemetryOptions } from './telemetry/ChronicleTelemetryOptions.js';
 import type { IChronicleLogger } from './logging/IChronicleLogger.js';
 
 type ChronicleOptionsConstructorParams = {
+    concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     telemetry?: ChronicleTelemetryOptions;
     logger?: IChronicleLogger;
@@ -34,6 +37,7 @@ type ChronicleOptionsConstructorParams = {
 };
 
 type ChronicleOptionsFactoryParams = {
+    concurrencyScopeStrategy?: ConcurrencyScopeStrategy;
     eventEnrichmentProviders?: readonly EventEnrichmentProvider[];
     skipKeepAlive?: boolean;
     telemetry?: ChronicleTelemetryOptions;
@@ -118,6 +122,9 @@ export class ChronicleOptions {
     /** Ordered post-serialization providers for single and batch appends on every event store and sequence. */
     readonly eventEnrichmentProviders: readonly EventEnrichmentProvider[];
 
+    /** Policy for appends without an explicit scope. Defaults to optimistic routing-derived checks. */
+    readonly concurrencyScopeStrategy: ConcurrencyScopeStrategy;
+
     /** Optional per-delivery reactor/reducer activator; absent means one instance per observation stream. */
     readonly artifactActivator?: ClientArtifactsActivator;
 
@@ -160,6 +167,7 @@ export class ChronicleOptions {
         this.defaultGraphSinkTypeId = options.defaultGraphSinkTypeId ?? WellKnownSinks.Neo4j;
         this.reactorResultHandler = options.reactorResultHandler;
         this.eventEnrichmentProviders = [...(options.eventEnrichmentProviders ?? [])];
+        this.concurrencyScopeStrategy = options.concurrencyScopeStrategy ?? ConcurrencyScopeStrategies.optimistic;
         this.artifactActivator = options.artifactActivator;
         this.readModelNamingPolicy = options.readModelNamingPolicy;
         this.maxReceiveMessageSize = options.maxReceiveMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxReceiveMessageSize;
@@ -265,6 +273,7 @@ export class ChronicleOptions {
             defaultGraphSinkTypeId: factoryOptions.defaultGraphSinkTypeId,
             reactorResultHandler: factoryOptions.reactorResultHandler,
             eventEnrichmentProviders: factoryOptions.eventEnrichmentProviders,
+            concurrencyScopeStrategy: factoryOptions.concurrencyScopeStrategy,
             artifactActivator: factoryOptions.artifactActivator,
             readModelNamingPolicy: factoryOptions.readModelNamingPolicy,
             maxReceiveMessageSize: factoryOptions.maxReceiveMessageSize,
