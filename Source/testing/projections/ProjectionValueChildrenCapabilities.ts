@@ -38,8 +38,16 @@ export class ProjectionValueChildrenCapabilities {
         if (collection?.type !== 'array' || !this.plainString(collection.items)) reject('must target a plain-string array');
         const schema = context.requireEventSchema(value.Event, `Children.${property}.FromEventProperty`);
         const expression = value.PropertyExpression;
-        if (!/^[A-Za-z_]\w*$/.test(expression) || !this.plainString(schema.properties?.[expression])) reject('must read one direct plain-string event property');
+        if (!this.directProperty(expression) || !this.plainString(schema.properties?.[expression])) reject('must read one direct plain-string event property');
         return schema;
+    }
+
+    private static directProperty(expression: string): boolean {
+        // Chronicle dfa5ea4, Source/Kernel/Core/Projections/Engine/Expressions/EventValues/:
+        // LiteralExpressionResolver.cs (TryRead) reserves these four identifier-shaped literals.
+        // EventContentExpressionResolver.cs excludes numeric/quoted literals and $ providers;
+        // the grammar below already rejects those, including WellKnownExpressions.Null ($null).
+        return /^[A-Za-z_]\w*$/.test(expression) && !['true', 'True', 'false', 'False'].includes(expression);
     }
 
     private static contract(value: ValueChildrenDefinition, reject: (detail: string) => never): void {

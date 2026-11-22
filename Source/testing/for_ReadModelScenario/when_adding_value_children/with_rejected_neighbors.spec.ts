@@ -24,6 +24,11 @@ function input() {
     return { compiled, definition, children, child, value, event };
 }
 
+function sourceExpression(state: ReturnType<typeof input>, expression: string): void {
+    Object.assign(state.value, { PropertyExpression: expression });
+    state.event.properties![expression] = { type: 'string' };
+}
+
 @projection('value-children-without-event', Model)
 class ChildrenWithoutEvent {
     define(builder: IProjectionBuilderFor<Model>): void {
@@ -67,7 +72,18 @@ describe('when value children neighbor the proven plain-string shape', () => {
             compiled.readModels[0].Schema = JSON.stringify(schema);
         } }
     ];
-    for (const entry of cases) for (const seeded of [false, true]) {
+    // Pinned dfa5ea4: LiteralExpressionResolver.TryRead, NullExpressionResolver.CanResolve,
+    // EventContentExpressionResolver.CanResolve, and Concepts/WellKnownExpressions.Null.
+    const expressions = [
+        'true', 'True', 'false', 'False', '"value"', '"unfinished',
+        '0', '-1', '+1', '1.5', '.5', '1e2', '+1E-2',
+        '$null', '$value(value)', '$eventSourceId', '$eventContext(Subject)', '$causedBy(name)', '$unknown', ''
+    ];
+    const literalCases = expressions.map(expression => ({
+        name: `literal/provider expression ${JSON.stringify(expression)} despite a same-named string field`,
+        mutate: (state: ReturnType<typeof input>) => sourceExpression(state, expression)
+    }));
+    for (const entry of [...cases, ...literalCases]) for (const seeded of [false, true]) {
         it(`should reject ${entry.name} before replay for ${seeded ? 'seeded' : 'empty'} history`, async () => {
             const state = input();
             entry.mutate(state);
@@ -78,6 +94,14 @@ describe('when value children neighbor the proven plain-string shape', () => {
             } catch (error) { caught = error; }
             (caught instanceof UnsupportedProjectionOperation).should.be.true;
             (caught as Error).message.should.match(/kernel-backed test|participating event schema is unavailable/);
+        });
+    }
+
+    for (const expression of ['null', 'Null', 'NULL', 'TRUE', 'FALSE', 'tRuE', 'fAlSe', 'NaN', 'Infinity']) {
+        it(`should retain the direct property ${expression}, which the pinned kernel does not classify as a literal`, () => {
+            const state = input();
+            sourceExpression(state, expression);
+            (() => new ProjectionReadModelProcessor(Model, state.compiled, state.definition)).should.not.throw();
         });
     }
 
