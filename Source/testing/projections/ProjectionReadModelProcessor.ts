@@ -106,6 +106,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     get publicRead(): Record<string, Record<string, unknown>> { return structuredClone(this._publicRead); }
 
     async process(events: readonly ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
+        this.validateContextChildHistory(events);
         const states = new Map<string, ReadModelState<TReadModel>>();
         const engine: Record<string, Record<string, unknown>> = Object.create(null);
         // Replay-local event-sequence lookup. Removal deletes a root, never its joined source history.
@@ -114,6 +115,28 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         this._engineState = engine;
         this._publicRead = Object.fromEntries(Object.entries(engine).map(([key, value]) => [key, this.normalize(value)]));
         return states;
+    }
+
+    private validateContextChildHistory(events: readonly ScenarioEvent[]): void {
+        const contextChildren = new Map([...this._children].filter(([, child]) => ProjectionContextChildKeyCapabilities.matches(child.key)));
+        if (!contextChildren.size) return;
+        const initialized = new Set<string>();
+        for (const event of events) {
+            const typeId = event.context.eventType.id.value;
+            if (this._removed.has(typeId)) initialized.delete(event.sourceId);
+            else if (this._from.has(typeId)) initialized.add(event.sourceId);
+            const child = contextChildren.get(typeId);
+            if (child && !initialized.has(event.sourceId)) {
+                this.rejectUninitializedParent(event, child);
+            }
+        }
+    }
+
+    private rejectUninitializedParent(event: ScenarioEvent, child: ChildBinding): never {
+        const binding = this.bindingFor(event);
+        const operation = child.from ? 'creation' : 'removal';
+        throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), binding.path, binding.declaration,
+            `event-context child ${operation} before parent '${event.sourceId}' is initialized is not fixture-backed; use a kernel-backed test`);
     }
 
     private processEvent(event: ScenarioEvent, replay: ProjectionReplay<TReadModel>): void {
@@ -180,7 +203,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     private stateForEvent(key: string, event: ScenarioEvent, from: FromRecord | undefined, engine: Record<string, Record<string, unknown>>): Record<string, unknown> {
         const state = engine[key];
-        // SetInitialState: an event only a child subscribes to creates an uninitialized parent.
+        // Content-keyed children can create an uninitialized parent; context-keyed histories are preflighted.
         if (!state) return from ? this.initialState(key, event) : this.identityState(key, event, false);
         if (state.__initialized === false && from) {
             for (const [name, value] of Object.entries(this.initialValues())) if (!(name in state)) state[name] = value;
