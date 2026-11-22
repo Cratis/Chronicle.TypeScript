@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { Constructor } from '@cratis/fundamentals';
+import type { IReactorDefinition } from './IReactorDefinition.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { createLogger } from '../logging/createLogger.js';
@@ -16,7 +17,9 @@ export interface ReactorObservationTarget {
     /** The reactor identifier. */
     readonly id: string;
     /** The reactor class. */
-    readonly reactorType: Constructor;
+    readonly reactorType: Constructor | undefined;
+    /** The runtime callback, absent for discovered class reactors. */
+    readonly runtime?: IReactorDefinition;
     /** The event sequence the reactor observes. */
     readonly eventSequenceId: string;
     /** The event store the reactor is registered with. */

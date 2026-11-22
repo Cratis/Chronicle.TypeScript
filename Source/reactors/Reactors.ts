@@ -4,133 +4,54 @@
 import 'reflect-metadata';
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
-import { Constructor } from '@cratis/fundamentals';
-import { EventGenerationDelivery, ReactorMessage } from '@cratis/chronicle.contracts';
-import type { EventsToObserve } from '@cratis/chronicle.contracts';
-import { IClientArtifactsProvider } from '../artifacts/index.js';
-import { ChronicleConnection } from '../connection/index.js';
+import type { IClientArtifactsProvider } from '../artifacts/index.js';
+import type { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
-import { getTagsFor } from '../events/tagDecorator.js';
-import { getFilterTagsFor } from '../events/filterEventsByTagDecorator.js';
-import { getEventSourceTypeFor } from '../events/eventSourceTypeDecorator.js';
-import { getEventStreamTypeFor } from '../events/eventStreamTypeDecorator.js';
 import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
-import { createHandlerInstanceValidator } from '../observation/createHandlerInstanceValidator.js';
-import { IReactors } from './IReactors.js';
-import { getReactorMetadata } from './reactor.js';
-import { isOnceOnly } from './onceOnly.js';
-import { isStartAtTail } from './startAtTail.js';
-import { getReactorBatchMethods, getReactorEventTypes } from './ReactorDispatcher.js';
-import { ReactorPageDispatcher } from './ReactorPageDispatcher.js';
-import { toPageDelivery } from '../observation/batches/batchSize.js';
-import type { ReactorEventTypeEntry } from './ReactorDispatcher.js';
-import type { ReactorResultHandler } from './ReactorResultHandler.js';
-import type { ReactorServices } from './ReactorServices.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
 import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
 import { ObservationReconnectBackoff, type ObservationReconnectBackoffOptions } from '../observation/ObservationReconnectBackoff.js';
 import { classifyStreamError, StreamErrorKind } from '../observation/classifyStreamError.js';
 import type { ObservationStreamOutcome } from '../observation/ObservationStreamOutcome.js';
+import type { IReactors } from './IReactors.js';
+import type { IReactorBuilder } from './IReactorBuilder.js';
+import type { IReactorDefinitionBuilder } from './IReactorDefinitionBuilder.js';
+import type { IReactorDefinition } from './IReactorDefinition.js';
+import type { ReactorId } from './ReactorId.js';
+import type { ReactorResultHandler } from './ReactorResultHandler.js';
+import type { ReactorServices } from './ReactorServices.js';
+import type { ReactorRegistration } from './ReactorRegistration.js';
+import { ReactorRegistrationKind } from './ReactorRegistrationKind.js';
+import { ReactorRegistrations } from './ReactorRegistrations.js';
+import { ReactorBuilder } from './ReactorBuilder.js';
+import { ReactorObservation } from './ReactorObservation.js';
+import { ReactorPageDispatcher } from './ReactorPageDispatcher.js';
+import { prepareReactor, reactorSubscriptionMessage } from './prepareReactor.js';
+import type { ReactorSubscription } from './ReactorSubscription.js';
+import type { WaitTillSubscribedOptions } from './WaitTillSubscribedOptions.js';
+import { waitTillSubscribed } from './waitTillSubscribed.js';
 
-/** Expression used to partition reactor observations by event source ID. */
-const EVENT_SOURCE_ID_KEY = '$eventSourceId';
-
-/**
- * A push-based async queue that implements {@link AsyncIterable} for use with nice-grpc
- * bidirectional streaming. Values pushed via {@link send} are yielded in order to
- * any consumer that iterates the queue.
- */
-class AsyncQueue<T> {
-    private readonly _queue: T[] = [];
-    private _resolve: ((result: IteratorResult<T, undefined>) => void) | undefined = undefined;
-    private _done = false;
-
-    /** Pushes a value into the queue. No-op if the queue has been completed. */
-    send(value: T): void {
-        if (this._done) return;
-        if (this._resolve) {
-            const resolve = this._resolve;
-            this._resolve = undefined;
-            resolve({ value, done: false });
-        } else {
-            this._queue.push(value);
-        }
-    }
-
-    /** Signals that no more values will be pushed, causing consumers to finish iteration. */
-    complete(): void {
-        this._done = true;
-        if (this._resolve) {
-            this._resolve({ value: undefined, done: true });
-            this._resolve = undefined;
-        }
-    }
-
-    [Symbol.asyncIterator](): AsyncIterator<T, undefined> {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const self = this;
-        return {
-            next(): Promise<IteratorResult<T, undefined>> {
-                if (self._queue.length > 0) {
-                    return Promise.resolve({ value: self._queue.shift()!, done: false });
-                }
-                if (self._done) {
-                    return Promise.resolve({ value: undefined, done: true });
-                }
-                return new Promise(resolve => {
-                    self._resolve = resolve as (result: IteratorResult<T, undefined>) => void;
-                });
-            },
-            return(): Promise<IteratorResult<T, undefined>> {
-                self._done = true;
-                if (self._resolve) {
-                    self._resolve({ value: undefined, done: true });
-                    self._resolve = undefined;
-                }
-                return Promise.resolve({ value: undefined, done: true });
-            }
-        };
-    }
-}
-
-/**
- * Implements {@link IReactors}, managing discovery and registration of reactors
- * with the Chronicle Kernel via bidirectional gRPC streaming.
- */
+/** Manages discovered and runtime reactors using local-start/local-stop completion semantics. */
 export class Reactors implements IReactors {
     private readonly _logger: ReturnType<typeof createLogger>;
-    private readonly _lifecycle: ConnectionLifecycle;
     private readonly _unsubscribeDisconnected: () => void;
-    private readonly _reactors = new Map<string, Constructor>();
-    private readonly _queues = new Map<string, AsyncQueue<ReactorMessage>>();
-    private readonly _observations = new Map<string, AbortController>();
+    private readonly _registrations = new ReactorRegistrations();
+    private readonly _observations = new Map<string, ReactorObservation>();
     private readonly _reconnectBackoffs = new Map<string, ObservationReconnectBackoff>();
     private readonly _reobserveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly _lifetime = new AbortController();
     private _registered = false;
     private _disposed = false;
 
-    /**
-     * Creates a new {@link Reactors} instance.
-     * @param _clientArtifacts - Provider for discovered client artifact types.
-     * @param _connection - The Chronicle gRPC connection.
-     * @param _eventStoreName - The name of the event store.
-     * @param _namespace - The namespace within the event store.
-     * @param lifecycle - The connection lifecycle used to react to disconnect events.
-     * @param _eventLog - The event log used to append side-effect events a reactor handler returns.
-     * @param _resultHandler - Optional handler for values a reactor handler returns.
-     * @param _eventStore - Optional event store handed to reactor handlers.
-     * @param _artifactActivator - Optional activator creating reactor instances.
-     * @param _skipKeepAlive - Whether the client runs without a keep-alive, which refuses client-hosted reactors.
-     * @param _reconnectBackoff - How a reactor waits before opening its observation stream again after it ended.
-     */
+    /** Creates the reactor collection for one event store and namespace. */
     constructor(
         private readonly _clientArtifacts: IClientArtifactsProvider,
         private readonly _connection: ChronicleConnection,
         private readonly _eventStoreName: string,
         private readonly _namespace: string,
-        lifecycle: ConnectionLifecycle,
+        private readonly _lifecycle: ConnectionLifecycle,
         private readonly _eventLog: IEventLog,
         private readonly _resultHandler?: ReactorResultHandler,
         private readonly _eventStore?: IEventStore,
@@ -139,95 +60,157 @@ export class Reactors implements IReactors {
         private readonly _reconnectBackoff: ObservationReconnectBackoffOptions = {}
     ) {
         this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
-        this._lifecycle = lifecycle;
-        this._unsubscribeDisconnected = lifecycle.onDisconnected(async () => {
+        this._unsubscribeDisconnected = _lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reactor observations');
             this._registered = false;
             this.disconnectAll();
         });
     }
 
-    /** Stops observations permanently when the owning client is disposed. */
+    /** Stops local observations permanently, without waiting for running user callbacks. */
     dispose(): void {
         this._unsubscribeDisconnected();
         this._disposed = true;
         this._registered = false;
+        this._lifetime.abort(new Error('Reactors have been disposed.'));
         this.disconnectAll();
         this._reconnectBackoffs.clear();
     }
 
     /** @inheritdoc */
     async discover(): Promise<void> {
-        this._reactors.clear();
-        for (const type of this._clientArtifacts.reactors) {
-            const metadata = getReactorMetadata(type);
-            if (metadata) {
-                this._reactors.set(metadata.id.value, type);
-                this._logger.debug('Discovered reactor', { reactorId: metadata.id.value, type: (type as Function).name });
-            }
+        this._registrations.discover(this._clientArtifacts.reactors);
+    }
+
+    /** @inheritdoc */
+    define(id: ReactorId | string, define: (builder: IReactorBuilder) => void): IReactorDefinition {
+        const builder = new ReactorBuilder(id, this._clientArtifacts.eventTypes);
+        define(builder);
+        return builder.build();
+    }
+
+    /** @inheritdoc */
+    register(): Promise<void>;
+    register(definition: IReactorDefinition): Promise<void>;
+    register(id: ReactorId | string, define: (builder: IReactorBuilder) => void): Promise<void>;
+    register(id: ReactorId | string, configure: (builder: IReactorDefinitionBuilder) => void, handle: IReactorDefinition['handle']): Promise<void>;
+    async register(idOrDefinition?: ReactorId | string | IReactorDefinition,
+        configure?: (builder: ReactorBuilder) => void, handle?: IReactorDefinition['handle']): Promise<void> {
+        if (idOrDefinition !== undefined) {
+            this.registerRuntime(idOrDefinition, configure, handle);
+            return;
+        }
+        if (this._skipKeepAlive) refuseClientHostedObservers({ reactors: this._clientArtifacts.reactors, reducers: [] });
+        if (this._disposed) return;
+        this._registrations.discover(this._clientArtifacts.reactors);
+        const registrations = this._registrations.all.map(registration => ({
+            registration, subscription: prepareReactor(registration, this._clientArtifacts)
+        }));
+        this._registered = true;
+        for (const { registration, subscription } of registrations) {
+            if (!this.hasObservation(registration.id)) this.startObservation(registration, subscription);
         }
     }
 
     /** @inheritdoc */
-    async register(): Promise<void> {
-        if (this._skipKeepAlive) refuseClientHostedObservers({ reactors: this._clientArtifacts.reactors, reducers: [] });
-        if (this._registered || this._disposed) {
-            return;
-        }
-
-        if (this._reactors.size === 0) {
-            await this.discover();
-        }
-
-        if (this._disposed) return;
-        const registrations = [...this._reactors].map(([id, type]) => ({
-            id, type, eventTypes: getReactorEventTypes(type, this._clientArtifacts.eventTypes),
-            batchMethods: getReactorBatchMethods(type, this._clientArtifacts.eventTypes)
-        })).map(registration => ({ ...registration, validateInstance: createHandlerInstanceValidator(registration.type, [
-            ...registration.eventTypes.flatMap(entry => [entry.methodName, entry.replayMethodName].filter((name): name is string => !!name)),
-            ...registration.batchMethods.map(method => method.methodName)
-        ]) }));
-        this._logger.info('Registering reactors', { count: this._reactors.size });
-        for (const { id, type, eventTypes, validateInstance } of registrations) {
-            this.startObservation(id, type, eventTypes, validateInstance);
-        }
-
-        this._registered = true;
+    async unregister(id: ReactorId | string): Promise<void> {
+        const value = typeof id === 'string' ? id : id.value;
+        this._registrations.remove(value);
+        clearTimeout(this._reobserveTimers.get(value));
+        this._reobserveTimers.delete(value);
+        const attempt = this._observations.get(value);
+        this._observations.delete(value);
+        attempt?.stop();
+        this._reconnectBackoffs.delete(value);
     }
 
-    private startObservation(id: string, reactorType: Constructor,
-        eventTypes: ReactorEventTypeEntry[], validateInstance: (instance: object) => void): void {
-        runInBackgroundContext(() => {
-            if (this._disposed) return;
-            const metadata = getReactorMetadata(reactorType)!;
-            const eventSequenceId = metadata.eventSequenceId ?? EventSequenceId.eventLog.value;
+    /** @inheritdoc */
+    async waitTillSubscribed(id: ReactorId | string, options: WaitTillSubscribedOptions = {}): Promise<void> {
+        const value = typeof id === 'string' ? id : id.value;
+        const registration = this._registrations.all.find(entry => entry.id === value);
+        const eventSequenceId = registration ? prepareReactor(registration, this._clientArtifacts).eventSequenceId : EventSequenceId.eventLog.value;
+        await waitTillSubscribed(signal => this._connection.observers.getObserverInformation({
+            EventStore: this._eventStoreName, Namespace: this._namespace, ObserverId: value, EventSequenceId: eventSequenceId
+        }, { signal }), options, this._lifetime.signal);
+    }
 
-            this._logger.info('Starting reactor observation', {
-                reactorId: id,
-                eventSequenceId,
-                handlerCount: eventTypes.length,
-                handlers: eventTypes.map(e => e.methodName)
-            });
+    private registerRuntime(idOrDefinition: ReactorId | string | IReactorDefinition,
+        configure: ((builder: ReactorBuilder) => void) | undefined, handle: IReactorDefinition['handle'] | undefined): void {
+        if (this._disposed) throw new Error('Reactors have been disposed.');
+        if (this._skipKeepAlive) throw new Error('Client-hosted reactors require keep-alive.');
+        const definition = this.runtimeDefinition(idOrDefinition, configure, handle);
+        this._registrations.discover(this._clientArtifacts.reactors);
+        const registration: ReactorRegistration = { id: definition.id.value, kind: handle ? ReactorRegistrationKind.Delegate : ReactorRegistrationKind.Fluent, definition };
+        const subscription = prepareReactor(registration, this._clientArtifacts);
+        this._registrations.add(registration);
+        try {
+            this._registered = true;
+            this.startObservation(registration, subscription);
+        } catch (error) {
+            this._registrations.remove(registration.id);
+            throw error;
+        }
+    }
 
-            void this.runObservation(id, reactorType, eventSequenceId, eventTypes, validateInstance);
+    private runtimeDefinition(idOrDefinition: ReactorId | string | IReactorDefinition,
+        configure: ((builder: ReactorBuilder) => void) | undefined, handle: IReactorDefinition['handle'] | undefined): IReactorDefinition {
+        if (typeof idOrDefinition === 'object' && 'handle' in idOrDefinition) return idOrDefinition;
+        const builder = new ReactorBuilder(idOrDefinition, this._clientArtifacts.eventTypes);
+        configure?.(builder);
+        return builder.build(handle);
+    }
+
+    private hasObservation(id: string): boolean {
+        return this._observations.has(id) || this._reobserveTimers.has(id);
+    }
+
+    private startObservation(registration: ReactorRegistration, subscription: ReactorSubscription): void {
+        const attempt = new ReactorObservation(registration, this._lifecycle.connectionId);
+        this._observations.set(registration.id, attempt);
+        runInBackgroundContext(() => { void this.runObservation(attempt, subscription); });
+    }
+
+    private createDispatcher(subscription: ReactorSubscription, signal: AbortSignal): ReactorPageDispatcher {
+        const { reactorType: type } = subscription;
+        const reactorInstance = type && !this._artifactActivator ? new (type as new () => Record<string, Function>)() : undefined;
+        if (reactorInstance) subscription.validateInstance(reactorInstance);
+        const services: ReactorServices | undefined = this._eventStore && {
+            eventStore: this._eventStore, readModels: this._eventStore.readModels, signal
+        };
+        return new ReactorPageDispatcher({
+            ...subscription, reactorInstance, services, signal,
+            eventStoreName: this._eventStoreName, namespace: this._namespace,
+            eventLog: this._eventLog, resultHandler: this._resultHandler,
+            artifactActivator: type ? this._artifactActivator : undefined,
+            logger: this._logger, connectionLogger: this._connection.logger
         });
     }
 
-    private async runObservation(
-        id: string,
-        reactorType: Constructor,
-        eventSequenceId: string,
-        eventTypes: ReactorEventTypeEntry[],
-        validateInstance: (instance: object) => void
-    ): Promise<void> {
+    private async runObservation(attempt: ReactorObservation, subscription: ReactorSubscription): Promise<void> {
+        const id = attempt.registration.id;
         let outcome: ObservationStreamOutcome = 'ended';
         try {
-            outcome = await this.observeReactor(id, reactorType, eventSequenceId, eventTypes, validateInstance);
+            this.reconnectBackoffFor(id).streamOpened();
+            const dispatcher = this.createDispatcher(subscription, attempt.controller.signal);
+            attempt.queue.send(reactorSubscriptionMessage(subscription, {
+                connectionId: attempt.connectionId, eventStore: this._eventStoreName, namespace: this._namespace
+            }));
+            outcome = await attempt.observe(this._connection.reactors.observe(attempt.queue, { signal: attempt.controller.signal }), dispatcher, {
+                delivered: () => this.reconnectBackoffFor(id).streamDelivered(),
+                failed: error => this.streamFailed(attempt, error)
+            });
         } catch (error) {
-            this._logger.error('Reactor observation loop exited with error', { reactorId: id, error });
+            if (this.isCurrent(attempt)) this._logger.error('Reactor observation failed while handling a delivery', { reactorId: id, error });
+        } finally {
+            attempt.stop();
         }
+        if (!this.isCurrent(attempt)) return;
+        this._observations.delete(id);
+        if (outcome === 'ended') this.scheduleReobserve(attempt.registration, subscription);
+    }
 
-        if (outcome === 'ended') this.scheduleReobserve(id, reactorType, eventTypes, validateInstance);
+    private isCurrent(attempt: ReactorObservation): boolean {
+        return this._observations.get(attempt.registration.id) === attempt;
     }
 
     private reconnectBackoffFor(id: string): ObservationReconnectBackoff {
@@ -239,180 +222,43 @@ export class Reactors implements IReactors {
         return backoff;
     }
 
-    /**
-     * Re-establishes an observation whose stream ended.
-     *
-     * The stream ending without an error is not proof that all is well — the kernel
-     * closes a cross-store (inbox) reactor's stream rather than tailing it forever,
-     * so a reactor that does not re-subscribe there silently stops observing until
-     * the whole client reconnects. Both endings are therefore retried. The delay keeps
-     * a stream that keeps ending from becoming a hot loop, and grows with jitter while
-     * it does (see {@link ObservationReconnectBackoff}).
-     */
-    private scheduleReobserve(id: string, reactorType: Constructor, eventTypes: ReactorEventTypeEntry[], validateInstance: (instance: object) => void): void {
-        // A disconnect clears the registration; the reconnect re-registers every
-        // reactor from scratch, so retrying here as well would double up.
-        if (!this._registered || this._disposed) {
-            return;
-        }
+    private canObserve(registration: ReactorRegistration): boolean {
+        return this._registered && !this._disposed && this._registrations.isCurrent(registration);
+    }
 
-        clearTimeout(this._reobserveTimers.get(id));
+    private scheduleReobserve(registration: ReactorRegistration, subscription: ReactorSubscription): void {
+        if (!this.canObserve(registration)) return;
+        const id = registration.id;
         const delayMs = this.reconnectBackoffFor(id).nextDelayMs();
         this._logger.debug('Waiting before re-establishing reactor observation', { reactorId: id, delayMs });
         const handle = runInBackgroundContext(() => setTimeout(() => {
             this._reobserveTimers.delete(id);
-            // A reconnect in the meantime has already opened a new stream; opening another would leave one untracked.
-            if (!this._registered || this._disposed || this._observations.has(id)) {
-                return;
-            }
-
-            this._logger.info('Re-establishing reactor observation', { reactorId: id });
-            this.startObservation(id, reactorType, eventTypes, validateInstance);
+            if (!this.canObserve(registration) || this._observations.has(id)) return;
+            this.startObservation(registration, subscription);
         }, delayMs));
-
         handle.unref?.();
         this._reobserveTimers.set(id, handle);
     }
 
-    private async observeReactor(
-        id: string,
-        reactorType: Constructor,
-        eventSequenceId: string,
-        eventTypes: ReactorEventTypeEntry[],
-        validateInstance: (instance: object) => void
-    ): Promise<ObservationStreamOutcome> {
-        const batchMethods = getReactorBatchMethods(reactorType, this._clientArtifacts.eventTypes);
-        const queue = new AsyncQueue<ReactorMessage>();
-        const controller = new AbortController();
-        this._queues.set(id, queue);
-        this._observations.set(id, controller);
-        const connectionId = this._lifecycle.connectionId;
-        const backoff = this.reconnectBackoffFor(id);
-        backoff.streamOpened();
-
-        queue.send({
-            Content: {
-                Value0: {
-                    ConnectionId: connectionId,
-                    EventStore: this._eventStoreName,
-                    Namespace: this._namespace,
-                    Reactor: {
-                        ReactorId: id,
-                        EventSequenceId: eventSequenceId,
-                        EventTypes: [...eventTypes, ...batchMethods.flatMap(method => [...method.eventTypes.values()])].map(et => ({
-                            EventType: { Id: et.id, Generation: et.generation, Tombstone: false },
-                            Key: EVENT_SOURCE_ID_KEY
-                        })),
-                        IsReplayable: !isOnceOnly(reactorType),
-                        IsNotReplayable: isOnceOnly(reactorType),
-                        StartAtTail: isStartAtTail(reactorType),
-                        GenerationDelivery: EventGenerationDelivery.Compatibility,
-                        Tags: getTagsFor(reactorType).map(t => t.value),
-                        Filters: {
-                            FilterTags: getFilterTagsFor(reactorType).map(t => t.value),
-                            EventSourceType: getEventSourceTypeFor(reactorType),
-                            EventStreamType: getEventStreamTypeFor(reactorType)
-                        }
-                    },
-                    PageDelivery: toPageDelivery(reactorType)
-                },
-                Value1: undefined
-            }
-        });
-
-        let iterator: AsyncIterator<EventsToObserve> | undefined;
-        let streamFinished = false;
-        try {
-            const reactorInstance = this._artifactActivator ? undefined : new (reactorType as new () => Record<string, Function>)();
-            if (reactorInstance) validateInstance(reactorInstance);
-            const services: ReactorServices | undefined = this._eventStore && {
-                eventStore: this._eventStore, readModels: this._eventStore.readModels, signal: controller.signal
-            };
-
-            const dispatcher = new ReactorPageDispatcher({
-                id, reactorType, eventSequenceId, eventStoreName: this._eventStoreName, namespace: this._namespace,
-                entries: eventTypes, batchMethods, validateInstance, reactorInstance, services, signal: controller.signal,
-                eventLog: this._eventLog, resultHandler: this._resultHandler, artifactActivator: this._artifactActivator,
-                logger: this._logger, connectionLogger: this._connection.logger
-            });
-
-            // Pull each message by hand so only a failure of the stream itself is classified: an error from a
-            // handler is the handler's failure, and must never make the whole client reconnect.
-            iterator = this._connection.reactors.observe(queue, { signal: controller.signal })[Symbol.asyncIterator]();
-            for (;;) {
-                let next: IteratorResult<EventsToObserve>;
-                try {
-                    next = await iterator.next();
-                } catch (streamError) {
-                    streamFinished = true;
-                    return this.streamFailed(id, queue, controller.signal, connectionId, streamError);
-                }
-
-                if (next.done) {
-                    streamFinished = true;
-                    break;
-                }
-
-                backoff.streamDelivered();
-                const result = await dispatcher.dispatch(next.value);
-                queue.send({ Content: { Value0: undefined, Value1: result } });
-            }
-
-            if (this._queues.get(id) !== queue) {
-                this._logger.debug('Reactor observation stream closed cleanly', { reactorId: id });
-                return 'superseded';
-            }
-
-            return 'ended';
-        } catch (handlerError) {
-            if (this._queues.get(id) !== queue) return 'superseded';
-            this._logger.error('Reactor observation failed while handling a delivery', { reactorId: id, error: handlerError });
-            return 'ended';
-        } finally {
-            if (!streamFinished) {
-                controller.abort();
-                void iterator?.return?.()?.catch(() => undefined);
-            }
-
-            // Only retire our own queue: a reconnect can already have replaced it,
-            // and deleting the new one would leave that observation untracked and
-            // leak a duplicate stream on every reconnect.
-            if (this._queues.get(id) === queue) {
-                this._queues.delete(id);
-                this._observations.delete(id);
-            }
-            queue.complete();
-        }
-    }
-
-    private streamFailed(id: string, queue: AsyncQueue<ReactorMessage>, signal: AbortSignal, connectionId: string, error: unknown): ObservationStreamOutcome {
-        // A late error from a stream that a disconnect, a dispose or a newer stream replaced says nothing about now.
-        if (this._queues.get(id) !== queue) {
-            this._logger.debug('Reactor observation stream closed cleanly', { reactorId: id });
-            return 'superseded';
-        }
-
+    private streamFailed(attempt: ReactorObservation, error: unknown): ObservationStreamOutcome {
+        if (!this.isCurrent(attempt)) return 'superseded';
         const kind = classifyStreamError(error);
-        if (kind === StreamErrorKind.Cancelled && signal.aborted) return 'stopped';
+        if (kind === StreamErrorKind.Cancelled && attempt.controller.signal.aborted) return 'stopped';
         if (kind === StreamErrorKind.SessionLost) {
-            // The kernel lost this client's registration. Opening the same stream with the same connection id
-            // can never work, so reconnect the whole client, which re-registers every reactor.
-            this._logger.warn('Reactor observation stream lost its session; reconnecting the client', { reactorId: id, error });
-            this._lifecycle.requestReconnect(connectionId, 'reactor-session-lost', error,
-                handlerError => this._logger.error('Reconnect request handler failed', { reactorId: id, error: handlerError }));
+            this._logger.warn('Reactor observation stream lost its session; reconnecting the client', { reactorId: attempt.registration.id, error });
+            this._lifecycle.requestReconnect(attempt.connectionId, 'reactor-session-lost', error,
+                handlerError => this._logger.error('Reconnect request handler failed', { reactorId: attempt.registration.id, error: handlerError }));
             return 'sessionLost';
         }
-
-        this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: id, error });
+        this._logger.error('Reactor observation stream ended unexpectedly', { reactorId: attempt.registration.id, error });
         return 'ended';
     }
 
     private disconnectAll(): void {
         for (const timer of this._reobserveTimers.values()) clearTimeout(timer);
         this._reobserveTimers.clear();
-        for (const controller of this._observations.values()) controller.abort();
-        for (const queue of this._queues.values()) queue.complete();
+        const attempts = [...this._observations.values()];
         this._observations.clear();
-        this._queues.clear();
+        for (const attempt of attempts) attempt.stop();
     }
 }
