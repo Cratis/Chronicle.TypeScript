@@ -4,30 +4,41 @@
 import type { ChildrenDefinition } from '@cratis/chronicle.contracts';
 import type { FromRecord, RemovedWithRecord } from '../../projections/declarative/ProjectionBuilderCore.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
+import { eventContractPath } from '../../projections/eventContractPath.js';
+import type { ProjectionEventSchemaResolver } from './ProjectionEventSchemaResolver.js';
 
-/** The measured intersection of root counting and independent typed children. */
-export class ProjectionCountChildrenCapabilities {
-    static supports(schema: JsonSchema, wire: Record<string, unknown>): boolean {
+/** The measured intersection of one root accumulator and independent typed children. */
+export class ProjectionArithmeticChildrenCapabilities {
+    static supports(schema: JsonSchema, wire: Record<string, unknown>, require: ProjectionEventSchemaResolver['require']): boolean {
         const from = wire.From as FromRecord[] ?? [];
         const children = Object.entries(wire.Children as Record<string, ChildrenDefinition> ?? {});
-        if (!this.singleCount(from) || children.length !== 1) return false;
+        if (from.length !== 1 || children.length !== 1) return false;
+        const mappings = Object.entries(from[0].Value.Properties ?? {});
+        if (mappings.length !== 1) return false;
+        const [accumulator, expression] = mappings[0];
+        if (!this.accumulator(schema.properties?.[accumulator], expression, from[0], require)) return false;
         const [collection, child] = children[0];
-        const count = Object.keys(from[0].Value.Properties)[0];
-        return this.rootShape(schema, count, collection)
+        return this.rootShape(schema, accumulator, collection)
             && this.childShape(schema.properties?.[collection], child)
             && this.independentEvents(from, wire, child) && this.noInteractions(wire);
     }
 
-    private static singleCount(from: FromRecord[]): boolean {
-        if (from.length !== 1) return false;
-        const expressions = Object.values(from[0].Value.Properties ?? {});
-        return expressions.length === 1 && expressions[0] === '$count';
+    private static accumulator(target: JsonSchema | undefined, expression: string, from: FromRecord, require: ProjectionEventSchemaResolver['require']): boolean {
+        if (expression === '$count') return this.countTarget(target);
+        const operand = /^\$add\(([A-Za-z_][A-Za-z0-9]*)\)$/.exec(expression)?.[1];
+        if (!operand || !this.unformattedNumber(target)) return false;
+        const event = require(from.Key, eventContractPath('From', from.Key));
+        return this.unformattedNumber(event.properties?.[operand]);
+    }
+
+    private static unformattedNumber(schema?: JsonSchema): boolean {
+        return schema?.type === 'number' && schema.format === undefined;
     }
 
     private static rootShape(schema: JsonSchema, count: string, collection: string): boolean {
         const properties = schema.properties ?? {};
         return this.exactRootMembers(properties, count, collection)
-            && this.plainString(properties.id) && this.countTarget(properties[count]);
+            && this.plainString(properties.id);
     }
 
     private static exactRootMembers(properties: Record<string, JsonSchema>, count: string, collection: string): boolean {

@@ -20,6 +20,7 @@ internal static class RequiredFixtures
         "joins-automap-disabled.json", "joins-root-key-collision.json", "joins-custom-key.json", "joins-initial-state.json", "joins-unrelated-root-update.json",
         "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json",
         "count-children-root-first.json", "count-children-child-first.json",
+        "add-children-lifecycle.json", "add-children-same-property.json", "add-children-leading-underscore.json",
         "arithmetic.json", "aggregate-only-automap.json", "rounded-integer-operand.json", "int32-overflow.json", "null-accumulator.json",
         "arithmetic-numeric-matrix.json", "arithmetic-initial-and-large.json", "arithmetic-integer-boundaries.json",
         "arithmetic-rounding.json", "arithmetic-automap.json", "arithmetic-string-operand.json",
