@@ -104,7 +104,7 @@ export function fieldKeyMeasurements(types: Types): void {
 
 function rejectUnmeasured(types: Types): void {
     for (const [type, values] of [
-        [types.text, ['\u{1f601}', '\u{10001}', '\ud83d', '\ude00', '\ude00\ud83d', '\ud83dx', 'λ', '\u0002']],
+        [types.text, ['\u{1f601}', '\u{10001}', '\ud83d', '\ude00', '\ude00\ud83d', '\ud83dx', 'μ', '\u0002']],
         [types.decimal, [1e-7, 1e21, 1.5]],
         [types.float, [1.23456789, 1e-7, 1e21, 0.000001, 1.5]]
     ] as const) {

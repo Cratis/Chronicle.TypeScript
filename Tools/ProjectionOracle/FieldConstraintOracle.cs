@@ -159,6 +159,8 @@ internal static class FieldConstraintOracle
             }
             var outcome = new JsonObject { ["fieldSchema"] = installedProperty.DeepClone(), ["steps"] = steps };
             if (ignoreCasing) outcome["casingObservations"] = CasingObservations(operations);
+            if (fixture["caseSensitiveTextMeasurements"]?.GetValue<bool>() == true)
+                outcome["textObservations"] = TextObservations(operations);
             outcomes.Add(outcome);
 
             async Task<JsonArray> History()
@@ -201,11 +203,43 @@ internal static class FieldConstraintOracle
         return observations;
     }
 
+    // Observe decoded text without casing or normalization; independently verify the kernel key bytes.
+    static JsonArray TextObservations(JsonArray operations)
+    {
+        var inputs = operations.SelectMany(operation => operation!["events"]!.AsArray())
+            .Select(entry => JsonNode.Parse(entry!["content"]!.GetValue<string>())!["key"]!.GetValue<string>())
+            .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal);
+        var observations = new JsonArray();
+        foreach (var input in inputs)
+        {
+            var direct = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
+            var kernel = KernelKeyExtensions.GetValue([new KernelPropertyValue("key", input)], ignoreCasing: false);
+            if (direct != kernel) throw new InvalidOperationException($"Kernel key builder disagrees with UTF-8 SHA-256 for {input}.");
+            observations.Add(new JsonObject
+            {
+                ["input"] = input, ["utf8Sha256"] = kernel,
+                ["scalars"] = new JsonArray(input.EnumerateRunes().Select(rune => (JsonNode?)JsonValue.Create(rune.Value)).ToArray())
+            });
+        }
+        return observations;
+    }
+
     static JsonNode CheckedSchemas(JsonObject fixture)
     {
         var measurements = fixture["fieldKeyMeasurements"]?.GetValue<bool>() == true;
         var casing = fixture["ignoreCasingMeasurements"]?.GetValue<bool>() == true;
-        var expectedSchemas = JsonNode.Parse(casing ? """{"OracleFieldText":{"type":"string"}}""" : measurements ? """
+        var text = fixture["caseSensitiveTextMeasurements"]?.GetValue<bool>() == true;
+        if (new[] { measurements, casing, text }.Count(enabled => enabled) > 1)
+            throw new InvalidOperationException("Field measurement modes are mutually exclusive.");
+        var expectedSchemas = ExpectedSchemas(measurements, casing || text);
+        if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
+            throw new InvalidOperationException(SchemaError(measurements, casing, text));
+        CheckedCases(fixture, measurements, casing, text);
+        return expectedSchemas;
+    }
+
+    static JsonNode ExpectedSchemas(bool measurements, bool plainText) =>
+        JsonNode.Parse(plainText ? """{"OracleFieldText":{"type":"string"}}""" : measurements ? """
             {"OracleFieldText":{"type":"string"},
              "OracleFieldDecimal":{"type":"number","format":"decimal"},
              "OracleFieldFloat":{"type":"number","format":"float"}}
@@ -215,23 +249,31 @@ internal static class FieldConstraintOracle
              "OracleFieldDouble":{"type":"number","format":"double"},
              "OracleFieldDateTime":{"type":"string","format":"date-time"}}
             """)!;
-        if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
-            throw new InvalidOperationException(casing ? "Casing fixture must declare only the plain string property schema." : measurements ? "Field fixture must declare the measured property schemas."
-                : "Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.");
-        if (casing)
+
+    static string SchemaError(bool measurements, bool casing, bool text)
+    {
+        if (casing) return "Casing fixture must declare only the plain string property schema.";
+        if (text) return "Text fixture must declare only the plain string property schema.";
+        return measurements ? "Field fixture must declare the measured property schemas."
+            : "Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.";
+    }
+
+    static void CheckedCases(JsonObject fixture, bool measurements, bool casing, bool text)
+    {
+        var names = fixture["fieldConstraintCases"]!.AsArray()
+            .Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}").ToArray();
+        if (casing || text)
         {
-            var names = fixture["fieldConstraintCases"]!.AsArray().Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}").ToArray();
-            if (measurements || names.Length == 0 || names.Any(name => name != "OracleFieldText/oracleGuard"))
-                throw new InvalidOperationException("Casing fixture requires only plain-text oracleGuard cases.");
-            return expectedSchemas;
+            if (names.Length == 0 || names.Any(name => name != "OracleFieldText/oracleGuard"))
+                throw new InvalidOperationException(casing ? "Casing fixture requires only plain-text oracleGuard cases."
+                    : "Text fixture requires only plain-text oracleGuard cases.");
+            return;
         }
         string[] expectedCases = measurements
             ? ["OracleFieldText/oracleGuard", "OracleFieldDecimal/oracleGuard", "OracleFieldFloat/oracleGuard"]
             : ["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard", "OracleFieldDouble/kernelSemantics"];
-        if (!fixture["fieldConstraintCases"]!.AsArray()
-            .Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}").SequenceEqual(expectedCases))
+        if (!names.SequenceEqual(expectedCases))
             throw new InvalidOperationException(measurements ? "Field oracle requires every declared key measurement case."
                 : "Field oracle requires both supported key cases and numeric/date guards.");
-        return expectedSchemas;
     }
 }
