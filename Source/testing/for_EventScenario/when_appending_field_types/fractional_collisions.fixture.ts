@@ -13,6 +13,7 @@ const should = (value: unknown): Assertion => (value as { should: Assertion }).s
 
 type Input = { source: string; type: 'number' | 'string'; value: number | string };
 type WireViolation = { SequenceNumber: string; ConstraintName: string; Message: string; Details: Record<string, string> };
+type RejectedDefinition = { name: string; eventTypes: Constructor[]; constraints: Constructor[]; eventType: Constructor<{ key: number }> };
 type Fixture = {
     fieldCombinationCases: Array<{ isolatedConstraintOperations: Array<{ mode: string; events: Input[] }> }>;
     expected: { cases: Array<{ name: string; outcomes: Array<{
@@ -21,7 +22,7 @@ type Fixture = {
 };
 
 export function fractionalCollisions(fixtures: { number: Constructor<{ key: number }>; text: Constructor<{ key: string }>;
-    constraint: Constructor; scoped: Constructor }): void {
+    constraint: Constructor; scoped: Constructor; rejectedDefinitions: RejectedDefinition[] }): void {
     const fixture = JSON.parse(readFileSync(new URL('../../fixtures/constraints-fractional-collisions.json', import.meta.url), 'utf8')) as Fixture;
     const operations = fixture.fieldCombinationCases[0].isolatedConstraintOperations;
     const outcomes = fixture.expected.cases[0].outcomes;
@@ -62,19 +63,29 @@ export function fractionalCollisions(fixtures: { number: Constructor<{ key: numb
         });
     });
 
-    describe('when a scoped number attempts to use the new unscoped fractional domain', () => {
-        let scenario: EventScenario;
-        let error: unknown;
-        beforeEach(async () => {
-            scenario = new EventScenario({ artifacts: { eventTypes, constraints: [fixtures.scoped] } });
-            const invalid = Object.assign(new fixtures.number(), { key: 1.5 });
-            error = await scenario.appendMany('A', [new fixtures.number(), invalid]).then(() => undefined, error => error);
+    for (const shape of [{ name: 'scoped', eventTypes, constraints: [fixtures.scoped], eventType: fixtures.number },
+        ...fixtures.rejectedDefinitions]) {
+        describe(`when a ${shape.name} number attempts to use the new unscoped fractional domain`, () => {
+            let scenario: EventScenario;
+            let error: unknown;
+            let history: EventScenario['appendedEvents'];
+            let results: EventScenario['results'];
+            let next: bigint;
+            beforeEach(async () => {
+                scenario = new EventScenario({ artifacts: { eventTypes: shape.eventTypes, constraints: shape.constraints } });
+                should((await scenario.append('Existing', new shape.eventType())).isSuccess).equal(true);
+                history = [...scenario.appendedEvents];
+                results = [...scenario.results];
+                next = (await scenario.eventSequence.getNextSequenceNumber()).value;
+                const invalid = Object.assign(new shape.eventType(), { key: 1.5 });
+                error = await scenario.appendMany('A', [new shape.eventType(), invalid]).then(() => undefined, error => error);
+            });
+            it('should reject without changing existing history, results or sequence', async () => {
+                should(error instanceof UnsupportedEventSequenceOperation).equal(true);
+                should(scenario.appendedEvents).deep.equal(history);
+                should(scenario.results).deep.equal(results);
+                should((await scenario.eventSequence.getNextSequenceNumber()).value).equal(next);
+            });
         });
-        it('should reject before recording history, results or advancing sequence', async () => {
-            should(error instanceof UnsupportedEventSequenceOperation).equal(true);
-            should(scenario.appendedEvents).have.lengthOf(0);
-            should(scenario.results).have.lengthOf(0);
-            should((await scenario.eventSequence.getNextSequenceNumber()).value).equal(0n);
-        });
-    });
+    }
 }

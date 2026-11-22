@@ -51,6 +51,149 @@
       "eventType": "OracleFieldNumber",
       "operations": [
         {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.30000000000000004}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.30000000000000004}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.0001}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.0001}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.00012345678901234567}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.00012345678901234567}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":-0.0001}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":-0.0001}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.00015}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.00015}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":123456789012345.67}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":123456789012345.67}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":999999999999999.9}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":999999999999999.9}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":-999999999999999.9}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":-999999999999999.9}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":12345.678901234567}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":12345.678901234567}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.3333333333333333}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.3333333333333333}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.6666666666666666}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.6666666666666666}"
+            }
+          ]
+        },
+        {
           "mode": "single",
           "events": [
             {
@@ -168,6 +311,32 @@
       "kind": "oracleGuard",
       "eventType": "OracleFieldNumber",
       "operations": [
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":1000000000000000.2}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":1000000000000000.2}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":4503599627370495.5}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":4503599627370495.5}"
+            }
+          ]
+        },
         {
           "mode": "single",
           "events": [
@@ -288,6 +457,149 @@
       "kind": "kernelSemantics",
       "eventType": "OracleFieldDouble",
       "operations": [
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.30000000000000004}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.30000000000000004}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.0001}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.0001}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.00012345678901234567}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.00012345678901234567}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":-0.0001}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":-0.0001}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.00015}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.00015}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":123456789012345.67}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":123456789012345.67}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":999999999999999.9}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":999999999999999.9}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":-999999999999999.9}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":-999999999999999.9}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":12345.678901234567}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":12345.678901234567}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.3333333333333333}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.3333333333333333}"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "BoundaryA",
+              "content": "{\"key\":0.6666666666666666}"
+            },
+            {
+              "source": "BoundaryB",
+              "content": "{\"key\":0.6666666666666666}"
+            }
+          ]
+        },
         {
           "mode": "single",
           "events": [
@@ -435,6 +747,215 @@
         "type": "number"
       },
       "steps": [
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.30000000000000004"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.0001"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.00012345678901234567"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "-0.0001"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.00015"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "123456789012345.67"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "999999999999999.9"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "-999999999999999.9"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "12345.678901234567"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.3333333333333333"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.6666666666666666"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
         {
           "success": true,
           "sequences": [
@@ -961,6 +1482,44 @@
       },
       "steps": [
         {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "1000000000000000.2"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldNumber",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldNumber' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "4503599627370495.5"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
           "success": true,
           "sequences": [
             "0"
@@ -1368,6 +1927,215 @@
         "format": "double"
       },
       "steps": [
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.30000000000000004"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.0001"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.00012345678901234567"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "-0.0001"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.00015"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "123456789012345.67"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "999999999999999.9"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "-999999999999999.9"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "12345.678901234567"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.3333333333333333"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
+        {
+          "success": false,
+          "sequences": [],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldDouble",
+              "SequenceNumber": "18446744073709551615",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldDouble' on member 'key' violated a unique constraint on sequence number 18446744073709551615",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "0.6666666666666666"
+              }
+            }
+          ],
+          "history": [],
+          "next": "0"
+        },
         {
           "success": true,
           "sequences": [

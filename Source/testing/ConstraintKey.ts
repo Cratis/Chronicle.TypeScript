@@ -20,8 +20,8 @@ function guidKey(value: unknown, name: string): string {
 
 function isDecimalFraction(value: number): boolean {
     // constraints-fractional-field-types.json: below 0.0001 .NET uses exponent strings, unlike JS.
-    // Retain the existing precision boundary and exclude exponent notation in either runtime.
-    return Number.isFinite(value) && Math.abs(value) >= 0.0001 && Math.abs(value) <= Number.MAX_SAFE_INTEGER;
+    // The rounding/boundary vectors match JS below 1e15; keep larger fractions conservatively rejected.
+    return Number.isFinite(value) && Math.abs(value) >= 0.0001 && Math.abs(value) < 1e15;
 }
 
 function numericKey(value: unknown, context: KeyContext): string {
@@ -30,7 +30,7 @@ function numericKey(value: unknown, context: KeyContext): string {
         if (context.fractions && isDecimalFraction(value)) return String(value);
     }
     const reason = context.fractions
-        ? 'Only safe-integer or fractional numeric keys with magnitude from 0.0001 to Number.MAX_SAFE_INTEGER are fixture-backed; exponential and unsafe values require a kernel-backed test.'
+        ? 'Only safe-integer or fractional numeric keys with magnitude at least 0.0001 and below 1e15 are fixture-backed; other values require a kernel-backed test.'
         : 'Only safe-integer numeric keys are fixture-backed; fractional, exponential and unsafe-integer comparisons require a kernel-backed test.';
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', context.name, reason);
 }
