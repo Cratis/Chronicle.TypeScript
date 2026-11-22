@@ -710,6 +710,88 @@
           ]
         }
       ]
+    },
+    {
+      "name": "fieldless-property-outbox",
+      "kind": "kernelSemantics",
+      "eventSchemas": {
+        "string": {
+          "eventTypeId": "OracleDomainText",
+          "properties": {
+            "key": "string"
+          }
+        },
+        "cleared": {
+          "eventTypeId": "OracleDomainCleared",
+          "properties": {}
+        }
+      },
+      "constraintDefinitions": [
+        {
+          "kind": "uniqueProperty",
+          "name": "OracleSequencedKey",
+          "events": [
+            {
+              "type": "string",
+              "properties": [
+                "key"
+              ]
+            }
+          ],
+          "ignoreCasing": false,
+          "removedWithEventTypeIds": [
+            "cleared"
+          ],
+          "message": "Taken: {PropertyValue}",
+          "eventSequences": [
+            "outbox"
+          ]
+        }
+      ],
+      "isolatedConstraintOperations": [
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "string",
+              "value": "alpha"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "A",
+              "type": "cleared"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "B",
+              "type": "string",
+              "value": "alpha"
+            }
+          ]
+        },
+        {
+          "mode": "batch",
+          "events": [
+            {
+              "source": "C",
+              "type": "cleared"
+            },
+            {
+              "source": "D",
+              "type": "cleared"
+            }
+          ]
+        }
+      ]
     }
   ],
   "expected": {
@@ -2611,6 +2693,184 @@
                     "label": "other source"
                   },
                   "hash": "fD2aQPpYpwVO1VaDn6orNmWBaQczw+Xu7cKL0CPppjY="
+                }
+              ],
+              "next": "5"
+            }
+          ]
+        }
+      },
+      {
+        "name": "fieldless-property-outbox",
+        "result": {
+          "outcomes": [
+            {
+              "success": true,
+              "sequences": [
+                "0"
+              ],
+              "violations": [],
+              "errors": [],
+              "wireViolations": [],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "0jkuklL97ONfTHzYF2f2p7TXz4OrJ6DMVuyH+uAggFc="
+                }
+              ],
+              "next": "1"
+            },
+            {
+              "success": true,
+              "sequences": [
+                "1"
+              ],
+              "violations": [],
+              "errors": [],
+              "wireViolations": [],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "0jkuklL97ONfTHzYF2f2p7TXz4OrJ6DMVuyH+uAggFc="
+                },
+                {
+                  "sequence": "1",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainCleared",
+                  "content": {},
+                  "hash": "GI/L6SSZYOTVEdaVbBUHL41WgnswRZVb8x/TfKPqINs="
+                }
+              ],
+              "next": "2"
+            },
+            {
+              "success": true,
+              "sequences": [
+                "2"
+              ],
+              "violations": [],
+              "errors": [],
+              "wireViolations": [],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "0jkuklL97ONfTHzYF2f2p7TXz4OrJ6DMVuyH+uAggFc="
+                },
+                {
+                  "sequence": "1",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainCleared",
+                  "content": {},
+                  "hash": "GI/L6SSZYOTVEdaVbBUHL41WgnswRZVb8x/TfKPqINs="
+                },
+                {
+                  "sequence": "2",
+                  "source": "B",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "kd9GdGpXXDNbOooYT7G7YFM3NiLdCtMzLb5HkyI4iCA="
+                }
+              ],
+              "next": "3"
+            },
+            {
+              "success": true,
+              "sequences": [
+                "3",
+                "4"
+              ],
+              "violations": [],
+              "errors": [],
+              "wireViolations": [],
+              "history": [
+                {
+                  "sequence": "0",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "0jkuklL97ONfTHzYF2f2p7TXz4OrJ6DMVuyH+uAggFc="
+                },
+                {
+                  "sequence": "1",
+                  "source": "A",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainCleared",
+                  "content": {},
+                  "hash": "GI/L6SSZYOTVEdaVbBUHL41WgnswRZVb8x/TfKPqINs="
+                },
+                {
+                  "sequence": "2",
+                  "source": "B",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainText",
+                  "content": {
+                    "key": "alpha"
+                  },
+                  "hash": "kd9GdGpXXDNbOooYT7G7YFM3NiLdCtMzLb5HkyI4iCA="
+                },
+                {
+                  "sequence": "3",
+                  "source": "C",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainCleared",
+                  "content": {},
+                  "hash": "ZwlpPJXoCJheRXq/T0VE1KRCAM9zrQXXbOT3bKi75zI="
+                },
+                {
+                  "sequence": "4",
+                  "source": "D",
+                  "sourceType": "Default",
+                  "streamType": "All",
+                  "streamId": "Default",
+                  "type": "OracleDomainCleared",
+                  "content": {},
+                  "hash": "RW8UFXdM99LbF094tRUP7svOaW7dvxpFC37K1t6pJqk="
                 }
               ],
               "next": "5"

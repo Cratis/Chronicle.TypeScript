@@ -45,7 +45,7 @@ export function eventSequenceScenarioBehaviors(
     it('should retain every event sequence case', () => {
         should(fixture.eventSequenceCases.map(test => test.name)).deep.equal([
             'property-event-log', 'property-event-log-and-outbox', 'property-outbox',
-            'cycle-event-log', 'cycle-outbox', 'once-event-log', 'once-outbox'
+            'cycle-event-log', 'cycle-outbox', 'once-event-log', 'once-outbox', 'fieldless-property-outbox'
         ]);
         should(fixture.expected.cases.map(test => test.name)).deep.equal(fixture.eventSequenceCases.map(test => test.name));
     });

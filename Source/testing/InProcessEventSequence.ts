@@ -104,12 +104,15 @@ export class InProcessEventSequence implements IEventSequence {
             if (getTagsFor(type).length) throw this.unsupported('artifacts.eventTypes.tags', type.name, 'Tagged events are not fixture-backed.');
             // Validate the complete schema, not only properties present on a particular event.
             const schema = metadata.schema;
+            if (schema.properties && Object.keys(schema.properties).length === 0 && !this._constraints?.isRemovalOnlyType(eventType.id.value)) {
+                throw this.unsupported('artifacts.eventTypes.schema', type.name,
+                    'Fieldless events must be removal-only types of a fixture-backed property constraint, including one scoped to another event sequence.');
+            }
             if (schema.type !== 'object' || schema.compliance?.length || schema.security?.length ||
                 schema.enum !== undefined || schema.items !== undefined || schema.format !== undefined ||
                 schema.additionalProperties !== false ||
                 schema.required?.length !== Object.keys(schema.properties ?? {}).length ||
-                !schema.properties || (Object.keys(schema.properties).length === 0 &&
-                    !this._constraints?.isRemovalOnlyType(eventType.id.value)) ||
+                !schema.properties ||
                 Object.entries(schema.properties).some(([key, property]) =>
                     !/^[a-z][a-zA-Z0-9]*$/.test(key) || !supportsEventField(property))) {
                 throw this.unsupported('artifacts.eventTypes.schema', type.name, 'Only unclassified string, boolean, numeric, Guid, date and object fields are supported.');

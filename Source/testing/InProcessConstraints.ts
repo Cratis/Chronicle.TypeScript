@@ -10,6 +10,7 @@ import type { ConstraintViolation } from '../eventSequences/ConstraintViolation.
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { eventTypeScopeKey, propertyScopeKey, scopeIndex } from './ConstraintScope.js';
+import { supportsPropertyOverlap } from './PropertyDefinitionSupport.js';
 
 export type WireConstraintViolation = ContractsConstraintViolation;
 
@@ -70,7 +71,9 @@ export class InProcessConstraints {
 
     constructor(private readonly _definitions: ReadonlyMap<string, ConstraintCapture>,
         private readonly _schemas: ReadonlyMap<string, JsonSchema> = new Map(),
-        private readonly _inapplicable: ReadonlySet<string> = new Set()) {
+        private readonly _inapplicable: ReadonlySet<string> = new Set(),
+        private readonly _ignoredRemovals: ReadonlySet<string> = new Set()) {
+        const provenOverlap = supportsPropertyOverlap(_definitions, _schemas);
         const coveredTypes = new Map<string, string>();
         const removalOwners = new Map<string, string>();
         for (const [name, capture] of _definitions) {
@@ -78,7 +81,7 @@ export class InProcessConstraints {
                 throw this.unsupported(name, 'A definition with both constraint kinds is not fixture-backed.');
             }
             const scoped = Object.values(capture.scope).some(Boolean);
-            if (scoped && _definitions.size !== 1) {
+            if (scoped && _definitions.size !== 1 && !provenOverlap) {
                 throw this.unsupported(name, 'Scoped constraints alongside other definitions are not fixture-backed.');
             }
             if (capture.uniqueConstraint) {
@@ -138,7 +141,7 @@ export class InProcessConstraints {
             const ids = capture.uniqueConstraint?.eventDefinitions.map(entry => entry.eventTypeId) ??
                 capture.uniqueEventType?.eventTypeIds ?? [capture.uniqueEventType!.eventTypeId];
             for (const id of ids) {
-                if (coveredTypes.has(id)) throw this.unsupported(name, 'Overlapping constraints are not fixture-backed.');
+                if (coveredTypes.has(id) && !provenOverlap) throw this.unsupported(name, 'Overlapping constraints are not fixture-backed.');
                 coveredTypes.set(id, name);
             }
         }
@@ -154,7 +157,7 @@ export class InProcessConstraints {
     }
 
     isRemovalOnlyType(eventTypeId: string): boolean {
-        return this._propertyRemovalTypes.has(eventTypeId) && !this._constrainedProperties.has(eventTypeId);
+        return (this._propertyRemovalTypes.has(eventTypeId) || this._ignoredRemovals.has(eventTypeId)) && !this._constrainedProperties.has(eventTypeId);
     }
 
     hasRemovalType(eventTypeId: string): boolean { return this._removalTypes.has(eventTypeId); }

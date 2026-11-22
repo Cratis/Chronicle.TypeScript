@@ -41,9 +41,13 @@ export function definitionRejectionBehaviors(types: {
 }): void {
     for (const [kind, Claim] of [['Guid', types.guid], ['numeric', types.number]] as const) {
         describe(`when configuring unmeasured ${kind} definition combinations`, () => {
-            it('should reject an unscoped fieldless remover without mutating claims or advancing a sequence', async () => {
-                const invalid = definition(builder => builder.unique(key => key.on(Claim, event => event.key).removedWith(types.fieldless)));
-                await rejectWithoutMutation([Claim, types.fieldless], Claim, invalid, 'fieldless removal events');
+            it('should release and reclaim an extended key with a fieldless remover', async () => {
+                const supported = definition(builder => builder.unique(key => key.on(Claim, event => event.key).removedWith(types.fieldless)));
+                const scenario = new EventScenario({ artifacts: { eventTypes: [Claim, types.fieldless], constraints: [supported] } });
+                (await scenario.append('A', new Claim())).isSuccess.should.be.true;
+                (await scenario.append('B', new Claim())).isSuccess.should.be.false;
+                (await scenario.append('A', new types.fieldless())).isSuccess.should.be.true;
+                (await scenario.append('B', new Claim())).sequenceNumber.value.should.equal(2n);
             });
             it('should reject an unscoped covered-and-removal event without mutating claims or advancing a sequence', async () => {
                 const invalid = definition(builder => builder.unique(key => key.on(Claim, event => event.key).removedWith(Claim)));
