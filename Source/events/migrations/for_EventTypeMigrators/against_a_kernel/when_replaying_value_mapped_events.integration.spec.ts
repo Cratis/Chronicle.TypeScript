@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { field } from '@cratis/fundamentals';
 import type { ChronicleClient } from '../../../../ChronicleClient.js';
+import type { IEventStore } from '../../../../IEventStore.js';
 import { eventType } from '../../../index.js';
 import { reactor } from '../../../../reactors/index.js';
 import { eventTypeMigration } from '../../eventTypeMigration.js';
@@ -86,6 +87,8 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
     const clients: ChronicleClient[] = [];
     const storeName = `ValueMaps${randomUUID().replaceAll('-', '')}`;
     const sourceId = randomUUID();
+    const migrations = { eventTypes: [LegacyStatusRecorded, StatusRecorded], eventTypeMigrations: [StatusValueMigration] };
+    let store: IEventStore;
 
     beforeAll(async () => {
         const writer = valueMappingClient({ eventTypes: [LegacyStatusRecorded] });
@@ -97,10 +100,14 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
         }
         const history = await oldStore.eventLog.getForEventSourceIdAndEventTypes(sourceId, [LegacyStatusRecorded]);
         expect(history.map(event => event.content)).toEqual(JSON.parse(JSON.stringify(sourceEvents)));
-        const migrations = { eventTypes: [LegacyStatusRecorded, StatusRecorded], eventTypeMigrations: [StatusValueMigration] };
         const migrator = valueMappingClient(migrations);
         clients.push(migrator);
-        const store = await migrator.getEventStore(storeName);
+        store = await migrator.getEventStore(storeName);
+    }, 60_000);
+
+    afterAll(() => clients.forEach(client => client.dispose()));
+
+    it('should replay value maps and nested transformations from stored history', async () => {
         // Wait for background migration before any observer replays the old history.
         await expect.poll(async () => {
             const events = await store.eventLog.getForEventSourceIdAndEventTypes(sourceId, [StatusRecorded]);
@@ -110,28 +117,15 @@ describe.skipIf(!connectionString && !process.env.CI)('when replaying value mapp
         clients.push(reader);
         await reader.getEventStore(storeName);
         await expect.poll(() => observed.length, { timeout: 20_000 }).toBe(sourceValues.length);
-    }, 60_000);
-
-    afterAll(() => clients.forEach(client => client.dispose()));
-
-    it('should map serialized numeric enums to strings', () => {
         expect(observed.map(event => event.statusName)).toEqual(['open', 'closed']);
-    });
-    it('should carry an unmapped number through a number-to-number property map', () => {
         expect(observed.map(event => event.unmappedCode)).toEqual([99, 99]);
-    });
-    it('should compare object values structurally, not by key order', () => {
         expect(observed.map(event => event.payload)).toEqual(sourceValues.map(() => ({ code: 'new' })));
-    });
-    it('should map boolean payload values', () => expect(observed.every(event => event.flag === true)).toBe(true));
-    it('should apply nested maps and default a newly introduced property', () => {
+        expect(observed.every(event => event.flag === true)).toBe(true);
         expect(observed.map(event => event.details.status)).toEqual(sourceValues.map(() => 'open'));
         expect(observed.map(event => event.details.note)).toEqual(sourceValues.map(() => 'default-note'));
-    });
-    it('should split, combine and rename nested properties without literal dotted payload keys', () => {
         for (const event of observed) {
             expect(event.details).toMatchObject({ firstName: 'Ada', lastName: 'Lovelace', displayName: 'Dr Ada Lovelace', alias: 'Ada Lovelace' });
             expect(Object.keys(event).some(key => key.includes('.'))).toBe(false);
         }
-    });
+    }, 60_000);
 });

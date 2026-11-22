@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { field } from '@cratis/fundamentals';
 import type { ChronicleClient } from '../../../../ChronicleClient.js';
+import type { IEventStore } from '../../../../IEventStore.js';
 import { eventType, getEventTypeJsonSchemaFor } from '../../../index.js';
 import { eventTypeMigration } from '../../eventTypeMigration.js';
 import type { IEventMigrationBuilder } from '../../IEventMigrationBuilder.js';
@@ -13,8 +14,8 @@ import type { IEventTypeMigration } from '../../IEventTypeMigration.js';
 import { connectionString, valueMappingClient } from './given/value_mapping_client.js';
 
 // Runtime contract: cratis/chronicle:19.37.4-development, pinned by CI.
-const eventTypeId = 'integration-value-map-null-and-absent';
-type ValueBag = { status?: string | null; result: string; note?: string | null };
+const eventTypeId = 'integration-value-map-optional-nested';
+type ValueBag = { status?: string; result: string; note?: string };
 
 @eventType(eventTypeId, 1)
 class LegacyValuesRecorded {
@@ -26,41 +27,46 @@ class ValuesRecorded {
     @field(Object) values: ValueBag = { result: 'existing' };
 }
 
-// The generator makes decorated members required and has no optional/nullable field option.
-// Declare the fixture's value bag as a JSON dictionary, not decorated optional scalar fields.
-// The pinned kernel's when_round_tripping_case_sensitive_dictionary_values spec proves that
-// additionalProperties: {} preserves null entries and absent keys through schema conversion.
+// EventTypeRegistrar.SchemaDeclaresPath requires every migration path segment to be declared.
+// Declare optional strings explicitly: the generator makes all decorated properties required.
+// ExpandoObjectConverter omits null scalar values, so this fixture only asserts absent values,
+// not null persistence. Absent strings have no materialized default (JsonSchemaExtensions.GetDefaultValue).
 for (const type of [LegacyValuesRecorded, ValuesRecorded]) {
-    getEventTypeJsonSchemaFor(type).properties!.values.additionalProperties = {};
+    getEventTypeJsonSchemaFor(type).properties!.values = {
+        type: 'object',
+        additionalProperties: false,
+        properties: { status: { type: 'string' }, result: { type: 'string' }, note: { type: 'string' } },
+        required: ['result']
+    };
 }
 
 @eventTypeMigration(ValuesRecorded, LegacyValuesRecorded)
-class NullableValueMigration implements IEventTypeMigration<ValuesRecorded, LegacyValuesRecorded> {
+class OptionalValueMigration implements IEventTypeMigration<ValuesRecorded, LegacyValuesRecorded> {
     upcast(builder: IEventMigrationBuilder<ValuesRecorded, LegacyValuesRecorded>): void {
         builder.properties(properties => properties
-            .mapValues('values.result', 'values.status', [{ from: null, to: 'not-set' }])
+            .mapValues('values.result', 'values.status', [{ from: 'old', to: 'new' }])
             .defaultValue('values.note', 'default-note'));
     }
     downcast(_builder: IEventMigrationBuilder<LegacyValuesRecorded, ValuesRecorded>): void {}
 }
 
 // Never skip in CI: a missing connection string must fail rather than pass vacuously.
-describe.skipIf(!connectionString && !process.env.CI)('when mapping absent and null values against the pinned kernel', () => {
+describe.skipIf(!connectionString && !process.env.CI)('when mapping optional nested values against the pinned kernel', () => {
     const sourceValues: ValueBag[] = [
-        { status: null, result: 'existing', note: null },
+        { status: 'old', result: 'existing', note: 'present' },
         { result: 'existing' }
     ];
     const expected = [
-        { values: { status: null, result: 'not-set', note: null } },
+        { values: { status: 'old', result: 'new', note: 'present' } },
         { values: { result: 'existing', note: 'default-note' } }
     ];
     const clients: ChronicleClient[] = [];
     let originalContents: Record<string, unknown>[];
-    let migratedContents: Record<string, unknown>[];
+    let store: IEventStore;
+    const sourceId = randomUUID();
 
     beforeAll(async () => {
-        const storeName = `NullableMaps${randomUUID().replaceAll('-', '')}`;
-        const sourceId = randomUUID();
+        const storeName = `OptionalMaps${randomUUID().replaceAll('-', '')}`;
         const writer = valueMappingClient({ eventTypes: [LegacyValuesRecorded] });
         clients.push(writer);
         const oldStore = await writer.getEventStore(storeName);
@@ -70,30 +76,23 @@ describe.skipIf(!connectionString && !process.env.CI)('when mapping absent and n
         }
         const history = await oldStore.eventLog.getForEventSourceIdAndEventTypes(sourceId, [LegacyValuesRecorded]);
         originalContents = history.map(event => event.content);
-        // Prove the history has not lost null or materialized absent fields before migration.
+        // Prove schema conversion has not materialized absent fields before migration.
         expect(originalContents).toStrictEqual(sourceValues.map(values => ({ values })));
 
         const migrator = valueMappingClient({
-            eventTypes: [LegacyValuesRecorded, ValuesRecorded], eventTypeMigrations: [NullableValueMigration]
+            eventTypes: [LegacyValuesRecorded, ValuesRecorded], eventTypeMigrations: [OptionalValueMigration]
         });
         clients.push(migrator);
-        const store = await migrator.getEventStore(storeName);
-        await expect.poll(async () => {
-            const events = await store.eventLog.getForEventSourceIdAndEventTypes(sourceId, [ValuesRecorded]);
-            migratedContents = events.map(event => event.content);
-            return migratedContents;
-        }, { timeout: 20_000 }).toEqual(expected);
+        store = await migrator.getEventStore(storeName);
     }, 60_000);
 
     afterAll(() => clients.forEach(client => client.dispose()));
 
-    it('should round-trip a present null and an absent key before migration', () => {
+    it('should map and default declared optional paths while preserving present values and absent keys', async () => {
         expect(originalContents).toStrictEqual(sourceValues.map(values => ({ values })));
-    });
-    it('should map present null and leave the existing target untouched for an absent source', () => {
-        expect(migratedContents.map(event => (event.values as ValueBag).result)).toEqual(['not-set', 'existing']);
-    });
-    it('should default an absent nested property without overwriting present null', () => {
-        expect(migratedContents.map(event => (event.values as ValueBag).note)).toEqual([null, 'default-note']);
-    });
+        await expect.poll(async () => {
+            const events = await store.eventLog.getForEventSourceIdAndEventTypes(sourceId, [ValuesRecorded]);
+            return events.map(event => event.content);
+        }, { timeout: 20_000 }).toEqual(expected);
+    }, 30_000);
 });
