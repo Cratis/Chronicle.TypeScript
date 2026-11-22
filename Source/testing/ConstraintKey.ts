@@ -7,8 +7,9 @@ import type { ConstraintCapture } from '../events/constraints/ConstraintBuilder.
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 import { isMeasuredNumericFormat, isMeasuredText, measuredNumericKey } from './MeasuredConstraintKeys.js';
+import { isMeasuredCasingShape, isMeasuredCasingText, measuredLowerInvariant } from './MeasuredCaseFolding.js';
 
-type KeyContext = { name: string; fractions: boolean; measured: boolean };
+type KeyContext = { name: string; fractions: boolean; measured: boolean; casing: boolean };
 type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
 
 // Only characters captured by the packaged oracle, not every valid event-content character.
@@ -54,14 +55,14 @@ function schemaNumericKey(value: unknown, context: KeyContext, format: string | 
 }
 
 function scalarKey(value: unknown, context: KeyContext): string {
-    if (typeof value === 'string' && isSupportedString(value, context.measured)) return value;
+    if (typeof value === 'string' && isSupportedString(value, context)) return value;
     if (typeof value === 'boolean') return value ? 'True' : 'False';
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', context.name,
         'Only fixture-backed scalar string and boolean keys are supported.');
 }
 
-function isSupportedString(value: string, measured: boolean): boolean {
-    return provenString.test(value) || measured && isMeasuredText(value);
+function isSupportedString(value: string, context: KeyContext): boolean {
+    return provenString.test(value) || context.measured && isMeasuredText(value) || context.casing && isMeasuredCasingText(value);
 }
 
 function supportsFractions(capture: ConstraintCapture): boolean {
@@ -79,8 +80,10 @@ function hasPropertyRemovals(capture: ConstraintCapture): boolean {
     return unique.removedWithEventTypeId !== undefined || !!unique.removedWithEventTypeIds?.length;
 }
 
-function normalizedKey(joined: string, ignoreCasing: boolean, name: string): string {
+function normalizedKey(joined: string, ignoreCasing: boolean, name: string, casing: boolean): string {
     if (!ignoreCasing) return joined;
+    // Scalars were admitted by isMeasuredCasingText, so the measured mapping is total for this text.
+    if (casing) return measuredLowerInvariant(joined);
     // The pinned kernel's ToLowerInvariant is proven only for the existing ASCII domain.
     if (!/^[\x20-\x7e]*$/.test(joined)) {
         throw new UnsupportedEventSequenceOperation('artifacts.constraints', name,
@@ -96,9 +99,10 @@ export function claimOf(name: string, capture: ConstraintCapture, event: Appende
     const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === event.eventType.id.value)?.properties;
     if (properties === undefined) return undefined;
     const fractions = options.isolated && supportsFractions(capture);
-    const context = { name, fractions, measured: fractions && unique.eventDefinitions.length === 1 };
+    const casing = options.isolated && isMeasuredCasingShape(unique, Object.values(capture.scope).some(Boolean), hasPropertyRemovals(capture));
+    const context = { name, fractions, measured: fractions && unique.eventDefinitions.length === 1, casing };
     const parts = properties.map(property => ({ property,
         raw: kernelKeyString(event.content[property], context, options.schema?.properties?.[property]) }));
     const joined = parts.map(part => part.raw).join('-');
-    return { key: createHash('sha256').update(normalizedKey(joined, unique.ignoreCasing, name)).digest('hex'), parts };
+    return { key: createHash('sha256').update(normalizedKey(joined, unique.ignoreCasing, name, casing)).digest('hex'), parts };
 }

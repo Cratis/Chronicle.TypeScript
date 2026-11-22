@@ -67,7 +67,7 @@ internal static class Program
                 ? []
                 : Directory.GetFiles(Path.Combine("Source", "testing", "projections", "fixtures"), "*.json");
             var eventFiles = Directory.GetFiles(Path.Combine("Source", "testing", "fixtures"), "*.json");
-            foreach (var required in new[] { "constraints.json", "constraints-isolation.json", "constraints-key-domain.json", "constraints-property-lifecycle.json", "constraints-property-covered-removal.json", "constraints-event-type-cycles.json", "constraints-event-type-siblings.json", "constraints-composite.json", "constraints-ignore-casing.json", "constraints-scopes.json", "constraints-field-types.json", "constraints-event-sequences.json", "constraints-field-combinations.json", "constraints-field-key-measurements.json" })
+            foreach (var required in new[] { "constraints.json", "constraints-isolation.json", "constraints-key-domain.json", "constraints-property-lifecycle.json", "constraints-property-covered-removal.json", "constraints-event-type-cycles.json", "constraints-event-type-siblings.json", "constraints-composite.json", "constraints-ignore-casing.json", "constraints-scopes.json", "constraints-field-types.json", "constraints-event-sequences.json", "constraints-field-combinations.json", "constraints-field-key-measurements.json", "constraints-ignore-casing-measurements.json" })
             {
                 if (!eventFiles.Contains(Path.Combine("Source", "testing", "fixtures", required)))
                     throw new InvalidOperationException($"Event oracle requires {required}; refusing a vacuous check.");
