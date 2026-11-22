@@ -15,8 +15,12 @@ type Claim = { key: string; parts: Array<{ property: string; raw: string }> };
 const provenString = /^[A-Za-z0-9 .@_:\-|{}$\u00e9]*$/;
 
 function guidKey(value: unknown, name: string): string {
-    if (typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value)) return value.toLowerCase();
+    if (isDashedGuid(value)) return value.toLowerCase();
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', name, 'Only dashed Guid keys are fixture-backed.');
+}
+
+function isDashedGuid(value: unknown): value is string {
+    return typeof value === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(value);
 }
 
 function isDecimalFraction(value: number): boolean {
@@ -26,14 +30,16 @@ function isDecimalFraction(value: number): boolean {
 }
 
 function numericKey(value: unknown, context: KeyContext): string {
-    if (typeof value === 'number') {
-        if (Number.isSafeInteger(value)) return String(value);
-        if (context.fractions && isDecimalFraction(value)) return String(value);
-    }
+    if (isSupportedNumber(value, context.fractions)) return String(value);
     const reason = context.fractions
         ? 'Only safe-integer or fractional numeric keys with magnitude at least 0.0001 and below 1e15 are fixture-backed; other values require a kernel-backed test.'
         : 'Only safe-integer numeric keys are fixture-backed; fractional, exponential and unsafe-integer comparisons require a kernel-backed test.';
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', context.name, reason);
+}
+
+function isSupportedNumber(value: unknown, fractions: boolean): value is number {
+    if (typeof value !== 'number') return false;
+    return Number.isSafeInteger(value) || fractions && isDecimalFraction(value);
 }
 
 function kernelKeyString(value: unknown, context: KeyContext, schema?: JsonSchema): string {
@@ -48,20 +54,29 @@ function schemaNumericKey(value: unknown, context: KeyContext, format: string | 
 }
 
 function scalarKey(value: unknown, context: KeyContext): string {
-    if (typeof value === 'string') {
-        const accepted = provenString.test(value) || context.measured && isMeasuredText(value);
-        if (accepted) return value;
-    }
+    if (typeof value === 'string' && isSupportedString(value, context.measured)) return value;
     if (typeof value === 'boolean') return value ? 'True' : 'False';
     throw new UnsupportedEventSequenceOperation('artifacts.constraints', context.name,
         'Only fixture-backed scalar string and boolean keys are supported.');
 }
 
+function isSupportedString(value: string, measured: boolean): boolean {
+    return provenString.test(value) || measured && isMeasuredText(value);
+}
+
 function supportsFractions(capture: ConstraintCapture): boolean {
     const unique = capture.uniqueConstraint!;
-    return !Object.values(capture.scope).some(Boolean) && !unique.ignoreCasing &&
-        unique.removedWithEventTypeId === undefined && !unique.removedWithEventTypeIds?.length &&
+    return isUnscopedCaseSensitive(capture) && !hasPropertyRemovals(capture) &&
         unique.eventDefinitions.every(entry => entry.properties.length === 1);
+}
+
+function isUnscopedCaseSensitive(capture: ConstraintCapture): boolean {
+    return !Object.values(capture.scope).some(Boolean) && !capture.uniqueConstraint!.ignoreCasing;
+}
+
+function hasPropertyRemovals(capture: ConstraintCapture): boolean {
+    const unique = capture.uniqueConstraint!;
+    return unique.removedWithEventTypeId !== undefined || !!unique.removedWithEventTypeIds?.length;
 }
 
 function normalizedKey(joined: string, ignoreCasing: boolean, name: string): string {

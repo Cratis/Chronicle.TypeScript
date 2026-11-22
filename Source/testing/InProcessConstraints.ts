@@ -8,13 +8,12 @@ import { resolveConstraintMessage } from '../events/constraints/Constraints.js';
 import type { ConstraintViolation } from '../eventSequences/ConstraintViolation.js';
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
-import { eventTypeScopeKey, propertyScopeKey, scopeIndex } from './ConstraintScope.js';
 import { supportsPropertyOverlap } from './PropertyDefinitionSupport.js';
-import { claimOf } from './ConstraintKey.js';
+import { PropertyConstraintClaims } from './PropertyConstraintClaims.js';
+import { EventTypeConstraintClaims } from './EventTypeConstraintClaims.js';
 
 export type WireConstraintViolation = ContractsConstraintViolation;
 
-const unavailable = '18446744073709551615';
 /** Narrow, fixture-backed constraint validation over serialized event snapshots. */
 export class InProcessConstraints {
     private readonly _constrainedProperties = new Map<string, Set<string>>();
@@ -124,95 +123,17 @@ export class InProcessConstraints {
     /** Validate against committed history and all earlier entries of this append, without changing state. */
     validate(history: readonly AppendedEvent[], incoming: readonly AppendedEvent[]): WireConstraintViolation[] {
         const violations: WireConstraintViolation[] = [];
-        // Durable ownership is one claim per source, not one entry per historical value.
-        // Rebuild it from committed history; batch claims below remain independent and are never released.
-        const owners = new Map<string, Map<string, Map<string, { key: string; sequence: string }>>>();
-        for (const [name, definition] of this._definitions) {
-            if (!definition.uniqueConstraint) continue;
-            const unique = definition.uniqueConstraint;
-            const removals = new Set([unique.removedWithEventTypeId, ...(unique.removedWithEventTypeIds ?? [])]);
-            for (const prior of history) {
-                const type = prior.eventType.id.value;
-                const source = prior.context.eventSourceId;
-                const claims = scopeIndex(owners, name, propertyScopeKey(definition.scope, prior.context),
-                    () => new Map<string, { key: string; sequence: string }>());
-                if (removals.has(type)) {
-                    claims.delete(source);
-                    continue;
-                }
-                const properties = unique.eventDefinitions.find(entry => entry.eventTypeId === type)?.properties;
-                if (properties === undefined) continue;
-                claims.set(source, { key: claimOf(name, definition, prior, { schema: this._schemas.get(type), isolated: this._definitions.size === 1 })!.key,
-                    sequence: prior.context.sequenceNumber.toString() });
-            }
-        }
-        const stagedKeys = new Map<string, Map<string, Map<string, string>>>();
-        const stagedCycles = new Map<string, Map<string, Map<string, 'open' | 'released'>>>();
+        const propertyClaims = new PropertyConstraintClaims(this._definitions, this._schemas, history);
+        const eventTypeClaims = new EventTypeConstraintClaims(this._definitions, history);
         for (const event of incoming) {
-            const type = event.eventType.id.value;
-            const source = event.context.eventSourceId;
             const violationCount = violations.length;
             for (const [name, definition] of this._definitions) {
-                const claim = definition.uniqueConstraint && claimOf(name, definition, event, { schema: this._schemas.get(type), isolated: this._definitions.size === 1 });
-                if (claim) {
-                    const key = claim.key;
-                    const scope = propertyScopeKey(definition.scope, event.context);
-                    const durableClaims = owners.get(name)?.get(scope);
-                    const existing = [...(durableClaims?.entries() ?? [])].find(([, claim]) => claim.key === key);
-                    const batchClaims = scopeIndex(stagedKeys, name, scope, () => new Map<string, string>());
-                    const batchOwner = batchClaims.get(key);
-                    if (existing && existing[0] !== source || batchOwner !== undefined && batchOwner !== source) {
-                        // One violation per declared property, in declared order, each with its own original value.
-                        const sequence = existing?.[1].sequence ?? unavailable;
-                        for (const { property, raw } of claim.parts) {
-                            violations.push({ EventTypeId: type, SequenceNumber: BigInt(sequence), ConstraintType: 1,
-                                ConstraintName: name,
-                                Message: `Event '${type}' on member '${property}' violated a unique constraint on sequence number ${sequence}`,
-                                Details: { PropertyName: property, PropertyValue: raw } });
-                        }
-                    } else {
-                        batchClaims.set(key, source);
-                    }
-                }
-                const uniqueType = definition.uniqueEventType;
-                if (uniqueType && (uniqueType.eventTypeIds ?? [uniqueType.eventTypeId]).includes(type)) {
-                    const covered = uniqueType.eventTypeIds ?? [uniqueType.eventTypeId];
-                    const removals = uniqueType.removedWithEventTypeIds ?? [];
-                    // Durable answer: the earliest covered event after the latest removal for this source.
-                    const scope = eventTypeScopeKey(definition.scope, event.context);
-                    let first: AppendedEvent | undefined;
-                    for (const prior of history) {
-                        if (prior.context.eventSourceId !== source || eventTypeScopeKey(definition.scope, prior.context) !== scope) continue;
-                        const priorType = prior.eventType.id.value;
-                        if (removals.includes(priorType)) first = undefined;
-                        else if (!first && covered.includes(priorType)) first = prior;
-                    }
-                    const cycles = scopeIndex(stagedCycles, name, scope, () => new Map<string, 'open' | 'released'>());
-                    const state = cycles.get(source);
-                    // A cycle state recorded earlier in this append overrides durable history.
-                    if (state === 'open' || state === undefined && first) {
-                        // Durable storage supplies the sequence even when a staged claim causes rejection.
-                        const sequence = first?.context.sequenceNumber.toString() ?? unavailable;
-                        violations.push({ EventTypeId: type, SequenceNumber: BigInt(sequence), ConstraintType: 2,
-                            ConstraintName: name,
-                            Message: `Event '${type}' violated a unique event type constraint on sequence number ${sequence}`,
-                            Details: {} });
-                    } else {
-                        cycles.set(source, 'open');
-                    }
-                }
+                violations.push(...propertyClaims.validate(name, definition, event));
+                violations.push(...eventTypeClaims.validate(name, definition, event));
             }
             // Kernel batch observers release a cycle only after the entire event validates.
             // A covered-and-removal event first attempts its claim, then releases it.
-            if (violations.length === violationCount) {
-                for (const [name, definition] of this._definitions) {
-                    if (definition.uniqueEventType?.removedWithEventTypeIds?.includes(type)) {
-                        const cycles = scopeIndex(stagedCycles, name, eventTypeScopeKey(definition.scope, event.context),
-                            () => new Map<string, 'open' | 'released'>());
-                        cycles.set(source, 'released');
-                    }
-                }
-            }
+            if (violations.length === violationCount) eventTypeClaims.release(event);
         }
         return violations;
     }
