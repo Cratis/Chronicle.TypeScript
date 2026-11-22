@@ -1,0 +1,588 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
+  },
+  "definitionSource": "Public fluent addChild string-value overload; captured by Source/testing/for_ReadModelScenario/when_adding_value_children/given/compiled_projection.ts and asserted by given/oracle_input.ts. Only FromEventProperty is emitted for the child event; ordinary root subscription remains unchanged.",
+  "compilerLastUpdated": {
+    "Value": "2074-06-12T23:46:57.000Z"
+  },
+  "normalization": "Oracle input only: omit definition LastUpdated registration metadata, retained above and asserted against unchanged client output; v19.30.0 ProjectionDefinitionComparer.cs:38,48-53 treats it as nonstructural metadata and projection evaluation does not read it (ProjectionFactory.cs, ProjectionPipeline.cs:121-131). Supply root NoAutoMapProperties [] only when the compiler omits it. Omit Tombstone only when exactly false on event-schema headers (kernel Concepts/Events/EventType.cs:12 defaults false); retain it on wire event keys and in client assertions. Every other field and all schema bodies compare exactly.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "value-children-fluent",
+    "ReadModel": "Model",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "ValueParentCreated",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {
+            "name": "name"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      },
+      {
+        "Key": {
+          "Id": "ValueAdded",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {},
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {
+      "values": {
+        "IdentifiedBy": "$eventSourceId",
+        "From": [],
+        "Join": [],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [],
+        "RemovedWithJoin": [],
+        "AutoMap": 0,
+        "Nested": {},
+        "FromEventProperty": {
+          "Event": {
+            "Id": "ValueAdded",
+            "Generation": 1,
+            "Tombstone": false
+          },
+          "PropertyExpression": "value"
+        }
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "ValueParentRemoved",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Model",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "values"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "eventSchemas": [
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Created",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "ValueParentCreated",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Added",
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "ValueAdded",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Removed",
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "ValueParentRemoved",
+        "Generation": 1
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueParentCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "value": "one"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "value": "two"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "value": "one"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueParentCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "value": "other"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueParentRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueParentCreated",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "7",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "recreated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "ValueAdded",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "8",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "value": "after"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "A": {
+          "values": [],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": []
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "values": [
+            "one"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": [
+            "one"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "values": [
+            "one",
+            "two"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": [
+            "one",
+            "two"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "values": [
+            "one",
+            "two",
+            "one"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": [
+            "one",
+            "two",
+            "one"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "values": [
+            "one",
+            "two",
+            "one"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        },
+        "B": {
+          "values": [],
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": [
+            "one",
+            "two",
+            "one"
+          ]
+        },
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "values": []
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "values": [
+            "one",
+            "two",
+            "one"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        },
+        "B": {
+          "values": [
+            "other"
+          ],
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first",
+          "values": [
+            "one",
+            "two",
+            "one"
+          ]
+        },
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "values": [
+            "other"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "B": {
+          "values": [
+            "other"
+          ],
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "values": [
+            "other"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "7",
+      "engineState": {
+        "A": {
+          "values": [],
+          "__initialized": true,
+          "id": "A",
+          "name": "recreated",
+          "__subject": "A"
+        },
+        "B": {
+          "values": [
+            "other"
+          ],
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "recreated",
+          "values": []
+        },
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "values": [
+            "other"
+          ]
+        }
+      }
+    },
+    {
+      "sequenceNumber": "8",
+      "engineState": {
+        "A": {
+          "values": [
+            "after"
+          ],
+          "__initialized": true,
+          "id": "A",
+          "name": "recreated",
+          "__subject": "A"
+        },
+        "B": {
+          "values": [
+            "other"
+          ],
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "recreated",
+          "values": [
+            "after"
+          ]
+        },
+        "B": {
+          "id": "B",
+          "name": "independent",
+          "values": [
+            "other"
+          ]
+        }
+      }
+    }
+  ]
+}
