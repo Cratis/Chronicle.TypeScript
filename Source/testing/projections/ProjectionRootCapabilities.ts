@@ -6,7 +6,7 @@ import type { FromRecord, RemovedWithRecord } from '../../projections/declarativ
 import { eventContractPath } from '../../projections/eventContractPath.js';
 import type { JsonSchema } from '../../schemas/JsonSchema.js';
 import { ProjectionArithmetic } from './ProjectionArithmetic.js';
-import { ProjectionCountChildrenCapabilities } from './ProjectionCountChildrenCapabilities.js';
+import { ProjectionArithmeticChildrenCapabilities } from './ProjectionArithmeticChildrenCapabilities.js';
 import type { ProjectionCapabilityReject } from './ProjectionCapabilityReject.js';
 import type { ProjectionEventSchemaResolver } from './ProjectionEventSchemaResolver.js';
 import { ProjectionMappingCapabilities } from './ProjectionMappingCapabilities.js';
@@ -25,7 +25,7 @@ export class ProjectionRootCapabilities {
         this.checkOverlaps();
         const accumulators = new Set(this.from.flatMap(entry => Object.entries(entry.Value.Properties ?? {})
             .filter(([, expression]) => ProjectionArithmetic.isArithmetic(expression)).map(([property]) => property)));
-        this.checkAccumulatorChildren(accumulators);
+        this.checkAccumulatorChildren(accumulators, resolver);
         for (const entry of this.from) this.checkClearedAccumulators(entry, accumulators);
         const mappings = new ProjectionMappingCapabilities(this.schema, this.reject, accumulators);
         for (const entry of [...this.from, ...this.removedWith]) this.subscription(entry, resolver, mappings);
@@ -39,10 +39,10 @@ export class ProjectionRootCapabilities {
         }
     }
 
-    private checkAccumulatorChildren(accumulators: Set<string>): void {
+    private checkAccumulatorChildren(accumulators: Set<string>, resolver: ProjectionEventSchemaResolver): void {
         if (!accumulators.size) return;
         if (!Object.keys(this.wire.Children as object ?? {}).length) return;
-        if (!ProjectionCountChildrenCapabilities.supports(this.schema, this.wire)) {
+        if (!ProjectionArithmeticChildrenCapabilities.supports(this.schema, this.wire, resolver.require)) {
             this.reject('Children', 'root arithmetic combined with children requires a kernel-backed test');
         }
     }

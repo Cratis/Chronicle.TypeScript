@@ -15,7 +15,7 @@ chai.should();
 type Candidate = { compiled: ReturnType<typeof compile>; definition: ProjectionDefinition; schema: JsonSchema };
 type Mutation = (candidate: Candidate) => void;
 const boundaries: Array<[string, Mutation]> = [
-    ...['$increment', '$decrement', '$add(total)', '$subtract(total)'].map(expression => [expression,
+    ...['$increment', '$decrement', '$subtract(total)'].map(expression => [expression,
         ({ definition }: Candidate) => { definition.From[0].Value.Properties.total = expression; }] as [string, Mutation]),
     ['int32 count', ({ schema }) => { schema.properties!.total = { type: 'integer', format: 'int32' }; }],
     ['float count', ({ schema }) => { schema.properties!.total = { type: 'number', format: 'float' }; }],
@@ -52,7 +52,7 @@ function candidate(): Candidate {
 const seeded: ScenarioEvent = {
     sourceId: 'A', content: { total: 9000 },
     context: {
-        eventSourceId: 'A', eventType: new EventType('Counted', 1), sequenceNumber: 0n,
+        eventSourceId: 'A', eventType: EventType.parse('Counted+1'), sequenceNumber: 0n,
         occurred: new Date('2025-01-01T00:00:00Z'), correlationId: '00000000-0000-0000-0000-000000000000',
         causation: [], tags: []
     }
@@ -72,6 +72,16 @@ for (const [name, mutate] of boundaries) {
         });
     }
 }
+
+describe('when adding the unformatted same-name operand in the previously rejected count boundary', () => {
+    it('should admit the fixture-backed addition rather than count or assign', async () => {
+        const value = candidate();
+        value.definition.From[0].Value.Properties.total = '$add(total)';
+        const processor = new ProjectionReadModelProcessor(Totals, value.compiled, value.definition);
+        await processor.process([seeded, { ...seeded, context: { ...seeded.context, sequenceNumber: 1n } }]);
+        processor.publicRead.A.total.should.equal(18000);
+    });
+});
 
 for (const format of [undefined, 'double']) {
     describe(`when admitting count with ${format ?? 'unformatted number'} and typed children`, () => {
