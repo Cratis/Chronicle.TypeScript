@@ -20,6 +20,8 @@ Inherited handlers work, but overriding a method carrying `@handles` requires an
 
 Return the new state. Pass the read-model type as the third argument of `@reducer(id, eventSequenceId, ReadModel)` so the client can register its schema.
 
+The reducers collection of the event store offers the same management calls as reactors: `getStateFor`, `replay`, `retryFailedPartition` and `getFailedPartitionsFor`, targeting the reducer's declared event sequence. See [managing a reactor](./reactors.md#managing-a-reactor) for what each result does and does not tell you.
+
 ### Pages and batch methods
 
 The client receives pages of event sources and reduces each event source on its own, with up to

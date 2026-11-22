@@ -5,7 +5,7 @@ description: Find the observer partitions Chronicle stopped retrying, inspect wh
 
 When an accepted append has not produced the expected state or effect, inspect `eventStore.failedPartitions` before sending the event again. Start with `getAllFailedPartitions()` to find the observer and partition involved, then read the attempts' messages, sequence numbers, and stack traces to diagnose the failure.
 
-Chronicle partitions the events an observer (a reactor, reducer, or projection) processes — typically by event source id — so many partitions can make progress independently. When a handler keeps failing for a partition, Chronicle stops retrying it and marks it failed, without blocking any other partition; events already applied to *other* partitions keep flowing. These queries inspect failures in the event store's current namespace. They do not retry the handler or establish that an append was rejected.
+Chronicle partitions the events an observer (a reactor, reducer, or projection) processes — typically by event source id — so many partitions can make progress independently. When a handler keeps failing for a partition, Chronicle stops retrying it and marks it failed, without blocking any other partition; events already applied to *other* partitions keep flowing. These queries inspect failures in the event store's current namespace. They do not retry the handler (use [`retryFailedPartition`](./reactors.md#managing-a-reactor) on the reactors or reducers collection) or establish that an append was rejected.
 
 ## Example
 

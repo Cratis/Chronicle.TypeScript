@@ -17,6 +17,11 @@ export { toObserverRemovalOutcome, toObserverRemovalResult } from './toObserverR
 export { FastForwardOutcome } from './FastForwardOutcome.js';
 export type { FastForwardResult } from './FastForwardResult.js';
 export { toFastForwardOutcome, toFastForwardResult } from './toFastForwardResult.js';
+export { PartitionRetryOutcome } from './PartitionRetryOutcome.js';
+export { toPartitionRetryOutcome } from './toPartitionRetryOutcome.js';
+export type { ObserverReplayResult } from './ObserverReplayResult.js';
+export { toObserverReplayResult } from './toObserverReplayResult.js';
+export type { ObserverState } from './ObserverState.js';
 export type { IObservers } from './IObservers.js';
 export { Observers } from './Observers.js';
 export type { ICanBeNotifiedWhenReplay } from './ICanBeNotifiedWhenReplay.js';

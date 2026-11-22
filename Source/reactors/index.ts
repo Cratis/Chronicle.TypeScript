@@ -10,6 +10,7 @@ export { startAtTail } from './startAtTail.js';
 export { replay } from './replay.js';
 export type { ReactorMetadata } from './reactor.js';
 export type { IReactors } from './IReactors.js';
+export type { ReactorState } from './ReactorState.js';
 export type { IReactorBuilder } from './IReactorBuilder.js';
 export type { IReactorDefinitionBuilder } from './IReactorDefinitionBuilder.js';
 export type { IReactorDefinition } from './IReactorDefinition.js';

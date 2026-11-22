@@ -3,7 +3,7 @@
 
 import { vi } from 'vitest';
 import type { Constructor } from '@cratis/fundamentals';
-import { EventsToObserve, ObserverInformation, type ReactorMessage } from '@cratis/chronicle.contracts';
+import { EventsToObserve, ObserverInformation, PartitionRecoveryOutcome, type ReactorMessage } from '@cratis/chronicle.contracts';
 import type { IClientArtifactsProvider } from '../../../artifacts/IClientArtifactsProvider.js';
 import type { ChronicleConnection } from '../../../connection/ChronicleConnection.js';
 import { ConnectionLifecycle } from '../../../connection/ConnectionLifecycle.js';
@@ -23,7 +23,10 @@ export class runtime_reactors {
     readonly types: Constructor[] = [Registered, Other];
     readonly artifacts: Constructor[] = [];
     readonly attempts: { incoming: AsyncQueue<EventsToObserve>; sent: ReactorMessage[]; signal: AbortSignal }[] = [];
-    readonly information = vi.fn(async () => ObserverInformation.fromPartial({ IsSubscribed: false }));
+    readonly information = vi.fn(async (_request?: object, _options?: object) => ObserverInformation.fromPartial({ IsSubscribed: false }));
+    readonly replay = vi.fn(async (_request: object) => ({ JobId: '' }));
+    readonly retryPartition = vi.fn(async (_request: object) => ({ Outcome: PartitionRecoveryOutcome.Started }));
+    readonly failedPartitions = vi.fn(async (_request: object) => ({ items: [] as object[] }));
     readonly observe = vi.fn((outgoing: AsyncIterable<ReactorMessage>, options: { signal: AbortSignal }) => {
         const attempt = { incoming: new AsyncQueue<EventsToObserve>(), sent: [] as ReactorMessage[], signal: options.signal };
         this.attempts.push(attempt);
@@ -43,7 +46,11 @@ export class runtime_reactors {
 
     constructor(skipKeepAlive = false) {
         this.reactors = new Reactors({ reactors: this.artifacts, eventTypes: this.types } as unknown as IClientArtifactsProvider,
-            { reactors: { observe: this.observe }, observers: { getObserverInformation: this.information } } as unknown as ChronicleConnection,
+            {
+                reactors: { observe: this.observe },
+                observers: { getObserverInformation: this.information, replay: this.replay, retryPartition: this.retryPartition },
+                failedPartitions: { getFailedPartitions: this.failedPartitions }
+            } as unknown as ChronicleConnection,
             'store', 'tenant', this.lifecycle, {} as IEventLog, undefined, undefined, undefined, skipKeepAlive,
             { baseDelayMs: 10, nextJitter: () => 0 });
     }

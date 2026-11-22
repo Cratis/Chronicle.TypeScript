@@ -6,6 +6,7 @@ export { ReducerId } from './ReducerId.js';
 export { reducer, getReducerMetadata, isReducer } from './reducer.js';
 export type { ReducerMetadata } from './reducer.js';
 export type { IReducers } from './IReducers.js';
+export type { ReducerState } from './ReducerState.js';
 export { Reducers } from './Reducers.js';
 export { observes, batchSize, EventBatch, EventAndContext, BatchContext, ObservationOrigin } from '../observation/index.js';
 export type { BatchSizeOptions } from '../observation/index.js';
