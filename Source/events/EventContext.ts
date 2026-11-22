@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { EventType } from './EventType.js';
+import type { EventTypeGeneration } from './EventTypeGeneration.js';
 import { CausationEntry } from './CausationEntry.js';
 import { Tag } from './Tag.js';
 import type { NamedTag } from './NamedTag.js';
@@ -56,7 +57,10 @@ export interface EventContext {
      */
     readonly compensationFor?: bigint;
 
-    /** The type of the event. */
+    /** The original appended generation, or undefined when the kernel does not know it (including older events). */
+    readonly appendedGeneration?: EventTypeGeneration;
+
+    /** The delivered type and generation of the event. */
     readonly eventType: EventType;
 
     /** The timestamp when the event occurred. */

@@ -5,6 +5,7 @@ import type { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { EventType } from '../events/EventType.js';
 import type { ReactorEvent } from './ReactorEvent.js';
 import type { ReactorId } from './ReactorId.js';
+import type { EventGenerationDelivery } from '../observation/EventGenerationDelivery.js';
 
 /** An immutable runtime reactor definition. Defining it does not start observation. */
 export interface IReactorDefinition {
@@ -12,6 +13,8 @@ export interface IReactorDefinition {
     readonly eventSequenceId: EventSequenceId;
     readonly eventTypes: readonly EventType[];
     readonly isReplayable: boolean;
+    /** The generation delivery policy. Defaults to Compatibility when omitted. */
+    readonly generationDelivery?: EventGenerationDelivery;
     /** Dispatches an event locally, awaiting callbacks before event-processing acknowledgment. */
     readonly handle: (event: ReactorEvent, signal: AbortSignal) => void | Promise<void>;
 }

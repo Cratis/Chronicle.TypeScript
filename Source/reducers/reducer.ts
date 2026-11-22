@@ -4,6 +4,7 @@
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
 import { ReducerId } from './ReducerId.js';
+import { EventGenerationDelivery } from '../observation/EventGenerationDelivery.js';
 import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 
 /** Metadata key used to store reducer information on a class. */
@@ -28,6 +29,9 @@ export interface ReducerMetadata {
      * on demand. Defaults to true.
      */
     readonly isActive: boolean;
+
+    /** The generation delivery policy. Omitted metadata uses Compatibility. */
+    readonly generationDelivery?: EventGenerationDelivery;
 }
 
 /**
@@ -43,6 +47,7 @@ export interface ReducerMetadata {
  * @param readModel - Optional read model type produced by the reducer.
  * @param isActive - Whether the reducer is active (automatically observes events). Defaults to true.
  * A passive reducer is registered but must be invoked on demand rather than observing automatically.
+ * @param generationDelivery - The generation delivery policy. Pinned requires kernel 19.41.0 or later.
  * @returns A class decorator.
  *
  * @example
@@ -55,11 +60,16 @@ export interface ReducerMetadata {
  * }
  * ```
  */
-export function reducer(id: string = '', eventSequenceId?: string, readModel?: Constructor, isActive: boolean = true): ClassDecorator {
+export function reducer(
+    id: string = '',
+    eventSequenceId?: string,
+    readModel?: Constructor,
+    ...[isActive = true, generationDelivery = EventGenerationDelivery.Compatibility]: [isActive?: boolean, generationDelivery?: EventGenerationDelivery]
+): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const reducerId = new ReducerId(id || constructor.name);
-        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId, readModel, isActive };
+        const metadata: ReducerMetadata = { id: reducerId, eventSequenceId, readModel, isActive, generationDelivery };
         Reflect.defineMetadata(REDUCER_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reducer,

@@ -132,13 +132,18 @@ jobs:
         working-directory: ./Source
         env:
           CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
-        run: yarn test:integration --exclude '**/when_starting_at_the_tail.integration.spec.ts' --exclude '**/when_subscribing_with_from_all_events.integration.spec.ts'
+        run: yarn test:integration --exclude '**/when_starting_at_the_tail.integration.spec.ts' --exclude '**/when_pinning_event_generations.integration.spec.ts' --exclude '**/when_subscribing_with_from_all_events.integration.spec.ts'
 
       - name: Start-at-tail specification
         working-directory: ./Source
-        env:
+        env: &chronicle-tail-connection
           CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35001
         run: yarn test:integration reactors/for_Reactors/against_a_kernel/when_starting_at_the_tail
+
+      - name: Pinned generation-delivery specification
+        working-directory: ./Source
+        env: *chronicle-tail-connection
+        run: yarn test:integration reactors/for_Reactors/against_a_kernel/when_pinning_event_generations.integration.spec.ts
 
       - name: Child all-event mapping specification
         working-directory: ./Source

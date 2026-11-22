@@ -4,6 +4,7 @@
 import 'reflect-metadata';
 import { Constructor } from '@cratis/fundamentals';
 import { ReactorId } from './ReactorId.js';
+import { EventGenerationDelivery } from '../observation/EventGenerationDelivery.js';
 import { DecoratorType, TypeDiscoverer } from '../types/index.js';
 
 /** Metadata key used to store reactor information on a class. */
@@ -18,6 +19,9 @@ export interface ReactorMetadata {
 
     /** The optional explicit event sequence identifier. */
     readonly eventSequenceId: string | undefined;
+
+    /** The generation delivery policy. Omitted metadata uses Compatibility. */
+    readonly generationDelivery?: EventGenerationDelivery;
 }
 
 /**
@@ -30,6 +34,7 @@ export interface ReactorMetadata {
  *
  * @param id - The unique identifier for the reactor. Defaults to the class name if omitted.
  * @param eventSequenceId - Optional explicit event sequence identifier.
+ * @param generationDelivery - The generation delivery policy. Pinned requires kernel 19.41.0 or later.
  * @returns A class decorator.
  *
  * @example
@@ -42,11 +47,11 @@ export interface ReactorMetadata {
  * }
  * ```
  */
-export function reactor(id: string = '', eventSequenceId?: string): ClassDecorator {
+export function reactor(id: string = '', eventSequenceId?: string, generationDelivery: EventGenerationDelivery = EventGenerationDelivery.Compatibility): ClassDecorator {
     return (target: object) => {
         const constructor = target as Function;
         const reactorId = new ReactorId(id || constructor.name);
-        const metadata: ReactorMetadata = { id: reactorId, eventSequenceId };
+        const metadata: ReactorMetadata = { id: reactorId, eventSequenceId, generationDelivery };
         Reflect.defineMetadata(REACTOR_METADATA_KEY, metadata, target);
         TypeDiscoverer.default.register(
             DecoratorType.Reactor,
