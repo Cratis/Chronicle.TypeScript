@@ -22,7 +22,7 @@ For a delegate receiving `{ content, context }` and an `AbortSignal`, use `regis
 
 `await store.reactors.unregister(id)` means **local stop**: the definition loses reconnect eligibility, its retry timer is canceled, and its stream signal is aborted. Unknown IDs are harmless. Discovered reactors intentionally removed this way are not rediscovered by that collection. A new explicit registration can reuse the ID. Unregister does not wait for a kernel unsubscribe acknowledgment or an already-running callback, undo side effects, or delete persisted observer metadata. Callbacks should stop cooperatively on cancellation; later events and stale results cannot enter a replacement stream. Retained definitions reopen once on reconnect; disposed collections cannot start new runtime observations.
 
-Compiled examples: [fluent registration](./client-snippets/reactors/registration/fluent.md), [delegate registration](./client-snippets/reactors/registration/delegate.md), and [readiness and removal](./client-snippets/reactors/registration/lifecycle.md).
+Compiled examples: [fluent registration](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/fluent.md), [delegate registration](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/delegate.md), and [readiness and removal](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/lifecycle.md).
 
 ### Choosing a handler name
 
