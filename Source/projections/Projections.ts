@@ -145,7 +145,7 @@ export class Projections implements IProjections {
         id?: ProjectionId | string): Promise<void> {
         await this.discover();
         const identifier = id === undefined ? getReadModelId(readModelType) : this.toProjectionIdValue(id);
-        if (!define && this._runtime.findForModel(readModelType) === identifier) {
+        if (!define && this._runtime.hasModelBoundFor(readModelType, identifier)) {
             return;
         }
         const discoveredModelBound = !define && !this._declarative.has(identifier) && this._modelBound.get(identifier) === readModelType;
@@ -156,7 +156,7 @@ export class Projections implements IProjections {
         assertUniqueReadModelIds([...rootReadModelTypes(this._clientArtifacts), ...inferred, ...this._runtime.readModelTypes, readModelType]);
         const compiled = new ProjectionDefinitionCompiler(this._clientArtifacts, this._defaultSinkTypeId, this._readModelNamingPolicy)
             .compileFor(readModelType, define, identifier);
-        await this._runtime.register(readModelType, compiled, definition => this.registerDefinitions(definition));
+        await this._runtime.register(readModelType, compiled, define ? 'fluent' : 'modelBound', definition => this.registerDefinitions(definition));
         if (discoveredModelBound) {
             this._modelBound.delete(identifier);
         }

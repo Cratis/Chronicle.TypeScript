@@ -4,9 +4,11 @@
 import type { Constructor } from '@cratis/fundamentals';
 import type { CompiledProjectionDefinitions } from './CompiledProjectionDefinitions.js';
 
+type RuntimeProjectionKind = 'modelBound' | 'fluent';
+
 /** Keeps acknowledged runtime definitions independent of artifact discovery. */
 export class RuntimeProjectionDefinitions {
-    private readonly _registered = new Map<string, { readModelType: Constructor; compiled: CompiledProjectionDefinitions }>();
+    private readonly _registered = new Map<string, { readModelType: Constructor; compiled: CompiledProjectionDefinitions; kind: RuntimeProjectionKind }>();
     private readonly _pending = new Map<string, Constructor>();
 
     /** Gets the retained contracts to send again after reconnecting. */
@@ -22,6 +24,12 @@ export class RuntimeProjectionDefinitions {
     /** Checks acknowledged definitions by identifier. */
     has(identifier: string): boolean {
         return this._registered.has(identifier);
+    }
+
+    /** Checks acknowledged model-bound registrations by constructor and identifier. */
+    hasModelBoundFor(readModelType: Constructor, identifier: string): boolean {
+        const registration = this._registered.get(identifier);
+        return registration?.readModelType === readModelType && registration.kind === 'modelBound';
     }
 
     /** Refuses discovery or registration that would overwrite a runtime definition. */
@@ -42,7 +50,7 @@ export class RuntimeProjectionDefinitions {
     }
 
     /** Reserves the identity until the kernel acknowledges it, retaining nothing on failure. */
-    async register(readModelType: Constructor, compiled: CompiledProjectionDefinitions,
+    async register(readModelType: Constructor, compiled: CompiledProjectionDefinitions, kind: RuntimeProjectionKind,
         send: (compiled: CompiledProjectionDefinitions) => Promise<void>): Promise<void> {
         const identifier = compiled.definitions[0].Identifier;
         this.assertAvailable(identifier);
@@ -52,7 +60,7 @@ export class RuntimeProjectionDefinitions {
         this._pending.set(identifier, readModelType);
         try {
             await send(compiled);
-            this._registered.set(identifier, { readModelType, compiled });
+            this._registered.set(identifier, { readModelType, compiled, kind });
         } finally {
             this._pending.delete(identifier);
         }

@@ -46,7 +46,8 @@ export interface IProjections {
      * @returns A promise resolving after the kernel acknowledges registration.
      * @remarks Uses the read model identifier as the projection identifier. An already-discovered model
      * with the same constructor is registered and retained at runtime; later discovery skips that model.
-     * Repeating this call for the same retained constructor and identifier is a no-op.
+     * Repeating this call for the same retained model-bound constructor and identifier is a no-op.
+     * Fluent registrations with the same constructor and identifier are still rejected as collisions.
      * Different declarations with the same identifier and in-flight registrations are still rejected.
      * Validation and retention otherwise follow registerFor(). A type without model-bound decorators is rejected.
      */
