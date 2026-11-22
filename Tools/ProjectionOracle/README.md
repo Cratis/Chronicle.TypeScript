@@ -3,6 +3,12 @@
 
 # Projection materialization oracle
 
+## Root content keys
+
+`routed-root-fluent`, `routed-root-legacy` and `routed-root-standard` capture public compiler output for one flat root `From` with `Key: "targetId"` and `name` assigned from `title`. The existing strict root reader passes that key unchanged to Chronicle 19.30.0. All 21 prefixes match engine state and public reads: one source updates two keyed rows, different sources update the same row, and source IDs can equal another row's key. Public scenarios also repeat each read. Capture comparison permits only omitted empty `NoAutoMapProperties`, explicit false event-header `Tombstone`, and nullish compiler `LastUpdated`; no expression or schema rewriting is used.
+
+Client admission is limited to plain-string model/event fields, a direct plain-string content key, enabled AutoMap without exclusions, direct content mappings, and no other root subscriptions, removals, joins, children, nested projections or initial values. Missing, null, empty and non-string runtime keys reject before replay rather than coercing or falling back to the source ID. Context, constant, composite, nested, formatted and non-string keys, parent routing and combinations outside this shape still require a kernel-backed test. Source/stream route selection is separate and remains at its existing boundary.
+
 ## Child event-property reader
 
 The strict reader accepts child `FromEventProperty` as `{ Event: { Id: string, Generation: uint32, Tombstone?: boolean }, PropertyExpression: string }`, matching Chronicle 19.30.0 (`dfa5ea4`), `Source/Kernel/Contracts/Projections/FromEventPropertyDefinition.cs` and `Source/Kernel/Contracts/Events/EventType.cs`. An omitted `Tombstone` retains the contract's false default. Missing/null required fields, wrong types or casing, and unknown members are rejected; expressions are passed unchanged to the packaged converter. Root event-property operations, nested children/projections, child `All` mappings and `RemovedWithJoin` remain unsupported. `--smoke` and `--check` execute the reader's accepted/rejected-input conformance specs, including converter round-trip assertions.

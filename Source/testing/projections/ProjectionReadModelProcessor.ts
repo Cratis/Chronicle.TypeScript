@@ -18,6 +18,7 @@ import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.j
 import { ProjectionJoins } from './ProjectionJoins.js';
 import type { ProjectionJoinRecord } from './ProjectionJoinRecord.js';
 import { ProjectionRootMappings } from './ProjectionRootMappings.js';
+import { ProjectionRootKeyCapabilities } from './ProjectionRootKeyCapabilities.js';
 import { ProjectionValueConverter } from './ProjectionValueConverter.js';
 import { ProjectionValueChildrenCapabilities } from './ProjectionValueChildrenCapabilities.js';
 import { ProjectionContextChildKeyCapabilities } from './ProjectionContextChildKeyCapabilities.js';
@@ -107,6 +108,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     async process(events: readonly ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
         this.validateContextChildHistory(events);
+        for (const event of events) this.rootKey(event);
         const states = new Map<string, ReadModelState<TReadModel>>();
         const engine: Record<string, Record<string, unknown>> = Object.create(null);
         // Replay-local event-sequence lookup. Removal deletes a root, never its joined source history.
@@ -155,7 +157,8 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
             this.processJoin(event, replay);
             return;
         }
-        const key = this.keyFor(event.sourceId);
+        const source = this.rootKey(event);
+        const key = this.keyFor(source);
         if (removed) {
             delete engine[key];
             states.set(event.sourceId, { instance: null, deleted: true });
@@ -171,7 +174,13 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
         // InMemorySink.ApplyChanges always restores lowercase id after applying mappings.
         state.id = ProjectionValueConverter.convert(key, this._schema.properties!.id);
         engine[key] = state;
-        states.set(event.sourceId, { instance: this.materialize(state), deleted: false });
+        states.set(source, { instance: this.materialize(state), deleted: false });
+    }
+
+    private rootKey(event: ScenarioEvent): string {
+        return ProjectionRootKeyCapabilities.key(this._definition, event, (path, reason) => {
+            throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), path, 'contract', reason);
+        });
     }
 
     private processJoin(event: ScenarioEvent, { engine, states, joinedEvents }: ProjectionReplay<TReadModel>): void {
@@ -346,7 +355,7 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
     private identityState(key: string, event: ScenarioEvent, initialized: boolean): Record<string, unknown> {
         const state: Record<string, unknown> = Object.create(null);
         state.id = ProjectionValueConverter.convert(key, this._schema.properties!.id);
-        state.__subject = event.context.subject ?? event.sourceId;
+        state.__subject = event.context.subject ?? this.rootKey(event);
         state.__initialized = initialized;
         return state;
     }

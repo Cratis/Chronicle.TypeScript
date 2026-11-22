@@ -1,0 +1,390 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
+  },
+  "definitionSource": "Public routed-root-fluent declaration captured before admission: one root From keyed by direct plain-string targetId, name mapped from title.",
+  "compilerLastUpdated": {
+    "Value": "1970-06-10T03:20:07.000Z"
+  },
+  "normalization": "Oracle input only: omit definition LastUpdated registration metadata, retained above and asserted against unchanged client output; v19.30.0 ProjectionDefinitionComparer.cs:38,48-53 treats it as nonstructural metadata and projection evaluation does not read it (ProjectionFactory.cs, ProjectionPipeline.cs:121-131). Supply root NoAutoMapProperties [] only when the compiler omits it. Omit Tombstone only when exactly false on event-schema headers (kernel Concepts/Events/EventType.cs:12 defaults false); retain it on wire event keys and in client assertions. Every other field and all schema bodies compare exactly.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "routed-root-fluent",
+    "ReadModel": "Model",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {
+            "name": "title"
+          },
+          "Key": "targetId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [],
+    "Children": {},
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "RemovedWith": [],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "Nested": {},
+    "NoAutoMapProperties": []
+  },
+  "readModel": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Model",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "eventSchemas": [
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Changed",
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetId",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "RoutedNameChanged",
+        "Generation": 1
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "A",
+        "title": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "B",
+        "title": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-2",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "A",
+        "title": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-2",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "B",
+        "title": "other-updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "B",
+        "title": "source-is-another-key"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "A",
+        "title": "key-is-another-source"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "RoutedNameChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "source-1",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "targetId": "A",
+        "title": "last"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "first",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "first"
+        },
+        "B": {
+          "id": "B",
+          "name": "independent"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "independent",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated"
+        },
+        "B": {
+          "id": "B",
+          "name": "independent"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "other-updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated"
+        },
+        "B": {
+          "id": "B",
+          "name": "other-updated"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "source-is-another-key",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "updated"
+        },
+        "B": {
+          "id": "B",
+          "name": "source-is-another-key"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "key-is-another-source",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "source-is-another-key",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "key-is-another-source"
+        },
+        "B": {
+          "id": "B",
+          "name": "source-is-another-key"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "A": {
+          "__initialized": true,
+          "id": "A",
+          "name": "last",
+          "__subject": "A"
+        },
+        "B": {
+          "__initialized": true,
+          "id": "B",
+          "name": "source-is-another-key",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "id": "A",
+          "name": "last"
+        },
+        "B": {
+          "id": "B",
+          "name": "source-is-another-key"
+        }
+      }
+    }
+  ]
+}

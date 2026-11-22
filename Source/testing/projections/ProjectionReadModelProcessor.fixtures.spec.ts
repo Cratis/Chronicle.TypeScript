@@ -97,6 +97,11 @@ describe('when replaying committed kernel semantics fixtures', () => {
         allFixtures.every(({ fixture }) => fixture.kind === 'kernelSemantics' || fixture.kind === 'oracleGuard').should.be.true;
     });
 
+    it('should include the fluent and both decorator modes for routed root keys', () => {
+        fixtures.map(({ name }) => name).filter(name => name.startsWith('routed-root-')).sort()
+            .should.deep.equal(['routed-root-fluent.json', 'routed-root-legacy.json', 'routed-root-standard.json']);
+    });
+
     for (const { name, fixture } of fixtures) {
         it(`should match each engine and public read snapshot for ${name}`, async () => {
             const { processor, events } = setup(fixture);
