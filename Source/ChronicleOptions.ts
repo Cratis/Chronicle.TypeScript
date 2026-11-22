@@ -172,7 +172,8 @@ export class ChronicleOptions {
 
     private static validConnectTimeout(connectTimeout: number): number {
         // AbortSignal.timeout accepts only whole milliseconds that fit an unsigned 32-bit integer.
-        if (!Number.isInteger(connectTimeout) || connectTimeout <= 0 || connectTimeout > ChronicleOptions.maxConnectTimeout) {
+        const isSupportedTimeout = Number.isInteger(connectTimeout) && connectTimeout > 0 && connectTimeout <= ChronicleOptions.maxConnectTimeout;
+        if (!isSupportedTimeout) {
             throw new TypeError(`connectTimeout must be a whole number of milliseconds between 1 and ${ChronicleOptions.maxConnectTimeout}.`);
         }
         return connectTimeout;
@@ -220,7 +221,8 @@ export class ChronicleOptions {
         const typescriptLoader = process.execArgv.some(arg => /(?:tsx|ts-node|--experimental-strip-types|--experimental-transform-types)/i.test(arg));
         // process.features.typescript is set on every Node.js 24+ process (type stripping), so it
         // does not mean the program was started from TypeScript; it is deliberately not consulted.
-        if (!typescriptEntry && !process.env.VITEST && !typescriptLoader) return [];
+        const discoversTypeScript = typescriptEntry || !!process.env.VITEST || typescriptLoader;
+        if (!discoversTypeScript) return [];
         return [
             '**/*.ts',
             '**/*.tsx',

@@ -18,7 +18,7 @@ for (const mode of modes) {
             await append_events(fixture.sequence, mode, [event]);
         });
         it('should preserve serialized content unchanged', () => {
-            transmitted(calls).contents.should.deep.equal([JSON.parse(JsonSerializer.serialize(event))]);
+            transmitted(calls).events[0].Content.should.equal(JsonSerializer.serialize(event));
         });
         it('should transmit exactly one request', () => calls.flatMap(call => call.mock.calls).should.have.lengthOf(1));
     });

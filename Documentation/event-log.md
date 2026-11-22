@@ -17,32 +17,38 @@ An accepted append does not mean a reactor, reducer, or projection has finished 
 Use `eventEnrichmentProviders` on `ChronicleOptions` to fill schema-defined content fields from client-side context after serialization, such as the namespace that recorded an event. Providers apply to production `append` and both `appendMany` overloads on every event store and event sequence created by that client, including the event log.
 
 ```typescript
-import {
-    ChronicleClient, ChronicleOptions, eventType,
-    type EventEnrichmentProvider
-} from '@cratis/chronicle';
+import { ChronicleClient, ChronicleOptions, eventType, type EventEnrichmentProvider } from '@cratis/chronicle';
+import { field } from '@cratis/fundamentals';
 
-@eventType('OrderPlaced')
-class OrderPlaced {
-    constructor(readonly orderNumber: string, readonly recordedInNamespace = '') {}
+@eventType('EnrichedOrderPlaced')
+class EnrichedOrderPlaced {
+    @field(String) readonly orderNumber: string;
+    @field(String) readonly recordedInNamespace: string;
+
+    constructor(orderNumber: string, recordedInNamespace = '') {
+        this.orderNumber = orderNumber;
+        this.recordedInNamespace = recordedInNamespace;
+    }
 }
 
-const recordNamespace: EventEnrichmentProvider = (content, context) => {
-    content.recordedInNamespace = context.namespace;
-};
+async function appendEnrichedOrder(): Promise<void> {
+    const recordNamespace: EventEnrichmentProvider = (content, context) => {
+        content.recordedInNamespace = context.namespace;
+    };
 
-const client = new ChronicleClient(ChronicleOptions.fromConnectionString(
-    'chronicle://localhost:35000',
-    { eventEnrichmentProviders: [recordNamespace] }
-));
-try {
-    const store = await client.getEventStore('Orders', 'sales');
-    const result = await store.eventLog.append('order-123', new OrderPlaced('123'));
-    if (!result.isSuccess) {
-        throw new Error('Order was not appended');
+    const client = new ChronicleClient(ChronicleOptions.fromConnectionString(
+        'chronicle://localhost:35000',
+        { eventEnrichmentProviders: [recordNamespace] }
+    ));
+    try {
+        const store = await client.getEventStore('Orders', 'sales');
+        const result = await store.eventLog.append('order-123', new EnrichedOrderPlaced('123'));
+        if (!result.isSuccess) {
+            throw new Error('Order was not appended');
+        }
+    } finally {
+        client.dispose();
     }
-} finally {
-    client.dispose();
 }
 ```
 
