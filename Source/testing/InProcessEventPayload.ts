@@ -11,6 +11,7 @@ import { Tag } from '../events/Tag.js';
 import { Identity } from '../identity/Identity.js';
 import type { JsonSchema } from '../schemas/JsonSchema.js';
 import { matchesEventField } from './EventFieldSchema.js';
+import { kernelEscapedJson } from './KernelTextHash.js';
 import { isMeasuredText } from './MeasuredConstraintKeys.js';
 import type { InProcessConstraints } from './InProcessConstraints.js';
 import type { InProcessEventSequenceEnvironment } from './InProcessEventSequenceEnvironment.js';
@@ -32,7 +33,7 @@ export class InProcessEventPayload {
 
     hash(typeId: string, source: string, content: Record<string, unknown>): string {
         const canonical = Object.fromEntries(Object.entries(content).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
-        return createHash('sha256').update(`${typeId}|${source}|${JSON.stringify(canonical)}`).digest('base64');
+        return createHash('sha256').update(`${typeId}|${source}|${kernelEscapedJson(JSON.stringify(canonical))}`).digest('base64');
     }
 
     snapshot(event: AppendedEvent): AppendedEvent {

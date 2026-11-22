@@ -32,7 +32,7 @@
       "name": "escaped-and-unicode-text",
       "kind": "oracleGuard",
       "eventType": "OracleFieldText",
-      "localSteps": 26,
+      "localSteps": 45,
       "operations": [
         {
           "mode": "single",
@@ -287,6 +287,159 @@
             {
               "source": "e2",
               "content": "{\"key\":\"\uD83D\uDE00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "a1",
+              "content": "{\"key\":\"\uD800\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "a2",
+              "content": "{\"key\":\"\uD800\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "f1",
+              "content": "{\"key\":\"\uD801\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "f2",
+              "content": "{\"key\":\"\uD801\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "g1",
+              "content": "{\"key\":\"\uD834\uDD1E\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "g2",
+              "content": "{\"key\":\"\uD834\uDD1E\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "h1",
+              "content": "{\"key\":\"\uD83D\uDE42\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "h2",
+              "content": "{\"key\":\"\uD83D\uDE42\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "i1",
+              "content": "{\"key\":\"\uD840\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "i2",
+              "content": "{\"key\":\"\uD840\uDC00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "m1",
+              "content": "{\"key\":\"\uDBFF\uDFFF\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "m2",
+              "content": "{\"key\":\"\uDBFF\uDFFF\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "x1",
+              "content": "{\"key\":\"a\\\"b\\\\c\\nd\\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "x2",
+              "content": "{\"key\":\"a\\\"b\\\\c\\nd\\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "r1",
+              "content": "{\"key\":\"\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "r2",
+              "content": "{\"key\":\"\uD83D\uDE00\uD83D\uDE42\"}"
+            }
+          ]
+        },
+        {
+          "mode": "single",
+          "events": [
+            {
+              "source": "r3",
+              "content": "{\"key\":\"\\\\uD83D\\\\uDE00\"}"
             }
           ]
         }
@@ -2757,6 +2910,2964 @@
             }
           ],
           "next": "15"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "15"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            }
+          ],
+          "next": "16"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "15",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 15",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uD800\uDC00"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            }
+          ],
+          "next": "16"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "16"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            }
+          ],
+          "next": "17"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "16",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 16",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uD801\uDC00"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            }
+          ],
+          "next": "17"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "17"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            }
+          ],
+          "next": "18"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "17",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 17",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uD834\uDD1E"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            }
+          ],
+          "next": "18"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "18"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            }
+          ],
+          "next": "19"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "18",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 18",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uD83D\uDE42"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            }
+          ],
+          "next": "19"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "19"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            }
+          ],
+          "next": "20"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "19",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 19",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uD840\uDC00"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            }
+          ],
+          "next": "20"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "20"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            }
+          ],
+          "next": "21"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "20",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 20",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "\uDBFF\uDFFF"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            }
+          ],
+          "next": "21"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "21"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            },
+            {
+              "source": "x1",
+              "sequence": "21",
+              "content": {
+                "key": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              },
+              "hash": "CKxcUlGS2EdUG7FL8rdCXF+eGxWuYPNL2ZarJCl2B5k="
+            }
+          ],
+          "next": "22"
+        },
+        {
+          "success": false,
+          "sequences": [
+            "18446744073709551615"
+          ],
+          "wireViolations": [
+            {
+              "EventTypeId": "OracleFieldText",
+              "SequenceNumber": "21",
+              "ConstraintType": 1,
+              "ConstraintName": "OracleFieldKey",
+              "Message": "Event 'OracleFieldText' on member 'key' violated a unique constraint on sequence number 21",
+              "Details": {
+                "PropertyName": "key",
+                "PropertyValue": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              }
+            }
+          ],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            },
+            {
+              "source": "x1",
+              "sequence": "21",
+              "content": {
+                "key": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              },
+              "hash": "CKxcUlGS2EdUG7FL8rdCXF+eGxWuYPNL2ZarJCl2B5k="
+            }
+          ],
+          "next": "22"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "22"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            },
+            {
+              "source": "x1",
+              "sequence": "21",
+              "content": {
+                "key": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              },
+              "hash": "CKxcUlGS2EdUG7FL8rdCXF+eGxWuYPNL2ZarJCl2B5k="
+            },
+            {
+              "source": "r1",
+              "sequence": "22",
+              "content": {
+                "key": "\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00"
+              },
+              "hash": "TU+z4Q3Dnh3iPmN4bJRM423zLqhq1kHTHgpGz4jpOPw="
+            }
+          ],
+          "next": "23"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "23"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            },
+            {
+              "source": "x1",
+              "sequence": "21",
+              "content": {
+                "key": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              },
+              "hash": "CKxcUlGS2EdUG7FL8rdCXF+eGxWuYPNL2ZarJCl2B5k="
+            },
+            {
+              "source": "r1",
+              "sequence": "22",
+              "content": {
+                "key": "\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00"
+              },
+              "hash": "TU+z4Q3Dnh3iPmN4bJRM423zLqhq1kHTHgpGz4jpOPw="
+            },
+            {
+              "source": "r2",
+              "sequence": "23",
+              "content": {
+                "key": "\uD83D\uDE00\uD83D\uDE42"
+              },
+              "hash": "DCx9mpi4ULnkGHsp8b1Qnexw2zEK7hOd+ipU1qbD8SY="
+            }
+          ],
+          "next": "24"
+        },
+        {
+          "success": true,
+          "sequences": [
+            "24"
+          ],
+          "wireViolations": [],
+          "history": [
+            {
+              "source": "q1",
+              "sequence": "0",
+              "content": {
+                "key": "a\"b"
+              },
+              "hash": "u3+uNkQL4KsOYft5/UlQvvTx9gTf4iQduSdQgH2FUBU="
+            },
+            {
+              "source": "s1",
+              "sequence": "1",
+              "content": {
+                "key": "a\\b"
+              },
+              "hash": "d3jiAKccufPTK3HX3lTIDSs0KfF4TJu59txNSWJkCro="
+            },
+            {
+              "source": "n1",
+              "sequence": "2",
+              "content": {
+                "key": "a\nb"
+              },
+              "hash": "bKUOJd7LOiwi7jmb0X63dv5yMzD2TBVpG23lJVz3sLg="
+            },
+            {
+              "source": "t1",
+              "sequence": "3",
+              "content": {
+                "key": "a\tb"
+              },
+              "hash": "fC4siAs9M03w1ywFcSB8x954Fc3H/2LK4mGnDjNKLKY="
+            },
+            {
+              "source": "c1",
+              "sequence": "4",
+              "content": {
+                "key": "a\u0001b"
+              },
+              "hash": "FH3ZawLbqv/BY10yuPpthwEjMqiOxPozoAsn52tPfwk="
+            },
+            {
+              "source": "z1",
+              "sequence": "5",
+              "content": {
+                "key": "a\u0000b"
+              },
+              "hash": "IsHdbsb92QOhDU0CzL5Sycp2NnLExFpe/R32UytNeQQ="
+            },
+            {
+              "source": "u1",
+              "sequence": "6",
+              "content": {
+                "key": "é"
+              },
+              "hash": "u1eBF/WlG/Ul0BKQqQ1BKv/QOrR1Q+KwX4MzFwku3oE="
+            },
+            {
+              "source": "u2",
+              "sequence": "7",
+              "content": {
+                "key": "é"
+              },
+              "hash": "QONxc69izCWSBuyky46kn7nH0CKgE9WjU6gpIKcvkEA="
+            },
+            {
+              "source": "j1",
+              "sequence": "8",
+              "content": {
+                "key": "東京"
+              },
+              "hash": "201wfusCAqTbGFQk+9wsqIwqHQpYhm6IoA0JL4389c8="
+            },
+            {
+              "source": "k1",
+              "sequence": "9",
+              "content": {
+                "key": "É"
+              },
+              "hash": "XrOYZlICf0yQzvPU3XqwrR+9ltwGt9oUgIXBzztVqSI="
+            },
+            {
+              "source": "l1",
+              "sequence": "10",
+              "content": {
+                "key": "øß"
+              },
+              "hash": "obRC5lfxh9miUhcQK/NfsKWhKYUqb1VdASF0RCV2uSM="
+            },
+            {
+              "source": "p1",
+              "sequence": "11",
+              "content": {
+                "key": "#&[]()<>!?,;=+%*'~^`"
+              },
+              "hash": "v8ygoVhL24MOCyjcNQUh/C+2awpsAD+88HpIJcPY8aE="
+            },
+            {
+              "source": "b2",
+              "sequence": "12",
+              "content": {
+                "key": "a\r\b\f/b"
+              },
+              "hash": "9t/DQ2sJAVSKRI2jP5T2xJ15iILNNQd57dkee+qOZVE="
+            },
+            {
+              "source": "ascii1",
+              "sequence": "13",
+              "content": {
+                "key": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+              },
+              "hash": "QZDIgM1uudQ6jSvVnWMswOYDvPkt/EInKrE99q9MUGM="
+            },
+            {
+              "source": "e1",
+              "sequence": "14",
+              "content": {
+                "key": "\uD83D\uDE00"
+              },
+              "hash": "AiAUdkrJsTulYiRDuU3M/o7BGwOnv6nOfzRCU4tvlwo="
+            },
+            {
+              "source": "a1",
+              "sequence": "15",
+              "content": {
+                "key": "\uD800\uDC00"
+              },
+              "hash": "l+b5/7iwGlL3xsdzZLF/gJv5/XQ7VGK2BAizvBuFsXc="
+            },
+            {
+              "source": "f1",
+              "sequence": "16",
+              "content": {
+                "key": "\uD801\uDC00"
+              },
+              "hash": "C/UcexAxQSrIP4mZfh6WwmiDFwd0adTb7n1iosputuc="
+            },
+            {
+              "source": "g1",
+              "sequence": "17",
+              "content": {
+                "key": "\uD834\uDD1E"
+              },
+              "hash": "ZeEZEUtzZe8jGXXzfcs2Cm63SGTLR4aueRK9qXtV7TI="
+            },
+            {
+              "source": "h1",
+              "sequence": "18",
+              "content": {
+                "key": "\uD83D\uDE42"
+              },
+              "hash": "4qGLMNwagJeQSNI85Gm8e/c8UZJdVoXehnaqG1rV3Z0="
+            },
+            {
+              "source": "i1",
+              "sequence": "19",
+              "content": {
+                "key": "\uD840\uDC00"
+              },
+              "hash": "eOwOi4+Lp8LagwVAFoUb3/eXbODCVwlUXboW/CK6xU0="
+            },
+            {
+              "source": "m1",
+              "sequence": "20",
+              "content": {
+                "key": "\uDBFF\uDFFF"
+              },
+              "hash": "wQ+UwEBaea3dCg6HrMwReAl/YA4YHjDu4HLEE9z9Bv8="
+            },
+            {
+              "source": "x1",
+              "sequence": "21",
+              "content": {
+                "key": "a\"b\\c\nd\u0000éX́\uD800\uDC00\uD801\uDC00\uD834\uDD1E\uD83D\uDE00\uD83D\uDE42\uD840\uDC00\uDBFF\uDFFF"
+              },
+              "hash": "CKxcUlGS2EdUG7FL8rdCXF+eGxWuYPNL2ZarJCl2B5k="
+            },
+            {
+              "source": "r1",
+              "sequence": "22",
+              "content": {
+                "key": "\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00"
+              },
+              "hash": "TU+z4Q3Dnh3iPmN4bJRM423zLqhq1kHTHgpGz4jpOPw="
+            },
+            {
+              "source": "r2",
+              "sequence": "23",
+              "content": {
+                "key": "\uD83D\uDE00\uD83D\uDE42"
+              },
+              "hash": "DCx9mpi4ULnkGHsp8b1Qnexw2zEK7hOd+ipU1qbD8SY="
+            },
+            {
+              "source": "r3",
+              "sequence": "24",
+              "content": {
+                "key": "\\uD83D\\uDE00"
+              },
+              "hash": "Z+X0Kx4njs5YygFSHiYhaFhr26ldJZPtompkIY+ytus="
+            }
+          ],
+          "next": "25"
         }
       ]
     },

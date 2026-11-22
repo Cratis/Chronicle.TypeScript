@@ -3,8 +3,9 @@
 
 import { UnsupportedEventSequenceOperation } from './UnsupportedEventSequenceOperation.js';
 
-// constraints-field-key-measurements.json: exact characters, not a general Unicode/control range.
-const measuredText = /^[\x00\x01\x08-\x0a\x0c\x0d\x20-\x7e\u00c9\u00df\u00e9\u00f8\u0301\u4eac\u6771]*$/;
+// constraints-field-key-measurements.json: exact characters and scalars, not a general Unicode/control range.
+// The unicode flag matches whole scalars, so lone or unmeasured surrogate combinations never match.
+const measuredText = /^[\x00\x01\x08-\x0a\x0c\x0d\x20-\x7e\u00c9\u00df\u00e9\u00f8\u0301\u4eac\u6771\u{10000}\u{10400}\u{1d11e}\u{1f600}\u{1f642}\u{20000}\u{10ffff}]*$/u;
 const numericValues: Readonly<Record<string, readonly number[]>> = {
     decimal: [0.1, -1.2345, 1.2345678901234567, 0.000001],
     float: [0.1, -1.2345, 1.2345679]
