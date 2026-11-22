@@ -132,29 +132,23 @@ export function applyPropertyMappings(prototype: object, property: string, fromB
         entry.Value.Properties[property] = `$subtract(${mapping.eventPropertyName ?? property})`;
     }
 
-    for (const mapping of getIncrementMetadata(prototype, property)) {
-        const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = '$increment';
-        if (mapping.constantKey) {
-            entry.Value.Key = constantValueExpression(mapping.constantKey);
-        }
-    }
+    applyUnitMappings(prototype, property, fromByEventType);
+}
 
-    for (const mapping of getDecrementMetadata(prototype, property)) {
-        const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = '$decrement';
-        if (mapping.constantKey) {
-            entry.Value.Key = constantValueExpression(mapping.constantKey);
+function applyUnitMappings(prototype: object, property: string, fromByEventType: Map<string, FromRecord>): void {
+    for (const [getMetadata, expression] of [
+        [getIncrementMetadata, '$increment'], [getDecrementMetadata, '$decrement'], [getCountMetadata, '$count']
+    ] as const) {
+        for (const mapping of getMetadata(prototype, property)) {
+            const entry = ensureFromEntry(fromByEventType, mapping.eventType);
+            entry.Value.Properties[property] = expression;
+            applyConstantKey(entry, mapping.constantKey);
         }
     }
+}
 
-    for (const mapping of getCountMetadata(prototype, property)) {
-        const entry = ensureFromEntry(fromByEventType, mapping.eventType);
-        entry.Value.Properties[property] = '$count';
-        if (mapping.constantKey) {
-            entry.Value.Key = constantValueExpression(mapping.constantKey);
-        }
-    }
+function applyConstantKey(entry: FromRecord, key?: string): void {
+    if (key) entry.Value.Key = constantValueExpression(key);
 }
 
 function createEmptyChildrenDefinition(parentType: Function, childType: Function | undefined): ChildrenDefinitionLike {
@@ -198,8 +192,9 @@ export function resolveChildElementType(type: Function, property: string): Funct
  */
 export function resolveNestedType(type: Function, property: string): Function | undefined {
     const field = Fields.getFieldsForType(type as Constructor).find(candidate => candidate.name === property);
-    if (field?.type && field.type !== Object && field.type !== Array) {
-        return field.type;
+    const fieldType = field?.type;
+    if (isConcreteType(fieldType)) {
+        return fieldType;
     }
 
     const designType = Reflect.getMetadata('design:type', type.prototype, property) as Function | undefined;
@@ -208,7 +203,11 @@ export function resolveNestedType(type: Function, property: string): Function | 
     }
 
     const inferred = TypeIntrospector.getMembers(type).get(property);
-    return inferred && inferred !== Object && inferred !== Array ? inferred : undefined;
+    return isConcreteType(inferred) ? inferred : undefined;
+}
+
+function isConcreteType(type?: Function): type is Function {
+    return !!type && type !== Object && type !== Array;
 }
 
 /**
@@ -388,6 +387,9 @@ export function buildChildrenEntry(
                 }
                 // Child property mappings may replace the creating key (for example, a constant-key count).
                 const key = entry.Value.Key;
+                // Composite keys already initialize the identifier in Changeset.AddChild and are not
+                // supported read-model property expressions. Preserve the key without adding a mapper.
+                if (key.startsWith('$composite(')) continue;
                 // When an event property is also the identifier, AutoMap can fill it directly.
                 if (key.toLowerCase() !== identifier.toLowerCase() && !(identifier in entry.Value.Properties)) {
                     entry.Value.Properties[identifier] = key === '$eventSourceId'
