@@ -1,0 +1,1145 @@
+{
+  "formatVersion": 1,
+  "kind": "kernelSemantics",
+  "license": "Copyright (c) Cratis. MIT; see LICENSE.",
+  "chronicle": {
+    "version": "19.30.0",
+    "commit": "dfa5ea4"
+  },
+  "tsContracts": {
+    "version": "19.31.10",
+    "descriptorSha256": "3c7f9abb4dd49c146371442a2ca500d721bcebd6a69a9e9f84c3400cb74d9555"
+  },
+  "definitionSource": "Public joins-children-legacy declaration in when_joining_with_children; one root join and one independent typed child collection with parent-first history.",
+  "compilerLastUpdated": {
+    "Value": "1998-05-21T11:50:14.000Z"
+  },
+  "normalization": "Oracle input only: omit definition LastUpdated registration metadata, retained above and asserted against unchanged client output; v19.30.0 ProjectionDefinitionComparer.cs:38,48-53 treats it as nonstructural metadata and projection evaluation does not read it (ProjectionFactory.cs, ProjectionPipeline.cs:121-131). Supply root NoAutoMapProperties [] only when the compiler omits it. Omit Tombstone only when exactly false on event-schema headers (kernel Concepts/Events/EventType.cs:12 defaults false); retain it on wire event keys and in client assertions. Every other field and all schema bodies compare exactly.",
+  "wireDefinition": {
+    "EventSequenceId": "event-log",
+    "Identifier": "Model",
+    "ReadModel": "Model",
+    "IsActive": true,
+    "IsRewindable": true,
+    "InitialModelState": "{}",
+    "From": [
+      {
+        "Key": {
+          "Id": "JoinChildrenPlaced",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Properties": {
+            "customerId": "customerId"
+          },
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "Join": [
+      {
+        "Key": {
+          "Id": "JoinChildrenNamed",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "On": "customerId",
+          "Properties": {
+            "customerName": "name"
+          },
+          "Key": "$eventSourceId"
+        }
+      }
+    ],
+    "Children": {
+      "items": {
+        "IdentifiedBy": "itemId",
+        "From": [
+          {
+            "Key": {
+              "Id": "JoinChildrenItemChanged",
+              "Generation": 1,
+              "Tombstone": false
+            },
+            "Value": {
+              "Key": "itemId",
+              "ParentKey": "$eventSourceId",
+              "Properties": {}
+            }
+          }
+        ],
+        "Join": [],
+        "Children": {},
+        "All": {
+          "Properties": {},
+          "IncludeChildren": false,
+          "AutoMap": 0
+        },
+        "RemovedWith": [
+          {
+            "Key": {
+              "Id": "JoinChildrenItemRemoved",
+              "Generation": 1,
+              "Tombstone": false
+            },
+            "Value": {
+              "Key": "itemId",
+              "ParentKey": ""
+            }
+          }
+        ],
+        "RemovedWithJoin": [],
+        "AutoMap": 2,
+        "Nested": {},
+        "NoAutoMapProperties": []
+      }
+    },
+    "FromEvery": [],
+    "All": {
+      "Properties": {},
+      "IncludeChildren": false,
+      "AutoMap": 0
+    },
+    "RemovedWith": [
+      {
+        "Key": {
+          "Id": "JoinChildrenRemoved",
+          "Generation": 1,
+          "Tombstone": false
+        },
+        "Value": {
+          "Key": "$eventSourceId",
+          "ParentKey": ""
+        }
+      }
+    ],
+    "RemovedWithJoin": [],
+    "Tags": [],
+    "AutoMap": 2,
+    "NoAutoMapProperties": [],
+    "Nested": {}
+  },
+  "readModel": {
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "Model",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Item",
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "itemId",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "customerId",
+        "customerName",
+        "items",
+        "id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "eventSchemas": [
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Placed",
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customerId"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "JoinChildrenPlaced",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Named",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "JoinChildrenNamed",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Removed",
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "JoinChildrenRemoved",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "ItemChanged",
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "JoinChildrenItemChanged",
+        "Generation": 1
+      }
+    },
+    {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "ItemRemoved",
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId"
+        ],
+        "additionalProperties": false
+      },
+      "eventType": {
+        "Id": "JoinChildrenItemRemoved",
+        "Generation": 1
+      }
+    }
+  ],
+  "events": [
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "0",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "prior"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "1",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "2",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "one",
+        "name": "first"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "3",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "B",
+        "sequenceNumber": "4",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "one",
+        "name": "independent"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "5",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "updated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "6",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "one",
+        "name": "changed"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "7",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "two",
+        "name": "second"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "8",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "one"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "9",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "unknown"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenRemoved",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "10",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {}
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "11",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "after removal"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenPlaced",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "12",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "customerId": "customer"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenItemChanged",
+          "Generation": 1
+        },
+        "eventSourceId": "A",
+        "sequenceNumber": "13",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "itemId": "new",
+        "name": "recreated"
+      }
+    },
+    {
+      "context": {
+        "eventType": {
+          "Id": "JoinChildrenNamed",
+          "Generation": 1
+        },
+        "eventSourceId": "customer",
+        "sequenceNumber": "14",
+        "occurred": "2025-01-01T00:00:00Z"
+      },
+      "content": {
+        "name": "latest"
+      }
+    }
+  ],
+  "expected": [
+    {
+      "sequenceNumber": "0",
+      "engineState": {},
+      "publicRead": {}
+    },
+    {
+      "sequenceNumber": "1",
+      "engineState": {
+        "A": {
+          "items": [],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [],
+          "id": "A"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "2",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "A"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "id": "A"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "3",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "4",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "prior",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "prior",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "5",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "first"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "6",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "changed"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "changed"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "7",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "changed"
+            },
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "changed"
+            },
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "8",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "9",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "two",
+              "name": "second"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "10",
+      "engineState": {
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "updated",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "customerId": "customer",
+          "customerName": "updated",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "11",
+      "engineState": {
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "after removal",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "B": {
+          "customerId": "customer",
+          "customerName": "after removal",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "12",
+      "engineState": {
+        "A": {
+          "items": [],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "after removal",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "after removal",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "after removal",
+          "items": [],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "after removal",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "13",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "new",
+              "name": "recreated"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "after removal",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "after removal",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "after removal",
+          "items": [
+            {
+              "itemId": "new",
+              "name": "recreated"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "after removal",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    },
+    {
+      "sequenceNumber": "14",
+      "engineState": {
+        "A": {
+          "items": [
+            {
+              "itemId": "new",
+              "name": "recreated"
+            }
+          ],
+          "__initialized": true,
+          "id": "A",
+          "customerId": "customer",
+          "customerName": "latest",
+          "__subject": "A"
+        },
+        "B": {
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "__initialized": true,
+          "id": "B",
+          "customerId": "customer",
+          "customerName": "latest",
+          "__subject": "B"
+        }
+      },
+      "publicRead": {
+        "A": {
+          "customerId": "customer",
+          "customerName": "latest",
+          "items": [
+            {
+              "itemId": "new",
+              "name": "recreated"
+            }
+          ],
+          "id": "A"
+        },
+        "B": {
+          "customerId": "customer",
+          "customerName": "latest",
+          "items": [
+            {
+              "itemId": "one",
+              "name": "independent"
+            }
+          ],
+          "id": "B"
+        }
+      }
+    }
+  ]
+}

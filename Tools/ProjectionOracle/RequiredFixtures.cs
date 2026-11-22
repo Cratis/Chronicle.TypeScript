@@ -17,6 +17,7 @@ internal static class RequiredFixtures
     static readonly string[] Projections =
     [
         "joins-lifecycle.json", "joins-missing-values.json", "joins-automap.json", "joins-automap-enabled.json",
+        "joins-children-fluent.json", "joins-children-legacy.json", "joins-children-standard.json",
         "joins-automap-disabled.json", "joins-root-key-collision.json", "joins-custom-key.json", "joins-initial-state.json", "joins-unrelated-root-update.json",
         "children-typed-items.json", "children-untyped-items.json", "children-identifier-equals-key.json",
         "context-child-keys-fluent.json", "context-child-keys-legacy.json", "context-child-keys-standard.json",
