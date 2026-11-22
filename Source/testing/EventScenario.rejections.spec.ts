@@ -195,8 +195,8 @@ describe('when the fixture-bounded event sequence encounters unproven operations
         });
     }
     for (const [name, value] of [
-        ['quote', '"'], ['backslash', '\\'], ['DEL', '\u007f'], ['uppercase accented letter', '\u00c9'],
-        ['decomposed accent', 'e\u0301'], ['Japanese', '日本'], ['tab', '\t']
+        ['DEL', '\u007f'], ['Japanese outside measured characters', '日本'], ['unmeasured control', '\u0002'],
+        ['emoji', '😀'], ['Greek outside measured letters', 'λ']
     ] as const) {
         it(`should reject ${name} outside the fixture-backed content domain`, async () => {
             const subject = scenario();

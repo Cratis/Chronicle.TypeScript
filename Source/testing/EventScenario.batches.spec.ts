@@ -278,7 +278,7 @@ describe('when appending batches against committed kernel fixtures', () => {
 
     it('should reject a malformed entry before committing any of the batch or recording results', async () => {
         const scenario = create();
-        await scenario.appendMany('A', [new OracleEventRecorded('valid', true), new OracleEventRecorded('"', true)]).then(
+        await scenario.appendMany('A', [new OracleEventRecorded('valid', true), new OracleEventRecorded('\u0002', true)]).then(
             () => { throw new Error('Unsupported content was accepted'); },
             error => { (error instanceof UnsupportedEventSequenceOperation).should.be.true; (error as Error).message.should.include('appendMany.content'); }
         );

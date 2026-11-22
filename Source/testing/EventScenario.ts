@@ -20,6 +20,7 @@ import { getRemovedConstraintNames } from '../events/constraints/removeConstrain
 import { getConstraintMetadata } from '../events/constraints/constraint.js';
 import { InProcessConstraints } from './InProcessConstraints.js';
 import { supportsPropertyOverlap } from './PropertyDefinitionSupport.js';
+import { supportsMeasuredKeySchema } from './MeasuredConstraintKeys.js';
 import type { EventScenarioOptions } from './EventScenarioOptions.js';
 import { EventScenarioGivenBuilder } from './EventScenarioGivenBuilder.js';
 import { EventScenarioWhenBuilder } from './EventScenarioWhenBuilder.js';
@@ -70,9 +71,7 @@ function validateKeySchemas(name: string, schemas: ReadonlyArray<{ type?: string
         fail('Scoped property keys must be schema-backed strings, booleans, Guids or unformatted numbers.');
     }
     for (const schema of schemas) {
-        const supported = schema?.type === 'boolean' && schema.format === undefined ||
-            schema?.type === 'string' && (schema.format === undefined || schema.format === 'guid') ||
-            schema?.type === 'number' && (schema.format === undefined || schema.format === 'double');
+        const supported = supportsMeasuredKeySchema(schema, options, schemas.length);
         if (!supported) fail(`Unique keys with schema ${schema?.type ?? 'missing'}/${schema?.format ?? 'unformatted'} are not fixture-backed; date, object and other numeric formats require a kernel-backed test.`);
     }
     if (schemas.some(isGuidOrNumericKey) &&

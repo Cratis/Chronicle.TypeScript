@@ -61,7 +61,7 @@ const fixtures = readdirSync(directory).filter(name => name.endsWith('.json') &&
         'constraints-event-type-siblings.json', 'constraints-composite.json',
         'constraints-ignore-casing.json', 'constraints-scopes.json', 'constraints-field-types.json', 'constraints-event-sequences.json',
         'constraints-field-combinations.json', 'constraints-removal-combinations.json', 'constraints-overlapping-definitions.json',
-        'constraints-fractional-field-types.json', 'constraints-fractional-collisions.json'].includes(name)).map(name => ({
+        'constraints-fractional-field-types.json', 'constraints-fractional-collisions.json', 'constraints-field-key-measurements.json'].includes(name)).map(name => ({
     name, fixture: JSON.parse(readFileSync(new URL(name, directory), 'utf8')) as Fixture
 }));
 const artifacts = { eventTypes: [OracleEventRecorded, AlternateRecorded, BoundaryRecorded], constraints: [] };
@@ -74,21 +74,19 @@ const makeScenario = (action?: Fixture['actions'][number]) => new EventScenario(
 async function unsupportedAsync(action: () => Promise<unknown>, operation: string): Promise<void> {
     await action().then(
         () => { throw new Error(`Expected ${operation} rejection`); },
-        error => {
-            (error instanceof UnsupportedEventSequenceOperation).should.be.true;
-            (error as Error).message.should.include(operation);
-            (error as Error).message.should.include('Use a kernel-backed test.');
-        }
+        error => unsupportedError(error, operation)
     );
 }
 
 function unsupported(action: () => unknown, operation: string): void {
     try { action(); throw new Error('Expected rejection'); }
-    catch (error) {
-        (error instanceof UnsupportedEventSequenceOperation).should.be.true;
-        (error as Error).message.should.include(operation);
-        (error as Error).message.should.include('Use a kernel-backed test.');
-    }
+    catch (error) { unsupportedError(error, operation); }
+}
+
+function unsupportedError(error: unknown, operation: string): void {
+    (error instanceof UnsupportedEventSequenceOperation).should.be.true;
+    (error as Error).message.should.include(operation);
+    (error as Error).message.should.include('Use a kernel-backed test.');
 }
 
 describe('when appending against committed kernel event fixtures', () => {
