@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import type { MigrationPropertyPath } from './MigrationPropertyPath.js';
+import type { ValueMapping } from './ValueMapping.js';
+
 /**
  * Defines a builder for event migration property transformations.
  */
@@ -14,8 +17,8 @@ export interface IEventMigrationPropertyBuilder<TTarget, TSource> {
      * @returns The builder for continued configuration.
      */
     split(
-        targetProperty: keyof TTarget & string,
-        sourceProperty: keyof TSource & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>,
         separator: string,
         part: number
     ): IEventMigrationPropertyBuilder<TTarget, TSource>;
@@ -28,9 +31,9 @@ export interface IEventMigrationPropertyBuilder<TTarget, TSource> {
      * @returns The builder for continued configuration.
      */
     combine(
-        targetProperty: keyof TTarget & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
         separator: string,
-        ...sourceProperties: (keyof TSource & string)[]
+        ...sourceProperties: MigrationPropertyPath<TSource>[]
     ): IEventMigrationPropertyBuilder<TTarget, TSource>;
 
     /**
@@ -40,8 +43,8 @@ export interface IEventMigrationPropertyBuilder<TTarget, TSource> {
      * @returns The builder for continued configuration.
      */
     renamedFrom(
-        targetProperty: keyof TTarget & string,
-        sourceProperty: keyof TSource & string
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>
     ): IEventMigrationPropertyBuilder<TTarget, TSource>;
 
     /**
@@ -51,7 +54,23 @@ export interface IEventMigrationPropertyBuilder<TTarget, TSource> {
      * @returns The builder for continued configuration.
      */
     defaultValue(
-        targetProperty: keyof TTarget & string,
+        targetProperty: MigrationPropertyPath<TTarget>,
         value: unknown
+    ): IEventMigrationPropertyBuilder<TTarget, TSource>;
+
+    /**
+     * Map payload values using ordered pairs. Unmapped values pass through unchanged;
+     * an absent source produces no result. The first matching pair wins. In kernel 19.37.4,
+     * object values must use the same property order as the source payload.
+     * Directions are independent: no inverse is inferred.
+     * @param targetProperty - Root or nested target payload property.
+     * @param sourceProperty - Root or nested source payload property.
+     * @param mappings - JSON-serializable values (including null, numbers and objects), not enum names.
+     * @returns The builder for continued configuration.
+     */
+    mapValues(
+        targetProperty: MigrationPropertyPath<TTarget>,
+        sourceProperty: MigrationPropertyPath<TSource>,
+        mappings: readonly ValueMapping[]
     ): IEventMigrationPropertyBuilder<TTarget, TSource>;
 }
