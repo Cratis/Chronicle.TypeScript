@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+export type { MigrationPropertyPath } from './MigrationPropertyPath.js';
+export type { ValueMapping } from './ValueMapping.js';
 export type { IEventMigrationBuilder } from './IEventMigrationBuilder.js';
 export type { IEventMigrationPropertyBuilder } from './IEventMigrationPropertyBuilder.js';
 export { EventMigrationBuilder } from './EventMigrationBuilder.js';
