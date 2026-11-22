@@ -24,6 +24,12 @@ For a delegate receiving `{ content, context }` and an `AbortSignal`, use `regis
 
 Compiled examples: [fluent registration](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/fluent.md), [delegate registration](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/delegate.md), and [readiness and removal](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/registration/lifecycle.md).
 
+### Managing a reactor
+
+The reactors collection of the event store can report and act on a reactor through `getStateFor`, `replay`, `retryFailedPartition` and `getFailedPartitionsFor`. Pass the reactor id or its decorated class; each call targets the store and namespace of the collection and the event sequence the reactor declares or was registered for, or the event log when the reactor is not known to this client. `replay` returns `started: false` when Chronicle did not start a job, for example for an unknown, once-only or non-replayable reactor, and `retryFailedPartition` returns the outcome Chronicle reports: `Started`, `PartitionNotFound`, `ObserverQuarantined`, `PartitionQuarantined`, or `Unknown` for a value this client does not recognize. A started replay job or a `Started` retry means Chronicle accepted the work, not that it finished, so observe progress with `getStateFor` and `getFailedPartitionsFor`. A rejection from Chronicle rejects the returned promise, and an undecorated class is rejected before any request is sent.
+
+Compiled examples: [state and replay](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reactors/managing/state-and-replay.md) and [retrying a failed partition](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/troubleshooting/retry-reactor-partition.md).
+
 ### Choosing a handler name
 
 By default, Chronicle calls the method whose name is the camelCase name of a registered event class: `authorRegistered(event)` handles `AuthorRegistered`. That convention saves a method decorator when the name already says which event it handles. It still depends on the event being in the store's discovered catalog; TypeScript's parameter annotation alone cannot identify it at runtime.
