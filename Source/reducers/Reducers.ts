@@ -18,6 +18,9 @@ import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import { notifyReplayLifecycle } from '../observation/notifyReplayLifecycle.js';
 import { IReducers } from './IReducers.js';
 import { getReducerMetadata } from './reducer.js';
+import type { ReducerId } from './ReducerId.js';
+import type { ReducerState } from './ReducerState.js';
+import { resolveReducerTarget } from './resolveReducerTarget.js';
 import { ReducerEventDispatcher } from './ReducerEventDispatcher.js';
 import { ReducerObservation } from './ReducerObservation.js';
 import { ReducerObservationSession } from './ReducerObservationSession.js';
@@ -45,6 +48,10 @@ import { EventBatch } from '../observation/batches/EventBatch.js';
 import { isPage, partitionsOfOperation } from '../observation/batches/PageMessages.js';
 import { PartitionFailedInBatch } from '../observation/batches/PartitionFailedInBatch.js';
 import { runConcurrently } from '../observation/batches/runConcurrently.js';
+import { ObserverOperations } from '../observation/ObserverOperations.js';
+import type { FailedPartition } from '../observation/FailedPartition.js';
+import type { ObserverReplayResult } from '../observation/ObserverReplayResult.js';
+import type { PartitionRetryOutcome } from '../observation/PartitionRetryOutcome.js';
 import { ObservationReconnectBackoff, type ObservationReconnectBackoffOptions } from '../observation/ObservationReconnectBackoff.js';
 import { classifyStreamError, StreamErrorKind } from '../observation/classifyStreamError.js';
 import type { ObservationStreamOutcome } from '../observation/ObservationStreamOutcome.js';
@@ -123,6 +130,7 @@ export class Reducers implements IReducers {
     private readonly _observations = new Map<string, AbortController>();
     private readonly _reconnectBackoffs = new Map<string, ObservationReconnectBackoff>();
     private readonly _reobserveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly _operations: ObserverOperations;
     private _registered = false;
     private _disposed = false;
 
@@ -153,6 +161,7 @@ export class Reducers implements IReducers {
         private readonly _skipKeepAlive: boolean = false,
         private readonly _reconnectBackoff: ObservationReconnectBackoffOptions = {}
     ) {
+        this._operations = new ObserverOperations(_eventStoreName, _namespace, _connection);
         this._logger = createLogger('@cratis/chronicle/reducers', _connection.logger);
         this._lifecycle = lifecycle;
         this._unsubscribeDisconnected = lifecycle.onDisconnected(async () => {
@@ -184,6 +193,29 @@ export class Reducers implements IReducers {
     }
 
     /** @inheritdoc */
+    async getStateFor(reducer: ReducerId | string | Constructor): Promise<ReducerState> {
+        const target = this.targetOf(reducer);
+        return this._operations.getState(target.id, target.eventSequenceId);
+    }
+
+    /** @inheritdoc */
+    async replay(reducer: ReducerId | string | Constructor): Promise<ObserverReplayResult> {
+        const target = this.targetOf(reducer);
+        return this._operations.replay(target.id, target.eventSequenceId);
+    }
+
+    /** @inheritdoc */
+    async retryFailedPartition(reducer: ReducerId | string | Constructor, partition: string): Promise<PartitionRetryOutcome> {
+        const target = this.targetOf(reducer);
+        return this._operations.retryPartition(target.id, target.eventSequenceId, partition);
+    }
+
+    /** @inheritdoc */
+    async getFailedPartitionsFor(reducer: ReducerId | string | Constructor): Promise<FailedPartition[]> {
+        return this._operations.getFailedPartitions(this.targetOf(reducer).id);
+    }
+
+    /** @inheritdoc */
     async register(): Promise<void> {
         if (this._skipKeepAlive) refuseClientHostedObservers({ reactors: [], reducers: this._clientArtifacts.reducers });
         if (this._registered || this._disposed) {
@@ -207,6 +239,10 @@ export class Reducers implements IReducers {
         }
 
         this._registered = true;
+    }
+
+    private targetOf(reducer: ReducerId | string | Constructor) {
+        return resolveReducerTarget(reducer, this._reducers, this._clientArtifacts.reducers);
     }
 
     private async registerReadModels(): Promise<void> {

@@ -7,14 +7,18 @@ import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import type { IClientArtifactsProvider } from '../artifacts/index.js';
 import type { ChronicleConnection } from '../connection/index.js';
 import { ConnectionLifecycle } from '../connection/ConnectionLifecycle.js';
-import { EventSequenceId } from '../eventSequences/EventSequenceId.js';
 import type { IEventLog } from '../eventSequences/IEventLog.js';
 import type { IEventStore } from '../IEventStore.js';
 import type { ClientArtifactsActivator } from '../artifacts/ClientArtifactsActivator.js';
 import { refuseClientHostedObservers } from '../artifacts/refuseClientHostedObservers.js';
+import { ObserverOperations } from '../observation/ObserverOperations.js';
+import type { FailedPartition } from '../observation/FailedPartition.js';
+import type { ObserverReplayResult } from '../observation/ObserverReplayResult.js';
+import type { PartitionRetryOutcome } from '../observation/PartitionRetryOutcome.js';
 import { ObservationReconnectBackoff, type ObservationReconnectBackoffOptions } from '../observation/ObservationReconnectBackoff.js';
 import { classifyStreamError, StreamErrorKind } from '../observation/classifyStreamError.js';
 import type { ObservationStreamOutcome } from '../observation/ObservationStreamOutcome.js';
+import type { Constructor } from '@cratis/fundamentals';
 import type { IReactors } from './IReactors.js';
 import type { IReactorBuilder } from './IReactorBuilder.js';
 import type { IReactorDefinitionBuilder } from './IReactorDefinitionBuilder.js';
@@ -30,6 +34,8 @@ import { ReactorObservation } from './ReactorObservation.js';
 import { ReactorPageDispatcher } from './ReactorPageDispatcher.js';
 import { prepareReactor, reactorSubscriptionMessage } from './prepareReactor.js';
 import type { ReactorSubscription } from './ReactorSubscription.js';
+import type { ReactorState } from './ReactorState.js';
+import { resolveReactorTarget } from './resolveReactorTarget.js';
 import type { WaitTillSubscribedOptions } from './WaitTillSubscribedOptions.js';
 import { waitTillSubscribed } from './waitTillSubscribed.js';
 
@@ -42,6 +48,7 @@ export class Reactors implements IReactors {
     private readonly _reconnectBackoffs = new Map<string, ObservationReconnectBackoff>();
     private readonly _reobserveTimers = new Map<string, ReturnType<typeof setTimeout>>();
     private readonly _lifetime = new AbortController();
+    private readonly _operations: ObserverOperations;
     private _registered = false;
     private _disposed = false;
 
@@ -59,6 +66,7 @@ export class Reactors implements IReactors {
         private readonly _skipKeepAlive: boolean = false,
         private readonly _reconnectBackoff: ObservationReconnectBackoffOptions = {}
     ) {
+        this._operations = new ObserverOperations(_eventStoreName, _namespace, _connection);
         this._logger = createLogger('@cratis/chronicle/reactors', _connection.logger);
         this._unsubscribeDisconnected = _lifecycle.onDisconnected(async () => {
             this._logger.info('Disconnected — stopping all reactor observations');
@@ -126,12 +134,37 @@ export class Reactors implements IReactors {
 
     /** @inheritdoc */
     async waitTillSubscribed(id: ReactorId | string, options: WaitTillSubscribedOptions = {}): Promise<void> {
-        const value = typeof id === 'string' ? id : id.value;
-        const registration = this._registrations.all.find(entry => entry.id === value);
-        const eventSequenceId = registration ? prepareReactor(registration, this._clientArtifacts).eventSequenceId : EventSequenceId.eventLog.value;
+        const { id: observerId, eventSequenceId } = this.targetOf(id);
         await waitTillSubscribed(signal => this._connection.observers.getObserverInformation({
-            EventStore: this._eventStoreName, Namespace: this._namespace, ObserverId: value, EventSequenceId: eventSequenceId
+            EventStore: this._eventStoreName, Namespace: this._namespace, ObserverId: observerId, EventSequenceId: eventSequenceId
         }, { signal }), options, this._lifetime.signal);
+    }
+
+    /** @inheritdoc */
+    async getStateFor(reactor: ReactorId | string | Constructor): Promise<ReactorState> {
+        const target = this.targetOf(reactor);
+        return this._operations.getState(target.id, target.eventSequenceId);
+    }
+
+    /** @inheritdoc */
+    async replay(reactor: ReactorId | string | Constructor): Promise<ObserverReplayResult> {
+        const target = this.targetOf(reactor);
+        return this._operations.replay(target.id, target.eventSequenceId);
+    }
+
+    /** @inheritdoc */
+    async retryFailedPartition(reactor: ReactorId | string | Constructor, partition: string): Promise<PartitionRetryOutcome> {
+        const target = this.targetOf(reactor);
+        return this._operations.retryPartition(target.id, target.eventSequenceId, partition);
+    }
+
+    /** @inheritdoc */
+    async getFailedPartitionsFor(reactor: ReactorId | string | Constructor): Promise<FailedPartition[]> {
+        return this._operations.getFailedPartitions(this.targetOf(reactor).id);
+    }
+
+    private targetOf(reactor: ReactorId | string | Constructor) {
+        return resolveReactorTarget(reactor, this._registrations.all, this._clientArtifacts.reactors);
     }
 
     private registerRuntime(idOrDefinition: ReactorId | string | IReactorDefinition,
