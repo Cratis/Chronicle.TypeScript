@@ -93,7 +93,7 @@ export function fieldKeyMeasurements(types: Types): void {
         const metadata = getEventTypeMetadata(type)!;
         metadata.schema.properties!.key = fixture.fieldSchemas[metadata.eventType.id.value];
     }
-    // Replay complete supported prefixes; later numeric and emoji vectors remain kernel-only measurements.
+    // Replay complete supported prefixes; later numeric vectors remain kernel-only measurements.
     replay(types.text, 0);
     replay(types.decimal, 1);
     replay(types.float, 2);
@@ -104,7 +104,7 @@ export function fieldKeyMeasurements(types: Types): void {
 
 function rejectUnmeasured(types: Types): void {
     for (const [type, values] of [
-        [types.text, ['😀', 'λ', '\u0002']],
+        [types.text, ['\u{1f601}', '\u{10001}', '\ud83d', '\ude00', '\ude00\ud83d', '\ud83dx', 'λ', '\u0002']],
         [types.decimal, [1e-7, 1e21, 1.5]],
         [types.float, [1.23456789, 1e-7, 1e21, 0.000001, 1.5]]
     ] as const) {
@@ -147,12 +147,11 @@ function rejectUnmeasured(types: Types): void {
 
 function rejectShapes(types: Types): void {
     for (const mode of ['scoped', 'removable', 'ignoreCasing', 'overlapping']) {
-        for (const type of Object.values(types)) {
-            it(`should keep new ${type.name} keys rejected for ${mode} definitions`, async () => {
+        for (const [type, value] of [[types.text, '東京'], [types.text, '\u{1f600}'], [types.decimal, 0.1], [types.float, 0.1]] as const) {
+            it(`should keep new ${type.name} key ${JSON.stringify(value)} rejected for ${mode} definitions`, async () => {
                 const constraints = mode === 'overlapping'
                     ? [definition(type), definition(type, 'plain', 'OtherKey')]
                     : [definition(type, mode)];
-                const value = type === types.text ? '東京' : 0.1;
                 const error = await Promise.resolve().then(() => scenarioFor(type, constraints))
                     .then(scenario => scenario.append('A', Object.assign(new type(), { key: value }))).then(() => undefined, error => error);
                 should(error).instanceOf(UnsupportedEventSequenceOperation);
