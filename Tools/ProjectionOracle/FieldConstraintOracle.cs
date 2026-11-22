@@ -2,18 +2,23 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 extern alias KernelContracts;
+extern alias KernelCore;
 extern alias KernelConcepts;
 extern alias KernelStorage;
 extern alias KernelInfrastructure;
 
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.Events.Constraints;
 using Cratis.Chronicle.Testing.EventSequences;
 using KernelContracts::Cratis.Chronicle.Contracts.Sequences;
+using KernelKeyExtensions = KernelCore::Cratis.Chronicle.Events.Constraints.UniqueConstraintDefinitionExtensions;
+using KernelPropertyValue = KernelCore::Cratis.Chronicle.Events.Constraints.UniqueConstraintPropertyAndValue;
 using KernelServiceAccessor = KernelContracts::Cratis.Chronicle.Contracts.IChronicleServicesAccessor;
 using KernelStore = KernelStorage::Cratis.Chronicle.Storage.IStorage;
 using KernelUnique = KernelConcepts::Cratis.Chronicle.Concepts.Events.Constraints.UniqueConstraintDefinition;
@@ -54,6 +59,7 @@ internal static class FieldConstraintOracle
     internal static async Task<JsonNode> Run(JsonObject fixture)
     {
         var expectedSchemas = CheckedSchemas(fixture);
+        var ignoreCasing = fixture["ignoreCasingMeasurements"]?.GetValue<bool>() == true;
         var cases = fixture["fieldConstraintCases"]!.AsArray();
         var outcomes = new JsonArray();
         foreach (var test in cases)
@@ -62,7 +68,7 @@ internal static class FieldConstraintOracle
             if (expectedSchemas[type] is null || test["operations"] is not JsonArray operations || operations.Count == 0)
                 throw new InvalidOperationException("Unknown or empty field constraint case.");
             const string name = "OracleFieldKey";
-            var definition = new UniqueConstraintDefinition(name, _ => "", [new UniqueConstraintEventDefinition(type, ["key"])], [], false);
+            var definition = new UniqueConstraintDefinition(name, _ => "", [new UniqueConstraintEventDefinition(type, ["key"])], [], ignoreCasing);
             using var scenario = new EventScenario(new OracleConstraintProvider(ImmutableArray.Create<IConstraintDefinition>(definition)));
             var created = (ITuple)typeof(EventScenario).GetField("_created", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(scenario)!;
             var services = ((KernelServiceAccessor)created[1]!).Services;
@@ -92,7 +98,7 @@ internal static class FieldConstraintOracle
             if (!JsonNode.DeepEquals(installedProperty, fixture["fieldSchemas"]![type]))
                 throw new InvalidOperationException($"Installed {type}.key schema differs from the fixture: {installedProperty.ToJsonString()}");
             var installed = (await eventStore.Constraints.GetDefinitions()).ToArray();
-            if (installed is not [KernelUnique actual] || actual.Name.Value != name || actual.IgnoreCasing || actual.Scope is not null ||
+            if (installed is not [KernelUnique actual] || actual.Name.Value != name || actual.IgnoreCasing != ignoreCasing || actual.Scope is not null ||
                 actual.RemovedWith.Any() || actual.EventDefinitions.Count() != 1 ||
                 actual.EventDefinitions.Single().EventTypeId.Value != type || !actual.EventDefinitions.Single().Properties.SequenceEqual(["key"]))
                 throw new InvalidOperationException("Installed field constraint differs from the requested definition.");
@@ -151,7 +157,9 @@ internal static class FieldConstraintOracle
                     ["next"] = next
                 });
             }
-            outcomes.Add(new JsonObject { ["fieldSchema"] = installedProperty.DeepClone(), ["steps"] = steps });
+            var outcome = new JsonObject { ["fieldSchema"] = installedProperty.DeepClone(), ["steps"] = steps };
+            if (ignoreCasing) outcome["casingObservations"] = CasingObservations(operations);
+            outcomes.Add(outcome);
 
             async Task<JsonArray> History()
             {
@@ -170,10 +178,34 @@ internal static class FieldConstraintOracle
         return outcomes;
     }
 
+    // The exact operation the packaged kernel applies (string.ToLowerInvariant, then UTF-8 SHA-256), observed
+    // directly and cross-checked against the kernel's own key builder; never a JavaScript casing operation.
+    static JsonArray CasingObservations(JsonArray operations)
+    {
+        var observations = new JsonArray();
+        var inputs = operations.SelectMany(operation => operation!["events"]!.AsArray())
+            .Select(entry => JsonNode.Parse(entry!["content"]!.GetValue<string>())!["key"]!.GetValue<string>())
+            .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal);
+        foreach (var input in inputs)
+        {
+            var lowered = input.ToLowerInvariant();
+            var direct = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(lowered)));
+            var kernel = KernelKeyExtensions.GetValue([new KernelPropertyValue("key", input)], ignoreCasing: true);
+            if (direct != kernel) throw new InvalidOperationException($"Kernel key builder disagrees with ToLowerInvariant for {input}.");
+            observations.Add(new JsonObject
+            {
+                ["input"] = input, ["lowered"] = lowered, ["utf8Sha256"] = direct,
+                ["scalars"] = new JsonArray(lowered.EnumerateRunes().Select(rune => (JsonNode?)JsonValue.Create(rune.Value)).ToArray())
+            });
+        }
+        return observations;
+    }
+
     static JsonNode CheckedSchemas(JsonObject fixture)
     {
         var measurements = fixture["fieldKeyMeasurements"]?.GetValue<bool>() == true;
-        var expectedSchemas = JsonNode.Parse(measurements ? """
+        var casing = fixture["ignoreCasingMeasurements"]?.GetValue<bool>() == true;
+        var expectedSchemas = JsonNode.Parse(casing ? """{"OracleFieldText":{"type":"string"}}""" : measurements ? """
             {"OracleFieldText":{"type":"string"},
              "OracleFieldDecimal":{"type":"number","format":"decimal"},
              "OracleFieldFloat":{"type":"number","format":"float"}}
@@ -184,8 +216,15 @@ internal static class FieldConstraintOracle
              "OracleFieldDateTime":{"type":"string","format":"date-time"}}
             """)!;
         if (!JsonNode.DeepEquals(fixture["fieldSchemas"], expectedSchemas))
-            throw new InvalidOperationException(measurements ? "Field fixture must declare the measured property schemas."
+            throw new InvalidOperationException(casing ? "Casing fixture must declare only the plain string property schema." : measurements ? "Field fixture must declare the measured property schemas."
                 : "Field fixture must declare the TypeScript number, packaged double, Guid and DateTime property schemas.");
+        if (casing)
+        {
+            var names = fixture["fieldConstraintCases"]!.AsArray().Select(test => $"{test!["eventType"]!.GetValue<string>()}/{test["kind"]!.GetValue<string>()}").ToArray();
+            if (measurements || names.Length == 0 || names.Any(name => name != "OracleFieldText/oracleGuard"))
+                throw new InvalidOperationException("Casing fixture requires only plain-text oracleGuard cases.");
+            return expectedSchemas;
+        }
         string[] expectedCases = measurements
             ? ["OracleFieldText/oracleGuard", "OracleFieldDecimal/oracleGuard", "OracleFieldFloat/oracleGuard"]
             : ["OracleFieldGuid/kernelSemantics", "OracleFieldNumber/kernelSemantics", "OracleFieldNumber/oracleGuard", "OracleFieldDateTime/oracleGuard", "OracleFieldDouble/kernelSemantics"];
