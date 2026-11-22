@@ -33,6 +33,10 @@ export class OrderSummary {
 }
 ```
 
+## React to changes
+
+Use [`@readModelReactor(Model)`](./read-model-reactors.md) for client-managed `added`, `modified`, and `removed` handlers. Registration awaits watcher readiness; each matching change gets its own activation lease. Returned events need explicit destinations, and per-change failures are reported without stopping subsequent changes. These consumers do not replay outage gaps or provide exactly-once delivery.
+
 ## Container names
 
 A read model's container (the MongoDB collection, SQL table, or file the sink writes to) is named by its identifier by default, so `class User` is stored in `User`. To choose another name, pass `readModelNamingPolicy` to `ChronicleOptions`. The policy is called for every read model the client registers, whether it comes from a projection, a reducer, or a model-bound mapping. It receives the read model identifier and, when the client knows it, the read model class, and returns the container name. The class can be missing when the client has only the identifier.

@@ -245,7 +245,7 @@ export class ChronicleClient implements IChronicleClient {
         });
         ensureCommandSuccess('ensure event store', await this._connection.eventStores.ensureEventStore({ Name: storeName.value }));
 
-        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry, this.options.skipKeepAlive, this.options.defaultGraphSinkTypeId, this.options.eventEnrichmentProviders, this.options.concurrencyScopeStrategy);
+        const created = new EventStore(storeName, namespaceName, this._connection, this._lifecycle, this.options.defaultSinkTypeId, this.options.clientArtifactsProvider, this.options.reactorResultHandler, this.options.artifactActivator, this.options.readModelNamingPolicy, this.options.telemetry, this.options.skipKeepAlive, this.options.defaultGraphSinkTypeId, this.options.eventEnrichmentProviders, this.options.concurrencyScopeStrategy, this.options.readModelReactorActivator, this.options.readModelReactorResultHandler, this.options.readModelReactorOnError);
         this._stores.set(key, created);
 
         try {
