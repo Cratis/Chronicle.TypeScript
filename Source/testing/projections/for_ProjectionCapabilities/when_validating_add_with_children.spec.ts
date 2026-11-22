@@ -14,7 +14,7 @@ chai.should();
 type Candidate = { compiled: ReturnType<typeof compile>; definition: ProjectionDefinition; schema: JsonSchema; operand: JsonSchema };
 type Mutation = (candidate: Candidate) => void;
 const boundaries: Array<[string, Mutation]> = [
-    ...['$increment', '$decrement', '$subtract(amount)', '$add(amount + 1)', '$add(nested.amount)', '$add($eventSourceId)',
+    ...['$add(amount + 1)', '$add(nested.amount)', '$add($eventSourceId)',
         '$add(1)', '$add(true)', '$add(snake_case)', '$add(missing)', '$add(amount', '$add(_snake_case)'].map(expression =>
         [expression, ({ definition }: Candidate) => { definition.From[0].Value.Properties.total = expression; }] as [string, Mutation]),
     ...['int32', 'uint32', 'float', 'double', ''].flatMap(format => [

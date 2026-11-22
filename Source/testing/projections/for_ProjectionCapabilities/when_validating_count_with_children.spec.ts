@@ -15,8 +15,6 @@ chai.should();
 type Candidate = { compiled: ReturnType<typeof compile>; definition: ProjectionDefinition; schema: JsonSchema };
 type Mutation = (candidate: Candidate) => void;
 const boundaries: Array<[string, Mutation]> = [
-    ...['$increment', '$decrement', '$subtract(total)'].map(expression => [expression,
-        ({ definition }: Candidate) => { definition.From[0].Value.Properties.total = expression; }] as [string, Mutation]),
     ['int32 count', ({ schema }) => { schema.properties!.total = { type: 'integer', format: 'int32' }; }],
     ['float count', ({ schema }) => { schema.properties!.total = { type: 'number', format: 'float' }; }],
     ['GUID root identifier', ({ schema }) => { schema.properties!.id.format = 'uuid'; }],
@@ -73,15 +71,18 @@ for (const [name, mutate] of boundaries) {
     }
 }
 
-describe('when adding the unformatted same-name operand in the previously rejected count boundary', () => {
-    it('should admit the fixture-backed addition rather than count or assign', async () => {
-        const value = candidate();
-        value.definition.From[0].Value.Properties.total = '$add(total)';
-        const processor = new ProjectionReadModelProcessor(Totals, value.compiled, value.definition);
-        await processor.process([seeded, { ...seeded, context: { ...seeded.context, sequenceNumber: 1n } }]);
-        processor.publicRead.A.total.should.equal(18000);
+for (const [operation, expected] of [['add', 18000], ['subtract', -18000], ['increment', 2], ['decrement', -2]] as const) {
+    describe(`when applying ${operation} to the unformatted same-name operand in the count boundary`, () => {
+        it('should admit the fixture-backed arithmetic rather than count or assign', async () => {
+            const value = candidate();
+            value.definition.From[0].Value.Properties.total = operation === 'add' || operation === 'subtract'
+                ? `$${operation}(total)` : `$${operation}`;
+            const processor = new ProjectionReadModelProcessor(Totals, value.compiled, value.definition);
+            await processor.process([seeded, { ...seeded, context: { ...seeded.context, sequenceNumber: 1n } }]);
+            processor.publicRead.A.total.should.equal(expected);
+        });
     });
-});
+}
 
 for (const format of [undefined, 'double']) {
     describe(`when admitting count with ${format ?? 'unformatted number'} and typed children`, () => {
