@@ -28,7 +28,7 @@ describe('when a cached store reconnects with runtime projections', () => {
         await client['_lifecycle'].connected(error => { throw error; });
 
         expect(context.registerProjection).toHaveBeenCalledTimes(5);
-        for (const request of explicitRequests) expect(context.registerProjection).toHaveBeenCalledWith(request);
+        for (const request of explicitRequests) expect(context.registerProjection).toHaveBeenCalledWith(request, expect.anything());
         expect(context.store.projections.getProjectionIdFor(RuntimeModel).value).toBe('runtime-model');
         expect(context.store.projections.getProjectionIdFor(BoundModel).value).toBe('BoundModel');
         expect(context.store.registrationResult.state).toBe('successful');

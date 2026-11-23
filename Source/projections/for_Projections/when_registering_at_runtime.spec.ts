@@ -15,7 +15,7 @@ describe('when registering a fluent projection explicitly at runtime', () => {
     it('should send the compiled projection to the kernel', () => {
         expect(context.registerProjection).toHaveBeenCalledWith(expect.objectContaining({
             EventStore: 'store', Projections: [expect.objectContaining({ Identifier: 'runtime-model', ReadModel: 'runtime-model', IsActive: true })]
-        }));
+        }), expect.anything());
     });
 
     it('should register the explicit model schema and observer association', () => {
@@ -61,7 +61,7 @@ describe('when registering a model-bound type explicitly at runtime', () => {
         await context.projections.registerModelBound(BoundModel);
         expect(context.registerProjection).toHaveBeenCalledWith(expect.objectContaining({
             Projections: [expect.objectContaining({ Identifier: 'BoundModel', ReadModel: 'BoundModel', From: expect.any(Array) })]
-        }));
+        }), expect.anything());
         expect(context.registerReadModel.mock.calls[0][0].ReadModels[0].ObserverIdentifier).toBe('BoundModel');
         expect(context.projections.getProjectionIdFor(BoundModel).value).toBe('BoundModel');
         await context.projections.discover();
