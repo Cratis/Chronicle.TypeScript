@@ -20,6 +20,7 @@ import {
     ImportsDefinition,
     JobsDefinition,
     MaterializedReadModelsDefinition,
+    MultiplexedObservationDefinition,
     NamespacesDefinition,
     ObserversDefinition,
     PatternsDefinition,
@@ -47,6 +48,8 @@ import { CompatibilityPreflight } from './CompatibilityPreflight.js';
 import { formatServerAddress } from './formatServerAddress.js';
 import type { ILoadBalancerStrategy } from './ILoadBalancerStrategy.js';
 import { createLoadBalancerStrategy } from './LoadBalancerStrategyFactory.js';
+import { MultiplexedObservationChannel, type IMultiplexedObservationService } from '../observation/multiplexed/MultiplexedObservationChannel.js';
+import { multiplexingReactors, multiplexingReducers, shouldMultiplexObservation } from './MultiplexedObservation.js';
 import { ITokenProvider, NoOpTokenProvider, OAuthTokenProvider } from './TokenProvider.js';
 
 /**
@@ -81,6 +84,12 @@ export interface ChronicleConnectionOptions {
      * Optional connection timeout in milliseconds. Defaults to 10000.
      */
     connectTimeout?: number;
+
+    /**
+     * Whether reactors and reducers share one multiplexed stream when the kernel supports it. Defaults to true; turn it
+     * off to observe with one call per reactor and reducer, as against a kernel that does not advertise the capability.
+     */
+    multiplexObservation?: boolean;
 
     /**
      * Optional maximum receive message size in bytes.
@@ -340,6 +349,8 @@ export class ChronicleConnection implements ChronicleServices {
         this._connections = factory.create(ConnectionServiceDefinition, this._channel);
         this._compatibility = new CompatibilityPreflight(this._connections, this._options.connectTimeout ?? 10_000, this._connectionString.skipCompatibilityCheck);
         const eventSequenceFactory = factory.use(this._compatibility.middleware());
+        const observation = this.createObservation(factory.create(ReactorsDefinition, this._channel), factory.create(ReducersDefinition, this._channel),
+            () => factory.create(MultiplexedObservationDefinition, this._channel));
         this._services = {
             eventStores: factory.create(EventStoresDefinition, this._channel),
             namespaces: factory.create(NamespacesDefinition, this._channel),
@@ -352,8 +363,8 @@ export class ChronicleConnection implements ChronicleServices {
             observers: factory.create(ObserversDefinition, this._channel),
             eventStoreSubscriptions: factory.create(EventStoreSubscriptionsDefinition, this._channel),
             failedPartitions: factory.create(FailedPartitionsDefinition, this._channel),
-            reactors: factory.create(ReactorsDefinition, this._channel),
-            reducers: factory.create(ReducersDefinition, this._channel),
+            reactors: observation.reactors,
+            reducers: observation.reducers,
             projections: factory.create(ProjectionsDefinition, this._channel),
             readModels: factory.create(ReadModelsDefinition, this._channel),
             readModelExplorer: factory.create(ReadModelExplorerDefinition, this._channel),
@@ -367,6 +378,28 @@ export class ChronicleConnection implements ChronicleServices {
             externalServices: factory.create(ExternalServicesDefinition, this._channel),
             imports: factory.create(ImportsDefinition, this._channel)
         };
+    }
+
+    /**
+     * Makes reactors and reducers observe over one multiplexed stream when it is enabled and the kernel advertises it,
+     * otherwise with one call each. The choice is made when the first of them observes, after the compatibility
+     * check has told what the kernel advertises.
+     */
+    private createObservation(reactors: ChronicleServices['reactors'], reducers: ChronicleServices['reducers'],
+        multiplexedService: () => IMultiplexedObservationService): Pick<ChronicleServices, 'reactors' | 'reducers'> {
+        const preflight = this._compatibility;
+        let channel: MultiplexedObservationChannel | undefined;
+        const select = async () => {
+            try {
+                await preflight.verify();
+            } catch {
+                // The failure belongs to the calls that need the check; observing keeps to one call per observer.
+                return undefined;
+            }
+            if (!shouldMultiplexObservation(this._options.multiplexObservation !== false, preflight.capabilities)) return undefined;
+            return channel ??= new MultiplexedObservationChannel(multiplexedService(), {}, this._options.logger);
+        };
+        return { reactors: multiplexingReactors(reactors, select), reducers: multiplexingReducers(reducers, select) };
     }
 
     private warnWhenTlsValidationIsSkipped(candidates: ChronicleServerAddress[]): void {

@@ -46,6 +46,7 @@ type ChronicleOptionsConstructorParams = ReadModelReactorOptions & {
     maxReceiveMessageSize?: number | null;
     maxSendMessageSize?: number | null;
     connectTimeout?: number;
+    multiplexObservation?: boolean;
 };
 
 type ChronicleOptionsFactoryParams = ReadModelReactorOptions & {
@@ -65,6 +66,8 @@ type ChronicleOptionsFactoryParams = ReadModelReactorOptions & {
     maxReceiveMessageSize?: number | null;
     maxSendMessageSize?: number | null;
     connectTimeout?: number;
+    /** Share one stream between all reactors and reducers when the kernel supports it. Defaults to true. */
+    multiplexObservation?: boolean;
 };
 
 /**
@@ -182,6 +185,13 @@ export class ChronicleOptions {
      */
     readonly connectTimeout: number;
 
+    /**
+     * Whether reactors and reducers share one multiplexed stream when the kernel advertises support for it. Defaults to
+     * true. Turn it off to observe with one call per reactor and reducer. Against a kernel that does not advertise the
+     * capability, observers always use one call each.
+     */
+    readonly multiplexObservation: boolean;
+
     private constructor(options: ChronicleOptionsConstructorParams) {
         this.namespaceResolver = options.namespaceResolver;
         this.connectionString = options.connectionString;
@@ -204,6 +214,7 @@ export class ChronicleOptions {
         this.maxReceiveMessageSize = options.maxReceiveMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxReceiveMessageSize;
         this.maxSendMessageSize = options.maxSendMessageSize === undefined ? ChronicleOptions.defaultMaxMessageSize : options.maxSendMessageSize;
         this.connectTimeout = ChronicleOptions.validConnectTimeout(options.connectTimeout ?? ChronicleOptions.defaultConnectTimeout);
+        this.multiplexObservation = options.multiplexObservation !== false;
         ChronicleOptions.validateTelemetry(options.telemetry);
         this.telemetry = options.telemetry;
         this.logger = options.logger;
@@ -314,6 +325,7 @@ export class ChronicleOptions {
             maxReceiveMessageSize: factoryOptions.maxReceiveMessageSize,
             maxSendMessageSize: factoryOptions.maxSendMessageSize,
             connectTimeout: factoryOptions.connectTimeout,
+            multiplexObservation: factoryOptions.multiplexObservation,
             telemetry: factoryOptions.telemetry,
             logger: factoryOptions.logger
         });

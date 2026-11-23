@@ -15,10 +15,19 @@ const protocolVersion = (require('@cratis/chronicle.contracts/package.json') as 
 export class CompatibilityPreflight {
     private _verification?: Promise<void>;
     private _kernelVersion?: string;
+    private _capabilities: readonly string[] = [];
 
     /** The server version reported by a successful contract check, or undefined when skipped. */
     get kernelVersion(): string | undefined {
         return this._kernelVersion;
+    }
+
+    /**
+     * The capabilities the server advertised in its answer to the contract check. Empty until the check has passed, and
+     * for a server that predates the handshake, which advertises none.
+     */
+    get capabilities(): readonly string[] {
+        return this._capabilities;
     }
 
     constructor(
@@ -71,6 +80,7 @@ export class CompatibilityPreflight {
         });
         this.verifyContract(response);
         this._kernelVersion = response.ServerVersion;
+        this._capabilities = Array.isArray(response.Capabilities) ? [...response.Capabilities] : [];
     }
 
     private verifyContract(response: CompatibilityResponse): void {

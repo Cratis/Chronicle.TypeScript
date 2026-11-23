@@ -123,7 +123,8 @@ export class ChronicleClient implements IChronicleClient {
             logger: options.logger,
             maxReceiveMessageSize: options.maxReceiveMessageSize ?? undefined,
             maxSendMessageSize: options.maxSendMessageSize ?? undefined,
-            connectTimeout: options.connectTimeout
+            connectTimeout: options.connectTimeout,
+            multiplexObservation: options.multiplexObservation
         });
 
         this._logger.info('Created Chronicle client', {
