@@ -15,5 +15,14 @@ export enum FastForwardOutcome {
     Replaying = 'Replaying',
 
     /** The observer is retired or removed, so nothing was changed. */
-    NotAvailable = 'NotAvailable'
+    NotAvailable = 'NotAvailable',
+
+    /**
+     * Chronicle accepted the request and runs it as a job. This is acceptance, not completion: what became of the
+     * request is the result of the job, and the next-sequence-number fields of the result do not describe it.
+     */
+    Accepted = 'Accepted',
+
+    /** The value Chronicle sent is not recognized by this client. It is not success. */
+    Unknown = 'Unknown'
 }

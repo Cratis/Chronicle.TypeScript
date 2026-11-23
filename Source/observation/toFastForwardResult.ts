@@ -8,6 +8,7 @@ import { FastForwardResult } from './FastForwardResult.js';
 
 /**
  * Converts a wire {@link ContractFastForwardOutcome} into the client {@link FastForwardOutcome}.
+ * An unrecognized value maps to {@link FastForwardOutcome.Unknown}, never to success, and does not throw.
  * @param outcome - The wire outcome to convert.
  * @returns The converted client outcome.
  */
@@ -21,8 +22,10 @@ export function toFastForwardOutcome(outcome: ContractFastForwardOutcome): FastF
             return FastForwardOutcome.Replaying;
         case ContractFastForwardOutcome.NotAvailable:
             return FastForwardOutcome.NotAvailable;
+        case ContractFastForwardOutcome.FAST_FORWARD_OUTCOME_Accepted:
+            return FastForwardOutcome.Accepted;
         default:
-            throw new Error(`Unknown fast forward outcome: ${outcome}`);
+            return FastForwardOutcome.Unknown;
     }
 }
 

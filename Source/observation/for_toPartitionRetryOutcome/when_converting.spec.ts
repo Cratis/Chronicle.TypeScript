@@ -13,10 +13,11 @@ describe('when converting a partition recovery outcome', () => {
         [PartitionRecoveryOutcome.Started, PartitionRetryOutcome.Started],
         [PartitionRecoveryOutcome.PartitionNotFound, PartitionRetryOutcome.PartitionNotFound],
         [PartitionRecoveryOutcome.ObserverQuarantined, PartitionRetryOutcome.ObserverQuarantined],
-        [PartitionRecoveryOutcome.PartitionQuarantined, PartitionRetryOutcome.PartitionQuarantined]
+        [PartitionRecoveryOutcome.PartitionQuarantined, PartitionRetryOutcome.PartitionQuarantined],
+        [PartitionRecoveryOutcome.PARTITION_RECOVERY_OUTCOME_Accepted, PartitionRetryOutcome.Accepted]
     ];
     for (const [wire, expected] of known) {
-        it(`should map ${PartitionRecoveryOutcome[wire]} to ${expected}`, () => toPartitionRetryOutcome(wire).should.equal(expected));
+        it(`should map ${PartitionRecoveryOutcome[wire]} (wire value ${wire}) to ${expected}`, () => toPartitionRetryOutcome(wire).should.equal(expected));
     }
     for (const wire of [99, -1]) {
         it(`should map the unrecognized value ${wire} to Unknown, never Started`, () =>
