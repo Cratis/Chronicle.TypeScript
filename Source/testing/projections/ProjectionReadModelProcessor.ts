@@ -16,6 +16,7 @@ import { ProjectionArithmetic } from './ProjectionArithmetic.js';
 import { ProjectionCapabilities } from './ProjectionCapabilities.js';
 import { ProjectionExpressionEvaluator } from './ProjectionExpressionEvaluator.js';
 import { ProjectionJoins } from './ProjectionJoins.js';
+import { ProjectionJoinChildrenCapabilities } from './ProjectionJoinChildrenCapabilities.js';
 import type { ProjectionJoinRecord } from './ProjectionJoinRecord.js';
 import { ProjectionRootMappings } from './ProjectionRootMappings.js';
 import { ProjectionRootKeyCapabilities } from './ProjectionRootKeyCapabilities.js';
@@ -108,6 +109,9 @@ export class ProjectionReadModelProcessor<TReadModel extends object> implements 
 
     async process(events: readonly ScenarioEvent[]): Promise<Map<string, ReadModelState<TReadModel>>> {
         this.validateContextChildHistory(events);
+        ProjectionJoinChildrenCapabilities.validateHistory(this._definition, events, (path, reason) => {
+            throw new UnsupportedProjectionOperation(String(this._definition.ReadModel), path, 'contract', reason);
+        });
         for (const event of events) this.rootKey(event);
         const states = new Map<string, ReadModelState<TReadModel>>();
         const engine: Record<string, Record<string, unknown>> = Object.create(null);
