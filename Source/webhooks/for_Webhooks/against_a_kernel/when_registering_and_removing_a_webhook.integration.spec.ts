@@ -81,7 +81,8 @@ describe.skipIf(!connectionString && !process.env.CI)('when registering and remo
 
     it('should list the webhook', () => registered!.Identifier.should.equal(webhookId));
     it('should keep the target url', () => registered!.Target!.Url.should.equal(targetUrl));
-    it('should keep the header', () => registered!.Target!.Headers['X-Source'].should.equal('specs'));
+    // The kernel encrypts header values (they can carry secrets) and returns the header name without its value on read-back.
+    it('should keep the header name without its value', () => registered!.Target!.Headers.should.deep.equal({ 'X-Source': '' }));
     it('should keep the event type', () => registered!.EventTypes.map(_ => _.Id).should.deep.equal(['OrderShipped']));
     it('should no longer list the removed webhook', () => afterRemove.some(_ => _.Identifier === webhookId).should.be.false);
     it('should report a registration the kernel rejects', () => registerWithoutIdentifier.should.be.instanceOf(Error));

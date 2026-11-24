@@ -74,7 +74,7 @@ jobs:
     # A development kernel (MongoDB included) that the kernel-backed specifications (*.integration.spec.ts) run against.
     services:
       chronicle:
-        image: cratis/chronicle:19.37.4-development
+        image: cratis/chronicle:19.188.0-development
         ports:
           - 35000:35000
         # The webhook delivery specifications run an HTTP receiver in the job (on the runner host); this lets the
@@ -82,13 +82,13 @@ jobs:
         options: --add-host=host.docker.internal:host-gateway
       # A kernel that honors StartAtTail (Chronicle 19.70.0 or later) for the specification that needs it.
       chronicle-tail:
-        image: cratis/chronicle:19.70.0-development
+        image: cratis/chronicle:19.188.0-development
         ports:
           - 35001:35000
       # A kernel that applies child all-event mappings from the child's own All block without copying root mappings
       # into new children (Chronicle 19.78.1 or later), for the from-all-events specification that asserts it.
       chronicle-child-mappings:
-        image: cratis/chronicle:19.78.1-development
+        image: cratis/chronicle:19.188.0-development
         ports:
           - 35002:35000
 

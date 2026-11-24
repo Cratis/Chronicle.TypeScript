@@ -338,6 +338,13 @@ function activationFailure(partition: DeliveredPartition, problems: readonly Par
 }
 
 /**
+ * A whole-observer replay notification (begin or end) names no partition. The kernel reads an omitted partition as null
+ * on the multiplexed call and throws while acknowledging it, which ends the call, so the acknowledgement names a
+ * placeholder the kernel ignores as an unknown delivery.
+ */
+const NOTIFICATION_PARTITION = 'replay-notification';
+
+/**
  * Creates the result of a delivery: one result per partition for a page, or the legacy single-partition fields.
  * @param message - The delivered message.
  * @param outcomes - The outcome of each partition, in delivery order.
@@ -353,7 +360,7 @@ function toReactorResult(message: EventsToObserve, outcomes: readonly PartitionO
     }
     const [outcome] = outcomes;
     return {
-        Partition: message.Partition,
+        Partition: message.Partition || NOTIFICATION_PARTITION,
         State: outcome.state === ObservationState.Deferred ? ObservationState.Failed : outcome.state,
         LastSuccessfulObservation: outcome.lastSuccessfulObservation,
         ExceptionMessages: [...outcome.exceptionMessages],
