@@ -12,6 +12,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@bufbuild/protobuf@npm:^2.17.0":
+  version: 2.17.0
+  resolution: "@bufbuild/protobuf@npm:2.17.0"
+  checksum: 10c0/29140e179408e9ed8601843f6c423658bd130e5cc2e4da470b7a305e4500054872f6f5f62884dc8a1652e85beed19bd5ba6d9482c323e773db84a6c26c183957
+  languageName: node
+  linkType: hard
+
 "@cratis/chronicle-test-console@workspace:Samples/Console":
   version: 0.0.0-use.local
   resolution: "@cratis/chronicle-test-console@workspace:Samples/Console"
@@ -45,14 +52,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cratis/chronicle.contracts@npm:19.153.0":
-  version: 19.153.0
-  resolution: "@cratis/chronicle.contracts@npm:19.153.0"
+"@cratis/chronicle.contracts@npm:19.188.0":
+  version: 19.188.0
+  resolution: "@cratis/chronicle.contracts@npm:19.188.0"
   dependencies:
-    "@bufbuild/protobuf": "npm:^2.14.0"
-    "@grpc/grpc-js": "npm:^1.14.4"
-    nice-grpc: "npm:^2.1.17"
-  checksum: 10c0/548b1932c119358d77eb4fcc2826b5575789cab38804d63083024fa3d29c63e839a4739634aa1ffc90a02128c1dfaa61c01e0e8bd659777b203c1c45510f4587
+    "@bufbuild/protobuf": "npm:^2.17.0"
+    "@grpc/grpc-js": "npm:^1.14.7"
+    nice-grpc: "npm:^2.2.0"
+  checksum: 10c0/2961ffef5a49775e75a1eb8d69e176ca406db5c9bb4abc3de0fe6d9f249ef48b41240e337b72124911fc736706616d846cba2cb12eae185485b8e98f0c27e896
   languageName: node
   linkType: hard
 
@@ -61,7 +68,7 @@ __metadata:
   resolution: "@cratis/chronicle@workspace:Source"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.16.0"
-    "@cratis/chronicle.contracts": "npm:19.153.0"
+    "@cratis/chronicle.contracts": "npm:19.188.0"
     "@cratis/fundamentals": "npm:7.24.1"
     "@grpc/grpc-js": "npm:^1.14.5"
     "@opentelemetry/api": "npm:^1.9.1"
@@ -2057,7 +2064,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "chronicle-typescript-workspace@workspace:."
   dependencies:
-    "@cratis/chronicle.contracts": "npm:19.153.0"
+    "@cratis/chronicle.contracts": "npm:19.188.0"
     "@cratis/chronicle.contracts-oracle": "npm:@cratis/chronicle.contracts@19.31.10"
     glob: "npm:^13.0.6"
   languageName: unknown
@@ -2728,6 +2735,17 @@ __metadata:
     abort-controller-x: "npm:^0.5.0"
     nice-grpc-common: "npm:^2.0.4"
   checksum: 10c0/e41da0e8cf4962d55395e8f80213fcc9a88cba4528a53fc1006ec82d869747bec1ffcdb34371c5db0034a33741a94da02df5ca5150bbc7696a3d509f1890bd9d
+  languageName: node
+  linkType: hard
+
+"nice-grpc@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "nice-grpc@npm:2.2.0"
+  dependencies:
+    "@grpc/grpc-js": "npm:^1.14.0"
+    abort-controller-x: "npm:^0.5.0"
+    nice-grpc-common: "npm:^2.0.4"
+  checksum: 10c0/432f3c5c101c3d4488ae6bb8c1af6456f34e592c5958609e3ddb99232bff066aa24e82605b597e52883c28e3676151db7eab146ad0df64d5c46c36f1aad04513
   languageName: node
   linkType: hard
 

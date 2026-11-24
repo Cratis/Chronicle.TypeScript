@@ -120,7 +120,7 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a reactor a
         failedPartitionObserved = failed.some(partition => partition.partition === failingPartition);
         retryOfHealthyPartition = await store.reactors.retryFailedPartition(FlakyReactor, healthyPartition);
 
-        // Started means a recovery job was accepted; this spec does not claim the partition has recovered.
+        // Accepted means a recovery job was accepted; this spec does not claim the partition has recovered.
         failFor.clear();
         retryOfFailedPartition = await store.reactors.retryFailedPartition(FlakyReactor, failingPartition);
 
@@ -138,10 +138,11 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a reactor a
     });
     it('should report an unknown reactor as not subscribed', () => unknownState.isSubscribed.should.be.false);
     it('should not start a replay of an unknown reactor', () => unknownReplay.started.should.be.false);
-    it('should find no failed partition for an unknown reactor', () => unknownRetry.should.equal(PartitionRetryOutcome.PartitionNotFound));
+    // Since Chronicle 19.188 every operator command is accepted as a job, so the outcome no longer reflects the partition's state.
+    it('should accept the retry of an unknown reactor as a job', () => unknownRetry.should.equal(PartitionRetryOutcome.Accepted));
     it('should record the induced failure as a failed partition', () => failedPartitionObserved.should.be.true);
-    it('should find no failure to retry for a healthy partition', () => retryOfHealthyPartition.should.equal(PartitionRetryOutcome.PartitionNotFound));
-    it('should start recovery when retrying the failed partition', () => retryOfFailedPartition.should.equal(PartitionRetryOutcome.Started));
+    it('should accept the retry of a healthy partition as a job', () => retryOfHealthyPartition.should.equal(PartitionRetryOutcome.Accepted));
+    it('should accept the retry of the failed partition as a job', () => retryOfFailedPartition.should.equal(PartitionRetryOutcome.Accepted));
     it('should start a replay job for a known reactor', () => {
         replayOfFirst.started.should.be.true;
         (replayOfFirst.jobId !== undefined).should.be.true;

@@ -3,6 +3,7 @@
 
 import {
     EventGenerationDelivery,
+    WebhookSigningMode,
     type BasicAuthorization,
     type BearerTokenAuthorization,
     type OAuthAuthorization,
@@ -144,7 +145,8 @@ export class WebhookDefinitionBuilder implements IWebhookDefinitionBuilder {
             IsActive: this._isActive,
             IsNotReplayable: !this._isReplayable,
             IsInactive: !this._isActive,
-            GenerationDelivery: EventGenerationDelivery.Compatibility
+            GenerationDelivery: EventGenerationDelivery.Compatibility,
+            Signing: WebhookSigningMode.Unspecified
         };
     }
 }

@@ -134,7 +134,8 @@ describe.skipIf(!connectionString && !process.env.CI)('when managing a replay jo
 
     it('should start a replay job', () => jobId.toString().should.not.equal(Guid.empty.toString()));
     it('should list the job', () => listed.some(_ => fromContractsGuid(_.Id).toString() === jobId.toString()).should.be.true);
-    it('should report the job as a replay', () => stopped!.Type.should.equal('ReplayObserver'));
+    // Since Chronicle 19.188 a replay runs as an accepted observer operator command job.
+    it('should report the job as an observer operator command', () => stopped!.Type.should.equal('ObserverOperatorCommandJob'));
     it('should report the job as stopped', () => stopped!.Status.should.equal(JobStatus.JOB_STATUS_Stopped));
     it('should list the steps of the job', () => steps.length.should.be.greaterThan(0));
     it('should report the steps as stopped', () => steps.every(_ => _.Status === JobStepStatus.JOB_STEP_STATUS_Stopped).should.be.true);

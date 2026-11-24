@@ -182,8 +182,9 @@ describe.skipIf(!connectionString && !process.env.CI)('when opting into fromAllE
         restrictedAfterChild!.children.should.have.lengthOf(1);
         (restrictedAfterChild!.children[0].lastValue !== 'child-value').should.be.true;
     });
-    it('should clear the mapped root property on an unrelated event without that value', () => {
-        allAfterUnrelated!.lastValue.should.equal('');
+    // Chronicle 19.188 keeps the mapped root property when an event lacks the mapped value; earlier kernels cleared it.
+    it('should keep the mapped root property on an unrelated event without that value', () => {
+        allAfterUnrelated!.lastValue.should.equal('updated-child-value');
     });
     it('should leave the restricted alias unchanged on an unrelated event', () => restrictedAfterUnrelated!.lastValue.should.equal(restrictedAfterChild!.lastValue));
     it('should apply a child-declared mapping on creation without changing an unmapped same-named root property', () => {

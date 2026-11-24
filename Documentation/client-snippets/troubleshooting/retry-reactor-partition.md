@@ -15,6 +15,7 @@ async function retryFirstFailedPartition(eventStore: IEventStore): Promise<void>
     // The outcome is what Chronicle reports; it is not proof that the partition has recovered.
     const outcome = await eventStore.reactors.retryFailedPartition(FailingNotifications, failed[0].partition);
     switch (outcome) {
+        case PartitionRetryOutcome.Accepted:
         case PartitionRetryOutcome.Started:
             // A recovery job was accepted. Read the failed partitions and the reactor state again to see it finish.
             console.log(`Recovery started for partition '${failed[0].partition}'.`);

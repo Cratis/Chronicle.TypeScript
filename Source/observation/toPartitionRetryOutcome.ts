@@ -21,6 +21,8 @@ export function toPartitionRetryOutcome(outcome: PartitionRecoveryOutcome): Part
             return PartitionRetryOutcome.ObserverQuarantined;
         case PartitionRecoveryOutcome.PartitionQuarantined:
             return PartitionRetryOutcome.PartitionQuarantined;
+        case PartitionRecoveryOutcome.PARTITION_RECOVERY_OUTCOME_Accepted:
+            return PartitionRetryOutcome.Accepted;
         default:
             return PartitionRetryOutcome.Unknown;
     }

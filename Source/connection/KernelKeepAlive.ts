@@ -4,7 +4,7 @@
 import { createLogger } from '../logging/createLogger.js';
 import { runInBackgroundContext } from '../telemetry/runInBackgroundContext.js';
 import type { IChronicleLogger } from '../logging/IChronicleLogger.js';
-import type { ConnectRequest } from '@cratis/chronicle.contracts';
+import { KernelStatus, type ConnectRequest } from '@cratis/chronicle.contracts';
 
 /**
  * Overrides for how long {@link KernelKeepAlive} waits before giving up on the kernel.
@@ -55,6 +55,7 @@ export class KernelKeepAlive {
 
     private readonly _idleTimeoutMs: number;
     private readonly _answerTimeoutMs: number;
+    private _kernelStatus: KernelStatus = KernelStatus.Accepting;
 
     /**
      * Creates a new {@link KernelKeepAlive}.
@@ -129,7 +130,23 @@ export class KernelKeepAlive {
         }
     }
 
+    /**
+     * Tells in the log when the kernel reports that it is busy, and when it stops, rather than leaving the client's
+     * users to guess from timeouts. A kernel that predates the status sends none, which reads as accepting.
+     */
+    private reportKernelStatus(keepAlive: unknown): void {
+        const status = (keepAlive as { Status?: KernelStatus } | undefined)?.Status ?? KernelStatus.Accepting;
+        if (status === this._kernelStatus) return;
+        this._kernelStatus = status;
+        if (status === KernelStatus.Accepting) {
+            this._logger.info('Chronicle reports that it is accepting calls normally again');
+        } else {
+            this._logger.warn('Chronicle reports that it is busy: calls to it may be slow or time out until it recovers', { status: KernelStatus[status] ?? String(status) });
+        }
+    }
+
     private async answer(keepAlive: unknown, signal: AbortSignal): Promise<void> {
+        this.reportKernelStatus(keepAlive);
         // An answer that never returns would stop the loop draining the stream, which
         // gets the client evicted just as surely as never answering at all.
         await this.withTimeout(

@@ -12,6 +12,9 @@ export enum PartitionRetryOutcome {
     /** A recovery job was started or resumed for the partition. This is acceptance, not recovery. */
     Started = 'Started',
 
+    /** Chronicle accepted the retry and runs it as a job. This is acceptance, not recovery; what became of it is the result of the job. */
+    Accepted = 'Accepted',
+
     /** No failure is recorded for the partition: it was already cleared, never failed, or the observer is unknown or retired. */
     PartitionNotFound = 'PartitionNotFound',
 

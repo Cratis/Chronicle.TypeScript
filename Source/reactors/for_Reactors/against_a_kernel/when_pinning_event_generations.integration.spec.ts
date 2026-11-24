@@ -17,7 +17,7 @@ import { reducer } from '../../../reducers/reducer.js';
 
 chai.should();
 
-// Runtime contract: cratis/chronicle:19.70.0-development, pinned by CI.
+// Runtime contract: cratis/chronicle:19.188.0-development, pinned by CI.
 const eventTypeId = 'integration-pinned-generation';
 
 @eventType(eventTypeId, 1)
