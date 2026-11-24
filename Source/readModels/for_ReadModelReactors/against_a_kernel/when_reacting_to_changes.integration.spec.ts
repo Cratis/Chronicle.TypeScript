@@ -65,8 +65,19 @@ describe.skipIf(!connectionString && !process.env.CI)('when reacting to a projec
         // Store registration must await the reactor subscription before this append.
         const store = await client.getEventStore(storeName, namespace);
         reactors = store.readModelReactors!;
-        watcher = store.readModels.createWatcher(RecordedReaction, { signal: AbortSignal.timeout(60_000) });
-        await watcher.subscribed;
+        // Chronicle 19.188 refuses a watch on a store it registered only an instant ago (PERMISSION_DENIED), so retry briefly.
+        const watchDeadline = Date.now() + 30_000;
+        for (;;) {
+            watcher = store.readModels.createWatcher(RecordedReaction, { signal: AbortSignal.timeout(60_000) });
+            try {
+                await watcher.subscribed;
+                break;
+            } catch (error) {
+                watcher.dispose();
+                if (Date.now() > watchDeadline) throw error;
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
         const result = await store.eventLog.append(source, Object.assign(new NameChanged(), { name: 'observed effect' }));
         result.isSuccess.should.be.true;
         const next = await watcher[Symbol.asyncIterator]().next();
