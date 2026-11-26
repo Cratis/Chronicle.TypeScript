@@ -131,13 +131,13 @@ jobs:
       - name: Kernel-backed specifications
         working-directory: ./Source
         env:
-          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000/?skipTlsValidation=true
         run: yarn test:integration --exclude '**/when_starting_at_the_tail.integration.spec.ts' --exclude '**/when_pinning_event_generations.integration.spec.ts' --exclude '**/when_subscribing_with_from_all_events.integration.spec.ts'
 
       - name: Start-at-tail specification
         working-directory: ./Source
         env: &chronicle-tail-connection
-          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35001
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35001/?skipTlsValidation=true
         run: yarn test:integration reactors/for_Reactors/against_a_kernel/when_starting_at_the_tail
 
       - name: Pinned generation-delivery specification
@@ -148,5 +148,5 @@ jobs:
       - name: Child all-event mapping specification
         working-directory: ./Source
         env:
-          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35002
+          CHRONICLE_INTEGRATION_CONNECTION_STRING: chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35002/?skipTlsValidation=true
         run: yarn test:integration projections/for_ProjectionDefinitionCompiler/against_a_kernel/when_subscribing_with_from_all_events
