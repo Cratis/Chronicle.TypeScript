@@ -11,7 +11,7 @@ Declare any combination of `added(model, changeset)`, `modified(model, changeset
 
 The default discovery provider includes the reactor's model. Import or discover the class before requesting the event store. With a custom `IClientArtifactsProvider`, include the class in optional `readModelReactors` and the model in `readModels`. The model must be a registered root, not a nested/child model or graph element; its projection or reducer still needs to be configured. Discovery validates methods without activating the class. The default reactor ID is the class name; use a unique explicit ID if class names can collide.
 
-See the [typed event-return example](./client-snippets/read-models/reacting-to-changes/basic.md).
+See the [typed event-return example](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/read-models/reacting-to-changes/basic.md).
 
 `changeType` is authoritative. If a hand-built changeset omits it, dispatch falls back to `removed ? Removed : Modified`, never `Added`. Removal passes the model payload supplied by the watcher, not a reconstructed pre-removal snapshot. `changeContext` is optional partial triggering metadata, including a bigint sequence number when available; it is not a full `EventContext`.
 
@@ -21,7 +21,7 @@ Configure `ChronicleOptions.readModelReactorActivator` for constructor dependenc
 
 Without this option, activation uses parameterless construction. Each matching change gets one lease. The optional `run` boundary encloses the handler and returned effects, without a fabricated event invocation context. `complete` runs after processing even when processing fails, then `dispose` releases the lease. Completion errors are reported as change failures; disposal errors are logged without masking processing errors. Applications own external side effects and shared singleton lifetimes.
 
-See [dependency activation and shutdown](./client-snippets/read-models/reacting-to-changes/dependencies.md).
+See [dependency activation and shutdown](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/read-models/reacting-to-changes/dependencies.md).
 
 Handlers may return `void`, `null`, one `EventForEventSourceId`, or an array of those wrappers. The SDK appends recognized wrappers in one atomic `appendMany` call, preserving their explicit source/stream routing and using the event log of `changeset.namespace`. Bare event returns, including bare events mixed with wrappers, fail before any append: a projection key is not necessarily an event source ID. Other unsupported return values are ignored, matching event-reactor result normalization. An unsuccessful append is a change failure.
 
