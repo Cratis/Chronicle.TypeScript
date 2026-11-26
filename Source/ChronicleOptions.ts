@@ -336,8 +336,8 @@ export class ChronicleOptions {
      * Connects to Chronicle on localhost:35000 using the standard development
      * client credentials, matching the default Chronicle development server
      * configuration. The Chronicle server requires TLS on its single port, so
-     * this connects over TLS against the server's self-signed development
-     * certificate.
+     * this explicitly skips certificate validation to accept the server's
+     * self-signed development certificate. Do not use it for non-local servers.
      * @returns A new ChronicleOptions instance for development.
      */
     static development(options?: ChronicleOptionsFactoryParams): ChronicleOptions {

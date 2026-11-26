@@ -66,12 +66,12 @@ chronicle+srv://[<client-id>:<client-secret>@]<service-host>[/?<option>=<value>&
 | --- | --- | --- |
 | `apiKey` | Not set | Authenticate with an API key instead of client credentials. |
 | `disableTls` | `false` | `true` connects over plaintext gRPC and requests tokens over `http`. |
-| `skipTlsValidation` | `true` | Accept any server certificate. The default stays `true` in this release. An explicit `false` always requires validation; an explicit `true` skips it. |
+| `skipTlsValidation` | `false` | Validate the server certificate. Only an explicit `true` skips validation and accepts any server certificate. |
 | `loadBalancer` | `least-connections` | How the client picks one server from several: `least-connections`, `round-robin`, or `random`. |
 | `srvNameServer` | System resolver | IP address, with an optional port, of the DNS server used for `chronicle+srv://` lookups, such as `10.0.0.2:53`. A host name is rejected. |
 | `auth` | Not set | `none` skips authentication altogether. It beats any credentials or API key in the connection string. |
 | `certificatePath`, `certificatePassword` | Not set | A PKCS#12 (`.p12`/`.pfx`) file, or a PEM file with the certificate chain and private key, presented to the server for mutual TLS. `certificatePassword` unlocks either. |
-| `caCertificatePath` | Not set | A PEM file with the certificate authorities the server certificate must chain to, in place of the Node.js trust store. Used only with `skipTlsValidation=false`. |
+| `caCertificatePath` | Not set | A PEM file with the certificate authorities the server certificate must chain to, in place of the Node.js trust store. Used when validation is enabled (the default). |
 | `skipCompatibilityCheck` | `false` | Skip the server compatibility check on connect. A known-safe client and kernel skew only; it hides contract incompatibilities. The kernel version stays unknown, so batches and commits combining named tags with registered event sources throw `NamedTagsWithRegisteredEventSourceNotSupported`. |
 | `skipKeepAlive` | `false` | Skip the keep-alive connection, for short-lived processes. The client cannot host reactors or reducers. |
 
@@ -145,18 +145,34 @@ A connection string without credentials does not fail. The client falls back to 
 
 The client uses TLS unless the connection string sets `disableTls=true`. Chronicle serves gRPC and the token endpoint over TLS on one port.
 
-:::danger[Validate the server certificate for any non-local server]
-Set `skipTlsValidation=false` on every connection string that points at a server other than a local development kernel. `skipTlsValidation` defaults to `true` so that the development image's self-signed certificate works without configuration. With that default, the client accepts any certificate for both gRPC calls and token requests, so anyone who can intercept the connection can read the credentials and the events.
+The client validates the server certificate by default for the gRPC channel, OAuth token requests, and load-balancer probes. Omitting `skipTlsValidation` is equivalent to setting it to `false`. A certificate validation failure never falls back to accepting an untrusted certificate.
+
+:::danger[Keep certificate validation enabled outside local development]
+Only an explicit `skipTlsValidation=true` accepts any server certificate. This permits interception of credentials and events. Do not use it for non-local servers.
 :::
 
-When TLS is on and `skipTlsValidation` is `true`, the client logs one warning through the configured [logger](./observability.md#application-diagnostics) when the connection starts if any target host is not a loopback host (`localhost`, `127.x.x.x`, or `::1`). The warning names the host, says that certificate validation is disabled for the gRPC channel and OAuth token requests and that any certificate is accepted, and tells you to set `skipTlsValidation=false` once the server certificate is trusted. It is logged once per connection, not on each call or reconnect. The default stays `true` in this release; an explicit `skipTlsValidation=false` requires validation.
-With `skipTlsValidation=false`, the server certificate must be trusted by the default Node.js and gRPC trust store, or chain to a certificate authority in the file named by `caCertificatePath`. The authority file is read whenever the option is set, so a missing or unreadable file, or one without PEM certificates, fails the connection setup even while validation is skipped.
+When TLS is on and `skipTlsValidation` is `true`, the client logs one warning through the configured [logger](./observability.md#application-diagnostics) when the connection starts if any target host is not a loopback host (`localhost`, `127.x.x.x`, or `::1`). The warning names the host, says that certificate validation is disabled for the gRPC channel and OAuth token requests and that any certificate is accepted, and tells you to set `skipTlsValidation=false` once the server certificate is trusted. It is logged once per connection, not on each call or reconnect. An omitted or explicitly false `skipTlsValidation` requires validation.
+With validation enabled, the server certificate must be trusted by the default Node.js and gRPC trust store, or chain to a certificate authority in the file named by `caCertificatePath`. The authority file is read whenever the option is set, so a missing or unreadable file, or one without PEM certificates, fails the connection setup even while validation is skipped.
 
 For mutual TLS, set `certificatePath` to a PKCS#12 file or to a PEM file that holds the certificate chain and the private key. The client presents the certificate on the gRPC channel, on token requests and on the load balancer's probes. A wrong `certificatePassword`, or a key that does not belong to the certificate, fails the connection setup.
 
 Option names are matched without regard to case, boolean options accept only `true` and `false`, and a literal `+` in a value stays a plus. Percent-encode reserved characters in the user name and password; a connection string whose user information leaks a separator into the options is rejected.
 
 Use `disableTls=true` only when something else protects the traffic, for example a service mesh that terminates TLS. Credentials and events then cross the network unencrypted between the client and that proxy.
+
+### Connect to the development image
+
+`ChronicleOptions.development()` explicitly sets `skipTlsValidation=true` for `localhost:35000`, as does `ChronicleConnectionString.Development`. Both continue to accept the development image's self-signed certificate. For a custom localhost connection string, use `chronicle://localhost:35000?skipTlsValidation=true` only for local development.
+
+To keep validation enabled, trust the development certificate in the Node.js and gRPC trust stores, or set `caCertificatePath` to a PEM file containing its certificate authority. The certificate must also match the server's host name.
+
+`ChronicleConnectionString.Default` remains `chronicle://localhost:35000` without any TLS options. It now validates the server certificate; it is not the development helper.
+
+### Upgrade to certificate validation by default
+
+This is a breaking change: previously, an omitted `skipTlsValidation` meant `true`, accepting any certificate. It now means `false`, requiring a trusted certificate for gRPC, OAuth token requests, and load-balancer probes. Explicit `true` and `false` keep their meanings; `disableTls=true` still disables TLS entirely.
+
+If an existing connection fails certificate validation after upgrading, install a trusted server certificate or configure `caCertificatePath`. For the local development image, switch to `ChronicleOptions.development()` or explicitly add `skipTlsValidation=true` to the localhost connection string. Setting `skipTlsValidation=true` restores the old behavior, but accepts any certificate and must not be used for non-local servers.
 
 ## Connect to several servers
 
