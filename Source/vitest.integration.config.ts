@@ -6,7 +6,8 @@ import baseConfig from './vitest.config.js';
 
 // Kernel-backed specifications. They need a running Chronicle kernel and are skipped unless
 // CHRONICLE_INTEGRATION_CONNECTION_STRING points at one, for example
-// chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000
+// chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000/?skipTlsValidation=true
+// (the development image uses a self-signed certificate, so it opts out of certificate validation).
 // The webhook delivery specifications also need the kernel to reach this process over HTTP, as
 // host.docker.internal by default; set CHRONICLE_INTEGRATION_WEBHOOK_HOST when it reaches it differently.
 export default defineConfig({

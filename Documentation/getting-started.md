@@ -307,7 +307,7 @@ The TypeScript client validates server certificates by default. Leave `skipTlsVa
 const options = ChronicleOptions.development();
 ```
 
-This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000', ...)`. The development credentials are public, so use it only against a local development kernel.
+This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000/?skipTlsValidation=true', ...)`. The development credentials are public, so use it only against a local development kernel.
 
 ## Troubleshooting
 
