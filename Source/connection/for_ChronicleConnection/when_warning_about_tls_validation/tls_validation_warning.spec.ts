@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe('TLS validation warning', () => {
     it('warns once, naming the host, for a remote host with validation skipped', async () => {
-        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000');
+        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000?skipTlsValidation=true');
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('chronicle.example.com');
         expect(warnings[0].message).toContain('gRPC channel and OAuth token requests');
@@ -32,12 +32,12 @@ describe('TLS validation warning', () => {
         expect(warnings[0].message).toContain('Set skipTlsValidation=false once the server certificate is trusted.');
     });
 
-    it('warns for an explicit skipTlsValidation=true on a remote host', async () => {
-        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?skipTlsValidation=true')).toHaveLength(1);
+    it('does not warn for a remote host when validation is enabled by default', async () => {
+        expect(await connectionWarnings('chronicle://chronicle.example.com:35000')).toHaveLength(0);
     });
 
     it.each(['localhost', '127.0.0.1', '127.1.2.3', '[::1]'])('does not warn for loopback host %s', async host => {
-        expect(await connectionWarnings(`chronicle://${host}:35000`)).toHaveLength(0);
+        expect(await connectionWarnings(`chronicle://${host}:35000?skipTlsValidation=true`)).toHaveLength(0);
     });
 
     it('does not warn when validation is enabled', async () => {
@@ -49,36 +49,36 @@ describe('TLS validation warning', () => {
     });
 
     it('does not warn again on reconnect', async () => {
-        expect(await connectionWarnings('chronicle://chronicle.example.com:35000', 2)).toHaveLength(1);
+        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?skipTlsValidation=true', 2)).toHaveLength(1);
     });
 
     it('warns about OAuth token requests only when custom credentials are used with token auth', async () => {
-        const warnings = await connectionWarnings('chronicle://client:secret@chronicle.example.com:35000', 0, grpcCredentials.createInsecure());
+        const warnings = await connectionWarnings('chronicle://client:secret@chronicle.example.com:35000?skipTlsValidation=true', 0, grpcCredentials.createInsecure());
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('OAuth token requests to chronicle.example.com');
         expect(warnings[0].message).not.toContain('gRPC channel');
     });
 
     it('does not warn when custom credentials are used with an API key', async () => {
-        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?apiKey=key', 0, grpcCredentials.createInsecure())).toHaveLength(0);
+        expect(await connectionWarnings('chronicle://chronicle.example.com:35000?apiKey=key&skipTlsValidation=true', 0, grpcCredentials.createInsecure())).toHaveLength(0);
     });
 
     it('warns about token requests only for a remote authority with a loopback server', async () => {
-        const warnings = await connectionWarnings('chronicle://localhost:35000', 0, undefined, 'https://auth.example.com');
+        const warnings = await connectionWarnings('chronicle://localhost:35000?skipTlsValidation=true', 0, undefined, 'https://auth.example.com');
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('OAuth token requests to auth.example.com');
         expect(warnings[0].message).not.toContain('gRPC channel');
     });
 
     it('mentions only the gRPC channel for an API key with a remote host', async () => {
-        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000?apiKey=key');
+        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000?apiKey=key&skipTlsValidation=true');
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('the gRPC channel to chronicle.example.com');
         expect(warnings[0].message).not.toContain('OAuth');
     });
 
     it('names both hosts for a remote server and a different remote authority', async () => {
-        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000', 0, undefined, 'https://auth.example.com');
+        const warnings = await connectionWarnings('chronicle://chronicle.example.com:35000?skipTlsValidation=true', 0, undefined, 'https://auth.example.com');
         expect(warnings).toHaveLength(1);
         expect(warnings[0].message).toContain('the gRPC channel to chronicle.example.com and OAuth token requests to auth.example.com');
     });

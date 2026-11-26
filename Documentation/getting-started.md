@@ -275,7 +275,7 @@ The instance initializer remains a fallback for models constructed later, but it
 
 ## Connecting to Chronicle
 
-`ChronicleOptions.development()` connects to `localhost:35000` over TLS with the development client credentials that the development image accepts. It does not validate the server certificate, which is what lets it accept the image's self-signed certificate.
+`ChronicleOptions.development()` connects to `localhost:35000` over TLS with the development client credentials that the development image accepts. It explicitly sets `skipTlsValidation=true`, which lets it accept the image's self-signed certificate. Ordinary connection strings, including `ChronicleConnectionString.Default`, validate the server certificate when the option is omitted.
 
 For any other kernel, build the options from a connection string:
 
@@ -295,8 +295,8 @@ chronicle://<client-id>:<client-secret>@chronicle.example.com:35000/?skipTlsVali
 chronicle://chronicle.example.com:35000/?apiKey=<api-key>&skipTlsValidation=false
 ```
 
-:::danger[Set skipTlsValidation=false outside local development]
-The TypeScript client skips TLS certificate validation unless the connection string says `skipTlsValidation=false`. That default exists for the development image's self-signed certificate. Against any other server, it leaves the connection open to interception.
+:::danger[Keep certificate validation enabled outside local development]
+The TypeScript client validates server certificates by default. Leave `skipTlsValidation` omitted or set it to `false` for non-local servers. An explicit `skipTlsValidation=true` accepts any certificate and leaves the connection open to interception. See the [TLS upgrade guidance](./connecting.md#upgrade-to-certificate-validation-by-default) if an existing connection uses an untrusted certificate.
 :::
 
 [Connect to Chronicle](./connecting.md) covers credentials, TLS, multiple hosts, reconnection, and kernel compatibility.
@@ -307,7 +307,7 @@ The TypeScript client skips TLS certificate validation unless the connection str
 const options = ChronicleOptions.development();
 ```
 
-This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000', ...)`. The development credentials are public, so use it only against a local development kernel.
+This is the same as `ChronicleOptions.fromConnectionString('chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000/?skipTlsValidation=true', ...)`. The development credentials are public, so use it only against a local development kernel.
 
 ## Troubleshooting
 

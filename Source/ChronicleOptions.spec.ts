@@ -18,6 +18,15 @@ afterEach(() => {
     else process.env.VITEST = vitest;
 });
 
+describe('when creating development options', () => {
+    it('should explicitly skip TLS validation for localhost', () => {
+        const connectionString = ChronicleOptions.development().connectionString;
+        expect(connectionString.skipTlsValidation).toBe(true);
+        expect(connectionString.hasExplicitSkipTlsValidation).toBe(true);
+        expect(connectionString.serverAddress).toEqual({ host: 'localhost', port: 35000 });
+    });
+});
+
 describe('default artifact discovery', () => {
     for (const extension of ['ts', 'tsx', 'mts', 'cts']) {
         it(`scans TypeScript sources for a .${extension} entry`, () => {

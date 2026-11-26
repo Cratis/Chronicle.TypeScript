@@ -75,7 +75,7 @@ export class OAuthTokenProvider implements ITokenProvider {
      * @param clientId - The client identifier.
      * @param clientSecret - The client secret.
      * @param skipTlsValidation - The effective setting: `true` skips TLS certificate chain validation, `false` requires it.
-     * Defaults to `true`, matching the connection string default in this release.
+     * Defaults to `false`, matching the connection string default.
      * @param _fetchToken - Test-only seam replacing the OAuth2 token request.
      * @param _tlsMaterial - The client certificate and certificate authorities the token request uses.
      */
@@ -83,7 +83,7 @@ export class OAuthTokenProvider implements ITokenProvider {
         private readonly _tokenEndpoint: string,
         clientId: string,
         clientSecret: string,
-        skipTlsValidation: boolean = true,
+        skipTlsValidation: boolean = false,
         private readonly _fetchToken: () => Promise<OAuthTokenResponse> = () =>
             fetchOAuthAccessToken(this._tokenEndpoint, clientId, clientSecret, skipTlsValidation, this._tlsMaterial),
         private readonly _tlsMaterial: ChronicleTlsMaterial = ChronicleTlsMaterial.None

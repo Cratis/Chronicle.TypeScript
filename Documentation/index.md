@@ -11,7 +11,7 @@ This section covers what is specific to TypeScript: installation, TypeScript con
 
 [Get started with the TypeScript client](./getting-started.md) takes you from an empty folder to a program that appends events and reads the projected read model back. It also covers Node.js and TypeScript requirements, decorator modes, and the most common setup errors.
 
-Then read [Connect to Chronicle](./connecting.md) before you point the client at anything other than a local development kernel. The client skips TLS certificate validation by default, and it retries a failing connection silently.
+Then read [Connect to Chronicle](./connecting.md) before you point the client at anything other than a local development kernel. The client validates the server's TLS certificate by default (`ChronicleOptions.development()` turns validation off for the local development image), and it retries a failing connection silently.
 
 ## Shared Chronicle topics
 
