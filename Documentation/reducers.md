@@ -16,7 +16,7 @@ Reducers are shared Chronicle read-model behavior. Use the shared reducer docs f
 
 ### Choosing the delivered generation
 
-Compatibility delivery remains the default. On Chronicle kernel **19.41.0 or later**, append `EventGenerationDelivery.Pinned` as the fifth argument: `@reducer('totals', undefined, Totals, true, EventGenerationDelivery.Pinned)`. The preceding ID, event sequence, read model and active flag retain their meanings. See the [self-contained pinned reducer declaration](./client-snippets/reducers/pinned-generation.md).
+Compatibility delivery remains the default. On Chronicle kernel **19.41.0 or later**, append `EventGenerationDelivery.Pinned` as the fifth argument: `@reducer('totals', undefined, Totals, true, EventGenerationDelivery.Pinned)`. The preceding ID, event sequence, read model and active flag retain their meanings. See the [self-contained pinned reducer declaration](https://github.com/Cratis/Chronicle.TypeScript/blob/main/Documentation/client-snippets/reducers/pinned-generation.md).
 
 Pinned delivery requests released, decrypted and migrated content in each subscribed event type's generation during catch-up and replay. Subscribe to one generation per event type; the client uses kernel `Content`, not a `GenerationalContent` entry. See [original and delivered generations](./event-types.md#original-and-delivered-generations). Register the migration chain and required downcasts before observation. `context.eventType.generation` is the delivered generation; `context.appendedGeneration?.value` is the original appended generation, or `undefined` when unknown, including older events. These can differ: generation-2 content downcast for a generation-1 reducer still reports appended generation 2.
 
