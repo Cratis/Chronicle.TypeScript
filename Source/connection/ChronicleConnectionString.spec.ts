@@ -5,6 +5,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthenticationMode, ChronicleConnectionString, ChronicleConnectionStringBuilder } from './ChronicleConnectionString.js';
 import { LoadBalancerMode } from './LoadBalancerMode.js';
 
+async function mockCredentials(connectionString: string, tlsCredentials = 'secure-credentials') {
+    vi.resetModules();
+    const createSsl = vi.fn().mockReturnValue(tlsCredentials);
+    const createInsecure = vi.fn().mockReturnValue('plaintext-credentials');
+    vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
+    try {
+        const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
+        return {
+            credentials: new MockedChronicleConnectionString(connectionString).createCredentials(),
+            createSsl,
+            createInsecure
+        };
+    } finally {
+        vi.doUnmock('@grpc/grpc-js');
+    }
+}
+
 describe('ChronicleConnectionStringBuilder', () => {
     describe('when parsing a single host', () => {
         const builder = new ChronicleConnectionStringBuilder('chronicle://localhost:35000');
@@ -294,72 +311,41 @@ describe('ChronicleConnectionString', () => {
 
     describe('when creating credentials without skipTlsValidation specified', () => {
         it('should validate a remote server certificate by default', async () => {
-            vi.resetModules();
-            const createSsl = vi.fn().mockReturnValue('secure-credentials');
-            const createInsecure = vi.fn();
-            vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
-
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
-            const connectionString = new MockedChronicleConnectionString('chronicle://untrusted.example.com:35000');
-            const credentials = connectionString.createCredentials();
+            const { credentials, createSsl, createInsecure } = await mockCredentials('chronicle://untrusted.example.com:35000');
 
             expect(createSsl).toHaveBeenCalledWith();
             expect(createInsecure).not.toHaveBeenCalled();
             expect(credentials).toBe('secure-credentials');
-            vi.doUnmock('@grpc/grpc-js');
         });
     });
 
     describe('when creating credentials with skipTlsValidation explicitly true', () => {
         it('should skip certificate chain validation', async () => {
-            vi.resetModules();
-            const createSsl = vi.fn().mockReturnValue('insecure-tls-credentials');
-            const createInsecure = vi.fn();
-            vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
-
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
-            const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000/?skipTlsValidation=true');
-            const credentials = connectionString.createCredentials();
+            const { credentials, createSsl, createInsecure } = await mockCredentials(
+                'chronicle://localhost:35000/?skipTlsValidation=true', 'insecure-tls-credentials');
 
             expect(createSsl).toHaveBeenCalledWith(null, null, null, { rejectUnauthorized: false });
             expect(createInsecure).not.toHaveBeenCalled();
             expect(credentials).toBe('insecure-tls-credentials');
-            vi.doUnmock('@grpc/grpc-js');
         });
     });
 
     describe('when creating credentials with skipTlsValidation explicitly false', () => {
         it('should validate the certificate chain', async () => {
-            vi.resetModules();
-            const createSsl = vi.fn().mockReturnValue('secure-credentials');
-            const createInsecure = vi.fn();
-            vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
-
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
-            const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000/?skipTlsValidation=false');
-            const credentials = connectionString.createCredentials();
+            const { credentials, createSsl } = await mockCredentials('chronicle://localhost:35000/?skipTlsValidation=false');
 
             expect(createSsl).toHaveBeenCalledWith();
             expect(credentials).toBe('secure-credentials');
-            vi.doUnmock('@grpc/grpc-js');
         });
     });
 
     describe('when creating credentials with disableTls', () => {
         it('should create insecure credentials', async () => {
-            vi.resetModules();
-            const createSsl = vi.fn();
-            const createInsecure = vi.fn().mockReturnValue('plaintext-credentials');
-            vi.doMock('@grpc/grpc-js', () => ({ credentials: { createSsl, createInsecure } }));
-
-            const { ChronicleConnectionString: MockedChronicleConnectionString } = await import('./ChronicleConnectionString.js');
-            const connectionString = new MockedChronicleConnectionString('chronicle://localhost:35000/?disableTls=true');
-            const credentials = connectionString.createCredentials();
+            const { credentials, createSsl, createInsecure } = await mockCredentials('chronicle://localhost:35000/?disableTls=true');
 
             expect(createInsecure).toHaveBeenCalled();
             expect(createSsl).not.toHaveBeenCalled();
             expect(credentials).toBe('plaintext-credentials');
-            vi.doUnmock('@grpc/grpc-js');
         });
     });
 });
